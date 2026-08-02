@@ -1,75 +1,84 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.16)
 
-project(DuelMasters3D)
+project(KaijudoDuel LANGUAGES CXX)
+
+include(CTest)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+find_path(SDL2_INCLUDE_DIR SDL.h PATH_SUFFIXES SDL2)
+find_library(SDL2_LIBRARY NAMES SDL2)
+find_path(SDL2_IMAGE_INCLUDE_DIR SDL_image.h PATH_SUFFIXES SDL2)
+find_library(SDL2_IMAGE_LIBRARY NAMES SDL2_image)
+find_path(SDL2_TTF_INCLUDE_DIR SDL_ttf.h PATH_SUFFIXES SDL2)
+find_library(SDL2_TTF_LIBRARY NAMES SDL2_ttf)
+find_package(Lua REQUIRED)
+find_package(Threads REQUIRED)
+
+if(NOT SDL2_INCLUDE_DIR OR NOT SDL2_LIBRARY
+   OR NOT SDL2_IMAGE_INCLUDE_DIR OR NOT SDL2_IMAGE_LIBRARY
+   OR NOT SDL2_TTF_INCLUDE_DIR OR NOT SDL2_TTF_LIBRARY)
+    message(FATAL_ERROR "SDL2, SDL2_image, and SDL2_ttf development packages are required")
 endif()
 
-# set(CMAKE_CXX_FLAGS "-Wall -Wextra -llua5.3 -lfreetype -lassimp -lSDL2main -lSDL2 -lGLEW -lGLU -lGL")
-set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-g -O3")
-
-set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR})
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Bin)
-
-# findopengl()
-# if(OPENGL_FOUND)
-#     include_directories(${OPENGL_INCLUDE_DIRS})
-# endif()
-# 
-# find_package(GLEW REQUIRED)
-# if(GLEW_FOUND)
-#     include_directories(${GLEW_INCLUDE_DIRS})
-# endif()
-# 
-# find_package(SDL2 REQUIRED)
-# if(SDL2_FOUND)
-#     include_directories(${SDL2_INCLUDE_DIRS})
-# endif()
-# 
-# find_package(ASSIMP REQUIRED)
-# if(ASSIMP_FOUND)
-#     include_directories(${ASSIMP_INCLUDE_DIR})
-# endif() 
-# 
-# find_package(FREETYPE REQUIRED)
-# if(FREETYPE_FOUND)
-#     include_directories(${FREETYPE_INCLUDE_DIRS})
-# endif() 
-
-include_directories("/home/rian/Code/Libraries/DevIL/DevIL/include")
-include_directories("/usr/include/assimp")
-include_directories("/usr/include/freetype2")
-include_directories("Source/")
-link_directories("/home/rian/Code/Libraries/DevIL/DevIL/build/lib/x64")
-
-file(GLOB SOURCE_FILES
-    Source/*.cpp
-    Source/Game/*.cpp
-    Source/Interface/*.cpp
-    Source/AI/*.cpp
-    Source/Graphics/*.cpp
+set(GAME_SOURCES
+    Source/Main.cpp
+    Source/App/Application.cpp
+    Source/App/CardRenderer.cpp
+    Source/App/DuelWindow.cpp
+    Source/App/Overworld.cpp
+    Source/CRandom.cpp
+    Source/LuaFunctions.cpp
+    Source/SoundManager.cpp
+    Source/Game/BattleZone.cpp
+    Source/Game/Card.cpp
+    Source/Game/CardData.cpp
+    Source/Game/Choice.cpp
+    Source/Game/Deck.cpp
+    Source/Game/Duel.cpp
+    Source/Game/Graveyard.cpp
+    Source/Game/Hand.cpp
+    Source/Game/ManaZone.cpp
+    Source/Game/Message.cpp
+    Source/Game/MessageManager.cpp
+    Source/Game/Modifier.cpp
+    Source/Game/ShieldZone.cpp
+    Source/Game/Zone.cpp
 )
 
-add_executable(DuelMasters3D ${SOURCE_FILES})
-# target_link_libraries(DuelMasters3D ${ASSIMP_LIBRARY})
-target_link_libraries(DuelMasters3D libIL.so)
-target_link_libraries(DuelMasters3D libILU.so)
-target_link_libraries(DuelMasters3D libILUT.so)
-target_link_libraries(DuelMasters3D lua5.3)
-target_link_libraries(DuelMasters3D freetype)
-target_link_libraries(DuelMasters3D assimp)
-target_link_libraries(DuelMasters3D SDL2)
-target_link_libraries(DuelMasters3D SDL2main)
-target_link_libraries(DuelMasters3D GLEW)
-target_link_libraries(DuelMasters3D GLU)
-target_link_libraries(DuelMasters3D GL)
-target_link_libraries(DuelMasters3D pthread)
+add_executable(KaijudoDuel ${GAME_SOURCES})
+
+target_include_directories(KaijudoDuel PRIVATE
+    Source
+    ${SDL2_INCLUDE_DIR}
+    ${SDL2_IMAGE_INCLUDE_DIR}
+    ${SDL2_TTF_INCLUDE_DIR}
+    ${LUA_INCLUDE_DIR}
+)
+
+target_link_libraries(KaijudoDuel PRIVATE
+    ${SDL2_LIBRARY}
+    ${SDL2_IMAGE_LIBRARY}
+    ${SDL2_TTF_LIBRARY}
+    ${LUA_LIBRARIES}
+    Threads::Threads
+)
+
+target_compile_options(KaijudoDuel PRIVATE -Wall -Wextra -Wpedantic)
+
+set_target_properties(KaijudoDuel PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/Bin"
+)
+
+if(BUILD_TESTING)
+    add_test(NAME smoke
+        COMMAND KaijudoDuel --smoke-test
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    )
+    set_tests_properties(smoke PROPERTIES
+        ENVIRONMENT "SDL_VIDEODRIVER=dummy"
+        TIMEOUT 30
+    )
+endif()

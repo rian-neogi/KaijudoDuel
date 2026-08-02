@@ -18,10 +18,10 @@ const float gHandHoverDownDistance = 2.f;
 const float gHandRightDistance = 3.f;
 const float gHandHoverRightDistance = 1.5f;
 const float gHighlightX = 0;
-const float gHighlightY = 20;
+const float gHighlightY = 17;
 const float gHighlightZ = 0;
 const float gCastingCardX = 0;
-const float gCastingCardY = 15;
+const float gCastingCardY = 2;
 const float gCastingCardZ = 0;
 
 //SCROLLER
@@ -32,7 +32,7 @@ const float CONST_CARD_MOVESPEED = 0.0005;
 const float CONST_CARD_TURNSPEED = 0.00015;
 
 //GAME INTERFACE
-const float gZoomDistance = 25.f;
+const float gZoomDistance = 20.f;
 const float gCameraSpeed = 0.0001f;
 const int HOVER_CARD_TIME = 500;
 

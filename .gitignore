@@ -3,6 +3,11 @@
 
 Decks/
 Resources/
+!Resources/
+Resources/*
+!Resources/Textures/
+Resources/Textures/*
+!Resources/Textures/duel-board.png
 .vscode/
 
 # User-specific files

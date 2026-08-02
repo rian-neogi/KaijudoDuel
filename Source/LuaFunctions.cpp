@@ -10,7 +10,7 @@ static int printstr(lua_State* L)
 
 static int printint(lua_State* L)
 {
-	printf("%s", lua_tointeger(L, 1));
+	printf("%lld", static_cast<long long>(lua_tointeger(L, 1)));
 	return 0;
 }
 
@@ -58,7 +58,12 @@ static int createChoice(lua_State* L)
 	ActiveDuel->checkChoiceValid();
 	
 	if (ActiveDuel->mIsChoiceActive)
-		lua_pushinteger(L, ActiveDuel->waitForChoice());
+	{
+		ActiveDuel->mLuaCallbackSuspended = true;
+		int choice = ActiveDuel->waitForChoice();
+		ActiveDuel->mLuaCallbackSuspended = false;
+		lua_pushinteger(L, choice);
+	}
 	else
 		lua_pushinteger(L, RETURN_NOVALID);
 	return 1;
@@ -100,7 +105,12 @@ static int createChoiceNoCheck(lua_State* L)
 	//luaL_unref(L, LUA_REGISTRYINDEX, ref);
 	//return 1;
 	if (ActiveDuel->mIsChoiceActive)
-		lua_pushinteger(L, ActiveDuel->waitForChoice());
+	{
+		ActiveDuel->mLuaCallbackSuspended = true;
+		int choice = ActiveDuel->waitForChoice();
+		ActiveDuel->mLuaCallbackSuspended = false;
+		lua_pushinteger(L, choice);
+	}
 	else
 		lua_pushinteger(L, RETURN_NOVALID);
 	return 1;

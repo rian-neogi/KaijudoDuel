@@ -8,7 +8,7 @@
 
 #include <ft2build.h>
 #include <freetype/freetype.h>
-#define FT_FREETYPE_H
+// #define FT_FREETYPE_H
 
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
@@ -18,6 +18,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include <string>
 #include <vector>
 #include <map>
 

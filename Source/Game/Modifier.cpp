@@ -43,9 +43,17 @@ int Modifier::handleMessage(int cid, int mid, Message& msg)
 	}
 	return 0;*/
 
+	int stackTop = lua_gettop(LuaCards);
 	lua_rawgeti(LuaCards, LUA_REGISTRYINDEX, mFuncRef);
 	lua_pushinteger(LuaCards, cid);
 	lua_pushinteger(LuaCards, mid);
-	lua_pcall(LuaCards, 2, 0, 0);
+	int status = lua_pcall(LuaCards, 2, 0, 0);
+	if (status != LUA_OK)
+	{
+		const char* error = lua_tostring(LuaCards, -1);
+		fprintf(stderr, "Lua modifier error while handling '%s': %s\n",
+			msg.getType().c_str(), error == NULL ? "unknown error" : error);
+	}
+	lua_settop(LuaCards, stackTop);
 	return 0;
 }

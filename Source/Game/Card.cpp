@@ -1,5 +1,7 @@
 #include "Card.h"
 
+#include <cctype>
+
 //std::vector<std::string> gCardNames;
 
 Card::Card() : mUniqueId(-1), mCardId(0), mOwner(0)
@@ -18,7 +20,6 @@ Card::Card(int uid, int cid, int owner) : mUniqueId(uid), mCardId(cid), mOwner(o
 	assert(uid >= 0);
 	assert(cid >= 0);
 	assert(cid < gCardDatabase.size());
-	printf("id: %d %s\n", cid, gCardDatabase[cid].Name.c_str());
 
 	mName = gCardDatabase[cid].Name;
 	mType = gCardDatabase[cid].Type;
@@ -125,14 +126,39 @@ void Card::copyFrom(Card* c)
 
 int Card::handleMessage(Message& msg)
 {
+	int stackTop = lua_gettop(LuaCards);
 	lua_getglobal(LuaCards, "Cards");
+	if (!lua_istable(LuaCards, -1))
+	{
+		fprintf(stderr, "Lua card table is unavailable while handling %s\n", msg.getType().c_str());
+		lua_settop(LuaCards, stackTop);
+		return -1;
+	}
 	lua_getfield(LuaCards, -1, gCardDatabase[mCardId].Name.c_str());
+	if (!lua_istable(LuaCards, -1))
+	{
+		fprintf(stderr, "Lua rules are missing for card '%s'\n", mName.c_str());
+		lua_settop(LuaCards, stackTop);
+		return -1;
+	}
 	lua_getfield(LuaCards, -1, "HandleMessage");
+	if (!lua_isfunction(LuaCards, -1))
+	{
+		// HandleMessage is optional: many vanilla creatures and spells have no
+		// reactive Lua rule, so quietly ignore broadcasts for those cards.
+		lua_settop(LuaCards, stackTop);
+		return -1;
+	}
 	lua_pushinteger(LuaCards, mUniqueId);
-	lua_pcall(LuaCards, 1, 0, 0);
+	int status = lua_pcall(LuaCards, 1, 0, 0);
+	if (status != LUA_OK)
+	{
+		const char* error = lua_tostring(LuaCards, -1);
+		fprintf(stderr, "Lua error for '%s' while handling '%s': %s\n",
+			mName.c_str(), msg.getType().c_str(), error == NULL ? "unknown error" : error);
+	}
 	//sendMessageToBuffs(msg);
-	lua_pop(LuaCards, 1);
-	lua_pop(LuaCards, 1);
+	lua_settop(LuaCards, stackTop);
 
 	int cnt = 0;
 	for (std::vector<Modifier*>::iterator i = mModifiers.begin(); i != mModifiers.end(); i++, cnt++)
@@ -145,13 +171,24 @@ int Card::handleMessage(Message& msg)
 
 void Card::callOnCast()
 {
+	int stackTop = lua_gettop(LuaCards);
 	lua_getglobal(LuaCards, "Cards");
 	lua_getfield(LuaCards, -1, gCardDatabase[mCardId].Name.c_str());
 	lua_getfield(LuaCards, -1, "OnCast");
+	if (!lua_isfunction(LuaCards, -1))
+	{
+		fprintf(stderr, "Lua OnCast is missing for card '%s'\n", mName.c_str());
+		lua_settop(LuaCards, stackTop);
+		return;
+	}
 	lua_pushinteger(LuaCards, mUniqueId);
-	lua_pcall(LuaCards, 1, 0, 0);
-	lua_pop(LuaCards, 1);
-	lua_pop(LuaCards, 1);
+	int status = lua_pcall(LuaCards, 1, 0, 0);
+	if (status != LUA_OK)
+	{
+		const char* error = lua_tostring(LuaCards, -1);
+		fprintf(stderr, "Lua OnCast error for '%s': %s\n", mName.c_str(), error == NULL ? "unknown error" : error);
+	}
+	lua_settop(LuaCards, stackTop);
 }
 
 //void Card::move(Orientation target, int time)
@@ -222,6 +259,23 @@ int getCardIdFromName(std::string s)
 			return i;
 		}
 	}
+	for (size_t i = 0; i < gCardDatabase.size(); i++)
+	{
+		const std::string& candidate = gCardDatabase[i].Name;
+		if (candidate.size() != s.size()) continue;
+		bool matches = true;
+		for (size_t j = 0; j < s.size(); ++j)
+		{
+			unsigned char left = static_cast<unsigned char>(candidate[j]);
+			unsigned char right = static_cast<unsigned char>(s[j]);
+			if (std::tolower(left) != std::tolower(right))
+			{
+				matches = false;
+				break;
+			}
+		}
+		if (matches) return i;
+	}
 	return -1;
 }
 
@@ -285,17 +339,15 @@ void loadSet(std::string path, std::string set_name)
 	boost::property_tree::read_xml(file, p);
 	auto cards = p.get_child(boost::property_tree::ptree::path_type("set.cards"));
 
-	std::string name = "";
-	std::string race = "";
-	int civ = -1;
-	int type = -1;
-	int cost = -1;
-	int power = -1;
-
-	std::string tmp = "";
-
 	for (auto it : cards)
 	{
+		std::string name = "";
+		std::string race = "";
+		int civ = -1;
+		int type = -1;
+		int cost = -1;
+		int power = 0;
+		std::string tmp = "";
 		//printf("tree: %s\n", it.first);
 		//printf("name %s\n", it.second.get<std::string>(boost::property_tree::ptree::path_type("<xmlattr>.name")).c_str());
 		name = it.second.get<std::string>(boost::property_tree::ptree::path_type("<xmlattr>.name"));
@@ -312,7 +364,6 @@ void loadSet(std::string path, std::string set_name)
 					else if (tmp == "Fire") civ = CIV_FIRE;
 					else if (tmp == "Water") civ = CIV_WATER;
 					else if (tmp == "Nature") civ = CIV_NATURE;
-					else printf("ERROR: Unknown civ for card %s\n", name.c_str());
 				}
 				if (it2.second.get<std::string>(boost::property_tree::ptree::path_type("<xmlattr>.name")) == "Power")
 				{
@@ -344,12 +395,13 @@ void loadSet(std::string path, std::string set_name)
 					//printf("type %s\n", it2.second.get<std::string>(boost::property_tree::ptree::path_type("<xmlattr>.value")).c_str());
 					tmp = it2.second.get<std::string>(boost::property_tree::ptree::path_type("<xmlattr>.value"));
 					if (tmp == "Creature") type = TYPE_CREATURE;
-					else if (tmp == "Evolution Creature") type = TYPE_CREATURE;
+					else if (tmp == "Evolution Creature" || tmp == "Evolution creature") type = TYPE_CREATURE;
 					else if (tmp == "Spell") type = TYPE_SPELL;
-					else printf("ERROR: Unknown type for card %s\n", name.c_str());
 				}
 			}
 		}
+		if (civ < 0 || type < 0 || cost < 0)
+			continue;
 		CardData cd(gCardDatabase.size(), name, set_name, race, civ, type, cost, power);
 		gCardDatabase.push_back(cd);
 	}

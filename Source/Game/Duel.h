@@ -3,6 +3,7 @@
 #include "Choice.h"
 
 #include <fstream>
+#include <atomic>
 #include <mutex>
 
 enum AttackPhase { PHASE_NONE, PHASE_BLOCK, PHASE_TARGET, PHASE_TRIGGER };
@@ -31,6 +32,8 @@ public:
 	std::string mDeckNames[2];
 
 	bool mIsSimulation;
+	std::atomic<bool> mInputLoopRunning;
+	std::atomic<bool> mLuaCallbackSuspended;
 	std::vector<MsgHistoryItem> mMessageHistory;
 	std::vector<Message> mMoveHistory;
 	int mCurrentMoveCount;
@@ -54,6 +57,7 @@ public:
 	int mChoiceCard;
 	int mChoicePlayer;
 	bool mIsChoiceActive;
+	std::vector<int> mChoiceValidCards;
 
 	int mWinner;
 
@@ -86,6 +90,7 @@ public:
 	//Interface Messages
 	int handleInterfaceInput(Message& msg);
 	void loopInput();
+	void stopInputLoop();
 	int waitForChoice();
 
 	//For AI

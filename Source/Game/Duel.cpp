@@ -1,9 +1,15 @@
 #include "Duel.h"
 
+#include <algorithm>
+#include <chrono>
+#include <thread>
+
 std::mutex gMutex;
 
 Duel::Duel()
 {
+	mInputLoopRunning = true;
+	mLuaCallbackSuspended = false;
 	mTurn = 0;
 	mManaUsed = 0;
 	mNextUniqueId = 0;
@@ -85,6 +91,7 @@ Duel::Duel()
 	mCastingCivTapped = false;
 
 	mIsChoiceActive = false;
+	mChoice = NULL;
 	mChoiceCard = -1;
 	mChoicePlayer = -1;
 
@@ -586,6 +593,8 @@ int Duel::getPlayerToMove()
 std::vector<Message> Duel::getPossibleMoves()
 {
 	std::vector<Message> moves(0);
+	if (mLuaCallbackSuspended && !mIsChoiceActive)
+		return moves;
 	int player = getPlayerToMove();
 	if (mTurn == player && mAttackphase == PHASE_NONE && !(mIsChoiceActive) && mCastingCard == -1)
 	{
@@ -607,17 +616,11 @@ std::vector<Message> Duel::getPossibleMoves()
 			msg.addValue("selection", RETURN_BUTTON2);
 			moves.push_back(msg);
 		}
-		for (std::vector<Card*>::iterator i = mCardList.begin(); i != mCardList.end(); i++)
+		for (std::vector<int>::const_iterator i = mChoiceValidCards.begin(); i != mChoiceValidCards.end(); ++i)
 		{
-			if ((*i)->mZone != ZONE_EVOLVED)
-			{
-				if (mChoice->callvalid(mChoiceCard, (*i)->mUniqueId) == 1)
-				{
-					Message msg("choiceselect");
-					msg.addValue("selection", (*i)->mUniqueId);
-					moves.push_back(msg);
-				}
-			}
+			Message msg("choiceselect");
+			msg.addValue("selection", *i);
+			moves.push_back(msg);
 		}
 	}
 	else if (mAttackphase == PHASE_TRIGGER && player == getOpponent(mTurn)) //use shield triggers
@@ -773,7 +776,6 @@ int Duel::handleInterfaceInput(Message& msg)
 	mCurrentMoveCount++;
 	mMoveHistory.push_back(msg);
 	std::string type = msg.getType();
-	printf("handling interface input: %s\n", msg.getType().c_str());
 	if (type == "cardplay")
 	{
 		int whichCard = msg.getInt("card");
@@ -1033,54 +1035,46 @@ int Duel::handleInterfaceInput(Message& msg)
 
 void Duel::loopInput()
 {
-	for (int i = 0; ; i++)
+	while (mInputLoopRunning)
 	{
-		if (i % 100000 == 0)
-		{
-			gMutex.lock();
-			//printf("dispatching\n");
-			dispatchAllMessages();
-			gMutex.unlock();
-		}
+		gMutex.lock();
+		dispatchAllMessages();
+		gMutex.unlock();
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
+}
+
+void Duel::stopInputLoop()
+{
+	mInputLoopRunning = false;
 }
 
 int Duel::waitForChoice()
 {
 	gMutex.unlock();
 	int choice = -1;
-	for (int i = 0;; i++)
+	while (mInputLoopRunning)
 	{
-		if (i % 100000 == 0)
+		gMutex.lock();
+		if (mMsgMngr.hasMoreMessages())
 		{
-			//printf("mutex\n");
-			gMutex.lock();
-			if (mMsgMngr.hasMoreMessages())
+			Message msg = mMsgMngr.peekMessage();
+			mMsgMngr.dispatch();
+			dispatchMessage(msg);
+			if (msg.getType() == "choiceselect")
 			{
-				Message msg = mMsgMngr.peekMessage();
-				mMsgMngr.dispatch();
-				if (!mIsSimulation)
-				{
-					printf("Dispatching Message:\n");
-					for (std::map<std::string, std::string>::iterator i = msg.map.begin(); i != msg.map.end(); i++)
-					{
-						printf("	%s %s\n", (i->first).c_str(), (i->second).c_str());
-					}
-					printf("\n");
-				}
-				dispatchMessage(msg);
-				if (msg.getType() == "choiceselect")
-				{
-					choice = msg.getInt("selection");
-					break;
-				}
-			} 
-			gMutex.unlock();
+				choice = msg.getInt("selection");
+				break;
+			}
 		}
+		gMutex.unlock();
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
+	if (!mInputLoopRunning)
+		gMutex.lock();
 	//gMutex.lock();
 	//printf("break\n");
-	return choice;
+	return mInputLoopRunning ? choice : RETURN_QUIT;
 }
 
 //void Duel::parseMessages(unsigned int deltatime)
@@ -1108,15 +1102,6 @@ bool Duel::dispatchAllMessages()
 	{
 		Message msg = mMsgMngr.peekMessage();
 		mMsgMngr.dispatch();
-		if (!mIsSimulation)
-		{
-			printf("Dispatching Message:\n");
-			for (std::map<std::string, std::string>::iterator i = msg.map.begin(); i != msg.map.end(); i++)
-			{
-				printf("	%s %s\n", (i->first).c_str(), (i->second).c_str());
-			}
-			printf("\n");
-		}
 		dispatchMessage(msg);
 		worldchanged = true;
 	}
@@ -1179,20 +1164,18 @@ void Duel::addChoice(std::string info, int skip, int card, int player, int valid
 
 int Duel::choiceCanBeSelected(int sid)
 {
-	return mChoice->callvalid(mChoiceCard, sid);
+	return std::find(mChoiceValidCards.begin(), mChoiceValidCards.end(), sid) != mChoiceValidCards.end();
 }
 
 void Duel::checkChoiceValid()
 {
-	int count = 0;
+	mChoiceValidCards.clear();
 	for (std::vector<Card*>::iterator i = mCardList.begin(); i != mCardList.end(); i++)
 	{
-		if (choiceCanBeSelected((*i)->mUniqueId) == 1)
-		{
-			count++;
-		}
+		if ((*i)->mZone != ZONE_EVOLVED && mChoice->callvalid(mChoiceCard, (*i)->mUniqueId) == 1)
+			mChoiceValidCards.push_back((*i)->mUniqueId);
 	}
-	if (count == 0) //no valid targets
+	if (mChoiceValidCards.empty()) //no valid targets
 	{
 		//cout << "no valid targets" << endl;
 		resetChoice();
@@ -1652,7 +1635,7 @@ void Duel::setDecks(std::string p1, std::string p2)
 
 void Duel::loadDeck(std::string s, int p)
 {
-	mDecks[p].mCards.empty();
+	mDecks[p].mCards.clear();
 	std::fstream file;
 	file.open(s, std::ios::in | std::ios::out);
 	std::string str;
@@ -1680,10 +1663,15 @@ void Duel::loadDeck(std::string s, int p)
 				{
 					name = name.substr(0, name.size()-1);
 				}
+				int cardId = getCardIdFromName(name);
+				if (cardId < 0)
+				{
+					fprintf(stderr, "Skipping unknown card '%s' in %s\n", name.c_str(), s.c_str());
+					break;
+				}
 				for (int j = 0; j < count; j++)
 				{
-					printf("added %s\n", name.c_str());
-					Card* c = new Card(mNextUniqueId, getCardIdFromName(name), p);
+					Card* c = new Card(mNextUniqueId, cardId, p);
 					mCardList.push_back(c);
 					mDecks[p].addCard(c);
 					mNextUniqueId++;
@@ -1803,6 +1791,7 @@ void Duel::resetChoice()
 	mChoiceCard = -1;
 	mChoicePlayer = -1;
 	mIsChoiceActive = false;
+	mChoiceValidCards.clear();
 	//cout << "choice reset" << endl;
 }
 
