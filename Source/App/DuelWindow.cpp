@@ -467,6 +467,42 @@ bool Application::exerciseHeuristicAttackSafetySmoke()
 		selected.getType() == "endturn";
 }
 
+bool Application::exerciseHeuristicBlockChoiceSmoke()
+{
+	if (mDuel == NULL || mDuel->mCardList.size() < 3) return false;
+	std::lock_guard<std::mutex> lock(gMutex);
+	Card* attacker = mDuel->mCardList[0];
+	Card* lowerWinningBlocker = mDuel->mCardList[1];
+	Card* higherWinningBlocker = mDuel->mCardList[2];
+	int savedAttacker = mDuel->mAttacker;
+	int savedAttackerPower = attacker->mPower;
+	int savedLowerPower = lowerWinningBlocker->mPower;
+	int savedHigherPower = higherWinningBlocker->mPower;
+
+	mDuel->mAttacker = attacker->mUniqueId;
+	attacker->mPower = 1000;
+	lowerWinningBlocker->mPower = 10000;
+	higherWinningBlocker->mPower = 100000;
+	Message higherBlock("creatureblock");
+	higherBlock.addValue("blocker", higherWinningBlocker->mUniqueId);
+	Message lowerBlock("creatureblock");
+	lowerBlock.addValue("blocker", lowerWinningBlocker->mUniqueId);
+	Message skip("blockskip");
+	std::vector<Message> choices;
+	choices.push_back(higherBlock);
+	choices.push_back(lowerBlock);
+	choices.push_back(skip);
+	HeuristicBot rival(1);
+	Message selected = rival.chooseMove(*mDuel, choices);
+
+	mDuel->mAttacker = savedAttacker;
+	attacker->mPower = savedAttackerPower;
+	lowerWinningBlocker->mPower = savedLowerPower;
+	higherWinningBlocker->mPower = savedHigherPower;
+	return selected.getType() == "creatureblock" &&
+		messageInt(selected, "blocker") == lowerWinningBlocker->mUniqueId;
+}
+
 bool Application::beginMandatorySacrificeAiSmoke(
 	const std::string& cardName, int& summonedCard, int& sacrifice)
 {

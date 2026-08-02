@@ -107,6 +107,7 @@ private:
 	SDL_Rect graveyardPileRect(int player) const;
 	bool exerciseEvolutionSmoke();
 	bool exerciseHeuristicAttackSafetySmoke();
+	bool exerciseHeuristicBlockChoiceSmoke();
 	bool exerciseBinaryChoiceSmoke();
 	bool beginMandatorySacrificeAiSmoke(const std::string& cardName, int& summonedCard, int& sacrifice);
 	bool verifyMandatorySacrificeAiSmoke(const std::string& cardName, int summonedCard, int sacrifice);

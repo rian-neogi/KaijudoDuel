@@ -195,6 +195,11 @@ int Application::run(bool smokeTest)
 				std::cerr << "Heuristic attack safety smoke test failed." << std::endl;
 				return 2;
 			}
+			if (smokeNpc == 0 && smokeFrames == 31 && !exerciseHeuristicBlockChoiceSmoke())
+			{
+				std::cerr << "Heuristic blocker choice smoke test failed." << std::endl;
+				return 2;
+			}
 			if (smokeNpc == 0 && smokeFrames == 60 && mDuel != NULL)
 			{
 				int selectionCard = -1;

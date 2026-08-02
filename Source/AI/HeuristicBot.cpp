@@ -185,7 +185,12 @@ double HeuristicBot::scoreBlock(Duel& duel, int blocker) const
 	int blockerPower = duel.getCreaturePower(blocker);
 	int attackerPower = duel.getCreaturePower(duel.mAttacker);
 	double score = duel.mShields[mPlayer].mCards.size() <= 1 ? 80.0 : 20.0;
-	if (blockerPower > attackerPower) score += 55.0;
+	if (blockerPower > attackerPower)
+	{
+		// Any surviving block is better than a trade or losing block. Within
+		// that group, conserve stronger blockers by using the weakest winner.
+		return 1000.0 + 1000000.0 / (std::max(0, blockerPower) + 1.0);
+	}
 	else if (blockerPower == attackerPower) score += 25.0;
 	else score -= cardValue(duel, blocker, true) * 5.0;
 	return score;
