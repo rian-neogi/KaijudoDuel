@@ -3,11 +3,45 @@
 #include "AppSupport.h"
 
 #include <algorithm>
+#include <cmath>
 
 using namespace AppSupport;
 
 void Application::handleOverworldEvent(const SDL_Event& event)
 {
+	if (handleStoryEvent(event)) return;
+	if ((event.type == SDL_KEYDOWN && !event.key.repeat) || event.type == SDL_KEYUP)
+	{
+		SDL_Keycode movementKey = event.key.keysym.sym;
+		bool pressed = event.type == SDL_KEYDOWN;
+		bool isMovementKey = true;
+		if (movementKey == SDLK_w || movementKey == SDLK_UP) mMoveUp = pressed;
+		else if (movementKey == SDLK_s || movementKey == SDLK_DOWN) mMoveDown = pressed;
+		else if (movementKey == SDLK_a || movementKey == SDLK_LEFT) mMoveLeft = pressed;
+		else if (movementKey == SDLK_d || movementKey == SDLK_RIGHT) mMoveRight = pressed;
+		else isMovementKey = false;
+
+		if (isMovementKey)
+		{
+			if (pressed)
+			{
+				mMoveIntentX = movementKey == SDLK_a || movementKey == SDLK_LEFT ? -1 :
+					(movementKey == SDLK_d || movementKey == SDLK_RIGHT ? 1 : 0);
+				mMoveIntentY = movementKey == SDLK_w || movementKey == SDLK_UP ? -1 :
+					(movementKey == SDLK_s || movementKey == SDLK_DOWN ? 1 : 0);
+				mFacingX = mMoveIntentX;
+				mFacingY = mMoveIntentY;
+			}
+			else if ((mMoveIntentY < 0 && !mMoveUp) || (mMoveIntentY > 0 && !mMoveDown) ||
+				(mMoveIntentX < 0 && !mMoveLeft) || (mMoveIntentX > 0 && !mMoveRight))
+			{
+				mMoveIntentX = mMoveLeft ? -1 : (mMoveRight ? 1 : 0);
+				mMoveIntentY = mMoveUp ? -1 : (mMoveDown ? 1 : 0);
+				if (mMoveIntentX != 0) mMoveIntentY = 0;
+			}
+			return;
+		}
+	}
 	if (mPauseMenuOpen)
 	{
 		handlePauseMenuEvent(event);
@@ -19,7 +53,12 @@ void Application::handleOverworldEvent(const SDL_Event& event)
 	if (key == SDLK_ESCAPE)
 	{
 		if (mDialogueNpc >= 0) mDialogueNpc = -1;
-		else mPauseMenuOpen = true;
+		else
+		{
+			mPauseMenuOpen = true;
+			mMoveUp = mMoveDown = mMoveLeft = mMoveRight = false;
+			mMoveIntentX = mMoveIntentY = 0;
+		}
 		return;
 	}
 	if (mDialogueNpc >= 0)
@@ -27,19 +66,117 @@ void Application::handleOverworldEvent(const SDL_Event& event)
 		if (key == SDLK_e || key == SDLK_SPACE || key == SDLK_RETURN) interact();
 		return;
 	}
-	if (key == SDLK_w || key == SDLK_UP) tryMove(0, -1);
-	else if (key == SDLK_s || key == SDLK_DOWN) tryMove(0, 1);
-	else if (key == SDLK_a || key == SDLK_LEFT) tryMove(-1, 0);
-	else if (key == SDLK_d || key == SDLK_RIGHT) tryMove(1, 0);
-	else if (key == SDLK_e || key == SDLK_SPACE || key == SDLK_RETURN) interact();
+	if (key == SDLK_e || key == SDLK_SPACE || key == SDLK_RETURN) interact();
 }
 
 void Application::updateOverworld(Uint32 deltaTime)
 {
-	if (mPauseMenuOpen) return;
-	float amount = std::min(1.f, deltaTime / 85.f);
-	mVisualX += (mPlayerX - mVisualX) * amount;
-	mVisualY += (mPlayerY - mVisualY) * amount;
+	if (mPauseMenuOpen || mStoryScene != StoryScene::None) return;
+	float playerDx = mPlayerX - mVisualX;
+	float playerDy = mPlayerY - mVisualY;
+	float playerDistance = std::sqrt(playerDx * playerDx + playerDy * playerDy);
+	if (playerDistance <= 0.001f && mDialogueNpc < 0 && (mMoveIntentX != 0 || mMoveIntentY != 0))
+	{
+		mVisualX = (float)mPlayerX;
+		mVisualY = (float)mPlayerY;
+		tryMove(mMoveIntentX, mMoveIntentY);
+		playerDx = mPlayerX - mVisualX;
+		playerDy = mPlayerY - mVisualY;
+		playerDistance = std::sqrt(playerDx * playerDx + playerDy * playerDy);
+	}
+	const float playerStep = 5.0f * deltaTime / 1000.f;
+	if (playerDistance > 0.001f)
+	{
+		if (playerStep >= playerDistance)
+		{
+			mVisualX = (float)mPlayerX;
+			mVisualY = (float)mPlayerY;
+		}
+		else
+		{
+			mVisualX += playerDx / playerDistance * playerStep;
+			mVisualY += playerDy / playerDistance * playerStep;
+		}
+	}
+
+	Uint32 now = SDL_GetTicks();
+	const int directionX[] = { 0, 1, 0, -1 };
+	const int directionY[] = { -1, 0, 1, 0 };
+	for (size_t i = 0; i < mNpcs.size(); ++i)
+	{
+		if (!npcVisible((int)i)) continue;
+		Npc& npc = mNpcs[i];
+		npc.updateMovement(deltaTime);
+		if (!npc.canWander()) continue;
+		if (npc.nextMoveAt == 0)
+		{
+			npc.scheduleWander(now);
+			continue;
+		}
+		if (npc.isMoving() || now < npc.nextMoveAt || mDialogueNpc == (int)i) continue;
+
+		for (int attempt = 0; attempt < 4; ++attempt)
+		{
+			int direction = npc.nextWanderDirection();
+			int nextX = npc.x + directionX[direction];
+			int nextY = npc.y + directionY[direction];
+			if (std::abs(nextX - npc.homeX) > 1 || std::abs(nextY - npc.homeY) > 1) continue;
+			if (!isWalkable(nextX, nextY) || npcAt(nextX, nextY, (int)i) >= 0) continue;
+			if ((nextX == mPlayerX && nextY == mPlayerY) ||
+				(nextX == (int)std::round(mVisualX) && nextY == (int)std::round(mVisualY))) continue;
+			bool visuallyOccupied = false;
+			for (size_t other = 0; other < mNpcs.size(); ++other)
+				if (other != i && nextX == (int)std::round(mNpcs[other].visualX) &&
+					nextY == (int)std::round(mNpcs[other].visualY)) visuallyOccupied = true;
+			if (visuallyOccupied) continue;
+			npc.x = nextX;
+			npc.y = nextY;
+			break;
+		}
+		npc.scheduleWander(now);
+	}
+}
+
+bool Application::exerciseOverworldMovementSmoke()
+{
+	if (mNpcs.empty()) return false;
+	int savedPlayerX = mPlayerX;
+	int savedPlayerY = mPlayerY;
+	float savedVisualX = mVisualX;
+	float savedVisualY = mVisualY;
+	int savedIntentX = mMoveIntentX;
+	int savedIntentY = mMoveIntentY;
+	mMoveIntentX = 1;
+	mMoveIntentY = 0;
+	updateOverworld(50);
+	bool playerInterpolated = mPlayerX == savedPlayerX + 1 &&
+		mVisualX > savedVisualX && mVisualX < (float)mPlayerX;
+	mPlayerX = savedPlayerX;
+	mPlayerY = savedPlayerY;
+	mVisualX = savedVisualX;
+	mVisualY = savedVisualY;
+	mMoveIntentX = savedIntentX;
+	mMoveIntentY = savedIntentY;
+
+	Npc& npc = mNpcs[0];
+	int savedNpcX = npc.x;
+	int savedNpcY = npc.y;
+	float savedNpcVisualX = npc.visualX;
+	float savedNpcVisualY = npc.visualY;
+	Uint32 savedNextMoveAt = npc.nextMoveAt;
+	npc.nextMoveAt = SDL_GetTicks();
+	updateOverworld(16);
+	int targetDistance = std::abs(npc.x - npc.homeX) + std::abs(npc.y - npc.homeY);
+	updateOverworld(50);
+	bool npcInterpolated = targetDistance == 1 && npc.isMoving() &&
+		(std::fabs(npc.visualX - savedNpcVisualX) > 0.001f ||
+		 std::fabs(npc.visualY - savedNpcVisualY) > 0.001f);
+	npc.x = savedNpcX;
+	npc.y = savedNpcY;
+	npc.visualX = savedNpcVisualX;
+	npc.visualY = savedNpcVisualY;
+	npc.nextMoveAt = savedNextMoveAt;
+	return playerInterpolated && npcInterpolated;
 }
 
 bool Application::isWalkable(int x, int y) const
@@ -49,10 +186,10 @@ bool Application::isWalkable(int x, int y) const
 	return tile == '.' || tile == '=';
 }
 
-int Application::npcAt(int x, int y) const
+int Application::npcAt(int x, int y, int ignoredNpc) const
 {
 	for (size_t i = 0; i < mNpcs.size(); ++i)
-		if (mNpcs[i].x == x && mNpcs[i].y == y) return (int)i;
+		if ((int)i != ignoredNpc && npcVisible((int)i) && mNpcs[i].x == x && mNpcs[i].y == y) return (int)i;
 	return -1;
 }
 
@@ -62,7 +199,12 @@ void Application::tryMove(int dx, int dy)
 	mFacingY = dy;
 	int x = mPlayerX + dx;
 	int y = mPlayerY + dy;
-	if (isWalkable(x, y) && npcAt(x, y) < 0)
+	bool occupiedByMovingNpc = false;
+	for (size_t i = 0; i < mNpcs.size(); ++i)
+		if (npcVisible((int)i) && x == (int)std::round(mNpcs[i].visualX) &&
+			y == (int)std::round(mNpcs[i].visualY))
+			occupiedByMovingNpc = true;
+	if (isWalkable(x, y) && npcAt(x, y) < 0 && !occupiedByMovingNpc)
 	{
 		mPlayerX = x;
 		mPlayerY = y;
@@ -71,6 +213,7 @@ void Application::tryMove(int dx, int dy)
 
 void Application::interact()
 {
+	if (std::fabs(mPlayerX - mVisualX) > 0.001f || std::fabs(mPlayerY - mVisualY) > 0.001f) return;
 	if (mDialogueNpc >= 0)
 	{
 		Npc& npc = mNpcs[mDialogueNpc];
@@ -83,6 +226,7 @@ void Application::interact()
 		return;
 	}
 	mDialogueNpc = npcAt(mPlayerX + mFacingX, mPlayerY + mFacingY);
+	if (mDialogueNpc >= 0) discoverStoryClue(mDialogueNpc);
 }
 
 void Application::renderOverworld()
@@ -122,9 +266,23 @@ void Application::renderOverworld()
 	}
 
 	for (size_t i = 0; i < mNpcs.size(); ++i)
-		drawCharacter(mNpcs[i].x, mNpcs[i].y, mNpcs[i].isDuelist(),
-			mNpcs[i].isComplete(), mNpcs[i].isShopkeeper());
-	drawCharacter((int)std::round(mVisualX), (int)std::round(mVisualY), false, false);
+	{
+		if (!npcVisible((int)i)) continue;
+		drawCharacter(mNpcs[i].visualX, mNpcs[i].visualY, mNpcs[i].isDuelist(),
+			mNpcs[i].isComplete(), mNpcs[i].isShopkeeper(), mNpcs[i].isMoving(),
+			overworldSprite(mNpcs[i].spriteKey));
+		if (npcHasStoryMarker((int)i))
+		{
+			int markerX = MAP_X + (int)std::round(mNpcs[i].visualX * TILE) + 17;
+			int markerY = MAP_Y + (int)std::round(mNpcs[i].visualY * TILE) - 20;
+			fillRect({ markerX - 4, markerY - 2, 20, 22 }, 31, 24, 14, 235);
+			outlineRect({ markerX - 4, markerY - 2, 20, 22 }, 246, 203, 78, 255, 2);
+			drawText("!", markerX + 2, markerY, color(255, 225, 111), 16);
+		}
+	}
+	bool playerWalking = std::fabs(mPlayerX - mVisualX) > 0.001f ||
+		std::fabs(mPlayerY - mVisualY) > 0.001f;
+	drawCharacter(mVisualX, mVisualY, false, false, false, playerWalking, overworldSprite("player"));
 
 	fillRect({ 1012, 28, 238, 670 }, 21, 28, 45, 245);
 	outlineRect({ 1012, 28, 238, 670 }, 190, 146, 61, 255, 2);
@@ -134,7 +292,7 @@ void Application::renderOverworld()
 	int duelistRow = 0;
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 	{
-		if (!mNpcs[i].isDuelist()) continue;
+		if (mNpcs[i].kind != NpcKind::Duelist) continue;
 		const int rowY = 145 + duelistRow++ * 48;
 		drawText(mNpcs[i].name, 1034, rowY, color(235, 238, 245), 17);
 		drawText(mNpcs[i].statusText(), 1034, rowY + 21,
@@ -146,6 +304,7 @@ void Application::renderOverworld()
 	drawText("WASD / Arrows: move", 1034, 613, color(187, 200, 221), 14);
 	drawText("E / Space: talk", 1034, 636, color(187, 200, 221), 14);
 	drawText("Esc: menu", 1034, 659, color(187, 200, 221), 14);
+	renderStoryTracker();
 
 	if (!mNotice.empty() && SDL_GetTicks() < mNoticeUntil)
 	{
@@ -159,24 +318,45 @@ void Application::renderOverworld()
 		fillRect({ 40, 646, 1200, 128 }, 16, 22, 36, 248);
 		outlineRect({ 40, 646, 1200, 128 }, 194, 148, 62, 255, 3);
 		drawText(npc.name, 68, 664, color(244, 206, 103), 25);
-		std::string dialogue = npc.challenge;
+		std::string dialogue = storyDialogueForNpc(mDialogueNpc);
 		std::string prompt = npc.isShopkeeper() ? "E / Space to browse" : "E / Space to battle";
 		if (npc.isComplete())
 		{
-			dialogue = "You've claimed all four of my rewards. I have no more cards to wager.";
 			prompt = "E / Space to close";
 		}
+		else if (npc.isDuelist()) prompt = npc.rankName() + "  •  E / Space to battle";
 		drawText(dialogue, 68, 704, color(232, 237, 246), 19, 1080);
 		drawText(prompt, 965, 742, color(126, 176, 242), 15);
 	}
+	renderStoryScene();
 	if (mPauseMenuOpen) renderPauseMenu();
 }
 
-void Application::drawCharacter(int gridX, int gridY, bool rival, bool completed, bool shopkeeper)
+void Application::drawCharacter(
+	float gridX, float gridY, bool rival, bool completed, bool shopkeeper, bool walking, SDL_Texture* sprite)
 {
-	int x = MAP_X + gridX * TILE;
-	int y = MAP_Y + gridY * TILE;
+	int x = MAP_X + (int)std::round(gridX * TILE);
+	int y = MAP_Y + (int)std::round(gridY * TILE);
+	int stride = walking && (SDL_GetTicks() / 110) % 2 == 0 ? 2 : (walking ? -2 : 0);
+	int bob = walking && (SDL_GetTicks() / 110) % 2 == 0 ? -1 : 0;
 	fillRect({ x + 11, y + 39, 28, 6 }, 8, 14, 18, 100);
+	if (sprite != NULL)
+	{
+		int sourceWidth = 1;
+		int sourceHeight = 1;
+		SDL_QueryTexture(sprite, NULL, NULL, &sourceWidth, &sourceHeight);
+		int spriteHeight = 54;
+		int spriteWidth = std::max(1, (int)std::round(sourceWidth * spriteHeight / (float)sourceHeight));
+		SDL_Rect spriteRect = { x + (TILE - spriteWidth) / 2, y - 8 + bob, spriteWidth, spriteHeight };
+		if (completed) SDL_SetTextureColorMod(sprite, 145, 145, 155);
+		SDL_RenderCopyEx(mRenderer, sprite, NULL, &spriteRect, walking ? stride * 0.8 : 0.0,
+			NULL, SDL_FLIP_NONE);
+		if (completed) SDL_SetTextureColorMod(sprite, 255, 255, 255);
+		return;
+	}
+	fillRect({ x + 17 + stride, y + 35, 6, 9 }, 31, 38, 53);
+	fillRect({ x + 27 - stride, y + 35, 6, 9 }, 31, 38, 53);
+	y += bob;
 	if (shopkeeper)
 		fillRect({ x + 13, y + 20, 22, 22 }, 173, 119, 38);
 	else if (rival)
@@ -185,4 +365,33 @@ void Application::drawCharacter(int gridX, int gridY, bool rival, bool completed
 		fillRect({ x + 13, y + 20, 22, 22 }, 31, 88, 185);
 	fillRect({ x + 17, y + 8, 15, 15 }, 224, 172, 126);
 	fillRect({ x + 14, y + 5, 21, 8 }, rival ? 41 : 91, rival ? 24 : 48, rival ? 58 : 22);
+}
+
+void Application::loadOverworldSprites()
+{
+	std::vector<std::string> keys;
+	keys.push_back("player");
+	keys.push_back("rowan");
+	for (size_t i = 0; i < mNpcs.size(); ++i) keys.push_back(mNpcs[i].spriteKey);
+	for (size_t i = 0; i < keys.size(); ++i)
+	{
+		if (mOverworldSprites.find(keys[i]) != mOverworldSprites.end()) continue;
+		std::string path = "Resources/Sprites/Overworld/" + keys[i] + ".png";
+		SDL_Texture* texture = IMG_LoadTexture(mRenderer, path.c_str());
+		if (texture != NULL) mOverworldSprites[keys[i]] = texture;
+	}
+}
+
+void Application::destroyOverworldSprites()
+{
+	for (std::map<std::string, SDL_Texture*>::iterator sprite = mOverworldSprites.begin();
+		sprite != mOverworldSprites.end(); ++sprite)
+		if (sprite->second != NULL) SDL_DestroyTexture(sprite->second);
+	mOverworldSprites.clear();
+}
+
+SDL_Texture* Application::overworldSprite(const std::string& key) const
+{
+	std::map<std::string, SDL_Texture*>::const_iterator found = mOverworldSprites.find(key);
+	return found == mOverworldSprites.end() ? NULL : found->second;
 }

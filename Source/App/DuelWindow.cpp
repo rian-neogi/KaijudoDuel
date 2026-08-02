@@ -23,13 +23,15 @@ namespace
 void Application::startDuel(int npcIndex, bool ignoreProgressLimit)
 {
 	if (npcIndex < 0 || npcIndex >= (int)mNpcs.size() || !mNpcs[npcIndex].isDuelist()) return;
+	if (!ignoreProgressLimit && !npcVisible(npcIndex)) return;
 	if (!ignoreProgressLimit && !mNpcs[npcIndex].canBattle()) return;
 	stopDuel();
 	ensurePlayerDataLoaded();
 	mActiveNpc = npcIndex;
 	mDuel = new Duel();
 	ActiveDuel = mDuel;
-	mDuel->setDecks(mActiveDeckPath, mNpcs[npcIndex].deck);
+	mDuel->setDecks(mActiveDeckPath,
+		ignoreProgressLimit ? mNpcs[npcIndex].deck : mNpcs[npcIndex].battleDeck());
 	mDuel->startDuel();
 	mDuelThread = std::thread(&Duel::loopInput, mDuel);
 	mSelectedCard = -1;

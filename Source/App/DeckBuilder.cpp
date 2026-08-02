@@ -182,6 +182,16 @@ void Application::ensurePlayerDataLoaded()
 			mMoney = std::max(0, std::atoi(line.substr(6).c_str()));
 			continue;
 		}
+		if (line.find("story.stage=") == 0)
+		{
+			mStoryStage = std::max(0, std::min(4, std::atoi(line.substr(12).c_str())));
+			continue;
+		}
+		if (line.find("story.clues=") == 0)
+		{
+			mStoryClues = std::max(0, std::atoi(line.substr(13).c_str()));
+			continue;
+		}
 		if (line.find("npc.") != 0) continue;
 		size_t equals = line.find('=');
 		if (equals == std::string::npos) continue;
@@ -190,6 +200,7 @@ void Application::ensurePlayerDataLoaded()
 		for (size_t i = 0; i < mNpcs.size(); ++i)
 			if (mNpcs[i].isDuelist() && mNpcs[i].name == npcName) mNpcs[i].wins = wins;
 	}
+	initializeStory();
 }
 
 void Application::savePlayerProgress()
@@ -202,6 +213,8 @@ void Application::savePlayerProgress()
 
 	std::ofstream progress("PlayerData/progress.txt", std::ios::trunc);
 	progress << "money=" << std::max(0, mMoney) << "\n";
+	progress << "story.stage=" << mStoryStage << "\n";
+	progress << "story.clues=" << mStoryClues << "\n";
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 		if (mNpcs[i].isDuelist()) progress << "npc." << mNpcs[i].name << "=" << mNpcs[i].wins << "\n";
 }
@@ -218,12 +231,13 @@ void Application::awardNpcVictory(int npcIndex)
 	int rewardId = getCardIdFromName(npc.rewardCard);
 	bool awardedCard = rewardId >= 0 && rewardId < (int)mCollectionCounts.size();
 	if (awardedCard) ++mCollectionCounts[rewardId];
+	updateStoryProgress();
 	savePlayerProgress();
 
 	mNotice = "Victory over " + npc.name + "! ";
 	if (awardedCard) mNotice += "+1 " + npc.rewardCard + " and ";
 	mNotice += "+" + std::to_string(npc.goldReward) + " gold. Reward " +
-		std::to_string(npc.wins) + "/4.";
+		std::to_string(npc.wins) + "/" + std::to_string(npc.maxWins) + ".";
 	mNoticeUntil = SDL_GetTicks() + 6500;
 }
 

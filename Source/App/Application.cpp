@@ -11,7 +11,9 @@ using namespace AppSupport;
 Application::Application()
 	: mWindow(NULL), mRenderer(NULL), mBoardTexture(NULL), mCardBackTexture(NULL), mRunning(false),
 	  mScreen(Screen::Overworld), mPauseMenuOpen(false), mPlayerX(2), mPlayerY(10), mFacingX(1), mFacingY(0),
+	  mMoveUp(false), mMoveDown(false), mMoveLeft(false), mMoveRight(false), mMoveIntentX(0), mMoveIntentY(0),
 	  mVisualX(2.f), mVisualY(10.f), mDialogueNpc(-1), mNoticeUntil(0),
+	  mStoryStage(0), mStoryClues(0), mStoryScene(StoryScene::None), mStoryScenePage(0),
 	  mDuel(NULL), mActiveNpc(-1), mSelectedCard(-1), mActionScroll(0),
 	  mOpenGraveyardPlayer(-1), mGraveyardOffset(0),
 	  mNextAiMove(0), mDuelResult(-1), mDuelResultAt(0), mDraggingCard(-1),
@@ -36,23 +38,34 @@ Application::Application()
 	mMap.push_back("####################");
 
 	mNpcs.push_back(Npc::duelist(10, 7, "Mira", "Decks/Zagaan.txt",
-		"Darkness answers my call. Ready to duel?", "Zagaan, Knight of Darkness", 100));
+		"Darkness answers my call. Ready to duel?", "Zagaan, Knight of Darkness", 100,
+		"Decks/Deathliger.txt"));
 	mNpcs.push_back(Npc::duelist(16, 4, "Marin", "Decks/AquaSniper.txt",
-		"Let us see whether you can read the currents.", "Aqua Sniper", 100));
+		"Let us see whether you can read the currents.", "Aqua Sniper", 100,
+		"Decks/KingDepthcon.txt"));
 	mNpcs.push_back(Npc::duelist(7, 4, "Rook", "Decks/RoaringGreathorn.txt",
-		"Strength grows one turn at a time.", "Roaring Great-Horn", 100));
+		"Strength grows one turn at a time.", "Roaring Great-Horn", 100,
+		"Decks/DeathbladeBeetle.txt"));
 	mNpcs.push_back(Npc::duelist(12, 1, "Aurelia", "Decks/Hanusa.txt",
-		"The light judges every reckless move. Shall we begin?", "Hanusa, Radiance Elemental", 100));
+		"The light judges every reckless move. Shall we begin?", "Hanusa, Radiance Elemental", 100,
+		"Decks/Urth.txt"));
 	mNpcs.push_back(Npc::duelist(5, 4, "Flint", "Decks/AstrocometDragon.txt",
-		"My dragons have been waiting for a worthy opponent.", "Astrocomet Dragon", 100));
+		"My dragons have been waiting for a worthy opponent.", "Astrocomet Dragon", 100,
+		"Decks/ScarletSkyterror.txt"));
 	mNpcs.push_back(Npc::duelist(17, 7, "Nyx", "Decks/Deathliger.txt",
-		"The abyss remembers every card you lose.", "Deathliger, Lion of Chaos", 100));
+		"The abyss remembers every card you lose.", "Deathliger, Lion of Chaos", 100,
+		"Decks/Zagaan.txt"));
 	mNpcs.push_back(Npc::duelist(10, 10, "Tidal", "Decks/KingDepthcon.txt",
-		"The deep favors patience. Can you keep your footing?", "King Depthcon", 100));
+		"The deep favors patience. Can you keep your footing?", "King Depthcon", 100,
+		"Decks/AquaSniper.txt"));
 	mNpcs.push_back(Npc::duelist(2, 6, "Briar", "Decks/DeathbladeBeetle.txt",
-		"Nature rewards the duelist who grows strongest.", "Deathblade Beetle", 100));
+		"Nature rewards the duelist who grows strongest.", "Deathblade Beetle", 100,
+		"Decks/RoaringGreathorn.txt"));
 	mNpcs.push_back(Npc::shopkeeper(18, 10, "Mercer",
 		"Welcome! I trade hard-earned gold for cards."));
+	mNpcs.push_back(Npc::boss(10, 4, "The Veiled One", "Decks/VeiledOne.txt",
+		"Every echo you restored belongs to the Curator. Hand them over.",
+		"Urth, Purifying Elemental", 250));
 }
 
 Application::~Application()
@@ -98,6 +111,7 @@ bool Application::initialize()
 	}
 	SDL_RenderSetLogicalSize(mRenderer, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 	SDL_SetRenderDrawBlendMode(mRenderer, SDL_BLENDMODE_BLEND);
+	loadOverworldSprites();
 
 	mBoardTexture = IMG_LoadTexture(mRenderer, "Resources/Textures/duel-board.png");
 	if (mBoardTexture == NULL)
@@ -114,6 +128,7 @@ void Application::shutdown()
 {
 	stopDuel();
 	destroyCardTextures();
+	destroyOverworldSprites();
 	for (std::map<int, TTF_Font*>::iterator item = mFonts.begin(); item != mFonts.end(); ++item)
 		TTF_CloseFont(item->second);
 	mFonts.clear();
@@ -135,7 +150,19 @@ int Application::run(bool smokeTest)
 	if (!initialize())
 		return 1;
 	if (smokeTest)
+	{
+		if (!exerciseOverworldMovementSmoke())
+		{
+			std::cerr << "Overworld movement smoke test failed." << std::endl;
+			return 2;
+		}
+		if (!exerciseStorySmoke())
+		{
+			std::cerr << "Act I story smoke test failed." << std::endl;
+			return 2;
+		}
 		startDuel(0, true);
+	}
 
 	Uint32 previous = SDL_GetTicks();
 	int smokeFrames = 0;

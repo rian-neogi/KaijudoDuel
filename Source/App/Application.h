@@ -30,6 +30,13 @@ private:
 		Settings,
 		Shop
 	};
+	enum class StoryScene
+	{
+		None,
+		Intro,
+		BossReveal,
+		ActComplete
+	};
 
 	struct CardHitbox
 	{
@@ -91,10 +98,22 @@ private:
 	void handleSettingsEvent(const SDL_Event& event);
 	void renderSettings();
 	bool exerciseMenuScreensSmoke();
+	bool exerciseOverworldMovementSmoke();
+	bool exerciseStorySmoke();
+	void initializeStory();
+	bool handleStoryEvent(const SDL_Event& event);
+	void renderStoryScene();
+	void renderStoryTracker();
+	void discoverStoryClue(int npcIndex);
+	void updateStoryProgress();
+	bool npcVisible(int npcIndex) const;
+	bool npcHasStoryMarker(int npcIndex) const;
+	std::string storyDialogueForNpc(int npcIndex) const;
+	std::string storyObjective() const;
 	void tryMove(int dx, int dy);
 	void interact();
 	bool isWalkable(int x, int y) const;
-	int npcAt(int x, int y) const;
+	int npcAt(int x, int y, int ignoredNpc = -1) const;
 
 	void startDuel(int npcIndex, bool ignoreProgressLimit = false);
 	void stopDuel();
@@ -142,7 +161,11 @@ private:
 	void drawCardBack(const SDL_Rect& rect);
 	void drawZone(const std::vector<Card*>& cards, int x, int y, int width, int cardWidth, int cardHeight, bool faceUp, bool clickable);
 	void drawHand(const std::vector<Card*>& cards, bool opponent);
-	void drawCharacter(int gridX, int gridY, bool rival, bool completed, bool shopkeeper = false);
+	void drawCharacter(float gridX, float gridY, bool rival, bool completed,
+		bool shopkeeper = false, bool walking = false, SDL_Texture* sprite = NULL);
+	void loadOverworldSprites();
+	void destroyOverworldSprites();
+	SDL_Texture* overworldSprite(const std::string& key) const;
 	SDL_Color civilizationColor(int civilization) const;
 	void logicalMouse(int windowX, int windowY, int& logicalX, int& logicalY) const;
 	bool contains(const SDL_Rect& rect, int x, int y) const;
@@ -176,6 +199,7 @@ private:
 	SDL_Texture* mBoardTexture;
 	SDL_Texture* mCardBackTexture;
 	std::map<int, SDL_Texture*> mCardTextures;
+	std::map<std::string, SDL_Texture*> mOverworldSprites;
 	std::map<int, TTF_Font*> mFonts;
 	bool mRunning;
 	Screen mScreen;
@@ -187,11 +211,21 @@ private:
 	int mPlayerY;
 	int mFacingX;
 	int mFacingY;
+	bool mMoveUp;
+	bool mMoveDown;
+	bool mMoveLeft;
+	bool mMoveRight;
+	int mMoveIntentX;
+	int mMoveIntentY;
 	float mVisualX;
 	float mVisualY;
 	int mDialogueNpc;
 	std::string mNotice;
 	Uint32 mNoticeUntil;
+	int mStoryStage;
+	int mStoryClues;
+	StoryScene mStoryScene;
+	int mStoryScenePage;
 
 	Duel* mDuel;
 	std::thread mDuelThread;
