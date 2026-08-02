@@ -20,8 +20,10 @@ namespace
 	const SDL_Rect GRAVEYARD_NEXT = { 700, 590, 145, 42 };
 }
 
-void Application::startDuel(int npcIndex)
+void Application::startDuel(int npcIndex, bool ignoreProgressLimit)
 {
+	if (npcIndex < 0 || npcIndex >= (int)mNpcs.size() || !mNpcs[npcIndex].isDuelist()) return;
+	if (!ignoreProgressLimit && !mNpcs[npcIndex].canBattle()) return;
 	stopDuel();
 	ensurePlayerDataLoaded();
 	mActiveNpc = npcIndex;
@@ -73,6 +75,7 @@ void Application::handleDuelEvent(const SDL_Event& event)
 		SDL_Keycode key = event.key.keysym.sym;
 		if (key == SDLK_ESCAPE)
 		{
+			if (mDuelResult != -1) return;
 			if (mDraggingCard >= 0)
 			{
 				cancelDrag();
@@ -294,10 +297,13 @@ void Application::updateDuel(Uint32 deltaTime)
 	if (mDuelResult != -1 && now - mDuelResultAt > 1800)
 	{
 		bool won = mDuelResult == 0;
-		if (won && mActiveNpc >= 0) mNpcs[mActiveNpc].defeated = true;
 		std::string rival = mActiveNpc >= 0 ? mNpcs[mActiveNpc].name : "your rival";
-		mNotice = won ? "Victory over " + rival + "!" : "Defeat. You can challenge " + rival + " again.";
-		mNoticeUntil = now + 5000;
+		if (won && mActiveNpc >= 0) awardNpcVictory(mActiveNpc);
+		else
+		{
+			mNotice = "Defeat. You can challenge " + rival + " again.";
+			mNoticeUntil = now + 5000;
+		}
 		stopDuel();
 		mScreen = Screen::Overworld;
 	}
@@ -416,7 +422,53 @@ bool Application::exerciseBinaryChoiceSmoke()
 	return hasYes && hasNo && actions.size() == 2 && requiredChoiceStayedActive;
 }
 
-bool Application::beginBlackFeatherAiSmoke(int& blackFeather, int& sacrifice)
+bool Application::exerciseHeuristicAttackSafetySmoke()
+{
+	if (mDuel == NULL) return false;
+	std::lock_guard<std::mutex> lock(gMutex);
+	if (mDuel->mBattlezones[1].mCards.empty() || mDuel->mBattlezones[0].mCards.empty()) return false;
+
+	Card* attacker = mDuel->mBattlezones[1].mCards.front();
+	Card* defender = mDuel->mBattlezones[0].mCards.front();
+	int savedAttackerPower = attacker->mPower;
+	int savedDefenderPower = defender->mPower;
+	bool savedBlocker = defender->mIsBlocker;
+	bool savedTapped = defender->mIsTapped;
+	attacker->mPower = 1000;
+	defender->mPower = 100000;
+	defender->mIsTapped = false;
+
+	Message attackCreature("creatureattack");
+	attackCreature.addValue("attacker", attacker->mUniqueId);
+	attackCreature.addValue("defender", defender->mUniqueId);
+	attackCreature.addValue("defendertype", DEFENDER_CREATURE);
+	HeuristicBot rival(1);
+	double strongerCreatureScore = rival.scoreMove(*mDuel, attackCreature);
+
+	defender->mIsBlocker = true;
+	Message attackPlayer("creatureattack");
+	attackPlayer.addValue("attacker", attacker->mUniqueId);
+	attackPlayer.addValue("defender", 0);
+	attackPlayer.addValue("defendertype", DEFENDER_PLAYER);
+	double strongerBlockerScore = rival.scoreMove(*mDuel, attackPlayer);
+	Message endTurn("endturn");
+	std::vector<Message> choices;
+	choices.push_back(attackCreature);
+	choices.push_back(attackPlayer);
+	choices.push_back(endTurn);
+	Message selected = rival.chooseMove(*mDuel, choices);
+
+	attacker->mPower = savedAttackerPower;
+	defender->mPower = savedDefenderPower;
+	defender->mIsBlocker = savedBlocker;
+	defender->mIsTapped = savedTapped;
+	return std::isinf(strongerCreatureScore) && strongerCreatureScore < 0.0 &&
+		std::isinf(strongerBlockerScore) && strongerBlockerScore < 0.0 &&
+		selected.getType() == "endturn";
+}
+
+bool Application::beginMandatorySacrificeAiSmoke(
+	const std::string& cardName, int& summonedCard, int& sacrifice)
 {
 	if (mDuel == NULL) return false;
 	std::lock_guard<std::mutex> lock(gMutex);
@@ -424,55 +476,56 @@ bool Application::beginBlackFeatherAiSmoke(int& blackFeather, int& sacrifice)
 		mDuel->mLuaCallbackSuspended || mDuel->mMsgMngr.hasMoreMessages())
 		return false;
 
-	blackFeather = -1;
+	summonedCard = -1;
 	sacrifice = -1;
 	for (size_t i = 0; i < mDuel->mCardList.size(); ++i)
 	{
 		Card* card = mDuel->mCardList[i];
 		if (card->mOwner != 1) continue;
-		if (card->mName == "Black Feather, Shadow of Rage" && blackFeather < 0)
-			blackFeather = card->mUniqueId;
+		if (card->mName == cardName && summonedCard < 0)
+			summonedCard = card->mUniqueId;
 		else if (card->mType == TYPE_CREATURE && sacrifice < 0)
 			sacrifice = card->mUniqueId;
 	}
-	if (blackFeather < 0 || sacrifice < 0) return false;
+	if (summonedCard < 0 || sacrifice < 0) return false;
 
 	Card* sacrificeCard = mDuel->mCardList[sacrifice];
 	mDuel->getZone(1, sacrificeCard->mZone)->removeCard(sacrificeCard);
 	mDuel->mBattlezones[1].addCard(sacrificeCard);
 	sacrificeCard->mZone = ZONE_BATTLE;
 
-	Card* blackFeatherCard = mDuel->mCardList[blackFeather];
+	Card* summoned = mDuel->mCardList[summonedCard];
 	Message summon("cardmove");
-	summon.addValue("card", blackFeather);
-	summon.addValue("from", blackFeatherCard->mZone);
+	summon.addValue("card", summonedCard);
+	summon.addValue("from", summoned->mZone);
 	summon.addValue("to", ZONE_BATTLE);
 	summon.addValue("evobait", -1);
 	mDuel->mMsgMngr.sendMessage(summon);
-	// Hold the AI briefly so the smoke test can assert that Black Feather
+	// Hold the AI briefly so the smoke test can assert that the summoned card
 	// itself is one of the mandatory legal targets before resolving it.
 	mNextAiMove = SDL_GetTicks() + 60000;
 	return true;
 }
 
-bool Application::verifyBlackFeatherAiSmoke(int blackFeather, int sacrifice)
+bool Application::verifyMandatorySacrificeAiSmoke(
+	const std::string& cardName, int summonedCard, int sacrifice)
 {
 	if (mDuel == NULL) return false;
 	std::lock_guard<std::mutex> lock(gMutex);
-	if (blackFeather < 0 || sacrifice < 0 ||
-		blackFeather >= (int)mDuel->mCardList.size() || sacrifice >= (int)mDuel->mCardList.size())
+	if (summonedCard < 0 || sacrifice < 0 ||
+		summonedCard >= (int)mDuel->mCardList.size() || sacrifice >= (int)mDuel->mCardList.size())
 		return false;
-	int blackFeatherZone = mDuel->mCardList[blackFeather]->mZone;
+	int summonedZone = mDuel->mCardList[summonedCard]->mZone;
 	int sacrificeZone = mDuel->mCardList[sacrifice]->mZone;
 	bool exactlyOneWasDestroyed =
-		(blackFeatherZone == ZONE_GRAVEYARD && sacrificeZone == ZONE_BATTLE) ||
-		(blackFeatherZone == ZONE_BATTLE && sacrificeZone == ZONE_GRAVEYARD);
+		(summonedZone == ZONE_GRAVEYARD && sacrificeZone == ZONE_BATTLE) ||
+		(summonedZone == ZONE_BATTLE && sacrificeZone == ZONE_GRAVEYARD);
 	bool passed = !mDuel->mIsChoiceActive && !mDuel->mLuaCallbackSuspended && exactlyOneWasDestroyed;
 	if (!passed)
 	{
-		std::cerr << "Black Feather state: choice=" << mDuel->mIsChoiceActive
+		std::cerr << cardName << " state: choice=" << mDuel->mIsChoiceActive
 			<< " suspended=" << mDuel->mLuaCallbackSuspended
-			<< " black-zone=" << mDuel->mCardList[blackFeather]->mZone
+			<< " summoned-zone=" << mDuel->mCardList[summonedCard]->mZone
 			<< " sacrifice-zone=" << mDuel->mCardList[sacrifice]->mZone
 			<< " queued=" << mDuel->mMsgMngr.hasMoreMessages() << std::endl;
 	}
@@ -702,13 +755,8 @@ void Application::finishDrag(int mouseX, int mouseY)
 		}
 		if (defender >= 0)
 			found = findDragAction("creatureattack", cardId, defender, action);
-		else
-		{
-			const SDL_Rect opponentDrop = { 150, 0, 760, 200 };
-			const SDL_Rect attackPrompt = { 330, 315, 320, 80 };
-			if (contains(opponentDrop, mouseX, mouseY) || contains(attackPrompt, mouseX, mouseY))
-				found = findDragAction("creatureattack", cardId, -1, action);
-		}
+		else if (contains({ 150, 0, 760, 200 }, mouseX, mouseY))
+			found = findDragAction("creatureattack", cardId, -1, action);
 	}
 
 	cancelDrag();
@@ -881,20 +929,12 @@ void Application::renderDuel()
 	drawText("Deck " + std::to_string(mDuel->mDecks[1].mCards.size()), 18, 39, color(229, 235, 245), 13);
 	drawHand(mDuel->mHands[1].mCards, true);
 
-	drawText("RIVAL MANA", 78, 62, color(180, 198, 224), 13);
-	drawText("RIVAL SHIELDS", 520, 62, color(180, 198, 224), 13);
 	drawZone(mDuel->mManazones[1].mCards, 70, 82, 390, 54, 76, true, true);
 	drawZone(mDuel->mShields[1].mCards, 510, 82, 390, 54, 76, false, true);
 	renderGraveyardPile(1);
 	drawZone(mDuel->mBattlezones[1].mCards, 65, 205, 850, 82, 114, true, true);
 
-	fillRect({ 372, 332, 235, 42 }, 20, 27, 43, 220);
-	outlineRect({ 372, 332, 235, 42 }, 122, 92, 49, 255, 2);
-	drawText("DRAG HERE TO ATTACK", 397, 343, color(229, 200, 130), 14);
-
 	drawZone(mDuel->mBattlezones[0].mCards, 65, 390, 850, 82, 114, true, true);
-	drawText("YOUR SHIELDS", 78, 532, color(180, 198, 224), 13);
-	drawText("YOUR MANA", 520, 532, color(180, 198, 224), 13);
 	drawZone(mDuel->mShields[0].mCards, 70, 551, 390, 54, 76, false, true);
 	drawZone(mDuel->mManazones[0].mCards, 510, 551, 390, 54, 76, true, true);
 	renderGraveyardPile(0);

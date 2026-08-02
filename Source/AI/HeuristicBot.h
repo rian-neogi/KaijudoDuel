@@ -18,4 +18,6 @@ private:
 	double scoreManaCharge(Duel& duel, int cardId) const;
 	double scoreAttack(Duel& duel, const Message& move) const;
 	double scoreBlock(Duel& duel, int blocker) const;
+	int attackingPower(Duel& duel, int attacker) const;
+	bool hasStrongerBlocker(Duel& duel, int attacker, int attackerPower, int attackedCreature) const;
 };

@@ -2098,10 +2098,12 @@ Cards["Stinger Worm"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-        summon = function(id)
-            local ch = createChoice("Destroy a creature",0,id,getCardOwner(id),Checks.InYourBattle)
+        local summon = function(id)
+            local ch = createChoice("Select a creature to destroy",0,id,getCardOwner(id),Checks.InYourBattle)
             if(ch>=0) then
                 destroyCreature(ch)
+            else
+                destroyCreature(id)
             end
         end
         Abils.onSummon(id,summon)

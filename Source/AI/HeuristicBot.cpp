@@ -35,18 +35,19 @@ HeuristicBot::HeuristicBot(int player) : mPlayer(player)
 Message HeuristicBot::chooseMove(Duel& duel, const std::vector<Message>& moves) const
 {
 	if (moves.empty()) return Message();
-	size_t bestIndex = 0;
+	size_t bestIndex = moves.size();
 	double bestScore = -std::numeric_limits<double>::infinity();
 	for (size_t i = 0; i < moves.size(); ++i)
 	{
 		double score = scoreMove(duel, moves[i]);
+		if (score == -std::numeric_limits<double>::infinity()) continue;
 		if (score > bestScore)
 		{
 			bestScore = score;
 			bestIndex = i;
 		}
 	}
-	return moves[bestIndex];
+	return bestIndex < moves.size() ? moves[bestIndex] : Message();
 }
 
 double HeuristicBot::cardValue(Duel& duel, int cardId, bool allowLuaQueries) const
@@ -126,8 +127,15 @@ double HeuristicBot::scoreManaCharge(Duel& duel, int cardId) const
 double HeuristicBot::scoreAttack(Duel& duel, const Message& move) const
 {
 	int attacker = messageInt(move, "attacker");
-	if (attacker < 0 || attacker >= (int)duel.mCardList.size()) return -1000.0;
-	if (messageInt(move, "defendertype") == DEFENDER_PLAYER)
+	if (attacker < 0 || attacker >= (int)duel.mCardList.size())
+		return -std::numeric_limits<double>::infinity();
+	int defenderType = messageInt(move, "defendertype");
+	int defender = defenderType == DEFENDER_CREATURE ? messageInt(move, "defender") : -1;
+	int attackerPower = attackingPower(duel, attacker);
+	if (hasStrongerBlocker(duel, attacker, attackerPower, defender))
+		return -std::numeric_limits<double>::infinity();
+
+	if (defenderType == DEFENDER_PLAYER)
 	{
 		if (duel.mShields[1 - mPlayer].mCards.empty()) return 100000.0;
 		double score = 35.0 + duel.getCreatureBreaker(attacker) * 8.0;
@@ -137,15 +145,37 @@ double HeuristicBot::scoreAttack(Duel& duel, const Message& move) const
 		return score;
 	}
 
-	int defender = messageInt(move, "defender");
-	if (defender < 0 || defender >= (int)duel.mCardList.size()) return -1000.0;
-	int attackerPower = duel.getCreaturePower(attacker);
+	if (defenderType != DEFENDER_CREATURE || defender < 0 || defender >= (int)duel.mCardList.size())
+		return -std::numeric_limits<double>::infinity();
 	int defenderPower = duel.getCreaturePower(defender);
+	if (defenderPower > attackerPower) return -std::numeric_limits<double>::infinity();
 	double attackerValue = cardValue(duel, attacker, true);
 	double defenderValue = cardValue(duel, defender, true);
 	if (attackerPower > defenderPower) return 65.0 + defenderValue * 5.0;
-	if (attackerPower == defenderPower) return 35.0 + (defenderValue - attackerValue) * 5.0;
-	return -20.0 + defenderValue * 2.0 - attackerValue * 5.0;
+	return 35.0 + (defenderValue - attackerValue) * 5.0;
+}
+
+int HeuristicBot::attackingPower(Duel& duel, int attacker) const
+{
+	int previousAttacker = duel.mAttacker;
+	duel.mAttacker = attacker;
+	int power = duel.getCreaturePower(attacker);
+	duel.mAttacker = previousAttacker;
+	return power;
+}
+
+bool HeuristicBot::hasStrongerBlocker(
+	Duel& duel, int attacker, int attackerPower, int attackedCreature) const
+{
+	const std::vector<Card*>& defenders = duel.mBattlezones[1 - mPlayer].mCards;
+	for (size_t i = 0; i < defenders.size(); ++i)
+	{
+		Card* blocker = defenders[i];
+		if (blocker->mUniqueId == attackedCreature || blocker->mIsTapped) continue;
+		if (!duel.getCreatureCanBlock(attacker, blocker->mUniqueId)) continue;
+		if (duel.getCreaturePower(blocker->mUniqueId) > attackerPower) return true;
+	}
+	return false;
 }
 
 double HeuristicBot::scoreBlock(Duel& duel, int blocker) const

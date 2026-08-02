@@ -17,6 +17,7 @@ using namespace AppSupport;
 namespace
 {
 	constexpr int COLLECTION_PAGE_SIZE = 15;
+	const char* STARTER_DECK_PATH = "Decks/My Decks/7 - L Tappy Tappy.txt";
 	const SDL_Rect BACK_BUTTON = { 20, 20, 120, 46 };
 	const SDL_Rect NEW_DECK_BUTTON = { 154, 20, 150, 46 };
 	const SDL_Rect SEARCH_BOX = { 326, 20, 430, 46 };
@@ -103,12 +104,12 @@ void Application::ensurePlayerDataLoaded()
 {
 	if (mPlayerDataLoaded) return;
 	mPlayerDataLoaded = true;
-	mCollectionCounts.assign(gCardDatabase.size(), 4);
+	mCollectionCounts.assign(gCardDatabase.size(), 0);
 
 	std::ifstream collection("PlayerData/collection.txt");
+	bool collectionLoaded = false;
 	if (collection.good())
 	{
-		mCollectionCounts.assign(gCardDatabase.size(), 0);
 		std::string line;
 		while (std::getline(collection, line))
 		{
@@ -116,7 +117,11 @@ void Application::ensurePlayerDataLoaded()
 			std::string name;
 			if (!parseDeckLine(line, count, name)) continue;
 			int cardId = getCardIdFromName(name);
-			if (cardId >= 0 && cardId < (int)mCollectionCounts.size()) mCollectionCounts[cardId] = count;
+			if (cardId >= 0 && cardId < (int)mCollectionCounts.size())
+			{
+				mCollectionCounts[cardId] = count;
+				collectionLoaded = true;
+			}
 		}
 	}
 
@@ -144,7 +149,7 @@ void Application::ensurePlayerDataLoaded()
 	std::vector<std::string> legacyDecks = textFilesIn("Decks/My Decks");
 	for (size_t i = 0; i < legacyDecks.size(); ++i) loadDeckFile(legacyDecks[i], false);
 
-	mActiveDeckPath = "Decks/My Decks/7 - L Tappy Tappy.txt";
+	mActiveDeckPath = STARTER_DECK_PATH;
 	std::ifstream profile("PlayerData/profile.txt");
 	std::string line;
 	while (std::getline(profile, line))
@@ -154,6 +159,72 @@ void Application::ensurePlayerDataLoaded()
 		if (mPlayerDecks[i].path == mActiveDeckPath) mActiveDeckIndex = (int)i;
 	if (mEditingDeckIndex < 0 && !mPlayerDecks.empty())
 		mEditingDeckIndex = mActiveDeckIndex >= 0 ? mActiveDeckIndex : 0;
+
+	if (!collectionLoaded)
+	{
+		std::ifstream starter(STARTER_DECK_PATH);
+		std::string starterLine;
+		while (std::getline(starter, starterLine))
+		{
+			int count = 0;
+			std::string name;
+			if (!parseDeckLine(starterLine, count, name)) continue;
+			int cardId = getCardIdFromName(name);
+			if (cardId >= 0 && cardId < (int)mCollectionCounts.size()) mCollectionCounts[cardId] += count;
+		}
+	}
+
+	std::ifstream progress("PlayerData/progress.txt");
+	while (std::getline(progress, line))
+	{
+		if (line.find("money=") == 0)
+		{
+			mMoney = std::max(0, std::atoi(line.substr(6).c_str()));
+			continue;
+		}
+		if (line.find("npc.") != 0) continue;
+		size_t equals = line.find('=');
+		if (equals == std::string::npos) continue;
+		std::string npcName = line.substr(4, equals - 4);
+		int wins = std::max(0, std::min(4, std::atoi(line.substr(equals + 1).c_str())));
+		for (size_t i = 0; i < mNpcs.size(); ++i)
+			if (mNpcs[i].isDuelist() && mNpcs[i].name == npcName) mNpcs[i].wins = wins;
+	}
+}
+
+void Application::savePlayerProgress()
+{
+	ensureDirectory("PlayerData");
+	std::ofstream collection("PlayerData/collection.txt", std::ios::trunc);
+	for (size_t i = 0; i < mCollectionCounts.size() && i < gCardDatabase.size(); ++i)
+		if (mCollectionCounts[i] > 0)
+			collection << mCollectionCounts[i] << " " << gCardDatabase[i].Name << "\n";
+
+	std::ofstream progress("PlayerData/progress.txt", std::ios::trunc);
+	progress << "money=" << std::max(0, mMoney) << "\n";
+	for (size_t i = 0; i < mNpcs.size(); ++i)
+		if (mNpcs[i].isDuelist()) progress << "npc." << mNpcs[i].name << "=" << mNpcs[i].wins << "\n";
+}
+
+void Application::awardNpcVictory(int npcIndex)
+{
+	if (npcIndex < 0 || npcIndex >= (int)mNpcs.size()) return;
+	ensurePlayerDataLoaded();
+	Npc& npc = mNpcs[npcIndex];
+	if (!npc.canBattle()) return;
+
+	++npc.wins;
+	mMoney += npc.goldReward;
+	int rewardId = getCardIdFromName(npc.rewardCard);
+	bool awardedCard = rewardId >= 0 && rewardId < (int)mCollectionCounts.size();
+	if (awardedCard) ++mCollectionCounts[rewardId];
+	savePlayerProgress();
+
+	mNotice = "Victory over " + npc.name + "! ";
+	if (awardedCard) mNotice += "+1 " + npc.rewardCard + " and ";
+	mNotice += "+" + std::to_string(npc.goldReward) + " gold. Reward " +
+		std::to_string(npc.wins) + "/4.";
+	mNoticeUntil = SDL_GetTicks() + 6500;
 }
 
 int Application::deckCardCount(const PlayerDeck& deck) const
@@ -228,7 +299,7 @@ bool Application::saveDeck(int deckIndex)
 		else
 		{
 			revertedToStarter = true;
-			mActiveDeckPath = "Decks/My Decks/7 - L Tappy Tappy.txt";
+			mActiveDeckPath = STARTER_DECK_PATH;
 			mActiveDeckIndex = -1;
 			for (size_t i = 0; i < mPlayerDecks.size(); ++i)
 				if (mPlayerDecks[i].path == mActiveDeckPath) mActiveDeckIndex = (int)i;
@@ -238,10 +309,7 @@ bool Application::saveDeck(int deckIndex)
 		}
 	}
 
-	std::ofstream collection("PlayerData/collection.txt", std::ios::trunc);
-	for (size_t i = 0; i < mCollectionCounts.size() && i < gCardDatabase.size(); ++i)
-		if (mCollectionCounts[i] > 0)
-			collection << mCollectionCounts[i] << " " << gCardDatabase[i].Name << "\n";
+	savePlayerProgress();
 	if (!revertedToStarter) showDeckNotice("Deck saved.");
 	return true;
 }
@@ -504,6 +572,7 @@ void Application::renderDeckBuilder()
 	outlineRect(DECK_PANEL, 82, 112, 160, 255, 2);
 	drawText("MY DECKS", 36, 105, color(242, 205, 105), 19);
 	drawText("COLLECTION", 278, 105, color(242, 205, 105), 19);
+	drawText("Gold " + std::to_string(mMoney), 812, 108, color(245, 205, 88), 14);
 	drawText("CURRENT DECK", 975, 105, color(242, 205, 105), 19);
 
 	int visibleDecks = 12;

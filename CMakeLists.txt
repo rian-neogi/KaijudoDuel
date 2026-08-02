@@ -31,7 +31,9 @@ set(GAME_SOURCES
     Source/App/DuelWindow.cpp
 	Source/App/DeckBuilder.cpp
 	Source/App/Menus.cpp
+	Source/App/Npc.cpp
     Source/App/Overworld.cpp
+	Source/App/Shop.cpp
     Source/CRandom.cpp
     Source/LuaFunctions.cpp
     Source/SoundManager.cpp

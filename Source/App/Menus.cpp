@@ -116,5 +116,11 @@ bool Application::exerciseMenuScreensSmoke()
 	if (mScreen != Screen::Settings) return false;
 	renderSettings();
 	handleSettingsEvent(back);
+	if (mScreen != Screen::Overworld) return false;
+
+	enterShop();
+	renderShop();
+	if (mScreen != Screen::Shop || mShopCardHitboxes.size() != 10) return false;
+	handleShopEvent(back);
 	return mScreen == Screen::Overworld;
 }

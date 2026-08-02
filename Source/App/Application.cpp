@@ -17,10 +17,10 @@ Application::Application()
 	  mNextAiMove(0), mDuelResult(-1), mDuelResultAt(0), mDraggingCard(-1),
 	  mDragFromZone(-1), mDragOrigin({ 0, 0, 0, 0 }), mDragMouseX(0), mDragMouseY(0),
 	  mMouseX(-100), mMouseY(-100), mHoveredCard(-1), mHoverCandidateCard(-1),
-	  mHoverCandidateSince(0), mPlayerDataLoaded(false), mActiveDeckIndex(-1),
+	  mHoverCandidateSince(0), mPlayerDataLoaded(false), mMoney(0), mActiveDeckIndex(-1),
 	  mEditingDeckIndex(-1), mDeckCollectionPage(0), mDeckListScroll(0),
 	  mDeckContentsScroll(0), mDeckSearchFocused(false), mDeckRenameFocused(false),
-	  mDeckNoticeUntil(0), mDeckHoveredCard(-1)
+	  mDeckNoticeUntil(0), mDeckHoveredCard(-1), mShopHoveredCard(-1), mShopNoticeUntil(0)
 {
 	mMap.push_back("####################");
 	mMap.push_back("#......~~~.........#");
@@ -35,9 +35,24 @@ Application::Application()
 	mMap.push_back("#..................#");
 	mMap.push_back("####################");
 
-	mNpcs.push_back({ 10, 7, "Mira", "Decks/Zagaan.txt", "Darkness answers my call. Ready to duel?", false });
-	mNpcs.push_back({ 16, 4, "Marin", "Decks/AquaSniper.txt", "Let us see whether you can read the currents.", false });
-	mNpcs.push_back({ 7, 4, "Rook", "Decks/RoaringGreathorn.txt", "Strength grows one turn at a time.", false });
+	mNpcs.push_back(Npc::duelist(10, 7, "Mira", "Decks/Zagaan.txt",
+		"Darkness answers my call. Ready to duel?", "Zagaan, Knight of Darkness", 100));
+	mNpcs.push_back(Npc::duelist(16, 4, "Marin", "Decks/AquaSniper.txt",
+		"Let us see whether you can read the currents.", "Aqua Sniper", 100));
+	mNpcs.push_back(Npc::duelist(7, 4, "Rook", "Decks/RoaringGreathorn.txt",
+		"Strength grows one turn at a time.", "Roaring Great-Horn", 100));
+	mNpcs.push_back(Npc::duelist(12, 1, "Aurelia", "Decks/Hanusa.txt",
+		"The light judges every reckless move. Shall we begin?", "Hanusa, Radiance Elemental", 100));
+	mNpcs.push_back(Npc::duelist(5, 4, "Flint", "Decks/AstrocometDragon.txt",
+		"My dragons have been waiting for a worthy opponent.", "Astrocomet Dragon", 100));
+	mNpcs.push_back(Npc::duelist(17, 7, "Nyx", "Decks/Deathliger.txt",
+		"The abyss remembers every card you lose.", "Deathliger, Lion of Chaos", 100));
+	mNpcs.push_back(Npc::duelist(10, 10, "Tidal", "Decks/KingDepthcon.txt",
+		"The deep favors patience. Can you keep your footing?", "King Depthcon", 100));
+	mNpcs.push_back(Npc::duelist(2, 6, "Briar", "Decks/DeathbladeBeetle.txt",
+		"Nature rewards the duelist who grows strongest.", "Deathblade Beetle", 100));
+	mNpcs.push_back(Npc::shopkeeper(18, 10, "Mercer",
+		"Welcome! I trade hard-earned gold for cards."));
 }
 
 Application::~Application()
@@ -120,7 +135,7 @@ int Application::run(bool smokeTest)
 	if (!initialize())
 		return 1;
 	if (smokeTest)
-		startDuel(0);
+		startDuel(0, true);
 
 	Uint32 previous = SDL_GetTicks();
 	int smokeFrames = 0;
@@ -129,6 +144,10 @@ int Application::run(bool smokeTest)
 	int smokeBlackFeatherSacrifice = -1;
 	bool blackFeatherSmokeStarted = false;
 	bool blackFeatherWasSelectable = false;
+	int smokeStingerWorm = -1;
+	int smokeStingerWormSacrifice = -1;
+	bool stingerWormSmokeStarted = false;
+	bool stingerWormWasSelectable = false;
 	while (mRunning)
 	{
 		SDL_Event event;
@@ -169,6 +188,11 @@ int Application::run(bool smokeTest)
 			if (smokeNpc == 0 && smokeFrames == 20 && !exerciseEvolutionSmoke())
 			{
 				std::cerr << "Evolution smoke test failed." << std::endl;
+				return 2;
+			}
+			if (smokeNpc == 0 && smokeFrames == 30 && !exerciseHeuristicAttackSafetySmoke())
+			{
+				std::cerr << "Heuristic attack safety smoke test failed." << std::endl;
 				return 2;
 			}
 			if (smokeNpc == 0 && smokeFrames == 60 && mDuel != NULL)
@@ -242,7 +266,8 @@ int Application::run(bool smokeTest)
 			}
 			if (smokeNpc == 0 && smokeFrames >= 65 && smokeFrames < 75 && !blackFeatherSmokeStarted)
 			{
-				blackFeatherSmokeStarted = beginBlackFeatherAiSmoke(
+				blackFeatherSmokeStarted = beginMandatorySacrificeAiSmoke(
+					"Black Feather, Shadow of Rage",
 					smokeBlackFeather, smokeBlackFeatherSacrifice);
 				if (smokeFrames == 74 && !blackFeatherSmokeStarted && mDuel != NULL)
 				{
@@ -287,9 +312,36 @@ int Application::run(bool smokeTest)
 			}
 			if (smokeNpc == 0 && smokeFrames == 90 &&
 				(!blackFeatherSmokeStarted || !blackFeatherWasSelectable ||
-				 !verifyBlackFeatherAiSmoke(smokeBlackFeather, smokeBlackFeatherSacrifice)))
+					 !verifyMandatorySacrificeAiSmoke("Black Feather, Shadow of Rage",
+						smokeBlackFeather, smokeBlackFeatherSacrifice)))
 			{
 				std::cerr << "Black Feather AI sacrifice smoke test failed." << std::endl;
+				return 2;
+			}
+			if (smokeNpc == 5 && smokeFrames >= 5 && smokeFrames < 20 && !stingerWormSmokeStarted)
+			{
+				stingerWormSmokeStarted = beginMandatorySacrificeAiSmoke(
+					"Stinger Worm", smokeStingerWorm, smokeStingerWormSacrifice);
+			}
+			if (smokeNpc == 5 && stingerWormSmokeStarted && !stingerWormWasSelectable && mDuel != NULL)
+			{
+				std::lock_guard<std::mutex> lock(gMutex);
+				if (mDuel->mIsChoiceActive && mDuel->mChoicePlayer == 1)
+				{
+					stingerWormWasSelectable = mDuel->choiceCanBeSelected(smokeStingerWorm) == 1;
+					std::vector<Message> moves = mDuel->getPossibleMoves();
+					for (size_t i = 0; i < moves.size(); ++i)
+						if (moves[i].getType() == "choiceselect" && messageInt(moves[i], "selection") < 0)
+							stingerWormWasSelectable = false;
+					mNextAiMove = 0;
+				}
+			}
+			if (smokeNpc == 5 && smokeFrames == 40 &&
+				(!stingerWormSmokeStarted || !stingerWormWasSelectable ||
+				 !verifyMandatorySacrificeAiSmoke("Stinger Worm",
+					smokeStingerWorm, smokeStingerWormSacrifice)))
+			{
+				std::cerr << "Stinger Worm AI sacrifice smoke test failed." << std::endl;
 				return 2;
 			}
 			if (smokeNpc == 0 && smokeFrames == 95 && !exerciseGraveyardBrowserSmoke())
@@ -298,10 +350,13 @@ int Application::run(bool smokeTest)
 				return 2;
 			}
 			SDL_Delay(5);
-			if (++smokeFrames >= 300)
+			const int smokeFrameLimit = smokeNpc == 0 ? 300 : 60;
+			if (++smokeFrames >= smokeFrameLimit)
 			{
 				smokeFrames = 0;
-				if (++smokeNpc < (int)mNpcs.size()) startDuel(smokeNpc);
+				++smokeNpc;
+				while (smokeNpc < (int)mNpcs.size() && !mNpcs[smokeNpc].isDuelist()) ++smokeNpc;
+				if (smokeNpc < (int)mNpcs.size()) startDuel(smokeNpc, true);
 				else
 				{
 					stopDuel();
@@ -328,6 +383,7 @@ void Application::handleEvent(const SDL_Event& event)
 	if (mScreen == Screen::Overworld) handleOverworldEvent(event);
 	else if (mScreen == Screen::Duel) handleDuelEvent(event);
 	else if (mScreen == Screen::DeckBuilder) handleDeckBuilderEvent(event);
+	else if (mScreen == Screen::Shop) handleShopEvent(event);
 	else handleSettingsEvent(event);
 }
 
@@ -344,6 +400,7 @@ void Application::render()
 	if (mScreen == Screen::Overworld) renderOverworld();
 	else if (mScreen == Screen::Duel) renderDuel();
 	else if (mScreen == Screen::DeckBuilder) renderDeckBuilder();
+	else if (mScreen == Screen::Shop) renderShop();
 	else renderSettings();
 	SDL_RenderPresent(mRenderer);
 }

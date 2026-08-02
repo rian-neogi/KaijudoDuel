@@ -73,7 +73,10 @@ void Application::interact()
 {
 	if (mDialogueNpc >= 0)
 	{
-		if (mNpcs[mDialogueNpc].defeated)
+		Npc& npc = mNpcs[mDialogueNpc];
+		if (npc.isShopkeeper())
+			enterShop();
+		else if (!npc.canBattle())
 			mDialogueNpc = -1;
 		else
 			startDuel(mDialogueNpc);
@@ -84,6 +87,7 @@ void Application::interact()
 
 void Application::renderOverworld()
 {
+	ensurePlayerDataLoaded();
 	fillRect({ 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT }, 13, 21, 34);
 	for (size_t y = 0; y < mMap.size(); ++y)
 	{
@@ -118,27 +122,35 @@ void Application::renderOverworld()
 	}
 
 	for (size_t i = 0; i < mNpcs.size(); ++i)
-		drawCharacter(mNpcs[i].x, mNpcs[i].y, true, mNpcs[i].defeated);
+		drawCharacter(mNpcs[i].x, mNpcs[i].y, mNpcs[i].isDuelist(),
+			mNpcs[i].isComplete(), mNpcs[i].isShopkeeper());
 	drawCharacter((int)std::round(mVisualX), (int)std::round(mVisualY), false, false);
 
-	fillRect({ 1012, 54, 238, 576 }, 21, 28, 45, 245);
-	outlineRect({ 1012, 54, 238, 576 }, 190, 146, 61, 255, 2);
-	drawText("EMBERGLEN", 1034, 76, color(242, 205, 99), 28);
-	drawText("DUELISTS", 1034, 139, color(135, 162, 199), 16);
+	fillRect({ 1012, 28, 238, 670 }, 21, 28, 45, 245);
+	outlineRect({ 1012, 28, 238, 670 }, 190, 146, 61, 255, 2);
+	drawText("EMBERGLEN", 1034, 48, color(242, 205, 99), 28);
+	drawText("GOLD " + std::to_string(mMoney), 1034, 91, color(245, 205, 88), 16);
+	drawText("DUELISTS", 1034, 120, color(135, 162, 199), 16);
+	int duelistRow = 0;
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 	{
-		drawText(mNpcs[i].name, 1034, 177 + (int)i * 76, color(235, 238, 245), 21);
-		drawText(mNpcs[i].defeated ? "DEFEATED" : "READY", 1034, 205 + (int)i * 76,
-			mNpcs[i].defeated ? color(92, 208, 121) : color(235, 151, 65), 15);
+		if (!mNpcs[i].isDuelist()) continue;
+		const int rowY = 145 + duelistRow++ * 48;
+		drawText(mNpcs[i].name, 1034, rowY, color(235, 238, 245), 17);
+		drawText(mNpcs[i].statusText(), 1034, rowY + 21,
+			mNpcs[i].isComplete() ? color(92, 208, 121) : color(235, 151, 65), 12);
 	}
-	drawText("WASD / Arrows: move", 1034, 474, color(187, 200, 221), 15);
-	drawText("E / Space: talk", 1034, 502, color(187, 200, 221), 15);
-	drawText("Esc: menu", 1034, 530, color(187, 200, 221), 15);
+	drawText("CARD SHOP", 1034, 535, color(135, 162, 199), 14);
+	for (size_t i = 0; i < mNpcs.size(); ++i)
+		if (mNpcs[i].isShopkeeper()) drawText(mNpcs[i].name, 1034, 557, color(235, 238, 245), 17);
+	drawText("WASD / Arrows: move", 1034, 613, color(187, 200, 221), 14);
+	drawText("E / Space: talk", 1034, 636, color(187, 200, 221), 14);
+	drawText("Esc: menu", 1034, 659, color(187, 200, 221), 14);
 
 	if (!mNotice.empty() && SDL_GetTicks() < mNoticeUntil)
 	{
-		fillRect({ 36, 10, 640, 38 }, 17, 28, 43, 230);
-		drawText(mNotice, 48, 18, color(113, 232, 143), 18);
+		fillRect({ 36, 10, 930, 42 }, 17, 28, 43, 230);
+		drawText(mNotice, 48, 19, color(113, 232, 143), 16, 900);
 	}
 
 	if (mDialogueNpc >= 0)
@@ -147,21 +159,28 @@ void Application::renderOverworld()
 		fillRect({ 40, 646, 1200, 128 }, 16, 22, 36, 248);
 		outlineRect({ 40, 646, 1200, 128 }, 194, 148, 62, 255, 3);
 		drawText(npc.name, 68, 664, color(244, 206, 103), 25);
-		drawText(npc.defeated ? "A fine duel. Keep exploring, duelist." : npc.challenge,
-			68, 704, color(232, 237, 246), 19, 1080);
-		drawText(npc.defeated ? "E / Space to close" : "E / Space to battle",
-			965, 742, color(126, 176, 242), 15);
+		std::string dialogue = npc.challenge;
+		std::string prompt = npc.isShopkeeper() ? "E / Space to browse" : "E / Space to battle";
+		if (npc.isComplete())
+		{
+			dialogue = "You've claimed all four of my rewards. I have no more cards to wager.";
+			prompt = "E / Space to close";
+		}
+		drawText(dialogue, 68, 704, color(232, 237, 246), 19, 1080);
+		drawText(prompt, 965, 742, color(126, 176, 242), 15);
 	}
 	if (mPauseMenuOpen) renderPauseMenu();
 }
 
-void Application::drawCharacter(int gridX, int gridY, bool rival, bool defeated)
+void Application::drawCharacter(int gridX, int gridY, bool rival, bool completed, bool shopkeeper)
 {
 	int x = MAP_X + gridX * TILE;
 	int y = MAP_Y + gridY * TILE;
 	fillRect({ x + 11, y + 39, 28, 6 }, 8, 14, 18, 100);
-	if (rival)
-		fillRect({ x + 13, y + 20, 22, 22 }, defeated ? 91 : 111, defeated ? 94 : 46, defeated ? 103 : 143);
+	if (shopkeeper)
+		fillRect({ x + 13, y + 20, 22, 22 }, 173, 119, 38);
+	else if (rival)
+		fillRect({ x + 13, y + 20, 22, 22 }, completed ? 91 : 111, completed ? 94 : 46, completed ? 103 : 143);
 	else
 		fillRect({ x + 13, y + 20, 22, 22 }, 31, 88, 185);
 	fillRect({ x + 17, y + 8, 15, 15 }, 224, 172, 126);

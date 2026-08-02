@@ -1,5 +1,6 @@
 #pragma once
 
+#include "App/Npc.h"
 #include "Game/Duel.h"
 
 #include <SDL.h>
@@ -26,17 +27,8 @@ private:
 		Overworld,
 		Duel,
 		DeckBuilder,
-		Settings
-	};
-
-	struct Npc
-	{
-		int x;
-		int y;
-		std::string name;
-		std::string deck;
-		std::string challenge;
-		bool defeated;
+		Settings,
+		Shop
 	};
 
 	struct CardHitbox
@@ -104,7 +96,7 @@ private:
 	bool isWalkable(int x, int y) const;
 	int npcAt(int x, int y) const;
 
-	void startDuel(int npcIndex);
+	void startDuel(int npcIndex, bool ignoreProgressLimit = false);
 	void stopDuel();
 	void handleDuelEvent(const SDL_Event& event);
 	bool handleGraveyardEvent(const SDL_Event& event);
@@ -114,9 +106,10 @@ private:
 	void renderGraveyardOverlay();
 	SDL_Rect graveyardPileRect(int player) const;
 	bool exerciseEvolutionSmoke();
+	bool exerciseHeuristicAttackSafetySmoke();
 	bool exerciseBinaryChoiceSmoke();
-	bool beginBlackFeatherAiSmoke(int& blackFeather, int& sacrifice);
-	bool verifyBlackFeatherAiSmoke(int blackFeather, int sacrifice);
+	bool beginMandatorySacrificeAiSmoke(const std::string& cardName, int& summonedCard, int& sacrifice);
+	bool verifyMandatorySacrificeAiSmoke(const std::string& cardName, int summonedCard, int sacrifice);
 	bool exerciseGraveyardBrowserSmoke();
 	void playAction(const Message& message);
 	void playCard(const Message& message);
@@ -148,7 +141,7 @@ private:
 	void drawCardBack(const SDL_Rect& rect);
 	void drawZone(const std::vector<Card*>& cards, int x, int y, int width, int cardWidth, int cardHeight, bool faceUp, bool clickable);
 	void drawHand(const std::vector<Card*>& cards, bool opponent);
-	void drawCharacter(int gridX, int gridY, bool rival, bool defeated);
+	void drawCharacter(int gridX, int gridY, bool rival, bool completed, bool shopkeeper = false);
 	SDL_Color civilizationColor(int civilization) const;
 	void logicalMouse(int windowX, int windowY, int& logicalX, int& logicalY) const;
 	bool contains(const SDL_Rect& rect, int x, int y) const;
@@ -166,6 +159,16 @@ private:
 	std::vector<int> filteredCollection() const;
 	std::string availableDeckPath(const std::string& name, const std::string& currentPath) const;
 	void showDeckNotice(const std::string& notice);
+	void savePlayerProgress();
+	void awardNpcVictory(int npcIndex);
+
+	void enterShop();
+	void leaveShop();
+	void handleShopEvent(const SDL_Event& event);
+	void renderShop();
+	void renderShopHoverPreview();
+	std::vector<int> shopInventory() const;
+	int shopPrice(int cardId) const;
 
 	SDL_Window* mWindow;
 	SDL_Renderer* mRenderer;
@@ -214,6 +217,7 @@ private:
 	Uint32 mHoverCandidateSince;
 
 	bool mPlayerDataLoaded;
+	int mMoney;
 	std::vector<int> mCollectionCounts;
 	std::vector<PlayerDeck> mPlayerDecks;
 	std::string mActiveDeckPath;
@@ -230,4 +234,8 @@ private:
 	Uint32 mDeckNoticeUntil;
 	std::vector<DeckCardHitbox> mDeckCardHitboxes;
 	int mDeckHoveredCard;
+	std::vector<DeckCardHitbox> mShopCardHitboxes;
+	int mShopHoveredCard;
+	std::string mShopNotice;
+	Uint32 mShopNoticeUntil;
 };
