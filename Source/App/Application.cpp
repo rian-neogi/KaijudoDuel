@@ -13,9 +13,11 @@ Application::Application()
 	  mScreen(Screen::Overworld), mPlayerX(2), mPlayerY(10), mFacingX(1), mFacingY(0),
 	  mVisualX(2.f), mVisualY(10.f), mDialogueNpc(-1), mNoticeUntil(0),
 	  mDuel(NULL), mActiveNpc(-1), mSelectedCard(-1), mActionScroll(0),
+	  mOpenGraveyardPlayer(-1), mGraveyardOffset(0),
 	  mNextAiMove(0), mDuelResult(-1), mDuelResultAt(0), mDraggingCard(-1),
 	  mDragFromZone(-1), mDragOrigin({ 0, 0, 0, 0 }), mDragMouseX(0), mDragMouseY(0),
-	  mMouseX(-100), mMouseY(-100), mHoveredCard(-1)
+	  mMouseX(-100), mMouseY(-100), mHoveredCard(-1), mHoverCandidateCard(-1),
+	  mHoverCandidateSince(0)
 {
 	mMap.push_back("####################");
 	mMap.push_back("#......~~~.........#");
@@ -120,6 +122,10 @@ int Application::run(bool smokeTest)
 	Uint32 previous = SDL_GetTicks();
 	int smokeFrames = 0;
 	int smokeNpc = 0;
+	int smokeBlackFeather = -1;
+	int smokeBlackFeatherSacrifice = -1;
+	bool blackFeatherSmokeStarted = false;
+	bool blackFeatherWasSelectable = false;
 	while (mRunning)
 	{
 		SDL_Event event;
@@ -133,12 +139,22 @@ int Application::run(bool smokeTest)
 		render();
 		if (smokeTest)
 		{
+			if (smokeNpc == 0 && smokeFrames == 5 && !exerciseHoverTimingSmoke())
+			{
+				std::cerr << "Hover timing smoke test failed." << std::endl;
+				return 2;
+			}
+			if (smokeNpc == 0 && smokeFrames == 10 && !exerciseBinaryChoiceSmoke())
+			{
+				std::cerr << "Binary choice menu smoke test failed." << std::endl;
+				return 2;
+			}
 			if (smokeNpc == 0 && smokeFrames >= 100 && smokeFrames < 180 && mDraggingCard < 0)
 			{
 				for (std::vector<CardHitbox>::reverse_iterator item = mCardHitboxes.rbegin(); item != mCardHitboxes.rend(); ++item)
 				{
 					std::lock_guard<std::mutex> lock(gMutex);
-					if (mDuel != NULL && item->cardId >= 0 && item->cardId < (int)mDuel->mCardList.size() &&
+					if (item->hoverAnchor && mDuel != NULL && item->cardId >= 0 && item->cardId < (int)mDuel->mCardList.size() &&
 						mDuel->mCardList[item->cardId]->mOwner == 0 && mDuel->mCardList[item->cardId]->mZone == ZONE_HAND)
 					{
 						mMouseX = item->rect.x + item->rect.w / 2;
@@ -151,27 +167,6 @@ int Application::run(bool smokeTest)
 			{
 				std::cerr << "Evolution smoke test failed." << std::endl;
 				return 2;
-			}
-			if (smokeFrames == 45 && mDuel != NULL)
-			{
-				CardHitbox handCard = { { 0, 0, 0, 0 }, -1, true };
-				{
-					std::lock_guard<std::mutex> lock(gMutex);
-					for (std::vector<CardHitbox>::reverse_iterator item = mCardHitboxes.rbegin(); item != mCardHitboxes.rend(); ++item)
-					{
-						if (item->cardId >= 0 && item->cardId < (int)mDuel->mCardList.size() &&
-							mDuel->mCardList[item->cardId]->mOwner == 0 && mDuel->mCardList[item->cardId]->mZone == ZONE_HAND)
-						{
-							handCard = *item;
-							break;
-						}
-					}
-				}
-				if (handCard.cardId >= 0)
-				{
-					beginDrag(handCard.cardId, handCard.rect, handCard.rect.x, handCard.rect.y);
-					finishDrag(700, 590);
-				}
 			}
 			if (smokeNpc == 0 && smokeFrames == 60 && mDuel != NULL)
 			{
@@ -186,6 +181,28 @@ int Application::run(bool smokeTest)
 							selectionCard = messageInt(moves[i], "selection");
 							break;
 						}
+					}
+				}
+				CardHitbox handCard = { { 0, 0, 0, 0 }, -1, true, true, true };
+				{
+					std::lock_guard<std::mutex> lock(gMutex);
+					for (std::vector<CardHitbox>::reverse_iterator item = mCardHitboxes.rbegin(); item != mCardHitboxes.rend(); ++item)
+					{
+						if (item->hoverAnchor && item->cardId >= 0 && item->cardId < (int)mDuel->mCardList.size() &&
+							mDuel->mCardList[item->cardId]->mOwner == 0 && mDuel->mCardList[item->cardId]->mZone == ZONE_HAND)
+						{
+							handCard = *item;
+							break;
+						}
+					}
+				}
+				if (selectionCard >= 0 && handCard.cardId >= 0)
+				{
+					beginDrag(handCard.cardId, handCard.rect, handCard.rect.x, handCard.rect.y);
+					if (mDraggingCard >= 0)
+					{
+						std::cerr << "Pending choice allowed an unrelated card drag." << std::endl;
+						return 2;
 					}
 				}
 				SDL_Rect selectionButton = { 0, 0, 0, 0 };
@@ -220,6 +237,32 @@ int Application::run(bool smokeTest)
 					}
 				}
 			}
+			if (smokeNpc == 0 && smokeFrames >= 65 && smokeFrames < 75 && !blackFeatherSmokeStarted)
+			{
+				blackFeatherSmokeStarted = beginBlackFeatherAiSmoke(
+					smokeBlackFeather, smokeBlackFeatherSacrifice);
+				if (smokeFrames == 74 && !blackFeatherSmokeStarted && mDuel != NULL)
+				{
+					std::lock_guard<std::mutex> lock(gMutex);
+					std::cerr << "Black Feather setup state: choice=" << mDuel->mIsChoiceActive
+						<< " pointer=" << (mDuel->mChoice != NULL)
+						<< " suspended=" << mDuel->mLuaCallbackSuspended
+						<< " queued=" << mDuel->mMsgMngr.hasMoreMessages() << std::endl;
+				}
+			}
+			if (smokeNpc == 0 && blackFeatherSmokeStarted && !blackFeatherWasSelectable && mDuel != NULL)
+			{
+				std::lock_guard<std::mutex> lock(gMutex);
+				if (mDuel->mIsChoiceActive && mDuel->mChoicePlayer == 1)
+				{
+					blackFeatherWasSelectable = mDuel->choiceCanBeSelected(smokeBlackFeather) == 1;
+					std::vector<Message> moves = mDuel->getPossibleMoves();
+					for (size_t i = 0; i < moves.size(); ++i)
+						if (moves[i].getType() == "choiceselect" && messageInt(moves[i], "selection") < 0)
+							blackFeatherWasSelectable = false;
+					mNextAiMove = 0;
+				}
+			}
 			if (smokeFrames == 75 && mDuel != NULL)
 			{
 				Message endTurn;
@@ -238,6 +281,18 @@ int Application::run(bool smokeTest)
 					}
 				}
 				if (foundEndTurn) playAction(endTurn);
+			}
+			if (smokeNpc == 0 && smokeFrames == 90 &&
+				(!blackFeatherSmokeStarted || !blackFeatherWasSelectable ||
+				 !verifyBlackFeatherAiSmoke(smokeBlackFeather, smokeBlackFeatherSacrifice)))
+			{
+				std::cerr << "Black Feather AI sacrifice smoke test failed." << std::endl;
+				return 2;
+			}
+			if (smokeNpc == 0 && smokeFrames == 95 && !exerciseGraveyardBrowserSmoke())
+			{
+				std::cerr << "Graveyard browser smoke test failed." << std::endl;
+				return 2;
 			}
 			SDL_Delay(5);
 			if (++smokeFrames >= 300)

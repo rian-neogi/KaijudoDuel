@@ -209,12 +209,11 @@ Cards["Black Feather, Shadow of Rage"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-        summon = function(id)
-            local c = createChoice("Select creature to destroy",0,id,getCardOwner(id),Checks.InYourBattle)
+        local summon = function(id)
+            local c = createChoice("Select a creature to destroy",0,id,getCardOwner(id),Checks.InYourBattle)
             if(c>=0) then
                 destroyCreature(c)
-            end
-            if(c==RETURN_NOVALID or c==RETURN_SKIP) then
+            else
                 destroyCreature(id)
             end
         end

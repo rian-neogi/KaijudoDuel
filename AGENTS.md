@@ -29,9 +29,9 @@ or input handling, run:
 ctest --test-dir Build --output-on-failure
 ```
 
-The smoke test is headless and covers card loading, all NPC decks, an
-evolution with a suspended Lua choice, UI action clicking, hovering, an AI
-turn, rendering, and repeated duel teardown.
+The smoke test is headless and covers card loading, all NPC decks, binary and
+card-targeted suspended Lua choices, UI action clicking, hovering, an AI turn,
+rendering, and repeated duel teardown.
 
 ## Application structure
 
@@ -68,6 +68,7 @@ change has a clear lifetime model and test coverage.
 - Card and board assets are loaded with paths relative to the repository root.
 - Opponent hands and shields stay face-down. Do not reveal them through hover
   hitboxes or previews.
-- Hovered cards enlarge at their zone position and must not create a single
-  hitbox spanning across unrelated zones.
+- Hand cards hover immediately; other face-up cards require a continuous
+  one-second dwell. Hover remains active only inside the original card bounds,
+  and enlarged cards must not create a hitbox spanning unrelated zones.
 - Use C++14 and match the existing tab-indented C++ style.

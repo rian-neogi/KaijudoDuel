@@ -9,6 +9,11 @@
 
 using namespace AppSupport;
 
+namespace
+{
+	constexpr Uint32 NON_HAND_HOVER_DELAY_MS = 1000;
+}
+
 void Application::drawZone(const std::vector<Card*>& cards, int x, int y, int width, int cardWidth, int cardHeight, bool faceUp, bool clickable)
 {
 	if (cards.empty()) return;
@@ -46,6 +51,13 @@ void Application::drawHand(const std::vector<Card*>& cards, bool opponent)
 void Application::drawCard(Card* card, const SDL_Rect& rect, bool faceUp, bool selected, bool clickable, float angle)
 {
 	AnimatedCard& animation = mCardAnimations[card->mUniqueId];
+	AnimatedCard originalLayout;
+	originalLayout.x = (float)rect.x;
+	originalLayout.y = (float)rect.y;
+	originalLayout.width = (float)rect.w;
+	originalLayout.height = (float)rect.h;
+	originalLayout.angle = angle + (faceUp && card->mIsTapped ? 90.f : 0.f);
+	SDL_Rect originalBounds = cardBounds(originalLayout);
 	const bool poppedOut = faceUp && card->mUniqueId == mHoveredCard && mDraggingCard < 0;
 	if (poppedOut)
 	{
@@ -111,14 +123,57 @@ void Application::drawCard(Card* card, const SDL_Rect& rect, bool faceUp, bool s
 	}
 	if (clickable && !floatingHandCard)
 	{
+		const bool immediateHover = card->mZone == ZONE_HAND;
 		if (poppedOut)
 		{
-			// Keep the original slot and raised card independently interactive.
-			// A union rectangle would cover every zone between them and steal clicks.
-			mCardHitboxes.push_back({ rect, card->mUniqueId, faceUp });
+			// The original card remains the only hover anchor. The enlarged card is
+			// clickable, but moving onto it after leaving this box ends the hover.
+			mCardHitboxes.push_back({ originalBounds, card->mUniqueId, faceUp, true, immediateHover });
 		}
-		mCardHitboxes.push_back({ bounds, card->mUniqueId, faceUp });
+		mCardHitboxes.push_back({ bounds, card->mUniqueId, faceUp, !poppedOut, immediateHover });
 	}
+}
+
+void Application::updateHoverState(int candidateCard, bool immediate, Uint32 now)
+{
+	if (candidateCard < 0 || mDraggingCard >= 0)
+	{
+		mHoveredCard = -1;
+		mHoverCandidateCard = -1;
+		mHoverCandidateSince = 0;
+		return;
+	}
+
+	if (candidateCard != mHoverCandidateCard)
+	{
+		mHoverCandidateCard = candidateCard;
+		mHoverCandidateSince = now;
+		mHoveredCard = -1;
+	}
+
+	if (immediate || now - mHoverCandidateSince >= NON_HAND_HOVER_DELAY_MS)
+		mHoveredCard = candidateCard;
+	else
+		mHoveredCard = -1;
+}
+
+bool Application::exerciseHoverTimingSmoke()
+{
+	bool valid = true;
+	updateHoverState(42, false, 1000);
+	valid = valid && mHoveredCard == -1;
+	updateHoverState(42, false, 1999);
+	valid = valid && mHoveredCard == -1;
+	updateHoverState(42, false, 2000);
+	valid = valid && mHoveredCard == 42;
+	updateHoverState(43, false, 2001);
+	valid = valid && mHoveredCard == -1;
+	updateHoverState(-1, false, 2002);
+	valid = valid && mHoveredCard == -1 && mHoverCandidateCard == -1;
+	updateHoverState(7, true, 3000);
+	valid = valid && mHoveredCard == 7;
+	updateHoverState(-1, false, 3001);
+	return valid && mHoveredCard == -1;
 }
 
 void Application::drawCardBack(const SDL_Rect& rect)

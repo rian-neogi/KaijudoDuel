@@ -698,6 +698,11 @@ std::vector<Message> Duel::getPossibleMoves()
 		}
 	}
 
+	// Choices, combat sub-phases, and mana payment are exclusive. Do not
+	// append ordinary hand or attack actions until the pending step resolves.
+	if (mIsChoiceActive || mAttackphase != PHASE_NONE || mCastingCard != -1)
+		return moves;
+
 	if (player == mTurn && !mIsChoiceActive)
 	{
 		for (std::vector<Card*>::iterator i = mHands[mTurn].mCards.begin(); i != mHands[mTurn].mCards.end(); i++)
@@ -988,18 +993,17 @@ int Duel::handleInterfaceInput(Message& msg)
 	else if (type == "choiceselect")
 	{
 		int sid = msg.getInt("selection");
-		if (sid < 0 || choiceCanBeSelected(sid) == 1)
+		bool legalButton = mChoice != NULL &&
+			((sid == RETURN_BUTTON1 && mChoice->mButtonCount >= 1) ||
+			 (sid == RETURN_BUTTON2 && mChoice->mButtonCount >= 2));
+		if ((sid >= 0 && choiceCanBeSelected(sid) == 1) || legalButton)
 		{
-			int chcard = mChoiceCard;
+			Choice* completedChoice = mChoice;
+			mChoice = NULL;
 			resetChoice();
-			Choice* c = mChoice;
-			//c->callaction(chcard, sid);
-			if (c != NULL)
+			if (completedChoice != NULL)
 			{
-				if (mChoice == c)
-					mChoice = NULL;
-				delete c;
-				c = NULL;
+				delete completedChoice;
 				mMsgMngr.sendMessage(msg);
 			}
 		}
@@ -1150,11 +1154,11 @@ void Duel::dispatchMessage(Message& msg)
 
 void Duel::addChoice(std::string info, int skip, int card, int player, int validref, int actionref)
 {
-	/*if (choice != NULL)
+	if (mChoice != NULL)
 	{
-		delete choice;
-		choice = NULL;
-	}*/
+		delete mChoice;
+		mChoice = NULL;
+	}
 	mChoice = new Choice(info, skip, validref, actionref);
 	mChoiceCard = card;
 	mChoicePlayer = player;
@@ -1177,8 +1181,10 @@ void Duel::checkChoiceValid()
 	}
 	if (mChoiceValidCards.empty()) //no valid targets
 	{
-		//cout << "no valid targets" << endl;
+		Choice* targetlessChoice = mChoice;
+		mChoice = NULL;
 		resetChoice();
+		delete targetlessChoice;
 	}
 }
 

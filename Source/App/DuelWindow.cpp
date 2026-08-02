@@ -11,6 +11,15 @@
 
 using namespace AppSupport;
 
+namespace
+{
+	constexpr int GRAVEYARD_PAGE_SIZE = 5;
+	const SDL_Rect GRAVEYARD_OVERLAY = { 105, 145, 770, 510 };
+	const SDL_Rect GRAVEYARD_CLOSE = { 810, 160, 44, 36 };
+	const SDL_Rect GRAVEYARD_PREVIOUS = { 135, 590, 145, 42 };
+	const SDL_Rect GRAVEYARD_NEXT = { 700, 590, 145, 42 };
+}
+
 void Application::startDuel(int npcIndex)
 {
 	stopDuel();
@@ -22,9 +31,13 @@ void Application::startDuel(int npcIndex)
 	mDuelThread = std::thread(&Duel::loopInput, mDuel);
 	mSelectedCard = -1;
 	mHoveredCard = -1;
+	mHoverCandidateCard = -1;
+	mHoverCandidateSince = 0;
 	cancelDrag();
 	mCardAnimations.clear();
 	mActionScroll = 0;
+	mOpenGraveyardPlayer = -1;
+	mGraveyardOffset = 0;
 	mNextAiMove = SDL_GetTicks() + 700;
 	mDuelResult = -1;
 	mDuelResultAt = 0;
@@ -43,12 +56,17 @@ void Application::stopDuel()
 	mCardHitboxes.clear();
 	mActionButtons.clear();
 	mCardAnimations.clear();
+	mOpenGraveyardPlayer = -1;
+	mGraveyardOffset = 0;
 	mHoveredCard = -1;
+	mHoverCandidateCard = -1;
+	mHoverCandidateSince = 0;
 	cancelDrag();
 }
 
 void Application::handleDuelEvent(const SDL_Event& event)
 {
+	if (mOpenGraveyardPlayer >= 0 && handleGraveyardEvent(event)) return;
 	if (event.type == SDL_KEYDOWN && !event.key.repeat)
 	{
 		SDL_Keycode key = event.key.keysym.sym;
@@ -94,6 +112,18 @@ void Application::handleDuelEvent(const SDL_Event& event)
 	{
 		int x, y;
 		logicalMouse(event.button.x, event.button.y, x, y);
+		for (int player = 0; player < 2; ++player)
+		{
+			if (contains(graveyardPileRect(player), x, y))
+			{
+				mOpenGraveyardPlayer = player;
+				mGraveyardOffset = 0;
+				mSelectedCard = -1;
+				mHoveredCard = -1;
+				mHoverCandidateCard = -1;
+				return;
+			}
+		}
 		for (size_t i = 0; i < mActionButtons.size(); ++i)
 		{
 			if (contains(mActionButtons[i].rect, x, y))
@@ -137,6 +167,100 @@ void Application::handleDuelEvent(const SDL_Event& event)
 		logicalMouse(event.button.x, event.button.y, x, y);
 		finishDrag(x, y);
 	}
+}
+
+bool Application::handleGraveyardEvent(const SDL_Event& event)
+{
+	if (event.type == SDL_MOUSEMOTION)
+	{
+		logicalMouse(event.motion.x, event.motion.y, mMouseX, mMouseY);
+		return true;
+	}
+	if (event.type == SDL_KEYDOWN && !event.key.repeat)
+	{
+		if (event.key.keysym.sym == SDLK_ESCAPE)
+		{
+			mOpenGraveyardPlayer = -1;
+			mHoveredCard = -1;
+			mHoverCandidateCard = -1;
+			return true;
+		}
+		if (event.key.keysym.sym != SDLK_LEFT && event.key.keysym.sym != SDLK_RIGHT)
+			return true;
+		int count = 0;
+		{
+			std::lock_guard<std::mutex> lock(gMutex);
+			if (mDuel != NULL) count = (int)mDuel->mGraveyards[mOpenGraveyardPlayer].mCards.size();
+		}
+		int direction = event.key.keysym.sym == SDLK_LEFT ? -GRAVEYARD_PAGE_SIZE : GRAVEYARD_PAGE_SIZE;
+		mGraveyardOffset = std::max(0, std::min(std::max(0, count - 1), mGraveyardOffset + direction));
+		return true;
+	}
+	if (event.type == SDL_MOUSEWHEEL)
+	{
+		int count = 0;
+		{
+			std::lock_guard<std::mutex> lock(gMutex);
+			if (mDuel != NULL) count = (int)mDuel->mGraveyards[mOpenGraveyardPlayer].mCards.size();
+		}
+		mGraveyardOffset = std::max(0, std::min(std::max(0, count - 1), mGraveyardOffset - event.wheel.y));
+		return true;
+	}
+	if (event.type != SDL_MOUSEBUTTONDOWN || event.button.button != SDL_BUTTON_LEFT)
+		return true;
+
+	int x, y;
+	logicalMouse(event.button.x, event.button.y, x, y);
+	if (contains(GRAVEYARD_CLOSE, x, y))
+	{
+		mOpenGraveyardPlayer = -1;
+		mHoveredCard = -1;
+		mHoverCandidateCard = -1;
+		return true;
+	}
+	int count = 0;
+	{
+		std::lock_guard<std::mutex> lock(gMutex);
+		if (mDuel != NULL) count = (int)mDuel->mGraveyards[mOpenGraveyardPlayer].mCards.size();
+	}
+	if (contains(GRAVEYARD_PREVIOUS, x, y))
+	{
+		mGraveyardOffset = std::max(0, mGraveyardOffset - GRAVEYARD_PAGE_SIZE);
+		return true;
+	}
+	if (contains(GRAVEYARD_NEXT, x, y))
+	{
+		mGraveyardOffset = std::min(std::max(0, count - 1), mGraveyardOffset + GRAVEYARD_PAGE_SIZE);
+		return true;
+	}
+
+	for (std::vector<CardHitbox>::reverse_iterator item = mCardHitboxes.rbegin(); item != mCardHitboxes.rend(); ++item)
+	{
+		if (!contains(item->rect, x, y)) continue;
+		bool isOpenGraveyardCard = false;
+		{
+			std::lock_guard<std::mutex> lock(gMutex);
+			if (mDuel != NULL && item->cardId >= 0 && item->cardId < (int)mDuel->mCardList.size())
+			{
+				Card* card = mDuel->mCardList[item->cardId];
+				isOpenGraveyardCard = card->mOwner == mOpenGraveyardPlayer && card->mZone == ZONE_GRAVEYARD;
+			}
+		}
+		if (!isOpenGraveyardCard) continue;
+		Message choice;
+		if (findClickAction(item->cardId, choice))
+		{
+			mOpenGraveyardPlayer = -1;
+			playAction(choice);
+		}
+		else
+		{
+			mSelectedCard = mSelectedCard == item->cardId ? -1 : item->cardId;
+			mActionScroll = 0;
+		}
+		return true;
+	}
+	return true;
 }
 
 void Application::updateDuel(Uint32 deltaTime)
@@ -190,6 +314,13 @@ bool Application::exerciseEvolutionSmoke()
 {
 	if (mDuel == NULL) return false;
 	std::lock_guard<std::mutex> lock(gMutex);
+	int savedAttackPhase = mDuel->mAttackphase;
+	mDuel->mAttackphase = PHASE_TARGET;
+	std::vector<Message> shieldMoves = mDuel->getPossibleMoves();
+	mDuel->mAttackphase = savedAttackPhase;
+	if (shieldMoves.empty()) return false;
+	for (size_t i = 0; i < shieldMoves.size(); ++i)
+		if (shieldMoves[i].getType() != "targetshield") return false;
 
 	auto findCard = [this](const std::string& name, const std::set<int>& excluded) -> int
 	{
@@ -239,6 +370,159 @@ bool Application::exerciseEvolutionSmoke()
 	return true;
 }
 
+bool Application::exerciseBinaryChoiceSmoke()
+{
+	if (mDuel == NULL) return false;
+	std::lock_guard<std::mutex> lock(gMutex);
+	if (mDuel->mIsChoiceActive || mDuel->mChoice != NULL) return false;
+
+	mDuel->addChoice("Draw a card?", 2, 0, 0, LUA_REFNIL, LUA_REFNIL);
+	mDuel->mLuaCallbackSuspended = true;
+	std::vector<Message> actions = visibleActions();
+	bool hasYes = false;
+	bool hasNo = false;
+	for (size_t i = 0; i < actions.size(); ++i)
+	{
+		if (actions[i].getType() != "choiceselect") continue;
+		int selection = messageInt(actions[i], "selection");
+		if (selection == RETURN_BUTTON1 && actionLabel(actions[i]) == "Yes") hasYes = true;
+		if (selection == RETURN_BUTTON2 && actionLabel(actions[i]) == "No") hasNo = true;
+	}
+
+	Choice* temporaryChoice = mDuel->mChoice;
+	mDuel->mChoice = NULL;
+	mDuel->resetChoice();
+	mDuel->mLuaCallbackSuspended = false;
+	delete temporaryChoice;
+
+	// A required card choice has no negative/button result. Rejecting this is
+	// what prevents an AI or stale UI action from skipping a mandatory cost.
+	mDuel->addChoice("Required creature", 0, 0, 0, LUA_REFNIL, LUA_REFNIL);
+	mDuel->mChoiceValidCards.push_back(0);
+	Message illegalSkip("choiceselect");
+	illegalSkip.addValue("selection", RETURN_BUTTON1);
+	mDuel->handleInterfaceInput(illegalSkip);
+	bool requiredChoiceStayedActive = mDuel->mIsChoiceActive && mDuel->mChoice != NULL;
+	temporaryChoice = mDuel->mChoice;
+	mDuel->mChoice = NULL;
+	mDuel->resetChoice();
+	delete temporaryChoice;
+	return hasYes && hasNo && actions.size() == 2 && requiredChoiceStayedActive;
+}
+
+bool Application::beginBlackFeatherAiSmoke(int& blackFeather, int& sacrifice)
+{
+	if (mDuel == NULL) return false;
+	std::lock_guard<std::mutex> lock(gMutex);
+	if (mDuel->mIsChoiceActive || mDuel->mChoice != NULL ||
+		mDuel->mLuaCallbackSuspended || mDuel->mMsgMngr.hasMoreMessages())
+		return false;
+
+	blackFeather = -1;
+	sacrifice = -1;
+	for (size_t i = 0; i < mDuel->mCardList.size(); ++i)
+	{
+		Card* card = mDuel->mCardList[i];
+		if (card->mOwner != 1) continue;
+		if (card->mName == "Black Feather, Shadow of Rage" && blackFeather < 0)
+			blackFeather = card->mUniqueId;
+		else if (card->mType == TYPE_CREATURE && sacrifice < 0)
+			sacrifice = card->mUniqueId;
+	}
+	if (blackFeather < 0 || sacrifice < 0) return false;
+
+	Card* sacrificeCard = mDuel->mCardList[sacrifice];
+	mDuel->getZone(1, sacrificeCard->mZone)->removeCard(sacrificeCard);
+	mDuel->mBattlezones[1].addCard(sacrificeCard);
+	sacrificeCard->mZone = ZONE_BATTLE;
+
+	Card* blackFeatherCard = mDuel->mCardList[blackFeather];
+	Message summon("cardmove");
+	summon.addValue("card", blackFeather);
+	summon.addValue("from", blackFeatherCard->mZone);
+	summon.addValue("to", ZONE_BATTLE);
+	summon.addValue("evobait", -1);
+	mDuel->mMsgMngr.sendMessage(summon);
+	// Hold the AI briefly so the smoke test can assert that Black Feather
+	// itself is one of the mandatory legal targets before resolving it.
+	mNextAiMove = SDL_GetTicks() + 60000;
+	return true;
+}
+
+bool Application::verifyBlackFeatherAiSmoke(int blackFeather, int sacrifice)
+{
+	if (mDuel == NULL) return false;
+	std::lock_guard<std::mutex> lock(gMutex);
+	if (blackFeather < 0 || sacrifice < 0 ||
+		blackFeather >= (int)mDuel->mCardList.size() || sacrifice >= (int)mDuel->mCardList.size())
+		return false;
+	int blackFeatherZone = mDuel->mCardList[blackFeather]->mZone;
+	int sacrificeZone = mDuel->mCardList[sacrifice]->mZone;
+	bool exactlyOneWasDestroyed =
+		(blackFeatherZone == ZONE_GRAVEYARD && sacrificeZone == ZONE_BATTLE) ||
+		(blackFeatherZone == ZONE_BATTLE && sacrificeZone == ZONE_GRAVEYARD);
+	bool passed = !mDuel->mIsChoiceActive && !mDuel->mLuaCallbackSuspended && exactlyOneWasDestroyed;
+	if (!passed)
+	{
+		std::cerr << "Black Feather state: choice=" << mDuel->mIsChoiceActive
+			<< " suspended=" << mDuel->mLuaCallbackSuspended
+			<< " black-zone=" << mDuel->mCardList[blackFeather]->mZone
+			<< " sacrifice-zone=" << mDuel->mCardList[sacrifice]->mZone
+			<< " queued=" << mDuel->mMsgMngr.hasMoreMessages() << std::endl;
+	}
+	return passed;
+}
+
+bool Application::exerciseGraveyardBrowserSmoke()
+{
+	if (mDuel == NULL) return false;
+	{
+		std::lock_guard<std::mutex> lock(gMutex);
+		if (mDuel->mGraveyards[1].mCards.empty()) return false;
+	}
+
+	SDL_Rect pile = graveyardPileRect(1);
+	SDL_Event open = {};
+	open.type = SDL_MOUSEBUTTONDOWN;
+	open.button.button = SDL_BUTTON_LEFT;
+	open.button.x = pile.x + pile.w / 2;
+	open.button.y = pile.y + pile.h / 2;
+	handleDuelEvent(open);
+	if (mOpenGraveyardPlayer != 1) return false;
+
+	{
+		std::lock_guard<std::mutex> lock(gMutex);
+		renderGraveyardOverlay();
+	}
+	CardHitbox graveyardCard = { { 0, 0, 0, 0 }, -1, true, true, false };
+	for (std::vector<CardHitbox>::reverse_iterator item = mCardHitboxes.rbegin(); item != mCardHitboxes.rend(); ++item)
+	{
+		std::lock_guard<std::mutex> lock(gMutex);
+		if (item->cardId >= 0 && item->cardId < (int)mDuel->mCardList.size() &&
+			mDuel->mCardList[item->cardId]->mOwner == 1 &&
+			mDuel->mCardList[item->cardId]->mZone == ZONE_GRAVEYARD)
+		{
+			graveyardCard = *item;
+			break;
+		}
+	}
+	if (graveyardCard.cardId < 0) return false;
+
+	SDL_Event select = {};
+	select.type = SDL_MOUSEBUTTONDOWN;
+	select.button.button = SDL_BUTTON_LEFT;
+	select.button.x = graveyardCard.rect.x + graveyardCard.rect.w / 2;
+	select.button.y = graveyardCard.rect.y + graveyardCard.rect.h / 2;
+	handleDuelEvent(select);
+	bool selected = mSelectedCard == graveyardCard.cardId;
+	SDL_Event close = {};
+	close.type = SDL_KEYDOWN;
+	close.key.keysym.sym = SDLK_ESCAPE;
+	handleDuelEvent(close);
+	mSelectedCard = -1;
+	return selected && mOpenGraveyardPlayer == -1;
+}
+
 void Application::playCard(const Message& message)
 {
 	if (mDuel == NULL || mDuelResult != -1) return;
@@ -276,6 +560,20 @@ void Application::beginDrag(int cardId, const SDL_Rect& origin, int mouseX, int 
 	if (cardId < 0 || cardId >= (int)mDuel->mCardList.size()) return;
 	Card* card = mDuel->mCardList[cardId];
 	if (card->mOwner != 0 || (card->mZone != ZONE_HAND && card->mZone != ZONE_BATTLE)) return;
+	bool legalDrag = false;
+	std::vector<Message> moves = mDuel->getPossibleMoves();
+	for (size_t i = 0; i < moves.size(); ++i)
+	{
+		const std::string type = moves[i].getType();
+		if (card->mZone == ZONE_HAND &&
+			(type == "cardplay" || type == "cardmana") && messageInt(moves[i], "card") == cardId)
+			legalDrag = true;
+		else if (card->mZone == ZONE_BATTLE && type == "creatureattack" &&
+			messageInt(moves[i], "attacker") == cardId)
+			legalDrag = true;
+		if (legalDrag) break;
+	}
+	if (!legalDrag) return;
 	mDraggingCard = cardId;
 	mDragFromZone = card->mZone;
 	mDragOrigin = origin;
@@ -283,6 +581,8 @@ void Application::beginDrag(int cardId, const SDL_Rect& origin, int mouseX, int 
 	mDragMouseY = mouseY;
 	mSelectedCard = cardId;
 	mHoveredCard = -1;
+	mHoverCandidateCard = -1;
+	mHoverCandidateSince = 0;
 }
 
 void Application::cancelDrag()
@@ -427,6 +727,7 @@ bool Application::messageReferencesCard(const Message& message, int cardId) cons
 std::vector<Message> Application::visibleActions()
 {
 	std::vector<Message> all = mDuel->getPossibleMoves();
+	if (mDuel->mIsChoiceActive) return all;
 	if (mSelectedCard < 0) return all;
 	std::vector<Message> filtered;
 	for (size_t i = 0; i < all.size(); ++i)
@@ -459,9 +760,90 @@ std::string Application::actionLabel(const Message& message) const
 	if (type == "choiceselect")
 	{
 		int selection = messageInt(message, "selection");
+		if (selection == RETURN_BUTTON1)
+			return mDuel->mChoice != NULL && mDuel->mChoice->mButtonCount >= 2 ? "Yes" : "Continue";
+		if (selection == RETURN_BUTTON2) return "No";
 		return selection < 0 ? "Choose option" : "Choose " + cardName(selection);
 	}
 	return type;
+}
+
+SDL_Rect Application::graveyardPileRect(int player) const
+{
+	return { 914, player == 1 ? 86 : 551, 54, 76 };
+}
+
+void Application::renderGraveyardPile(int player)
+{
+	SDL_Rect pile = graveyardPileRect(player);
+	const std::vector<Card*>& cards = mDuel->mGraveyards[player].mCards;
+	drawText(player == 1 ? "RIVAL GY" : "YOUR GY", 908, pile.y - 20,
+		color(180, 198, 224), 11, 64);
+	if (cards.empty())
+	{
+		fillRect(pile, 20, 27, 40, 175);
+		outlineRect(pile, 111, 123, 143, 230, 2);
+		drawText("0", pile.x + 22, pile.y + 29, color(171, 181, 198), 13);
+		return;
+	}
+
+	fillRect({ pile.x + 5, pile.y + 5, pile.w, pile.h }, 12, 17, 27, 210);
+	outlineRect({ pile.x + 5, pile.y + 5, pile.w, pile.h }, 91, 102, 121, 230, 2);
+	fillRect({ pile.x + 2, pile.y + 2, pile.w, pile.h }, 18, 24, 36, 230);
+	outlineRect({ pile.x + 2, pile.y + 2, pile.w, pile.h }, 121, 132, 151, 240, 2);
+	drawCard(cards.back(), pile, true, cards.back()->mUniqueId == mSelectedCard, true);
+	SDL_Rect count = { pile.x + pile.w - 22, pile.y + pile.h - 20, 22, 20 };
+	fillRect(count, 12, 18, 29, 235);
+	drawText(std::to_string(cards.size()), count.x + 4, count.y + 2, color(244, 225, 171), 11);
+}
+
+void Application::renderGraveyardOverlay()
+{
+	if (mOpenGraveyardPlayer < 0 || mOpenGraveyardPlayer > 1) return;
+	const std::vector<Card*>& cards = mDuel->mGraveyards[mOpenGraveyardPlayer].mCards;
+	mGraveyardOffset = std::max(0, std::min(std::max(0, (int)cards.size() - 1), mGraveyardOffset));
+
+	// The graveyard browser is modal: only its visible cards should receive
+	// clicks while it is open.
+	mCardHitboxes.clear();
+	fillRect({ 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT }, 5, 8, 14, 185);
+	fillRect(GRAVEYARD_OVERLAY, 18, 25, 39, 250);
+	outlineRect(GRAVEYARD_OVERLAY, 188, 145, 64, 255, 4);
+	drawText(mOpenGraveyardPlayer == 0 ? "YOUR GRAVEYARD" : "RIVAL GRAVEYARD",
+		135, 170, color(245, 211, 126), 25);
+	drawText("Newest cards are shown first. Click a card to select it.",
+		135, 208, color(188, 202, 224), 14);
+	fillRect(GRAVEYARD_CLOSE, 74, 43, 43, 245);
+	outlineRect(GRAVEYARD_CLOSE, 220, 116, 99, 255, 2);
+	drawText("X", GRAVEYARD_CLOSE.x + 14, GRAVEYARD_CLOSE.y + 7, color(250, 230, 225), 17);
+
+	int shown = std::min(GRAVEYARD_PAGE_SIZE, std::max(0, (int)cards.size() - mGraveyardOffset));
+	for (int i = 0; i < shown; ++i)
+	{
+		int cardIndex = (int)cards.size() - 1 - (mGraveyardOffset + i);
+		Card* card = cards[cardIndex];
+		SDL_Rect rect = { 135 + i * 143, 260, 116, 162 };
+		drawCard(card, rect, true, card->mUniqueId == mSelectedCard, true);
+		drawText(card->mName, rect.x, 435, color(226, 232, 242), 12, rect.w);
+	}
+	if (cards.empty())
+		drawText("This graveyard is empty.", 355, 355, color(178, 190, 210), 18);
+
+	fillRect(GRAVEYARD_PREVIOUS, 31, 45, 68, 245);
+	outlineRect(GRAVEYARD_PREVIOUS, 112, 146, 196, 255, 2);
+	drawText("< NEWER", GRAVEYARD_PREVIOUS.x + 25, GRAVEYARD_PREVIOUS.y + 11,
+		color(232, 237, 246), 14);
+	fillRect(GRAVEYARD_NEXT, 31, 45, 68, 245);
+	outlineRect(GRAVEYARD_NEXT, 112, 146, 196, 255, 2);
+	drawText("OLDER >", GRAVEYARD_NEXT.x + 31, GRAVEYARD_NEXT.y + 11,
+		color(232, 237, 246), 14);
+	if (!cards.empty())
+	{
+		int first = mGraveyardOffset + 1;
+		int last = mGraveyardOffset + shown;
+		drawText(std::to_string(first) + "-" + std::to_string(last) + " of " + std::to_string(cards.size()),
+		445, 602, color(190, 202, 221), 13);
+	}
 }
 
 void Application::renderDuel()
@@ -473,19 +855,21 @@ void Application::renderDuel()
 	fillRect({ 980, 0, 300, 800 }, 13, 19, 31, 238);
 	outlineRect({ 980, 0, 300, 800 }, 181, 137, 56, 255, 3);
 
-	int hovered = -1;
+	int hoverCandidate = -1;
+	bool immediateHover = false;
 	if (mDraggingCard < 0)
 	{
 		for (std::vector<CardHitbox>::reverse_iterator item = mCardHitboxes.rbegin(); item != mCardHitboxes.rend(); ++item)
 		{
-			if (item->faceUp && contains(item->rect, mMouseX, mMouseY))
+			if (item->faceUp && item->hoverAnchor && contains(item->rect, mMouseX, mMouseY))
 			{
-				hovered = item->cardId;
+				hoverCandidate = item->cardId;
+				immediateHover = item->immediateHover;
 				break;
 			}
 		}
 	}
-	mHoveredCard = hovered;
+	updateHoverState(hoverCandidate, immediateHover, SDL_GetTicks());
 	mCardHitboxes.clear();
 	mActionButtons.clear();
 	if (mDuel == NULL) return;
@@ -499,6 +883,7 @@ void Application::renderDuel()
 	drawText("RIVAL SHIELDS", 520, 62, color(180, 198, 224), 13);
 	drawZone(mDuel->mManazones[1].mCards, 70, 82, 390, 54, 76, true, true);
 	drawZone(mDuel->mShields[1].mCards, 510, 82, 390, 54, 76, false, true);
+	renderGraveyardPile(1);
 	drawZone(mDuel->mBattlezones[1].mCards, 65, 205, 850, 82, 114, true, true);
 
 	fillRect({ 372, 332, 235, 42 }, 20, 27, 43, 220);
@@ -510,6 +895,7 @@ void Application::renderDuel()
 	drawText("YOUR MANA", 520, 532, color(180, 198, 224), 13);
 	drawZone(mDuel->mShields[0].mCards, 70, 551, 390, 54, 76, false, true);
 	drawZone(mDuel->mManazones[0].mCards, 510, 551, 390, 54, 76, true, true);
+	renderGraveyardPile(0);
 	drawHand(mDuel->mHands[0].mCards, false);
 	drawText("YOU", 18, 748, color(244, 205, 99), 22);
 	drawText("Deck " + std::to_string(mDuel->mDecks[0].mCards.size()), 18, 775, color(229, 235, 245), 13);
@@ -550,6 +936,7 @@ void Application::renderDuel()
 		if ((int)actions.size() > 9) drawText("Mouse wheel: more actions", 1009, 760, color(158, 177, 205), 13);
 	}
 
+	if (mOpenGraveyardPlayer >= 0) renderGraveyardOverlay();
 	renderDragOverlay();
 	renderHoverPreview();
 
@@ -562,4 +949,3 @@ void Application::renderDuel()
 		drawText("Returning to Emberglen...", 460, 394, color(226, 232, 243), 20);
 	}
 }
-

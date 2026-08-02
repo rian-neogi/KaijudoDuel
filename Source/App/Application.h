@@ -42,6 +42,8 @@ private:
 		SDL_Rect rect;
 		int cardId;
 		bool faceUp;
+		bool hoverAnchor;
+		bool immediateHover;
 	};
 
 	struct ActionButton
@@ -83,9 +85,17 @@ private:
 	void startDuel(int npcIndex);
 	void stopDuel();
 	void handleDuelEvent(const SDL_Event& event);
+	bool handleGraveyardEvent(const SDL_Event& event);
 	void updateDuel(Uint32 deltaTime);
 	void renderDuel();
+	void renderGraveyardPile(int player);
+	void renderGraveyardOverlay();
+	SDL_Rect graveyardPileRect(int player) const;
 	bool exerciseEvolutionSmoke();
+	bool exerciseBinaryChoiceSmoke();
+	bool beginBlackFeatherAiSmoke(int& blackFeather, int& sacrifice);
+	bool verifyBlackFeatherAiSmoke(int blackFeather, int sacrifice);
+	bool exerciseGraveyardBrowserSmoke();
 	void playAction(const Message& message);
 	void playCard(const Message& message);
 	void beginDrag(int cardId, const SDL_Rect& origin, int mouseX, int mouseY);
@@ -95,6 +105,8 @@ private:
 	bool findClickAction(int cardId, Message& result);
 	void renderDragOverlay();
 	void renderHoverPreview();
+	void updateHoverState(int candidateCard, bool immediate, Uint32 now);
+	bool exerciseHoverTimingSmoke();
 	std::vector<Message> visibleActions();
 	bool messageReferencesCard(const Message& message, int cardId) const;
 	std::string actionLabel(const Message& message) const;
@@ -143,6 +155,8 @@ private:
 	int mActiveNpc;
 	int mSelectedCard;
 	int mActionScroll;
+	int mOpenGraveyardPlayer;
+	int mGraveyardOffset;
 	Uint32 mNextAiMove;
 	int mDuelResult;
 	Uint32 mDuelResultAt;
@@ -157,4 +171,6 @@ private:
 	int mMouseX;
 	int mMouseY;
 	int mHoveredCard;
+	int mHoverCandidateCard;
+	Uint32 mHoverCandidateSince;
 };
