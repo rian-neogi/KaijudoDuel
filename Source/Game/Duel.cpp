@@ -353,6 +353,7 @@ int Duel::handleMessage(Message& msg)
 		Message m("breakshield");
 		m.addValue("player", msg.getInt("defender"));
 		m.addValue("shield", msg.getInt("shield"));
+		m.addValue("attacker", msg.getInt("attacker"));
 		m.addValue("cantrigger", 1);
 		mMsgMngr.sendMessage(m);
 	}

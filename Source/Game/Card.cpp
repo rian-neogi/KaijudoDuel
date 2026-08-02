@@ -389,11 +389,15 @@ void loadSet(std::string path, std::string set_name)
 				{
 					//printf("civ %s\n", it2.second.get<std::string>(boost::property_tree::ptree::path_type("<xmlattr>.value")).c_str());
 					tmp = it2.second.get<std::string>(boost::property_tree::ptree::path_type("<xmlattr>.value"));
-					if (tmp == "Light") civ = CIV_LIGHT;
-					else if (tmp == "Darkness") civ = CIV_DARKNESS;
-					else if (tmp == "Fire") civ = CIV_FIRE;
-					else if (tmp == "Water") civ = CIV_WATER;
-					else if (tmp == "Nature") civ = CIV_NATURE;
+					// The engine still stores one primary civilization.  Keep the
+					// first half as the casting civilization so dual cards are loaded;
+					// their Lua rules retain both colors for card effects.
+					std::string primary = tmp.substr(0, tmp.find('/'));
+					if (primary == "Light") civ = CIV_LIGHT;
+					else if (primary == "Darkness") civ = CIV_DARKNESS;
+					else if (primary == "Fire") civ = CIV_FIRE;
+					else if (primary == "Water") civ = CIV_WATER;
+					else if (primary == "Nature") civ = CIV_NATURE;
 				}
 				if (it2.second.get<std::string>(boost::property_tree::ptree::path_type("<xmlattr>.name")) == "Power")
 				{

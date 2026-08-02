@@ -382,6 +382,26 @@ static int getCardCiv(lua_State* L)
 	return 1;
 }
 
+static int getCardCost(lua_State* L)
+{
+	lua_pushinteger(L, ActiveDuel->getCardCost(lua_tointeger(L, 1)));
+	return 1;
+}
+
+static int getCardIsShieldTrigger(lua_State* L)
+{
+	lua_pushinteger(L, ActiveDuel->getIsShieldTrigger(lua_tointeger(L, 1)));
+	return 1;
+}
+
+static int loseGame(lua_State* L)
+{
+	int player = lua_tointeger(L, 1);
+	if (player == 0 || player == 1)
+		ActiveDuel->mWinner = getOpponent(player);
+	return 0;
+}
+
 static int getCardType(lua_State* L)
 {
 	lua_pushinteger(L, ActiveDuel->mCardList.at(lua_tointeger(L, 1))->mType);
@@ -522,6 +542,8 @@ void registerLua(lua_State* L)
 	lua_register(L, "getCardName", getCardName);
 	lua_register(L, "getCardZone", getCardZone);
 	lua_register(L, "getCardCiv", getCardCiv);
+	lua_register(L, "getCardCost", getCardCost);
+	lua_register(L, "getCardIsShieldTrigger", getCardIsShieldTrigger);
 	lua_register(L, "getCardType", getCardType);
 	lua_register(L, "getCreatureRace", getCreatureRace); //returns the full race string of the creature
 	lua_register(L, "isCreatureOfRace", isCreatureOfRace);
@@ -538,4 +560,5 @@ void registerLua(lua_State* L)
 	lua_register(L, "hasOtherCreatureBrokenShieldThisTurn", hasOtherCreatureBrokenShieldThisTurn);
 	lua_register(L, "getEvoStackSize", getEvoStackSize);
 	lua_register(L, "getEvoStackAt", getEvoStackAt);
+	lua_register(L, "loseGame", loseGame);
 }
