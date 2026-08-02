@@ -23,10 +23,11 @@ namespace
 void Application::startDuel(int npcIndex)
 {
 	stopDuel();
+	ensurePlayerDataLoaded();
 	mActiveNpc = npcIndex;
 	mDuel = new Duel();
 	ActiveDuel = mDuel;
-	mDuel->setDecks("Decks/My Decks/7 - L Tappy Tappy.txt", mNpcs[npcIndex].deck);
+	mDuel->setDecks(mActiveDeckPath, mNpcs[npcIndex].deck);
 	mDuel->startDuel();
 	mDuelThread = std::thread(&Duel::loopInput, mDuel);
 	mSelectedCard = -1;
@@ -858,17 +859,7 @@ void Application::renderDuel()
 	int hoverCandidate = -1;
 	bool immediateHover = false;
 	if (mDraggingCard < 0)
-	{
-		for (std::vector<CardHitbox>::reverse_iterator item = mCardHitboxes.rbegin(); item != mCardHitboxes.rend(); ++item)
-		{
-			if (item->faceUp && item->hoverAnchor && contains(item->rect, mMouseX, mMouseY))
-			{
-				hoverCandidate = item->cardId;
-				immediateHover = item->immediateHover;
-				break;
-			}
-		}
-	}
+		hoverCandidate = duelHoverCandidateAt(mMouseX, mMouseY, immediateHover);
 	updateHoverState(hoverCandidate, immediateHover, SDL_GetTicks());
 	mCardHitboxes.clear();
 	mActionButtons.clear();

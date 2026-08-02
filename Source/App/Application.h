@@ -24,7 +24,9 @@ private:
 	enum class Screen
 	{
 		Overworld,
-		Duel
+		Duel,
+		DeckBuilder,
+		Settings
 	};
 
 	struct Npc
@@ -68,6 +70,21 @@ private:
 		bool initialized = false;
 	};
 
+	struct PlayerDeck
+	{
+		std::string name;
+		std::string path;
+		std::map<int, int> cards;
+		bool managed = false;
+		bool dirty = false;
+	};
+
+	struct DeckCardHitbox
+	{
+		SDL_Rect rect;
+		int cardId;
+	};
+
 	bool initialize();
 	void shutdown();
 	void handleEvent(const SDL_Event& event);
@@ -77,6 +94,11 @@ private:
 	void handleOverworldEvent(const SDL_Event& event);
 	void updateOverworld(Uint32 deltaTime);
 	void renderOverworld();
+	void handlePauseMenuEvent(const SDL_Event& event);
+	void renderPauseMenu();
+	void handleSettingsEvent(const SDL_Event& event);
+	void renderSettings();
+	bool exerciseMenuScreensSmoke();
 	void tryMove(int dx, int dy);
 	void interact();
 	bool isWalkable(int x, int y) const;
@@ -106,6 +128,7 @@ private:
 	void renderDragOverlay();
 	void renderHoverPreview();
 	void updateHoverState(int candidateCard, bool immediate, Uint32 now);
+	int duelHoverCandidateAt(int x, int y, bool& immediate) const;
 	bool exerciseHoverTimingSmoke();
 	std::vector<Message> visibleActions();
 	bool messageReferencesCard(const Message& message, int cardId) const;
@@ -118,6 +141,7 @@ private:
 	TTF_Font* font(int size);
 	void updateCardAnimations(Uint32 deltaTime);
 	SDL_Texture* cardTexture(Card* card);
+	SDL_Texture* cardTextureById(int cardId);
 	void destroyCardTextures();
 	SDL_Rect cardBounds(const AnimatedCard& animation) const;
 	void drawCard(Card* card, const SDL_Rect& rect, bool faceUp, bool selected, bool clickable, float angle = 0.f);
@@ -129,6 +153,20 @@ private:
 	void logicalMouse(int windowX, int windowY, int& logicalX, int& logicalY) const;
 	bool contains(const SDL_Rect& rect, int x, int y) const;
 
+	void ensurePlayerDataLoaded();
+	void handleDeckBuilderEvent(const SDL_Event& event);
+	void renderDeckBuilder();
+	void renderDeckBuilderHoverPreview();
+	void enterDeckBuilder();
+	void leaveDeckBuilder();
+	void createDeck();
+	bool saveDeck(int deckIndex);
+	void setActiveDeck(int deckIndex);
+	int deckCardCount(const PlayerDeck& deck) const;
+	std::vector<int> filteredCollection() const;
+	std::string availableDeckPath(const std::string& name, const std::string& currentPath) const;
+	void showDeckNotice(const std::string& notice);
+
 	SDL_Window* mWindow;
 	SDL_Renderer* mRenderer;
 	SDL_Texture* mBoardTexture;
@@ -137,6 +175,7 @@ private:
 	std::map<int, TTF_Font*> mFonts;
 	bool mRunning;
 	Screen mScreen;
+	bool mPauseMenuOpen;
 
 	std::vector<std::string> mMap;
 	std::vector<Npc> mNpcs;
@@ -173,4 +212,22 @@ private:
 	int mHoveredCard;
 	int mHoverCandidateCard;
 	Uint32 mHoverCandidateSince;
+
+	bool mPlayerDataLoaded;
+	std::vector<int> mCollectionCounts;
+	std::vector<PlayerDeck> mPlayerDecks;
+	std::string mActiveDeckPath;
+	int mActiveDeckIndex;
+	int mEditingDeckIndex;
+	int mDeckCollectionPage;
+	int mDeckListScroll;
+	int mDeckContentsScroll;
+	std::string mDeckSearch;
+	std::string mDeckNameInput;
+	bool mDeckSearchFocused;
+	bool mDeckRenameFocused;
+	std::string mDeckNotice;
+	Uint32 mDeckNoticeUntil;
+	std::vector<DeckCardHitbox> mDeckCardHitboxes;
+	int mDeckHoveredCard;
 };

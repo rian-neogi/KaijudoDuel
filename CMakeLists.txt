@@ -28,6 +28,8 @@ set(GAME_SOURCES
     Source/App/Application.cpp
     Source/App/CardRenderer.cpp
     Source/App/DuelWindow.cpp
+	Source/App/DeckBuilder.cpp
+	Source/App/Menus.cpp
     Source/App/Overworld.cpp
     Source/CRandom.cpp
     Source/LuaFunctions.cpp

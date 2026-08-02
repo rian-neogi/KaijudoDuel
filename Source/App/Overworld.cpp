@@ -8,13 +8,18 @@ using namespace AppSupport;
 
 void Application::handleOverworldEvent(const SDL_Event& event)
 {
+	if (mPauseMenuOpen)
+	{
+		handlePauseMenuEvent(event);
+		return;
+	}
 	if (event.type != SDL_KEYDOWN || event.key.repeat)
 		return;
 	SDL_Keycode key = event.key.keysym.sym;
 	if (key == SDLK_ESCAPE)
 	{
 		if (mDialogueNpc >= 0) mDialogueNpc = -1;
-		else mRunning = false;
+		else mPauseMenuOpen = true;
 		return;
 	}
 	if (mDialogueNpc >= 0)
@@ -31,6 +36,7 @@ void Application::handleOverworldEvent(const SDL_Event& event)
 
 void Application::updateOverworld(Uint32 deltaTime)
 {
+	if (mPauseMenuOpen) return;
 	float amount = std::min(1.f, deltaTime / 85.f);
 	mVisualX += (mPlayerX - mVisualX) * amount;
 	mVisualY += (mPlayerY - mVisualY) * amount;
@@ -127,7 +133,7 @@ void Application::renderOverworld()
 	}
 	drawText("WASD / Arrows: move", 1034, 474, color(187, 200, 221), 15);
 	drawText("E / Space: talk", 1034, 502, color(187, 200, 221), 15);
-	drawText("Esc: back / quit", 1034, 530, color(187, 200, 221), 15);
+	drawText("Esc: menu", 1034, 530, color(187, 200, 221), 15);
 
 	if (!mNotice.empty() && SDL_GetTicks() < mNoticeUntil)
 	{
@@ -146,6 +152,7 @@ void Application::renderOverworld()
 		drawText(npc.defeated ? "E / Space to close" : "E / Space to battle",
 			965, 742, color(126, 176, 242), 15);
 	}
+	if (mPauseMenuOpen) renderPauseMenu();
 }
 
 void Application::drawCharacter(int gridX, int gridY, bool rival, bool defeated)
@@ -160,4 +167,3 @@ void Application::drawCharacter(int gridX, int gridY, bool rival, bool defeated)
 	fillRect({ x + 17, y + 8, 15, 15 }, 224, 172, 126);
 	fillRect({ x + 14, y + 5, 21, 8 }, rival ? 41 : 91, rival ? 24 : 48, rival ? 58 : 22);
 }
-

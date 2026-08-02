@@ -10,14 +10,17 @@ using namespace AppSupport;
 
 Application::Application()
 	: mWindow(NULL), mRenderer(NULL), mBoardTexture(NULL), mCardBackTexture(NULL), mRunning(false),
-	  mScreen(Screen::Overworld), mPlayerX(2), mPlayerY(10), mFacingX(1), mFacingY(0),
+	  mScreen(Screen::Overworld), mPauseMenuOpen(false), mPlayerX(2), mPlayerY(10), mFacingX(1), mFacingY(0),
 	  mVisualX(2.f), mVisualY(10.f), mDialogueNpc(-1), mNoticeUntil(0),
 	  mDuel(NULL), mActiveNpc(-1), mSelectedCard(-1), mActionScroll(0),
 	  mOpenGraveyardPlayer(-1), mGraveyardOffset(0),
 	  mNextAiMove(0), mDuelResult(-1), mDuelResultAt(0), mDraggingCard(-1),
 	  mDragFromZone(-1), mDragOrigin({ 0, 0, 0, 0 }), mDragMouseX(0), mDragMouseY(0),
 	  mMouseX(-100), mMouseY(-100), mHoveredCard(-1), mHoverCandidateCard(-1),
-	  mHoverCandidateSince(0)
+	  mHoverCandidateSince(0), mPlayerDataLoaded(false), mActiveDeckIndex(-1),
+	  mEditingDeckIndex(-1), mDeckCollectionPage(0), mDeckListScroll(0),
+	  mDeckContentsScroll(0), mDeckSearchFocused(false), mDeckRenameFocused(false),
+	  mDeckNoticeUntil(0), mDeckHoveredCard(-1)
 {
 	mMap.push_back("####################");
 	mMap.push_back("#......~~~.........#");
@@ -299,7 +302,16 @@ int Application::run(bool smokeTest)
 			{
 				smokeFrames = 0;
 				if (++smokeNpc < (int)mNpcs.size()) startDuel(smokeNpc);
-				else mRunning = false;
+				else
+				{
+					stopDuel();
+					if (!exerciseMenuScreensSmoke())
+					{
+						std::cerr << "Menu and deck-builder smoke test failed." << std::endl;
+						return 2;
+					}
+					mRunning = false;
+				}
 			}
 		}
 	}
@@ -313,28 +325,26 @@ void Application::handleEvent(const SDL_Event& event)
 		mRunning = false;
 		return;
 	}
-	if (mScreen == Screen::Overworld)
-		handleOverworldEvent(event);
-	else
-		handleDuelEvent(event);
+	if (mScreen == Screen::Overworld) handleOverworldEvent(event);
+	else if (mScreen == Screen::Duel) handleDuelEvent(event);
+	else if (mScreen == Screen::DeckBuilder) handleDeckBuilderEvent(event);
+	else handleSettingsEvent(event);
 }
 
 void Application::update(Uint32 deltaTime)
 {
-	if (mScreen == Screen::Overworld)
-		updateOverworld(deltaTime);
-	else
-		updateDuel(deltaTime);
+	if (mScreen == Screen::Overworld) updateOverworld(deltaTime);
+	else if (mScreen == Screen::Duel) updateDuel(deltaTime);
 }
 
 void Application::render()
 {
 	setColor(14, 18, 28);
 	SDL_RenderClear(mRenderer);
-	if (mScreen == Screen::Overworld)
-		renderOverworld();
-	else
-		renderDuel();
+	if (mScreen == Screen::Overworld) renderOverworld();
+	else if (mScreen == Screen::Duel) renderDuel();
+	else if (mScreen == Screen::DeckBuilder) renderDeckBuilder();
+	else renderSettings();
 	SDL_RenderPresent(mRenderer);
 }
 

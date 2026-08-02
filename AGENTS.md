@@ -41,6 +41,9 @@ rendering, and repeated duel teardown.
   rendering.
 - `Source/App/DuelWindow.cpp`: duel lifecycle, actions, input, drag/drop,
   choices, AI turns, and board composition.
+- `Source/App/DeckBuilder.cpp`: player collection/deck persistence and the
+  deck-builder screen.
+- `Source/App/Menus.cpp`: overworld pause menu and auxiliary screens.
 - `Source/App/CardRenderer.cpp`: card textures, zones, hands, animation,
   tapping, dragging, and hover enlargement.
 - `Source/App/AppSupport.h`: shared logical dimensions and small UI helpers.

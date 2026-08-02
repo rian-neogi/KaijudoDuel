@@ -157,6 +157,36 @@ void Application::updateHoverState(int candidateCard, bool immediate, Uint32 now
 		mHoveredCard = -1;
 }
 
+int Application::duelHoverCandidateAt(int x, int y, bool& immediate) const
+{
+	immediate = false;
+	// Overlapping fanned cards must not steal hover from the card that already
+	// owns it. Keep that owner until the pointer leaves its original anchor.
+	if (mHoverCandidateCard >= 0)
+	{
+		for (std::vector<CardHitbox>::const_reverse_iterator item = mCardHitboxes.rbegin();
+			item != mCardHitboxes.rend(); ++item)
+		{
+			if (item->cardId == mHoverCandidateCard && item->faceUp && item->hoverAnchor &&
+				contains(item->rect, x, y))
+			{
+				immediate = item->immediateHover;
+				return item->cardId;
+			}
+		}
+	}
+	for (std::vector<CardHitbox>::const_reverse_iterator item = mCardHitboxes.rbegin();
+		item != mCardHitboxes.rend(); ++item)
+	{
+		if (item->faceUp && item->hoverAnchor && contains(item->rect, x, y))
+		{
+			immediate = item->immediateHover;
+			return item->cardId;
+		}
+	}
+	return -1;
+}
+
 bool Application::exerciseHoverTimingSmoke()
 {
 	bool valid = true;
@@ -173,7 +203,22 @@ bool Application::exerciseHoverTimingSmoke()
 	updateHoverState(7, true, 3000);
 	valid = valid && mHoveredCard == 7;
 	updateHoverState(-1, false, 3001);
-	return valid && mHoveredCard == -1;
+	valid = valid && mHoveredCard == -1;
+
+	std::vector<CardHitbox> savedHitboxes = mCardHitboxes;
+	int savedCandidate = mHoverCandidateCard;
+	mCardHitboxes.clear();
+	SDL_Rect overlap = { 100, 100, 80, 120 };
+	mCardHitboxes.push_back({ overlap, 11, true, true, true });
+	mCardHitboxes.push_back({ overlap, 12, true, true, true });
+	mHoverCandidateCard = 11;
+	bool immediate = false;
+	valid = valid && duelHoverCandidateAt(140, 150, immediate) == 11 && immediate;
+	mHoverCandidateCard = -1;
+	valid = valid && duelHoverCandidateAt(140, 150, immediate) == 12;
+	mCardHitboxes = savedHitboxes;
+	mHoverCandidateCard = savedCandidate;
+	return valid;
 }
 
 void Application::drawCardBack(const SDL_Rect& rect)
@@ -220,8 +265,15 @@ SDL_Rect Application::cardBounds(const AnimatedCard& animation) const
 
 SDL_Texture* Application::cardTexture(Card* card)
 {
-	std::map<int, SDL_Texture*>::iterator existing = mCardTextures.find(card->mCardId);
+	return cardTextureById(card->mCardId);
+}
+
+SDL_Texture* Application::cardTextureById(int cardId)
+{
+	std::map<int, SDL_Texture*>::iterator existing = mCardTextures.find(cardId);
 	if (existing != mCardTextures.end()) return existing->second;
+	if (cardId < 0 || cardId >= (int)gCardDatabase.size()) return NULL;
+	const CardData& card = gCardDatabase[cardId];
 
 	static const char* pngSets[] = {
 		"Base Set", "Evo-Crushinators of Doom", "Rampage of the Super Warriors",
@@ -231,18 +283,17 @@ SDL_Texture* Application::cardTexture(Card* card)
 	SDL_Texture* loaded = NULL;
 	for (size_t i = 0; i < sizeof(pngSets) / sizeof(pngSets[0]) && loaded == NULL; ++i)
 	{
-		std::string path = "Resources/Cards/" + std::string(pngSets[i]) + "/" + card->mName + ".png";
+		std::string path = "Resources/Cards/" + std::string(pngSets[i]) + "/" + card.Name + ".png";
 		loaded = IMG_LoadTexture(mRenderer, path.c_str());
 	}
-	if (loaded == NULL && card->mCardId >= 0 && card->mCardId < (int)gCardDatabase.size())
+	if (loaded == NULL)
 	{
-		const CardData& data = gCardDatabase[card->mCardId];
-		std::string path = "Resources/Cards/Textures/Sets/" + data.Set + "/Cards/" + data.Name + ".jpg";
+		std::string path = "Resources/Cards/Textures/Sets/" + card.Set + "/Cards/" + card.Name + ".jpg";
 		loaded = IMG_LoadTexture(mRenderer, path.c_str());
 	}
 	if (loaded != NULL) SDL_SetTextureBlendMode(loaded, SDL_BLENDMODE_BLEND);
-	else std::cerr << "No card image found for " << card->mName << std::endl;
-	mCardTextures[card->mCardId] = loaded;
+	else std::cerr << "No card image found for " << card.Name << std::endl;
+	mCardTextures[cardId] = loaded;
 	return loaded;
 }
 
