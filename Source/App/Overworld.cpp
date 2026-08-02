@@ -268,8 +268,8 @@ void Application::renderOverworld()
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 	{
 		if (!npcVisible((int)i)) continue;
-		drawCharacter(mNpcs[i].visualX, mNpcs[i].visualY, mNpcs[i].isDuelist(),
-			mNpcs[i].isComplete(), mNpcs[i].isShopkeeper(), mNpcs[i].isMoving());
+		drawCharacter(mNpcs[i].visualX, mNpcs[i].visualY, mNpcs[i].appearance,
+			mNpcs[i].isComplete(), mNpcs[i].isMoving());
 		if (npcHasStoryMarker((int)i))
 		{
 			int markerX = MAP_X + (int)std::round(mNpcs[i].visualX * TILE) + 17;
@@ -281,7 +281,7 @@ void Application::renderOverworld()
 	}
 	bool playerWalking = std::fabs(mPlayerX - mVisualX) > 0.001f ||
 		std::fabs(mPlayerY - mVisualY) > 0.001f;
-	drawCharacter(mVisualX, mVisualY, false, false, false, playerWalking);
+	drawCharacter(mVisualX, mVisualY, CharacterAppearance::Player, false, playerWalking);
 
 	fillRect({ 1012, 28, 238, 670 }, 21, 28, 45, 245);
 	outlineRect({ 1012, 28, 238, 670 }, 190, 146, 61, 255, 2);
@@ -331,23 +331,196 @@ void Application::renderOverworld()
 	if (mPauseMenuOpen) renderPauseMenu();
 }
 
-void Application::drawCharacter(
-	float gridX, float gridY, bool rival, bool completed, bool shopkeeper, bool walking)
+void Application::drawCharacter(float gridX, float gridY, CharacterAppearance appearance,
+	bool completed, bool walking)
 {
 	int x = MAP_X + (int)std::round(gridX * TILE);
 	int y = MAP_Y + (int)std::round(gridY * TILE);
 	int stride = walking && (SDL_GetTicks() / 110) % 2 == 0 ? 2 : (walking ? -2 : 0);
 	int bob = walking && (SDL_GetTicks() / 110) % 2 == 0 ? -1 : 0;
-	fillRect({ x + 11, y + 39, 28, 6 }, 8, 14, 18, 100);
-	fillRect({ x + 17 + stride, y + 35, 6, 9 }, 31, 38, 53);
-	fillRect({ x + 27 - stride, y + 35, 6, 9 }, 31, 38, 53);
+	fillRect({ x + 9, y + 39, 31, 6 }, 8, 14, 18, 100);
 	y += bob;
-	if (shopkeeper)
-		fillRect({ x + 13, y + 20, 22, 22 }, 173, 119, 38);
-	else if (rival)
-		fillRect({ x + 13, y + 20, 22, 22 }, completed ? 91 : 111, completed ? 94 : 46, completed ? 103 : 143);
-	else
-		fillRect({ x + 13, y + 20, 22, 22 }, 31, 88, 185);
-	fillRect({ x + 17, y + 8, 15, 15 }, 224, 172, 126);
-	fillRect({ x + 14, y + 5, 21, 8 }, rival ? 41 : 91, rival ? 24 : 48, rival ? 58 : 22);
+
+	SDL_Color trousers = color(31, 38, 53);
+	SDL_Color shoes = color(17, 22, 31);
+	if (appearance == CharacterAppearance::Rook || appearance == CharacterAppearance::Briar)
+		trousers = color(60, 56, 37);
+	else if (appearance == CharacterAppearance::Aurelia)
+		trousers = color(184, 167, 112);
+	else if (appearance == CharacterAppearance::Mercer)
+		trousers = color(75, 48, 30);
+	else if (appearance == CharacterAppearance::VeiledOne || appearance == CharacterAppearance::Nyx)
+		trousers = color(25, 20, 36);
+	fillRect({ x + 16 + stride, y + 34, 7, 9 }, trousers.r, trousers.g, trousers.b);
+	fillRect({ x + 27 - stride, y + 34, 7, 9 }, trousers.r, trousers.g, trousers.b);
+	fillRect({ x + 15 + stride, y + 40, 8, 4 }, shoes.r, shoes.g, shoes.b);
+	fillRect({ x + 27 - stride, y + 40, 8, 4 }, shoes.r, shoes.g, shoes.b);
+
+	auto block = [this, x, y](int offsetX, int offsetY, int width, int height, SDL_Color shade)
+	{
+		fillRect({ x + offsetX, y + offsetY, width, height },
+			shade.r, shade.g, shade.b, shade.a);
+	};
+
+	const SDL_Color outline = color(24, 25, 35);
+	const SDL_Color skin = color(224, 172, 126);
+	const SDL_Color skinShadow = color(183, 124, 91);
+
+	switch (appearance)
+	{
+	case CharacterAppearance::Player:
+		block(12, 18, 25, 21, outline);
+		block(14, 20, 21, 17, color(31, 88, 185));
+		block(14, 30, 21, 4, color(22, 54, 111));
+		block(18, 7, 15, 15, skin);
+		block(15, 4, 21, 8, color(91, 48, 22));
+		block(15, 10, 4, 9, color(91, 48, 22));
+		block(29, 13, 2, 2, color(38, 31, 27));
+		break;
+
+	case CharacterAppearance::Mira:
+		block(10, 18, 30, 22, outline);
+		block(12, 20, 26, 20, color(91, 38, 119));
+		block(9, 19, 32, 6, color(53, 27, 75));
+		block(16, 7, 18, 16, color(202, 150, 137));
+		block(13, 4, 24, 8, color(57, 23, 68));
+		block(13, 9, 5, 16, color(57, 23, 68));
+		block(33, 9, 5, 16, color(57, 23, 68));
+		block(24, 27, 4, 5, color(190, 85, 219));
+		block(29, 13, 2, 2, color(57, 28, 52));
+		break;
+
+	case CharacterAppearance::Marin:
+		block(12, 18, 25, 21, outline);
+		block(14, 20, 21, 18, color(31, 112, 174));
+		block(14, 20, 21, 5, color(113, 211, 218));
+		block(18, 7, 15, 15, skin);
+		block(15, 4, 21, 7, color(28, 94, 135));
+		block(15, 10, 4, 10, color(28, 94, 135));
+		block(34, 8, 5, 13, color(36, 151, 181));
+		block(38, 16, 4, 8, color(36, 151, 181));
+		block(17, 9, 18, 3, color(210, 235, 224));
+		block(29, 13, 2, 2, color(24, 50, 62));
+		break;
+
+	case CharacterAppearance::Rook:
+		block(8, 18, 33, 22, outline);
+		block(11, 20, 27, 19, color(72, 122, 53));
+		block(8, 20, 8, 8, color(113, 82, 44));
+		block(35, 20, 7, 8, color(113, 82, 44));
+		block(18, 7, 15, 15, skin);
+		block(15, 4, 21, 7, color(66, 45, 28));
+		block(12, 2, 4, 7, color(151, 116, 62));
+		block(35, 1, 4, 8, color(151, 116, 62));
+		block(15, 30, 22, 4, color(47, 75, 38));
+		block(29, 13, 2, 2, color(45, 34, 26));
+		break;
+
+	case CharacterAppearance::Aurelia:
+		block(12, 18, 26, 22, outline);
+		block(14, 20, 22, 20, color(225, 218, 185));
+		block(11, 20, 28, 6, color(210, 166, 55));
+		block(19, 7, 14, 15, skin);
+		block(15, 3, 21, 8, color(227, 196, 93));
+		block(15, 9, 5, 17, color(227, 196, 93));
+		block(33, 9, 5, 17, color(227, 196, 93));
+		block(19, 4, 15, 2, color(250, 238, 168));
+		block(24, 27, 4, 8, color(237, 194, 68));
+		block(29, 13, 2, 2, color(71, 58, 37));
+		break;
+
+	case CharacterAppearance::Flint:
+		block(11, 18, 28, 21, outline);
+		block(13, 20, 24, 18, color(177, 55, 37));
+		block(10, 20, 8, 7, color(226, 102, 40));
+		block(34, 20, 7, 7, color(226, 102, 40));
+		block(18, 8, 15, 14, skin);
+		block(14, 4, 22, 7, color(190, 55, 28));
+		block(16, 1, 5, 6, color(232, 91, 30));
+		block(23, 2, 5, 5, color(232, 91, 30));
+		block(31, 0, 5, 8, color(232, 91, 30));
+		block(16, 10, 20, 3, color(71, 43, 36));
+		block(17, 10, 7, 3, color(238, 170, 53));
+		block(28, 10, 7, 3, color(238, 170, 53));
+		block(14, 30, 23, 4, color(89, 33, 30));
+		break;
+
+	case CharacterAppearance::Nyx:
+		block(9, 16, 32, 25, outline);
+		block(11, 18, 28, 22, color(45, 28, 64));
+		block(12, 5, 26, 19, color(24, 20, 39));
+		block(16, 8, 18, 13, color(73, 50, 81));
+		block(17, 5, 16, 5, color(55, 31, 76));
+		block(20, 13, 4, 2, color(190, 77, 221));
+		block(29, 13, 4, 2, color(190, 77, 221));
+		block(9, 35, 7, 7, color(45, 28, 64));
+		block(33, 35, 8, 7, color(45, 28, 64));
+		block(24, 26, 4, 5, color(128, 55, 157));
+		break;
+
+	case CharacterAppearance::Tidal:
+		block(10, 18, 30, 22, outline);
+		block(12, 20, 26, 20, color(23, 71, 116));
+		block(9, 20, 8, 7, color(40, 142, 154));
+		block(35, 20, 7, 7, color(40, 142, 154));
+		block(18, 7, 15, 15, skinShadow);
+		block(14, 4, 23, 7, color(28, 113, 128));
+		block(14, 9, 5, 11, color(28, 113, 128));
+		block(17, 7, 19, 3, color(224, 220, 177));
+		block(34, 2, 5, 8, color(50, 169, 176));
+		block(29, 13, 2, 2, color(24, 40, 44));
+		block(13, 30, 25, 4, color(35, 154, 161));
+		break;
+
+	case CharacterAppearance::Briar:
+		block(10, 18, 29, 22, outline);
+		block(12, 20, 25, 20, color(70, 118, 51));
+		block(11, 18, 28, 6, color(115, 78, 41));
+		block(18, 8, 15, 14, skin);
+		block(14, 5, 23, 8, color(43, 87, 43));
+		block(14, 11, 5, 12, color(43, 87, 43));
+		block(33, 10, 5, 14, color(43, 87, 43));
+		block(11, 2, 7, 5, color(70, 137, 51));
+		block(35, 3, 7, 5, color(70, 137, 51));
+		block(29, 13, 2, 2, color(44, 40, 25));
+		block(23, 28, 5, 6, color(157, 110, 48));
+		break;
+
+	case CharacterAppearance::Mercer:
+		block(10, 18, 30, 22, outline);
+		block(12, 20, 26, 19, color(211, 174, 105));
+		block(17, 22, 18, 18, color(145, 87, 40));
+		block(18, 8, 15, 14, skin);
+		block(14, 4, 23, 7, color(117, 70, 35));
+		block(11, 9, 30, 4, color(151, 96, 43));
+		block(18, 7, 15, 3, color(151, 96, 43));
+		block(21, 16, 10, 3, color(104, 57, 31));
+		block(35, 25, 8, 11, color(193, 134, 45));
+		block(36, 27, 6, 7, color(108, 67, 34));
+		break;
+
+	case CharacterAppearance::VeiledOne:
+		block(7, 14, 36, 28, outline);
+		block(9, 16, 32, 26, color(42, 29, 56));
+		block(10, 3, 30, 23, color(20, 18, 30));
+		block(14, 7, 22, 15, color(65, 49, 77));
+		block(7, 7, 8, 11, color(20, 18, 30));
+		block(38, 6, 7, 12, color(20, 18, 30));
+		block(13, 1, 6, 7, color(72, 45, 91));
+		block(32, 0, 6, 8, color(72, 45, 91));
+		block(17, 14, 19, 7, color(27, 21, 36));
+		block(19, 12, 5, 2, color(222, 79, 226));
+		block(30, 12, 5, 2, color(222, 79, 226));
+		block(9, 35, 8, 8, color(68, 39, 83));
+		block(33, 35, 8, 8, color(68, 39, 83));
+		block(24, 27, 5, 7, color(169, 70, 188));
+		break;
+	}
+
+	if (completed)
+	{
+		block(34, 17, 8, 10, color(33, 39, 48));
+		block(36, 19, 4, 4, color(220, 193, 92));
+		block(37, 23, 2, 3, color(151, 124, 55));
+	}
 }

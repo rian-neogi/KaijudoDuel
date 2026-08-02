@@ -9,15 +9,32 @@ enum class NpcKind
 	Boss
 };
 
+enum class CharacterAppearance
+{
+	Player,
+	Mira,
+	Marin,
+	Rook,
+	Aurelia,
+	Flint,
+	Nyx,
+	Tidal,
+	Briar,
+	Mercer,
+	VeiledOne
+};
+
 class Npc
 {
 public:
 	static Npc duelist(int x, int y, const std::string& name, const std::string& deck,
 		const std::string& challenge, const std::string& rewardCard, int goldReward,
-		const std::string& advancedDeck = "");
-	static Npc shopkeeper(int x, int y, const std::string& name, const std::string& greeting);
+		CharacterAppearance appearance, const std::string& advancedDeck = "");
+	static Npc shopkeeper(int x, int y, const std::string& name, const std::string& greeting,
+		CharacterAppearance appearance);
 	static Npc boss(int x, int y, const std::string& name, const std::string& deck,
-		const std::string& challenge, const std::string& rewardCard, int goldReward);
+		const std::string& challenge, const std::string& rewardCard, int goldReward,
+		CharacterAppearance appearance);
 
 	bool isDuelist() const;
 	bool isShopkeeper() const;
@@ -49,10 +66,12 @@ public:
 	int wins;
 	int maxWins;
 	NpcKind kind;
+	CharacterAppearance appearance;
 
 private:
 	Npc(int x, int y, const std::string& name, const std::string& deck,
 		const std::string& challenge, const std::string& rewardCard,
-		int goldReward, int maxWins, NpcKind kind, const std::string& advancedDeck);
+		int goldReward, int maxWins, NpcKind kind, CharacterAppearance appearance,
+		const std::string& advancedDeck);
 	unsigned int mWanderState;
 };

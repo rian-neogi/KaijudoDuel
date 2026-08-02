@@ -5,12 +5,13 @@
 
 Npc::Npc(int xValue, int yValue, const std::string& npcName, const std::string& deckPath,
 	const std::string& dialogue, const std::string& reward, int rewardGold,
-	int rewardCount, NpcKind npcKind, const std::string& upgradedDeck)
+	int rewardCount, NpcKind npcKind, CharacterAppearance characterAppearance,
+	const std::string& upgradedDeck)
 	: x(xValue), y(yValue), homeX(xValue), homeY(yValue),
 	  visualX((float)xValue), visualY((float)yValue), nextMoveAt(0),
 	  name(npcName), deck(deckPath), advancedDeck(upgradedDeck),
 	  challenge(dialogue), rewardCard(reward), goldReward(rewardGold), wins(0),
-	  maxWins(rewardCount), kind(npcKind),
+	  maxWins(rewardCount), kind(npcKind), appearance(characterAppearance),
 	  mWanderState((unsigned int)(xValue * 73856093u) ^
 		(unsigned int)(yValue * 19349663u) ^ (unsigned int)npcName.size() * 83492791u)
 {
@@ -18,21 +19,24 @@ Npc::Npc(int xValue, int yValue, const std::string& npcName, const std::string& 
 
 Npc Npc::duelist(int x, int y, const std::string& name, const std::string& deck,
 	const std::string& challenge, const std::string& rewardCard, int goldReward,
-	const std::string& advancedDeck)
+	CharacterAppearance appearance, const std::string& advancedDeck)
 {
 	return Npc(x, y, name, deck, challenge, rewardCard, goldReward, 4,
-		NpcKind::Duelist, advancedDeck);
+		NpcKind::Duelist, appearance, advancedDeck);
 }
 
-Npc Npc::shopkeeper(int x, int y, const std::string& name, const std::string& greeting)
+Npc Npc::shopkeeper(int x, int y, const std::string& name, const std::string& greeting,
+	CharacterAppearance appearance)
 {
-	return Npc(x, y, name, "", greeting, "", 0, 0, NpcKind::Shopkeeper, "");
+	return Npc(x, y, name, "", greeting, "", 0, 0, NpcKind::Shopkeeper, appearance, "");
 }
 
 Npc Npc::boss(int x, int y, const std::string& name, const std::string& deck,
-	const std::string& challenge, const std::string& rewardCard, int goldReward)
+	const std::string& challenge, const std::string& rewardCard, int goldReward,
+	CharacterAppearance appearance)
 {
-	return Npc(x, y, name, deck, challenge, rewardCard, goldReward, 1, NpcKind::Boss, "");
+	return Npc(x, y, name, deck, challenge, rewardCard, goldReward, 1,
+		NpcKind::Boss, appearance, "");
 }
 
 bool Npc::isDuelist() const
