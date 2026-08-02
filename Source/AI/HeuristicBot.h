@@ -2,16 +2,19 @@
 
 #include "Game/Duel.h"
 
+#include <string>
+
 class HeuristicBot
 {
 public:
-	explicit HeuristicBot(int player);
+	explicit HeuristicBot(int player, const std::string& personality = "balanced");
 
 	Message chooseMove(Duel& duel, const std::vector<Message>& moves) const;
 	double scoreMove(Duel& duel, const Message& move) const;
 
 private:
 	int mPlayer;
+	std::string mPersonality;
 
 	double cardValue(Duel& duel, int cardId, bool allowLuaQueries) const;
 	double scoreChoice(Duel& duel, int selection) const;
@@ -20,4 +23,5 @@ private:
 	double scoreBlock(Duel& duel, int blocker) const;
 	int attackingPower(Duel& duel, int attacker) const;
 	bool hasStrongerBlocker(Duel& duel, int attacker, int attackerPower, int attackedCreature) const;
+	double adjustForPersonality(const std::string& moveType, double score) const;
 };

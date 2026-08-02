@@ -18,6 +18,15 @@ namespace
 	const SDL_Rect GRAVEYARD_CLOSE = { 810, 160, 44, 36 };
 	const SDL_Rect GRAVEYARD_PREVIOUS = { 135, 590, 145, 42 };
 	const SDL_Rect GRAVEYARD_NEXT = { 700, 590, 145, 42 };
+
+	std::string deckDisplayName(const std::string& path)
+	{
+		size_t slash = path.find_last_of("/\\");
+		std::string name = slash == std::string::npos ? path : path.substr(slash + 1);
+		if (name.size() > 4 && name.substr(name.size() - 4) == ".txt")
+			name.resize(name.size() - 4);
+		return name;
+	}
 }
 
 void Application::startDuel(int npcIndex, bool ignoreProgressLimit)
@@ -25,13 +34,28 @@ void Application::startDuel(int npcIndex, bool ignoreProgressLimit)
 	if (npcIndex < 0 || npcIndex >= (int)mNpcs.size() || !mNpcs[npcIndex].isDuelist()) return;
 	if (!ignoreProgressLimit && !npcVisible(npcIndex)) return;
 	if (!ignoreProgressLimit && !mNpcs[npcIndex].canBattle()) return;
-	stopDuel();
 	ensurePlayerDataLoaded();
+	const std::string aiDeck = ignoreProgressLimit ?
+		mNpcs[npcIndex].deckForBattle(0) : mNpcs[npcIndex].battleDeck();
+	if (!startDuelWithDecks(mActiveDeckPath, aiDeck, npcIndex))
+	{
+		mNotice = "Unable to load one of the duel decks.";
+		mNoticeUntil = SDL_GetTicks() + 5000;
+	}
+}
+
+bool Application::startDuelWithDecks(const std::string& playerDeck,
+	const std::string& aiDeck, int npcIndex)
+{
+	stopDuel();
 	mActiveNpc = npcIndex;
 	mDuel = new Duel();
 	ActiveDuel = mDuel;
-	mDuel->setDecks(mActiveDeckPath,
-		ignoreProgressLimit ? mNpcs[npcIndex].deck : mNpcs[npcIndex].battleDeck());
+	if (!mDuel->setDecks(playerDeck, aiDeck))
+	{
+		stopDuel();
+		return false;
+	}
 	mDuel->startDuel();
 	mDuelThread = std::thread(&Duel::loopInput, mDuel);
 	mSelectedCard = -1;
@@ -48,6 +72,7 @@ void Application::startDuel(int npcIndex, bool ignoreProgressLimit)
 	mDuelResultAt = 0;
 	mDialogueNpc = -1;
 	mScreen = Screen::Duel;
+	return true;
 }
 
 void Application::stopDuel()
@@ -84,6 +109,11 @@ void Application::handleDuelEvent(const SDL_Event& event)
 				return;
 			}
 			stopDuel();
+			if (mDirectDuelMode)
+			{
+				mRunning = false;
+				return;
+			}
 			mScreen = Screen::Overworld;
 			mNotice = "You left the duel.";
 			mNoticeUntil = SDL_GetTicks() + 3000;
@@ -283,7 +313,9 @@ void Application::updateDuel(Uint32 deltaTime)
 			std::vector<Message> moves = mDuel->getPossibleMoves();
 			if (!moves.empty())
 			{
-				HeuristicBot rival(1);
+				const std::string personality = mActiveNpc >= 0 ?
+					mNpcs[mActiveNpc].aiPersonality : "balanced";
+				HeuristicBot rival(1, personality);
 				Message move = rival.chooseMove(*mDuel, moves);
 				mDuel->handleInterfaceInput(move);
 			}
@@ -301,13 +333,18 @@ void Application::updateDuel(Uint32 deltaTime)
 		bool won = mDuelResult == 0;
 		std::string rival = mActiveNpc >= 0 ? mNpcs[mActiveNpc].name : "your rival";
 		if (won && mActiveNpc >= 0) awardNpcVictory(mActiveNpc);
-		else
+		else if (!mDirectDuelMode)
 		{
-			mNotice = "Defeat. You can challenge " + rival + " again.";
+			mNotice = mActiveNpc >= 0 ? mNpcs[mActiveNpc].dialogueText("victory") : "";
+			if (!mNotice.empty()) mNotice += "  ";
+			mNotice += "Defeat. You can challenge " + rival + " again.";
 			mNoticeUntil = now + 5000;
 		}
 		stopDuel();
-		mScreen = Screen::Overworld;
+		if (mDirectDuelMode)
+			mRunning = false;
+		else
+			mScreen = Screen::Overworld;
 	}
 }
 
@@ -422,6 +459,49 @@ bool Application::exerciseBinaryChoiceSmoke()
 	mDuel->resetChoice();
 	delete temporaryChoice;
 	return hasYes && hasNo && actions.size() == 2 && requiredChoiceStayedActive;
+}
+
+bool Application::exerciseActionLabelSmoke()
+{
+	if (mDuel == NULL || mDuel->mCardList.size() < 2 || mDuel->mShields[0].mCards.empty()) return false;
+	std::lock_guard<std::mutex> lock(gMutex);
+
+	Card* shield = mDuel->mShields[0].mCards.front();
+	bool savedShieldVisibility = shield->mIsVisible[0];
+	Message shieldChoice("choiceselect");
+	shieldChoice.addValue("selection", shield->mUniqueId);
+	shield->mIsVisible[0] = false;
+	std::string hiddenShieldLabel = actionLabel(shieldChoice);
+	shield->mIsVisible[0] = true;
+	std::string visibleShieldLabel = actionLabel(shieldChoice);
+	shield->mIsVisible[0] = savedShieldVisibility;
+
+	Card* attacker = mDuel->mCardList[0];
+	Card* defender = mDuel->mCardList[1];
+	bool savedAttackerVisibility = attacker->mIsVisible[0];
+	bool savedDefenderVisibility = defender->mIsVisible[0];
+	attacker->mIsVisible[0] = true;
+	defender->mIsVisible[0] = true;
+
+	Message creatureAttack("creatureattack");
+	creatureAttack.addValue("attacker", attacker->mUniqueId);
+	creatureAttack.addValue("defender", defender->mUniqueId);
+	creatureAttack.addValue("defendertype", DEFENDER_CREATURE);
+	std::string creatureAttackLabel = actionLabel(creatureAttack);
+
+	Message playerAttack("creatureattack");
+	playerAttack.addValue("attacker", attacker->mUniqueId);
+	playerAttack.addValue("defender", 0);
+	playerAttack.addValue("defendertype", DEFENDER_PLAYER);
+	std::string playerAttackLabel = actionLabel(playerAttack);
+
+	attacker->mIsVisible[0] = savedAttackerVisibility;
+	defender->mIsVisible[0] = savedDefenderVisibility;
+
+	return hiddenShieldLabel == "Choose hidden card" &&
+		visibleShieldLabel == "Choose " + shield->mName &&
+		creatureAttackLabel == "Attack " + defender->mName + " with " + attacker->mName &&
+		playerAttackLabel == "Attack rival with " + attacker->mName;
 }
 
 bool Application::exerciseHeuristicAttackSafetySmoke()
@@ -832,7 +912,11 @@ std::string Application::actionLabel(const Message& message) const
 	std::string type = message.map.find("msgtype") == message.map.end() ? "action" : message.map.find("msgtype")->second;
 	auto cardName = [this](int uid) -> std::string
 	{
-		if (uid >= 0 && uid < (int)mDuel->mCardList.size()) return mDuel->mCardList[uid]->mName;
+		if (mDuel != NULL && uid >= 0 && uid < (int)mDuel->mCardList.size())
+		{
+			Card* card = mDuel->mCardList[uid];
+			return card->mIsVisible[0] ? card->mName : "hidden card";
+		}
 		return "card";
 	};
 	if (type == "endturn") return "End turn";
@@ -842,7 +926,8 @@ std::string Application::actionLabel(const Message& message) const
 	if (type == "creatureattack")
 	{
 		int defenderType = messageInt(message, "defendertype");
-		return "Attack " + std::string(defenderType == DEFENDER_PLAYER ? "rival" : cardName(messageInt(message, "defender")));
+		std::string defender = defenderType == DEFENDER_PLAYER ? "rival" : cardName(messageInt(message, "defender"));
+		return "Attack " + defender + " with " + cardName(messageInt(message, "attacker"));
 	}
 	if (type == "creatureblock") return "Block with " + cardName(messageInt(message, "blocker"));
 	if (type == "blockskip") return "Do not block";
@@ -963,7 +1048,9 @@ void Application::renderDuel()
 	if (mDuel == NULL) return;
 
 	std::lock_guard<std::mutex> lock(gMutex);
-	drawText(mActiveNpc >= 0 ? mNpcs[mActiveNpc].name : "RIVAL", 18, 14, color(244, 205, 99), 20);
+	std::string rivalName = mActiveNpc >= 0 ? mNpcs[mActiveNpc].name :
+		"AI: " + deckDisplayName(mDuel->mDeckNames[1]);
+	drawText(rivalName, 18, 14, color(244, 205, 99), 20, 900);
 	drawText("Deck " + std::to_string(mDuel->mDecks[1].mCards.size()), 18, 39, color(229, 235, 245), 13);
 	drawHand(mDuel->mHands[1].mCards, true);
 
@@ -977,7 +1064,9 @@ void Application::renderDuel()
 	drawZone(mDuel->mManazones[0].mCards, 510, 551, 390, 54, 76, true, true);
 	renderGraveyardPile(0);
 	drawHand(mDuel->mHands[0].mCards, false);
-	drawText("YOU", 18, 748, color(244, 205, 99), 22);
+	std::string playerName = mDirectDuelMode ?
+		"YOU: " + deckDisplayName(mDuel->mDeckNames[0]) : "YOU";
+	drawText(playerName, 18, 748, color(244, 205, 99), 22, 900);
 	drawText("Deck " + std::to_string(mDuel->mDecks[0].mCards.size()), 18, 775, color(229, 235, 245), 13);
 
 	drawText(mDuel->mTurn == 0 ? "YOUR TURN" : "RIVAL THINKING", 1010, 26,
@@ -1026,6 +1115,7 @@ void Application::renderDuel()
 		outlineRect({ 260, 280, 700, 190 }, 214, 166, 67, 255, 4);
 		drawText(mDuelResult == 0 ? "VICTORY" : "DEFEAT", 475, 319,
 			mDuelResult == 0 ? color(101, 231, 133) : color(238, 101, 83), 48);
-		drawText("Returning to Emberglen...", 460, 394, color(226, 232, 243), 20);
+		drawText(mDirectDuelMode ? "Direct duel complete..." : "Returning to Emberglen...",
+			mDirectDuelMode ? 475 : 460, 394, color(226, 232, 243), 20);
 	}
 }

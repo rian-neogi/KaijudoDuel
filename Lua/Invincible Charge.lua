@@ -119,18 +119,50 @@ Cards["Headlong Giant"] = {
 Cards["Gandar, Seeker of Explosions"] = {
 	shieldtrigger = 0,
 	blocker = 0,
-	breaker = 1,
+	breaker = 2,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id) --test
+		local tap = function(id)
+			local owner = getCardOwner(id)
+			local mod = function(cid,mid)
+				if(getMessageType()=="pre endturn") then
+					local size = getZoneSize(owner,ZONE_BATTLE)
+					for i=0,(size-1) do
+						local creature = getCardAt(owner,ZONE_BATTLE,i)
+						if(getCardCiv(creature)==CIV_LIGHT) then
+							untapCard(creature)
+						end
+					end
+					destroyModifier(cid,mid)
+				end
+			end
+			createModifier(id,mod)
+		end
+		Abils.TapAbility(id,tap)
 	end
 }
 
 Cards["King Benthos"] = {
 	shieldtrigger = 0,
 	blocker = 0,
-	breaker = 1,
+	breaker = 2,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id)
+		local tap = function(id)
+			local owner = getCardOwner(id)
+			local mod = function(cid,mid)
+				Abils.cantBeBlocked(cid)
+				Abils.destroyModAtEOT(cid,mid)
+			end
+			local size = getZoneSize(owner,ZONE_BATTLE)
+			for i=0,(size-1) do
+				local creature = getCardAt(owner,ZONE_BATTLE,i)
+				if(getCardCiv(creature)==CIV_WATER) then
+					createModifier(creature,mod)
+				end
+			end
+		end
+		Abils.TapAbility(id,tap)
 	end
 }
 
@@ -139,7 +171,24 @@ Cards["Battleship Mutant"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id) --test
+		local tap = function(id)
+			local owner = getCardOwner(id)
+			local mod = function(cid,mid)
+				Abils.bonusPower(cid,4000)
+				Abils.Breaker(cid,2)
+				Abils.destroyAfterBattle(cid)
+				Abils.destroyModAtEOT(cid,mid)
+			end
+			local size = getZoneSize(owner,ZONE_BATTLE)
+			for i=0,(size-1) do
+				local creature = getCardAt(owner,ZONE_BATTLE,i)
+				if(getCardCiv(creature)==CIV_DARKNESS) then
+					createModifier(creature,mod)
+				end
+			end
+		end
+		Abils.TapAbility(id,tap)
 	end
 }
 
@@ -148,7 +197,22 @@ Cards["Armored Transport Galiacruse"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id)
+		local tap = function(id)
+			local owner = getCardOwner(id)
+			local mod = function(cid,mid)
+				Abils.canAttackUntappedCreatures(cid)
+				Abils.destroyModAtEOT(cid,mid)
+			end
+			local size = getZoneSize(owner,ZONE_BATTLE)
+			for i=0,(size-1) do
+				local creature = getCardAt(owner,ZONE_BATTLE,i)
+				if(getCardCiv(creature)==CIV_FIRE) then
+					createModifier(creature,mod)
+				end
+			end
+		end
+		Abils.TapAbility(id,tap)
 	end
 }
 
@@ -157,7 +221,24 @@ Cards["Spinning Totem"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id) --test
+		local tap = function(id)
+			local owner = getCardOwner(id)
+			local mod = function(cid,mid)
+				if(getMessageType()=="post creaturebattle" and getMessageInt("blocked")==1) then
+					local attacker = getMessageInt("attacker")
+					if(getCardOwner(attacker)==owner and getCardCiv(attacker)==CIV_NATURE) then
+						local ch = createChoice("Choose an opponent's shield",0,id,owner,Checks.InOppShields)
+						if(ch>=0) then
+							creatureBreakShield(attacker,ch)
+						end
+					end
+				end
+				Abils.destroyModAtEOT(cid,mid)
+			end
+			createModifier(id,mod)
+		end
+		Abils.TapAbility(id,tap)
 	end
 }
 
@@ -204,7 +285,21 @@ Cards["Geoshine, Spectral Knight"] = {
 Cards["Justice Jamming"] = {
 	shieldtrigger = 0,
 
-	OnCast = function(id) --todo
+	OnCast = function(id)
+		local owner = getCardOwner(id)
+		local choice = createChoiceNoCheck("Tap darkness creatures? (Choose No for fire)",2,id,owner,Checks.False)
+		local civilization = CIV_DARKNESS
+		if(choice==RETURN_BUTTON2) then
+			civilization = CIV_FIRE
+		end
+		local tapCivilization = function(cid,sid)
+			if(getCardCiv(sid)==civilization) then
+				tapCard(sid)
+			end
+		end
+		Functions.executeForCreaturesInBattle(id,owner,tapCivilization)
+		Functions.executeForCreaturesInBattle(id,getOpponent(owner),tapCivilization)
+		Functions.EndSpell(id)
 	end
 }
 
@@ -238,7 +333,18 @@ Cards["Lightning Charger"] = {
 Cards["Miracle Portal"] = {
 	shieldtrigger = 0,
 
-	OnCast = function(id) --todo
+	OnCast = function(id) --test
+		local mod = function(cid,mid)
+			Abils.cantBeBlocked(cid)
+			Abils.cantAttackCreatures(cid)
+			Abils.canAttackPlayersAlways(cid)
+			Abils.destroyModAtEOT(cid,mid)
+		end
+		local ch = createChoice("Choose one of your creatures",0,id,getCardOwner(id),Checks.InYourBattle)
+		if(ch>=0) then
+			createModifier(ch,mod)
+		end
+		Functions.EndSpell(id)
 	end
 }
 
@@ -247,7 +353,14 @@ Cards["Pulsar Tree"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id) --test
+		if(getMessageType()=="mod breakshield" and getMessageInt("msgContinue")~=0 and getCardZone(id)==ZONE_BATTLE and getMessageInt("player")==getCardOwner(id)) then
+			local ch = createChoiceNoCheck("Destroy Pulsar Tree instead?",2,id,getCardOwner(id),Checks.False)
+			if(ch==RETURN_BUTTON1) then
+				setMessageInt("msgContinue",0)
+				destroyCreature(id)
+			end
+		end
 	end
 }
 
@@ -282,7 +395,14 @@ Cards["Rondobil, the Explorer"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id)
+		local tap = function(id)
+			local ch = createChoice("Choose one of your creatures",0,id,getCardOwner(id),Checks.InYourBattle)
+			if(ch>=0) then
+				moveCard(ch,ZONE_SHIELD)
+			end
+		end
+		Abils.TapAbility(id,tap)
 	end
 }
 
@@ -351,7 +471,19 @@ Cards["Curious Eye"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id)
+		local attack = function(id)
+			local owner = getCardOwner(id)
+			local ch = createChoice("Choose an opponent's shield to look at",1,id,owner,Checks.InOppShields)
+			if(ch>=0) then
+				unflipCard(ch)
+				setCardVisibility(ch,owner,1)
+				createChoiceNoCheck("Look at the shield",1,id,owner,Checks.False)
+				flipCard(ch)
+				setCardVisibility(ch,owner,0)
+			end
+		end
+		Abils.onAttack(id,attack)
 	end
 }
 
@@ -360,7 +492,37 @@ Cards["Garatyano"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id) --test
+		local tap = function(id)
+			local owner = getCardOwner(id)
+			local size = getZoneSize(owner,ZONE_DECK)
+			local cards = {}
+			for i=1,math.min(3,size) do
+				local card = getCardAt(owner,ZONE_DECK,size-i)
+				cards[card] = true
+				unflipCard(card)
+				setCardVisibility(card,owner,1)
+			end
+			local selected = {}
+			local valid = function(cid,sid)
+				if(cards[sid]==true and selected[sid]~=true) then
+					return 1
+				end
+				return 0
+			end
+			for i=1,math.min(3,size) do
+				local ch = createChoice("Choose the next card, from bottom to top",0,id,owner,valid)
+				if(ch>=0) then
+					selected[ch] = true
+					moveCard(ch,ZONE_DECK)
+				end
+			end
+			for card in pairs(cards) do
+				flipCard(card)
+				setCardVisibility(card,owner,0)
+			end
+		end
+		Abils.TapAbility(id,tap)
 	end
 }
 
@@ -413,7 +575,42 @@ Cards["Trenchdive Shark"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id)
+		local summon = function(id)
+			local owner = getCardOwner(id)
+			local selected = {}
+			local validHand = function(cid,sid)
+				if(Checks.InYourHand(cid,sid)==1 and selected[sid]~=true) then
+					return 1
+				end
+				return 0
+			end
+			local count = 0
+			for i=1,2 do
+				local ch = createChoice("Choose a card from your hand to add to your shields",1,id,owner,validHand)
+				if(ch<0) then
+					break
+				end
+				selected[ch] = true
+				moveCard(ch,ZONE_SHIELD)
+				count = count+1
+			end
+			local shieldSelected = {}
+			local validShield = function(cid,sid)
+				if(Checks.InYourShields(cid,sid)==1 and shieldSelected[sid]~=true) then
+					return 1
+				end
+				return 0
+			end
+			for i=1,count do
+				local ch = createChoice("Choose a shield to put into your hand",0,id,owner,validShield)
+				if(ch>=0) then
+					shieldSelected[ch] = true
+					moveCard(ch,ZONE_HAND)
+				end
+			end
+		end
+		Abils.onSummon(id,summon)
 	end
 }
 
@@ -422,7 +619,24 @@ Cards["Dream Pirate, Shadow of Theft"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id) --test
+		if(getMessageType()=="mod creaturedestroy" and getMessageInt("creature")==id and getCardZone(id)==ZONE_BATTLE) then
+			local owner = getCardOwner(id)
+			local ch = createChoiceNoCheck("Return Dream Pirate to your hand instead?",2,id,owner,Checks.False)
+			if(ch==RETURN_BUTTON1) then
+				local mod = function(cid,mid)
+					if(getMessageType()=="post cardmove" and getMessageInt("card")==cid and getMessageInt("to")==ZONE_HAND) then
+						local discard = createChoice("Choose a card from your hand to discard",0,cid,owner,Checks.InYourHand)
+						if(discard>=0) then
+							discardCard(discard)
+						end
+						destroyModifier(cid,mid)
+					end
+				end
+				createModifier(id,mod)
+				setMessageInt("zoneto",ZONE_HAND)
+			end
+		end
 	end
 }
 
@@ -494,7 +708,14 @@ Cards["Scalpel Spider"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id) --test
+		if(getMessageType()=="post creatureattack" and getMessageInt("defendertype")==DEFENDER_CREATURE and getMessageInt("defender")==id and getCardZone(id)==ZONE_BATTLE) then
+			local mod = function(cid,mid)
+				Abils.Slayer(cid)
+				Abils.destroyModAtEOT(cid,mid)
+			end
+			createModifier(id,mod)
+		end
 	end
 }
 
@@ -541,14 +762,46 @@ Cards["Vacuum Gel"] = { --test
 Cards["Venom Charger"] = {
 	shieldtrigger = 0,
 
-	OnCast = function(id) --todo
+	OnCast = function(id)
+		local mod = function(cid,mid)
+			Abils.Slayer(cid)
+			Abils.destroyModAtEOT(cid,mid)
+		end
+		local ch = createChoice("Choose one of your creatures",0,id,getCardOwner(id),Checks.InYourBattle)
+		if(ch>=0) then
+			createModifier(ch,mod)
+		end
+		Functions.EndSpell(id)
+	end,
+
+	HandleMessage = function(id)
+		Abils.Charger(id)
 	end
 }
 
 Cards["Apocalypse Vise"] = {
 	shieldtrigger = 0,
 
-	OnCast = function(id) --todo
+	OnCast = function(id)
+		local owner = getCardOwner(id)
+		local selected = {}
+		local remaining = 8000
+		local valid = function(cid,sid)
+			if(Checks.InOppBattle(cid,sid)==1 and selected[sid]~=true and getCreaturePower(sid)<=remaining) then
+				return 1
+			end
+			return 0
+		end
+		while(remaining>0) do
+			local ch = createChoice("Choose an opponent's creature to destroy",1,id,owner,valid)
+			if(ch<0) then
+				break
+			end
+			selected[ch] = true
+			remaining = remaining-getCreaturePower(ch)
+			destroyCreature(ch)
+		end
+		Functions.EndSpell(id)
 	end
 }
 
@@ -720,31 +973,66 @@ Cards["Brood Shell"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
-		
+	HandleMessage = function(id)
+		local tap = function(id)
+			local ch = createChoice("Choose a creature in your mana zone",0,id,getCardOwner(id),Checks.CreatureInYourMana)
+			if(ch>=0) then
+				moveCard(ch,ZONE_HAND)
+			end
+		end
+		Abils.TapAbility(id,tap)
 	end
 }
 
 Cards["Cursed Totem"] = {
 	shieldtrigger = 0,
 	blocker = 0,
-	breaker = 1,
+	breaker = 2,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id)
+		if(getMessageType()=="get canuseshieldtrigger" and getCardZone(id)==ZONE_BATTLE) then
+			local trigger = getMessageInt("card")
+			if(getCardOwner(trigger)~=getCardOwner(id)) then
+				setMessageInt("canuse",0)
+			end
+		end
 	end
 }
 
 Cards["Freezing Icehammer"] = {
 	shieldtrigger = 0,
 
-	OnCast = function(id) --todo
+	OnCast = function(id)
+		local valid = function(cid,sid)
+			if(Checks.InOppBattle(cid,sid)==1 and (getCardCiv(sid)==CIV_WATER or getCardCiv(sid)==CIV_DARKNESS)) then
+				return 1
+			end
+			return 0
+		end
+		local ch = createChoice("Choose an opponent's water or darkness creature",0,id,getCardOwner(id),valid)
+		if(ch>=0) then
+			moveCard(ch,ZONE_MANA)
+		end
+		Functions.EndSpell(id)
 	end
 }
 
 Cards["Fruit of Eternity"] = {
-	shieldtrigger = 0,
+	shieldtrigger = 1,
 
-	OnCast = function(id) --todo
+	OnCast = function(id) --test
+		local owner = getCardOwner(id)
+		local mod = function(cid,mid)
+			if(getMessageType()=="mod creaturedestroy") then
+				local creature = getMessageInt("creature")
+				if(getCardOwner(creature)==owner and getCardZone(creature)==ZONE_BATTLE) then
+					setMessageInt("zoneto",ZONE_MANA)
+				end
+			end
+			Abils.destroyModAtEOT(cid,mid)
+		end
+		createModifier(id,mod)
+		Functions.EndSpell(id)
 	end
 }
 
@@ -766,7 +1054,16 @@ Cards["Launch Locust"] = {
 Cards["Mulch Charger"] = {
 	shieldtrigger = 0,
 
-	OnCast = function(id) --todo
+	OnCast = function(id)
+		local ch = createChoice("Choose one of your creatures",0,id,getCardOwner(id),Checks.InYourBattle)
+		if(ch>=0) then
+			moveCard(ch,ZONE_MANA)
+		end
+		Functions.EndSpell(id)
+	end,
+
+	HandleMessage = function(id)
+		Abils.Charger(id)
 	end
 }
 

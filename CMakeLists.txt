@@ -79,6 +79,9 @@ set_target_properties(KaijudoDuel PROPERTIES
 )
 
 if(BUILD_TESTING)
+    add_test(NAME cli_help
+        COMMAND KaijudoDuel --help
+    )
     add_test(NAME smoke
         COMMAND KaijudoDuel --smoke-test
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"

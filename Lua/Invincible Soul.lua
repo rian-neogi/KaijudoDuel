@@ -1,6 +1,36 @@
 package.path = package.path .. ';./?.lua;'
 require("Lua/Survivors")
 
+local spellCastThisTurn = {[0] = false, [1] = false}
+
+local requireSpellCast = function(id)
+	if(getMessageType()=="post startturn") then
+		spellCastThisTurn[getMessageInt("player")] = false
+	elseif(getMessageType()=="post cardmove") then
+		local card = getMessageInt("card")
+		if(getMessageInt("to")==ZONE_BATTLE and getCardType(card)==TYPE_SPELL) then
+			spellCastThisTurn[getCardOwner(card)] = true
+		end
+	elseif(getMessageType()=="get cardcancast" and getMessageInt("card")==id) then
+		if(spellCastThisTurn[getCardOwner(id)]~=true) then
+			setMessageInt("cancast",0)
+		end
+	end
+end
+
+local gainBlockerWhenOpponentPlays = function(id)
+	if(getMessageType()=="post cardmove" and getCardZone(id)==ZONE_BATTLE) then
+		local card = getMessageInt("card")
+		if(getMessageInt("to")==ZONE_BATTLE and getCardOwner(card)~=getCardOwner(id)) then
+			local mod = function(cid,mid)
+				Abils.Blocker(cid)
+				Abils.destroyModAtEOT(cid,mid)
+			end
+			createModifier(id,mod)
+		end
+	end
+end
+
 Cards["Craze Valkyrie, the Drastic"] = {
 	shieldtrigger = 0,
 	blocker = 0,
@@ -145,9 +175,23 @@ Cards["Lava Walker Executo"] = {
 Cards["Cliffcrush Giant"] = {
 	shieldtrigger = 0,
 	blocker = 0,
-	breaker = 1,
+	breaker = 2,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id)
+		Abils.PowerAttacker(id,3000)
+		if(getCardZone(id)==ZONE_BATTLE and isCardTapped(id)==0 and getMessageInt("attacker")==id) then
+			if(getMessageType()=="get creaturecanattackcreature" or getMessageType()=="get creaturecanattackplayers") then
+				local owner = getCardOwner(id)
+				local size = getZoneSize(owner,ZONE_BATTLE)
+				for i=0,(size-1) do
+					local creature = getCardAt(owner,ZONE_BATTLE,i)
+					if(creature~=id and isCardTapped(creature)==0) then
+						setMessageInt("canattack",CANATTACK_NO)
+						break
+					end
+				end
+			end
+		end
 	end
 }
 
@@ -294,9 +338,16 @@ Cards["Invincible Unity"] = {
 Cards["Splinterclaw Wasp"] = {
 	shieldtrigger = 0,
 	blocker = 0,
-	breaker = 1,
+	breaker = 2,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id) --test
+		Abils.PowerAttacker(id,3000)
+		if(getMessageType()=="post creaturebattle" and getMessageInt("blocked")==1 and getMessageInt("attacker")==id) then
+			local ch = createChoice("Choose an opponent's shield",0,id,getCardOwner(id),Checks.InOppShields)
+			if(ch>=0) then
+				creatureBreakShield(id,ch)
+			end
+		end
 	end
 }
 
@@ -305,7 +356,19 @@ Cards["Adomis, the Oracle"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id)
+		local tap = function(id)
+			local owner = getCardOwner(id)
+			local ch = createChoice("Choose one of your shields to look at",0,id,owner,Checks.InYourShields)
+			if(ch>=0) then
+				unflipCard(ch)
+				setCardVisibility(ch,owner,1)
+				createChoiceNoCheck("Look at your shield",1,id,owner,Checks.False)
+				flipCard(ch)
+				setCardVisibility(ch,owner,0)
+			end
+		end
+		Abils.TapAbility(id,tap)
 	end
 }
 
@@ -353,10 +416,14 @@ Cards["Bonds of Justice"] = {
 
 Cards["Chekicul, Vizier of Endurance"] = {
 	shieldtrigger = 0,
-	blocker = 0,
+	blocker = 1,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id) --test
+		Abils.cantAttack(id)
+		if(getMessageType()=="mod creaturebattle" and getMessageInt("blocked")==1 and getMessageInt("defender")==id) then
+			setMessageInt("msgContinue",0)
+		end
 	end
 }
 
@@ -381,7 +448,14 @@ Cards["Cosmogold, Spectral Knight"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id)
+		local tap = function(id)
+			local ch = createChoice("Choose a spell in your mana zone",0,id,getCardOwner(id),Checks.SpellInYourMana)
+			if(ch>=0) then
+				moveCard(ch,ZONE_HAND)
+			end
+		end
+		Abils.TapAbility(id,tap)
 	end
 }
 
@@ -390,7 +464,13 @@ Cards["Dava Torey, Seeker of Clouds"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id) --test
+		if(getMessageType()=="mod carddiscard" and getMessageInt("card")==id and getCardZone(id)==ZONE_HAND) then
+			local owner = getCardOwner(id)
+			if(getTurn()~=owner) then
+				setMessageInt("zoneto",ZONE_BATTLE)
+			end
+		end
 	end
 }
 
@@ -420,9 +500,10 @@ Cards["Forbos, Sanctum Guardian Q"] = {
 Cards["Gariel, Elemental of Sunbeams"] = {
 	shieldtrigger = 0,
 	blocker = 0,
-	breaker = 1,
+	breaker = 2,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id) --test
+		requireSpellCast(id)
 	end
 }
 
@@ -450,7 +531,8 @@ Cards["Moontear, Spectral Knight"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id) --test
+		requireSpellCast(id)
 	end
 }
 
@@ -474,7 +556,27 @@ Cards["Protective Force"] = {
 Cards["Rain of Arrows"] = {
 	shieldtrigger = 0,
 
-	OnCast = function(id) --todo
+	OnCast = function(id) --test
+		local owner = getCardOwner(id)
+		local opponent = getOpponent(owner)
+		local hand = {}
+		local size = getZoneSize(opponent,ZONE_HAND)
+		for i=0,(size-1) do
+			local card = getCardAt(opponent,ZONE_HAND,i)
+			hand[#hand+1] = card
+			unflipCard(card)
+			setCardVisibility(card,owner,1)
+		end
+		createChoiceNoCheck("Look at your opponent's hand",1,id,owner,Checks.False)
+		for _,card in ipairs(hand) do
+			if(getCardZone(card)==ZONE_HAND and getCardType(card)==TYPE_SPELL and getCardCiv(card)==CIV_DARKNESS) then
+				discardCard(card)
+			elseif(getCardZone(card)==ZONE_HAND) then
+				flipCard(card)
+				setCardVisibility(card,owner,0)
+			end
+		end
+		Functions.EndSpell(id)
 	end
 }
 
@@ -509,10 +611,31 @@ Cards["Sphere of Wonder"] = {
 
 Cards["Telitol, the Explorer"] = {
 	shieldtrigger = 0,
-	blocker = 0,
+	blocker = 1,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id) --test
+		Abils.cantAttackPlayers(id)
+		local summon = function(id)
+			local owner = getCardOwner(id)
+			local ch = createChoiceNoCheck("Look at your shields?",2,id,owner,Checks.False)
+			if(ch==RETURN_BUTTON1) then
+				local shields = {}
+				local size = getZoneSize(owner,ZONE_SHIELD)
+				for i=0,(size-1) do
+					local card = getCardAt(owner,ZONE_SHIELD,i)
+					shields[#shields+1] = card
+					unflipCard(card)
+					setCardVisibility(card,owner,1)
+				end
+				createChoiceNoCheck("Look at your shields",1,id,owner,Checks.False)
+				for _,card in ipairs(shields) do
+					flipCard(card)
+					setCardVisibility(card,owner,0)
+				end
+			end
+		end
+		Abils.onSummon(id,summon)
 	end
 }
 
@@ -531,7 +654,8 @@ Cards["Yuluk, the Oracle"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id) --test
+		requireSpellCast(id)
 	end
 }
 
@@ -540,7 +664,8 @@ Cards["Aqua Rider"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id)
+		gainBlockerWhenOpponentPlays(id)
 	end
 }
 
@@ -582,7 +707,8 @@ Cards["King Triumphant"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id)
+		gainBlockerWhenOpponentPlays(id)
 	end
 }
 
@@ -591,7 +717,16 @@ Cards["Kyuroro"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id) --test
+		if(getMessageType()=="mod creaturebreakshield" and getCardZone(id)==ZONE_BATTLE) then
+			local owner = getCardOwner(id)
+			if(getMessageInt("defender")==owner) then
+				local ch = createChoice("Choose which shield is broken",0,id,owner,Checks.InYourShields)
+				if(ch>=0) then
+					setMessageInt("shield",ch)
+				end
+			end
+		end
 	end
 }
 
@@ -661,7 +796,8 @@ Cards["Overload Cluster"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id)
+		gainBlockerWhenOpponentPlays(id)
 	end
 }
 
@@ -853,14 +989,44 @@ Cards["Frost Specter, Shadow of Age"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id)
+		Abils.Evolution(id,"Ghost")
+		if(getCardZone(id)==ZONE_BATTLE) then
+			local owner = getCardOwner(id)
+			local size = getZoneSize(owner,ZONE_BATTLE)
+			for i=0,(size-1) do
+				local creature = getCardAt(owner,ZONE_BATTLE,i)
+				if(isCreatureOfRace(creature,"Ghost")==1) then
+					Abils.Slayer(creature)
+				end
+			end
+		end
 	end
 }
 
 Cards["Future Slash"] = {
 	shieldtrigger = 0,
 
-	OnCast = function(id) --todo
+	OnCast = function(id) --test
+		local owner = getCardOwner(id)
+		local opponent = getOpponent(owner)
+		local valid = function(cid,sid)
+			if(getCardOwner(sid)==opponent and getCardZone(sid)==ZONE_DECK) then
+				return 1
+			end
+			return 0
+		end
+		openDeck(opponent)
+		for i=1,2 do
+			local ch = createChoice("Choose a card in your opponent's deck",1,id,owner,valid)
+			if(ch<0) then
+				break
+			end
+			moveCard(ch,ZONE_GRAVEYARD)
+		end
+		shuffleDeck(opponent)
+		closeDeck(opponent)
+		Functions.EndSpell(id)
 	end
 }
 
@@ -936,9 +1102,31 @@ Cards["Grinning Axe, the Monstrosity"] = {
 }
 
 Cards["Wicked Soul Reincarnation"] = {
-	shieldtrigger = 0,
+	shieldtrigger = 1,
 
-	OnCast = function(id) --todo
+	OnCast = function(id) --test
+		local owner = getCardOwner(id)
+		local count = 0
+		local selected = {}
+		local valid = function(cid,sid)
+			if(Checks.InYourBattle(cid,sid)==1 and selected[sid]~=true) then
+				return 1
+			end
+			return 0
+		end
+		while(true) do
+			local ch = createChoice("Choose one of your creatures to destroy",1,id,owner,valid)
+			if(ch<0) then
+				break
+			end
+			selected[ch] = true
+			destroyCreature(ch)
+			count = count+1
+		end
+		if(count>0) then
+			drawCards(owner,count*2)
+		end
+		Functions.EndSpell(id)
 	end
 }
 
@@ -973,8 +1161,16 @@ Cards["Lupa, Poison-Tipped Doll"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id)
 		local tap = function(id)
+			local mod = function(cid,mid)
+				Abils.Slayer(cid)
+				Abils.destroyModAtEOT(cid,mid)
+			end
+			local ch = createChoice("Choose one of your creatures",0,id,getCardOwner(id),Checks.InYourBattle)
+			if(ch>=0) then
+				createModifier(ch,mod)
+			end
 		end
 		Abils.TapAbility(id,tap)
 	end
@@ -1089,7 +1285,21 @@ Cards["Armored Scout Gestuchar"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id)
+		local owner = getCardOwner(id)
+		local otherFire = false
+		local size = getZoneSize(owner,ZONE_BATTLE)
+		for i=0,(size-1) do
+			local creature = getCardAt(owner,ZONE_BATTLE,i)
+			if(creature~=id and getCardType(creature)==TYPE_CREATURE and getCardCiv(creature)==CIV_FIRE) then
+				otherFire = true
+				break
+			end
+		end
+		if(not otherFire) then
+			Abils.PowerAttacker(id,3000)
+			Abils.Breaker(id,2)
+		end
 	end
 }
 
@@ -1108,7 +1318,11 @@ Cards["Badlands Lizard"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id) --test
+		Abils.PowerAttacker(id,3000)
+		if(getMessageType()=="mod creaturebattle" and getMessageInt("blocked")==1 and getMessageInt("attacker")==id) then
+			setMessageInt("msgContinue",0)
+		end
 	end
 }
 
@@ -1129,7 +1343,11 @@ Cards["Choya, the Unheeding"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id) --test
+		Abils.PowerAttacker(id,1000)
+		if(getMessageType()=="mod creaturebattle" and getMessageInt("blocked")==1 and getMessageInt("attacker")==id) then
+			setMessageInt("msgContinue",0)
+		end
 	end
 }
 
@@ -1211,7 +1429,19 @@ Cards["Legionnaire Lizard"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id)
+		Abils.SpeedAttacker(id)
+		local tap = function(id)
+			local mod = function(cid,mid)
+				Abils.SpeedAttacker(cid)
+				Abils.destroyModAtEOT(cid,mid)
+			end
+			local ch = createChoice("Choose one of your creatures",0,id,getCardOwner(id),Checks.InYourBattle)
+			if(ch>=0) then
+				createModifier(ch,mod)
+			end
+		end
+		Abils.TapAbility(id,tap)
 	end
 }
 
@@ -1286,7 +1516,11 @@ Cards["Q-tronic Gargantua"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id)
+		Abils.Evolution(id,"Survivor")
+		local owner = getCardOwner(id)
+		local count = Functions.countInZone(id,owner,ZONE_BATTLE,Checks.IsSurvivor)
+		Abils.Breaker(id,count)
 	end
 }
 
@@ -1343,7 +1577,16 @@ Cards["Torchclencher"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id)
+		local owner = getCardOwner(id)
+		local size = getZoneSize(owner,ZONE_BATTLE)
+		for i=0,(size-1) do
+			local creature = getCardAt(owner,ZONE_BATTLE,i)
+			if(creature~=id and getCardType(creature)==TYPE_CREATURE and getCardCiv(creature)==CIV_FIRE) then
+				Abils.PowerAttacker(id,3000)
+				break
+			end
+		end
 	end
 }
 
@@ -1485,7 +1728,35 @@ Cards["Forbidding Totem"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id) --test
+		if(getCardZone(id)~=ZONE_BATTLE) then
+			return
+		end
+		if(getMessageType()~="get creaturecanattackplayers" and getMessageType()~="get creaturecanattackcreature") then
+			return
+		end
+		local owner = getCardOwner(id)
+		local attacker = getMessageInt("attacker")
+		if(attacker<0 or getCardOwner(attacker)==owner) then
+			return
+		end
+		local hasAttackableTotem = false
+		local size = getZoneSize(owner,ZONE_BATTLE)
+		for i=0,(size-1) do
+			local creature = getCardAt(owner,ZONE_BATTLE,i)
+			if(isCreatureOfRace(creature,"Mystery Totem")==1 and isCardTapped(creature)==1) then
+				hasAttackableTotem = true
+				break
+			end
+		end
+		if(hasAttackableTotem and getMessageType()=="get creaturecanattackplayers") then
+			setMessageInt("canattack",CANATTACK_NO)
+		elseif(hasAttackableTotem and getMessageType()=="get creaturecanattackcreature") then
+			local defender = getMessageInt("defender")
+			if(isCreatureOfRace(defender,"Mystery Totem")==0) then
+				setMessageInt("canattack",CANATTACK_NO)
+			end
+		end
 	end
 }
 
@@ -1513,7 +1784,10 @@ Cards["Innocent Hunter, Blade of All"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id)
+		if(getMessageType()=="get creaturecanevolve" and getMessageInt("evobait")==id and getCardZone(id)==ZONE_BATTLE) then
+			setMessageInt("canevolve",1)
+		end
 	end
 }
 
@@ -1554,14 +1828,35 @@ Cards["Mighty Bandit, Ace of Thieves"] = {
 Cards["Mystic Treasure Chest"] = {
 	shieldtrigger = 0,
 
-	OnCast = function(id) --todo
+	OnCast = function(id)
+		local owner = getCardOwner(id)
+		local valid = function(cid,sid)
+			if(Checks.InYourDeck(cid,sid)==1 and getCardCiv(sid)~=CIV_NATURE) then
+				return 1
+			end
+			return 0
+		end
+		openDeck(owner)
+		local ch = createChoice("Choose a non-nature card in your deck",0,id,owner,valid)
+		if(ch>=0) then
+			moveCard(ch,ZONE_MANA)
+		end
+		shuffleDeck(owner)
+		closeDeck(owner)
+		Functions.EndSpell(id)
 	end
 }
 
 Cards["Pangaea's Will"] = {
-	shieldtrigger = 0,
+	shieldtrigger = 1,
 
-	OnCast = function(id) --todo
+	OnCast = function(id) --test
+		local ch = createChoice("Choose an opponent's evolution creature",0,id,getCardOwner(id),Checks.EvolutionInOppBattle)
+		if(ch>=0) then
+			seperateEvolution(ch)
+			moveCard(ch,ZONE_MANA)
+		end
+		Functions.EndSpell(id)
 	end
 }
 

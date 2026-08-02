@@ -122,6 +122,12 @@ Abils.Charger = function(id)
 	end
 end
 
+Abils.TurboRush = function(id,func)
+	if(getCardZone(id)==ZONE_BATTLE and hasOtherCreatureBrokenShieldThisTurn(id)==1) then
+		func(id)
+	end
+end
+
 Abils.Survivor = function(id,func)
     if(getCardZone(id)==ZONE_BATTLE) then
         local owner = getCardOwner(id)
@@ -181,7 +187,9 @@ Abils.TapAbilityForCiv = function(id, func, civ)
 end
 
 Abils.attacksEachTurn = function(id)
-    --todo
+	if(getMessageType()=="get creaturemustattack" and getMessageInt("creature")==id) then
+		setMessageInt("mustattack",1)
+	end
 end
 
 Abils.cantAttack = function(id)

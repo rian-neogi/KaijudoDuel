@@ -14,7 +14,7 @@ Application::Application()
 	  mMoveUp(false), mMoveDown(false), mMoveLeft(false), mMoveRight(false), mMoveIntentX(0), mMoveIntentY(0),
 	  mVisualX(2.f), mVisualY(10.f), mDialogueNpc(-1), mNoticeUntil(0),
 	  mStoryStage(0), mStoryClues(0), mStoryScene(StoryScene::None), mStoryScenePage(0),
-	  mDuel(NULL), mActiveNpc(-1), mSelectedCard(-1), mActionScroll(0),
+	  mDuel(NULL), mActiveNpc(-1), mDirectDuelMode(false), mSelectedCard(-1), mActionScroll(0),
 	  mOpenGraveyardPlayer(-1), mGraveyardOffset(0),
 	  mNextAiMove(0), mDuelResult(-1), mDuelResultAt(0), mDraggingCard(-1),
 	  mDragFromZone(-1), mDragOrigin({ 0, 0, 0, 0 }), mDragMouseX(0), mDragMouseY(0),
@@ -37,35 +37,8 @@ Application::Application()
 	mMap.push_back("#..................#");
 	mMap.push_back("####################");
 
-	mNpcs.push_back(Npc::duelist(10, 7, "Mira", "Decks/Zagaan.txt",
-		"Darkness answers my call. Ready to duel?", "Zagaan, Knight of Darkness", 100, CharacterAppearance::Mira,
-		"Decks/Deathliger.txt"));
-	mNpcs.push_back(Npc::duelist(16, 4, "Marin", "Decks/AquaSniper.txt",
-		"Let us see whether you can read the currents.", "Aqua Sniper", 100, CharacterAppearance::Marin,
-		"Decks/KingDepthcon.txt"));
-	mNpcs.push_back(Npc::duelist(7, 4, "Rook", "Decks/RoaringGreathorn.txt",
-		"Strength grows one turn at a time.", "Roaring Great-Horn", 100, CharacterAppearance::Rook,
-		"Decks/DeathbladeBeetle.txt"));
-	mNpcs.push_back(Npc::duelist(12, 1, "Aurelia", "Decks/Hanusa.txt",
-		"The light judges every reckless move. Shall we begin?", "Hanusa, Radiance Elemental", 100, CharacterAppearance::Aurelia,
-		"Decks/Urth.txt"));
-	mNpcs.push_back(Npc::duelist(5, 4, "Flint", "Decks/AstrocometDragon.txt",
-		"My dragons have been waiting for a worthy opponent.", "Astrocomet Dragon", 100, CharacterAppearance::Flint,
-		"Decks/ScarletSkyterror.txt"));
-	mNpcs.push_back(Npc::duelist(17, 7, "Nyx", "Decks/Deathliger.txt",
-		"The abyss remembers every card you lose.", "Deathliger, Lion of Chaos", 100, CharacterAppearance::Nyx,
-		"Decks/Zagaan.txt"));
-	mNpcs.push_back(Npc::duelist(10, 10, "Tidal", "Decks/KingDepthcon.txt",
-		"The deep favors patience. Can you keep your footing?", "King Depthcon", 100, CharacterAppearance::Tidal,
-		"Decks/AquaSniper.txt"));
-	mNpcs.push_back(Npc::duelist(2, 6, "Briar", "Decks/DeathbladeBeetle.txt",
-		"Nature rewards the duelist who grows strongest.", "Deathblade Beetle", 100, CharacterAppearance::Briar,
-		"Decks/RoaringGreathorn.txt"));
-	mNpcs.push_back(Npc::shopkeeper(18, 10, "Mercer",
-		"Welcome! I trade hard-earned gold for cards.", CharacterAppearance::Mercer));
-	mNpcs.push_back(Npc::boss(10, 4, "The Veiled One", "Decks/VeiledOne.txt",
-		"Every echo you restored belongs to the Curator. Hand them over.",
-		"Urth, Purifying Elemental", 250, CharacterAppearance::VeiledOne));
+	if (!loadNpcsFromLua("Lua/Npcs.lua", mNpcs, mNpcMetadataError))
+		std::cerr << "Unable to load NPC metadata: " << mNpcMetadataError << std::endl;
 }
 
 Application::~Application()
@@ -75,6 +48,7 @@ Application::~Application()
 
 bool Application::initialize()
 {
+	if (!mNpcMetadataError.empty()) return false;
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0)
 	{
@@ -143,11 +117,23 @@ void Application::shutdown()
 	SDL_Quit();
 }
 
-int Application::run(bool smokeTest)
+int Application::run(bool smokeTest, const std::string& directPlayerDeck,
+	const std::string& directAiDeck)
 {
 	if (!initialize())
 		return 1;
-	if (smokeTest)
+	mDirectDuelMode = !directPlayerDeck.empty() || !directAiDeck.empty();
+	if (mDirectDuelMode)
+	{
+		if (directPlayerDeck.empty() || directAiDeck.empty() ||
+			!startDuelWithDecks(directPlayerDeck, directAiDeck, -1))
+		{
+			std::cerr << "Unable to start direct duel. Check both deck paths and deck contents."
+				<< std::endl;
+			return 3;
+		}
+	}
+	else if (smokeTest)
 	{
 		if (!exerciseOverworldMovementSmoke())
 		{
@@ -194,6 +180,11 @@ int Application::run(bool smokeTest)
 			if (smokeNpc == 0 && smokeFrames == 10 && !exerciseBinaryChoiceSmoke())
 			{
 				std::cerr << "Binary choice menu smoke test failed." << std::endl;
+				return 2;
+			}
+			if (smokeNpc == 0 && smokeFrames == 11 && !exerciseActionLabelSmoke())
+			{
+				std::cerr << "Command menu label smoke test failed." << std::endl;
 				return 2;
 			}
 			if (smokeNpc == 0 && smokeFrames >= 100 && smokeFrames < 180 && mDraggingCard < 0)

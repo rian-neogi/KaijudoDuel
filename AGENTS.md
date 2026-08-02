@@ -46,6 +46,8 @@ rendering, and repeated duel teardown.
 - `Source/App/Menus.cpp`: overworld pause menu and auxiliary screens.
 - `Source/App/CardRenderer.cpp`: card textures, zones, hands, animation,
   tapping, dragging, and hover enlargement.
+- `Lua/Npcs.lua`: authoritative overworld NPC placement, decks, rewards, AI
+  personalities, and dialogue metadata.
 - `Source/App/AppSupport.h`: shared logical dimensions and small UI helpers.
 - `Source/AI/HeuristicBot.cpp`: phase-aware rival move scoring. Keep it from
   inspecting identities in opposing hidden zones.

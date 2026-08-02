@@ -53,9 +53,9 @@ void Application::discoverStoryClue(int npcIndex)
 {
 	if (mStoryStage != 1 || npcIndex < 0 || npcIndex >= (int)mNpcs.size()) return;
 	int clue = 0;
-	if (mNpcs[npcIndex].name == "Aurelia") clue = CLUE_AURELIA;
-	else if (mNpcs[npcIndex].name == "Flint") clue = CLUE_FLINT;
-	else if (mNpcs[npcIndex].name == "Mira") clue = CLUE_MIRA;
+	if (mNpcs[npcIndex].id == "aurelia") clue = CLUE_AURELIA;
+	else if (mNpcs[npcIndex].id == "flint") clue = CLUE_FLINT;
+	else if (mNpcs[npcIndex].id == "mira") clue = CLUE_MIRA;
 	if (clue == 0 || (mStoryClues & clue) != 0) return;
 	mStoryClues |= clue;
 	mNotice = "New clue discovered (" + std::to_string(
@@ -111,9 +111,9 @@ bool Application::npcHasStoryMarker(int npcIndex) const
 	const Npc& npc = mNpcs[npcIndex];
 	if (mStoryStage == 1)
 	{
-		if (npc.name == "Aurelia") return (mStoryClues & CLUE_AURELIA) == 0;
-		if (npc.name == "Flint") return (mStoryClues & CLUE_FLINT) == 0;
-		if (npc.name == "Mira") return (mStoryClues & CLUE_MIRA) == 0;
+		if (npc.id == "aurelia") return (mStoryClues & CLUE_AURELIA) == 0;
+		if (npc.id == "flint") return (mStoryClues & CLUE_FLINT) == 0;
+		if (npc.id == "mira") return (mStoryClues & CLUE_MIRA) == 0;
 	}
 	if (mStoryStage == 2) return npc.kind == NpcKind::Duelist && npc.wins == 0;
 	if (mStoryStage == 3) return npc.isBoss() && !npc.isComplete();
@@ -147,30 +147,34 @@ std::string Application::storyDialogueForNpc(int npcIndex) const
 	if (npcIndex < 0 || npcIndex >= (int)mNpcs.size()) return "";
 	const Npc& npc = mNpcs[npcIndex];
 	if (npc.isShopkeeper())
-		return mStoryStage < 2 ?
-			"These blank card fragments started appearing after the festival. Bring me gold and I'll keep you supplied." :
-			"Your restored echoes are holding their ink. The Curator will have noticed.";
+	{
+		if (mStoryStage >= 4) return npc.dialogueText("act_complete", npc.challenge);
+		return mStoryStage < 2 ? npc.dialogueText("shop_early", npc.challenge) :
+			npc.dialogueText("shop_late", npc.challenge);
+	}
 	if (npc.isBoss())
 		return npc.isComplete() ?
-			"The Curator has already crossed the old road. Rowan still lives—but not for long." : npc.challenge;
+			npc.dialogueText("complete", npc.challenge) : npc.dialogueText("greeting", npc.challenge);
 	if (npc.isComplete())
-		return "Four stable echoes. My signature card remembers you now. I have nothing more to wager.";
+		return npc.dialogueText("complete",
+			"My signature card remembers you now. I have nothing more to wager.");
 
-	if (mStoryStage <= 2 && npc.name == "Aurelia")
-		return "When the festival lights failed, every blank card pointed north. Rowan ran toward the bridge before he vanished.";
-	if (mStoryStage <= 2 && npc.name == "Flint")
-		return "I saw a masked duelist beside the arena. Their cards had no civilization mark—and no names.";
-	if (mStoryStage <= 2 && npc.name == "Mira")
-		return "That broken-circle symbol belongs to the Curator, a duelist who steals the memories bound to cards.";
+	if (mStoryStage <= 2 && !npc.dialogueText("clue").empty())
+		return npc.dialogueText("clue");
 	if (mStoryStage == 1)
-		return "Something is wrong with the town's cards. Aurelia, Flint, and Mira each saw part of what happened.";
+		return npc.dialogueText("investigation",
+			"Something is wrong with the town's cards. Aurelia, Flint, and Mira each saw part of what happened.");
 	if (mStoryStage == 2)
 		return npc.wins == 0 ?
-			"A true duel may stabilize my fading signature card. Show me what your deck can do." :
-			"That echo is stable. Win against other duelists so we can trace the Curator's signal.";
+			npc.dialogueText("stabilize_before",
+				"A true duel may stabilize my fading signature card. Show me what your deck can do.") :
+			npc.dialogueText("stabilize_after",
+				"That echo is stable. Win against other duelists so we can trace the Curator's signal.");
 	if (mStoryStage == 3)
-		return "The masked stranger has appeared at the central bridge. We'll hold Emberglen—go!";
-	return "You restored our cards and drove off the Curator's agent. The old road is waiting for you.";
+		return npc.dialogueText("boss_reveal",
+			"The masked stranger has appeared at the central bridge. We'll hold Emberglen—go!");
+	return npc.dialogueText("act_complete",
+		"You restored our cards and drove off the Curator's agent. The old road is waiting for you.");
 }
 
 void Application::renderStoryTracker()
@@ -222,6 +226,26 @@ void Application::renderStoryScene()
 bool Application::exerciseStorySmoke()
 {
 	if (mNpcs.size() < 10) return false;
+	for (size_t i = 0; i < mNpcs.size(); ++i)
+	{
+		Npc& npc = mNpcs[i];
+		if (!npc.isDuelist()) continue;
+		if (npc.maxWins <= 0 || npc.maxWins != (int)npc.decks.size() ||
+			npc.maxWins != (int)npc.rewards.size()) return false;
+		int savedNpcWins = npc.wins;
+		for (int battle = 0; battle < npc.maxWins; ++battle)
+		{
+			npc.wins = battle;
+			NpcReward reward = npc.nextReward();
+			if (npc.battleDeck() != npc.decks[battle] || npc.battleDeck().empty() ||
+				reward.card != npc.rewards[battle].card || reward.gold != npc.rewards[battle].gold)
+			{
+				npc.wins = savedNpcWins;
+				return false;
+			}
+		}
+		npc.wins = savedNpcWins;
+	}
 	int savedStage = mStoryStage;
 	int savedClues = mStoryClues;
 	StoryScene savedScene = mStoryScene;

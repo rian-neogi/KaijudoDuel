@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <sstream>
 #include <thread>
 
 std::mutex gMutex;
@@ -83,6 +84,7 @@ Duel::Duel()
 	mAttackphase = PHASE_NONE;
 	mAttacker = -1;
 	mDefender = -1;
+	mDefenderType = -1;
 	mBreakCount = -1;
 	
 	mCastingCard = -1;
@@ -125,6 +127,8 @@ void Duel::copyFrom(Duel* duel) //incomplete, not used
 	mAttacker = duel->mAttacker;
 	mDefender = duel->mDefender;
 	mBreakCount = duel->mBreakCount;
+	mShieldBreakersThisTurn[0] = duel->mShieldBreakersThisTurn[0];
+	mShieldBreakersThisTurn[1] = duel->mShieldBreakersThisTurn[1];
 
 	mCastingCard = duel->mCastingCard;
 	mCastingCiv = duel->mCastingCiv;
@@ -197,7 +201,10 @@ int Duel::handleMessage(Message& msg)
 		}
 		else
 		{
-			getZone(owner, tozone)->addCard(c);
+			if (tozone == ZONE_DECK && msg.getInt("tobottom") == 1)
+				mDecks[owner].addCardToBottom(c);
+			else
+				getZone(owner, tozone)->addCard(c);
 		}
 		c->mZone = tozone;
 		if (tozone != ZONE_BATTLE)
@@ -334,10 +341,15 @@ int Duel::handleMessage(Message& msg)
 		Message m("creaturebattle");
 		m.addValue("attacker", msg.getInt("attacker"));
 		m.addValue("defender", msg.getInt("blocker"));
+		m.addValue("blocked", 1);
 		mMsgMngr.sendMessage(m);
 	}
 	else if (msg.getType() == "creaturebreakshield")
 	{
+		int creature = msg.getInt("creature");
+		if (creature >= 0 && creature < static_cast<int>(mCardList.size()))
+			mShieldBreakersThisTurn[mCardList.at(creature)->mOwner].insert(creature);
+
 		Message m("breakshield");
 		m.addValue("player", msg.getInt("defender"));
 		m.addValue("shield", msg.getInt("shield"));
@@ -399,7 +411,10 @@ int Duel::handleMessage(Message& msg)
 	}
 	else if (msg.getType() == "endturn")
 	{
-		mTurn = (mTurn + 1) % 2;
+		mShieldBreakersThisTurn[0].clear();
+		mShieldBreakersThisTurn[1].clear();
+		if (msg.getInt("extraturn") != 1)
+			mTurn = (mTurn + 1) % 2;
 		mManaUsed = 0;
 		Message m("startturn");
 		m.addValue("player", mTurn);
@@ -459,12 +474,19 @@ int Duel::handleMessage(Message& msg)
 	else if (msg.getType() == "carddiscardatrandom")
 	{
 		int plyr = msg.getInt("player");
-		if (mHands[plyr].mCards.size() > 0)
+		int count = msg.getInt("count");
+		if (count < 1)
+			count = 1;
+		std::vector<Card*> candidates = mHands[plyr].mCards;
+		while (count > 0 && !candidates.empty())
 		{
+			int selected = mRandomGen.Random(candidates.size());
 			Message m("carddiscard");
-			m.addValue("card", mHands[plyr].mCards.at(mRandomGen.Random(mHands[plyr].mCards.size()))->mUniqueId);
+			m.addValue("card", candidates.at(selected)->mUniqueId);
 			m.addValue("zoneto", ZONE_GRAVEYARD);
 			mMsgMngr.sendMessage(m);
+			candidates.erase(candidates.begin() + selected);
+			count--;
 		}
 	}
 	else if (msg.getType() == "evolutionseperate")
@@ -505,6 +527,7 @@ void Duel::undoLastMove()
 	}
 	mMoveHistory.pop_back();
 	mCurrentMoveCount--;
+	rebuildShieldBreakersThisTurn();
 }
 
 void Duel::undoMessage(Message& msg)
@@ -548,7 +571,8 @@ void Duel::undoMessage(Message& msg)
 	}
 	else if (msg.getType() == "endturn")
 	{
-		mTurn = (mTurn + 1) % 2;
+		if (msg.getInt("extraturn") != 1)
+			mTurn = (mTurn + 1) % 2;
 
 		int flag = 0;
 		for (std::vector<MsgHistoryItem>::reverse_iterator i = mMessageHistory.rbegin(); i != mMessageHistory.rend(); i++)
@@ -598,9 +622,12 @@ std::vector<Message> Duel::getPossibleMoves()
 	int player = getPlayerToMove();
 	if (mTurn == player && mAttackphase == PHASE_NONE && !(mIsChoiceActive) && mCastingCard == -1)
 	{
-		Message m("endturn");
-		m.addValue("player", mTurn);
-		moves.push_back(m);
+		if (canEndTurn())
+		{
+			Message m("endturn");
+			m.addValue("player", mTurn);
+			moves.push_back(m);
+		}
 	}
 	else if (mIsChoiceActive && player == mChoicePlayer)
 	{
@@ -655,6 +682,12 @@ std::vector<Message> Duel::getPossibleMoves()
 	}
 	else if (mAttackphase == PHASE_BLOCK && player == getOpponent(mTurn)) //block
 	{
+		int forcedBlocker = getCreatureForcedBlocker(mAttacker);
+		bool forcedBlockerAvailable = forcedBlocker >= 0
+			&& forcedBlocker < static_cast<int>(mCardList.size())
+			&& mCardList.at(forcedBlocker)->mZone == ZONE_BATTLE
+			&& !mCardList.at(forcedBlocker)->mIsTapped
+			&& getCreatureCanBlock(mAttacker, forcedBlocker);
 		for (std::vector<Card*>::iterator i = mBattlezones[getOpponent(mTurn)].mCards.begin(); i != mBattlezones[getOpponent(mTurn)].mCards.end(); i++)
 		{
 			if (getCreatureCanBlock(mAttacker, (*i)->mUniqueId) && (*i)->mIsTapped == false
@@ -670,8 +703,11 @@ std::vector<Message> Duel::getPossibleMoves()
 				moves.push_back(msg);
 			}
 		}
-		Message m("blockskip");
-		moves.push_back(m);
+		if (!forcedBlockerAvailable)
+		{
+			Message m("blockskip");
+			moves.push_back(m);
+		}
 	}
 	else if (mCastingCard != -1 && player == mTurn) //tap mana
 	{
@@ -809,7 +845,7 @@ int Duel::handleInterfaceInput(Message& msg)
 	}
 	else if (type == "endturn")
 	{
-		if (mAttackphase == PHASE_NONE && !mIsChoiceActive && mCastingCard == -1)
+		if (mAttackphase == PHASE_NONE && !mIsChoiceActive && mCastingCard == -1 && canEndTurn())
 		{
 			nextTurn();
 		}
@@ -857,10 +893,11 @@ int Duel::handleInterfaceInput(Message& msg)
 				Message msg2("cardtap");
 				msg2.addValue("card", blocker);
 				mMsgMngr.sendMessage(msg2);
-				Message msg("creaturebattle");
-				msg.addValue("attacker", mAttacker);
-				msg.addValue("defender", blocker);
-				mMsgMngr.sendMessage(msg);
+					Message msg("creaturebattle");
+					msg.addValue("attacker", mAttacker);
+					msg.addValue("defender", blocker);
+					msg.addValue("blocked", 1);
+					mMsgMngr.sendMessage(msg);
 				//resetAttack();
 				Message msg3("resetattack");
 				mMsgMngr.sendMessage(msg3);
@@ -871,6 +908,17 @@ int Duel::handleInterfaceInput(Message& msg)
 	{
 		if (mAttackphase == PHASE_BLOCK)
 		{
+			int forcedBlocker = getCreatureForcedBlocker(mAttacker);
+			if (forcedBlocker >= 0 && forcedBlocker < static_cast<int>(mCardList.size())
+				&& mCardList.at(forcedBlocker)->mZone == ZONE_BATTLE
+				&& !mCardList.at(forcedBlocker)->mIsTapped
+				&& getCreatureCanBlock(mAttacker, forcedBlocker))
+				return 0;
+			Message unblocked("creatureunblocked");
+			unblocked.addValue("attacker", mAttacker);
+			unblocked.addValue("defender", mDefender);
+			unblocked.addValue("defendertype", mDefenderType);
+			mMsgMngr.sendMessage(unblocked);
 			//printf("mDefenderType: %d\n", mDefenderType);
 			if (mDefenderType == DEFENDER_CREATURE)
 			{
@@ -919,6 +967,7 @@ int Duel::handleInterfaceInput(Message& msg)
 			}
 
 			Message m("creaturebreakshield");
+			m.addValue("creature", mAttacker);
 			m.addValue("attacker", mAttacker);
 			m.addValue("defender", mDefender);
 			m.addValue("shield", shield);
@@ -936,6 +985,9 @@ int Duel::handleInterfaceInput(Message& msg)
 				{
 					if (getIsShieldTrigger(trigger) && canUseShieldTrigger(trigger) && getCardCanCast(trigger))
 					{
+						Message used("shieldtriggerused");
+						used.addValue("trigger", trigger);
+						mMsgMngr.sendMessage(used);
 						Message m("cardplay");
 						m.addValue("card", trigger);
 						m.addValue("evobait", -1);
@@ -1177,7 +1229,11 @@ void Duel::checkChoiceValid()
 	for (std::vector<Card*>::iterator i = mCardList.begin(); i != mCardList.end(); i++)
 	{
 		if ((*i)->mZone != ZONE_EVOLVED && mChoice->callvalid(mChoiceCard, (*i)->mUniqueId) == 1)
-			mChoiceValidCards.push_back((*i)->mUniqueId);
+		{
+			if ((*i)->mZone != ZONE_BATTLE || (*i)->mType != TYPE_CREATURE
+				|| getCreatureCanBeChosen((*i)->mUniqueId, mChoicePlayer, mChoiceCard) == 1)
+				mChoiceValidCards.push_back((*i)->mUniqueId);
+		}
 	}
 	if (mChoiceValidCards.empty()) //no valid targets
 	{
@@ -1567,7 +1623,91 @@ int Duel::isCreatureOfRace(int uid, std::string race)
 
 std::string Duel::getCreatureRace(int uid)
 {
-	return mCardList.at(uid)->mRace;
+	Message oldmsg = mCurrentMessage;
+	mCurrentMessage = Message("get creaturerace");
+	mCurrentMessage.addValue("race", mCardList.at(uid)->mRace);
+	mCurrentMessage.addValue("creature", uid);
+
+	for (std::vector<Card*>::iterator i = mCardList.begin(); i != mCardList.end(); i++)
+	{
+		(*i)->handleMessage(mCurrentMessage);
+	}
+	std::string race = mCurrentMessage.getString("race");
+	mCurrentMessage = oldmsg;
+	return race;
+}
+
+int Duel::getCreatureCanBeChosen(int uid, int chooser, int source)
+{
+	Message oldmsg = mCurrentMessage;
+	mCurrentMessage = Message("get creaturecanbechosen");
+	mCurrentMessage.addValue("canchoose", 1);
+	mCurrentMessage.addValue("creature", uid);
+	mCurrentMessage.addValue("chooser", chooser);
+	mCurrentMessage.addValue("source", source);
+	for (std::vector<Card*>::iterator i = mCardList.begin(); i != mCardList.end(); i++)
+		(*i)->handleMessage(mCurrentMessage);
+	int result = mCurrentMessage.getInt("canchoose");
+	mCurrentMessage = oldmsg;
+	return result;
+}
+
+int Duel::getCreatureMustAttack(int uid)
+{
+	Message oldmsg = mCurrentMessage;
+	mCurrentMessage = Message("get creaturemustattack");
+	mCurrentMessage.addValue("mustattack", 0);
+	mCurrentMessage.addValue("creature", uid);
+	for (std::vector<Card*>::iterator i = mCardList.begin(); i != mCardList.end(); i++)
+		(*i)->handleMessage(mCurrentMessage);
+	int result = mCurrentMessage.getInt("mustattack");
+	mCurrentMessage = oldmsg;
+	return result;
+}
+
+int Duel::getCreatureForcedBlocker(int uid)
+{
+	Message oldmsg = mCurrentMessage;
+	mCurrentMessage = Message("get creatureforcedblocker");
+	mCurrentMessage.addValue("forcedblocker", -1);
+	mCurrentMessage.addValue("attacker", uid);
+	for (std::vector<Card*>::iterator i = mCardList.begin(); i != mCardList.end(); i++)
+		(*i)->handleMessage(mCurrentMessage);
+	int result = mCurrentMessage.getInt("forcedblocker");
+	mCurrentMessage = oldmsg;
+	return result;
+}
+
+bool Duel::canCreatureAttackNow(int uid)
+{
+	if (uid < 0 || uid >= static_cast<int>(mCardList.size())) return false;
+	Card* attacker = mCardList.at(uid);
+	if (attacker->mZone != ZONE_BATTLE || attacker->mIsTapped) return false;
+	int canPlayers = getCreatureCanAttackPlayers(uid);
+	if (canPlayers == CANATTACK_ALWAYS
+		|| ((attacker->mSummoningSickness == 0 || getIsSpeedAttacker(uid) == 1)
+			&& canPlayers <= CANATTACK_UNTAPPED))
+		return true;
+	if (attacker->mSummoningSickness != 0) return false;
+	for (std::vector<Card*>::iterator i = mBattlezones[getOpponent(attacker->mOwner)].mCards.begin();
+		i != mBattlezones[getOpponent(attacker->mOwner)].mCards.end(); i++)
+	{
+		int canCreature = getCreatureCanAttackCreature(uid, (*i)->mUniqueId);
+		if (canCreature <= CANATTACK_UNTAPPED
+			&& ((*i)->mIsTapped || canCreature == CANATTACK_UNTAPPED))
+			return true;
+	}
+	return false;
+}
+
+bool Duel::canEndTurn()
+{
+	for (std::vector<Card*>::iterator i = mBattlezones[mTurn].mCards.begin(); i != mBattlezones[mTurn].mCards.end(); i++)
+	{
+		if (getCreatureMustAttack((*i)->mUniqueId) == 1 && canCreatureAttackNow((*i)->mUniqueId))
+			return false;
+	}
+	return true;
 }
 
 int Duel::getCreatureCanEvolve(int evo, int bait)
@@ -1628,68 +1768,94 @@ void Duel::drawCards(int player, int count)
 	}
 }
 
-void Duel::setDecks(std::string p1, std::string p2)
+bool Duel::setDecks(const std::string& p1, const std::string& p2)
 {
-	loadDeck(p1, 0);
-	loadDeck(p2, 1);
+	if (!loadDeck(p1, 0)) return false;
+	if (!loadDeck(p2, 1)) return false;
 
 	/*decks[0].x = ZONE2X;
 	decks[1].x = ZONE2X;
 	decks[0].y = CENTER - ZONEYOFFSET * 4;
 	decks[1].y = CENTER + ZONEYOFFSET * 3;*/
+	return true;
 }
 
-void Duel::loadDeck(std::string s, int p)
+bool Duel::loadDeck(const std::string& path, int player)
 {
-	mDecks[p].mCards.clear();
-	std::fstream file;
-	file.open(s, std::ios::in | std::ios::out);
-	std::string str;
-
-	if (!file.is_open())
+	constexpr int MINIMUM_DECK_CARDS = 10;
+	constexpr int MAXIMUM_DECK_CARDS = 200;
+	mDecks[player].mCards.clear();
+	std::string resolvedPath;
+	if (!resolveDeckPath(path, resolvedPath))
 	{
-		//cout << "ERROR opening deck: " << s << endl;
-		printf("ERROR opening deck %s\n", s.c_str());
+		fprintf(stderr, "Unable to find deck '%s' directly or beneath Decks/.\n", path.c_str());
+		return false;
 	}
+	std::ifstream file(resolvedPath.c_str());
 
-	while (!file.eof())
+	std::string line;
+	int lineNumber = 0;
+	int cardCount = 0;
+	while (std::getline(file, line))
 	{
-		getline(file, str);
-		if (str == "")
-			continue;
-		//if (!isSimulation)
-		//	cout << "loading card " << str << endl;
-		for (int i = 0; i < str.size(); i++)
+		++lineNumber;
+		line = deckLineWithoutComment(line);
+		if (!line.empty() && line.back() == '\r') line.pop_back();
+		size_t first = line.find_first_not_of(" \t");
+		if (first == std::string::npos) continue;
+
+		std::istringstream input(line.substr(first));
+		int count = 0;
+		if (!(input >> count) || count <= 0)
 		{
-			if (str.at(i) == ' ')
-			{
-				int count = atoi(str.substr(0, i).c_str());
-				std::string name = str.substr(i + 1);
-				if(name[name.size()-1]=='\r') //remove /r at eof
-				{
-					name = name.substr(0, name.size()-1);
-				}
-				int cardId = getCardIdFromName(name);
-				if (cardId < 0)
-				{
-					fprintf(stderr, "Skipping unknown card '%s' in %s\n", name.c_str(), s.c_str());
-					break;
-				}
-				for (int j = 0; j < count; j++)
-				{
-					Card* c = new Card(mNextUniqueId, cardId, p);
-					mCardList.push_back(c);
-					mDecks[p].addCard(c);
-					mNextUniqueId++;
-				}
-				break;
-			}
+			fprintf(stderr, "Invalid card count in '%s' at line %d.\n",
+				resolvedPath.c_str(), lineNumber);
+			return false;
 		}
+		std::string name;
+		std::getline(input, name);
+		first = name.find_first_not_of(" \t");
+		if (first == std::string::npos)
+		{
+			fprintf(stderr, "Missing card name in '%s' at line %d.\n",
+				resolvedPath.c_str(), lineNumber);
+			return false;
+		}
+		name.erase(0, first);
+		size_t last = name.find_last_not_of(" \t");
+		name.erase(last + 1);
+		if (cardCount + count > MAXIMUM_DECK_CARDS)
+		{
+			fprintf(stderr, "Deck '%s' exceeds the %d-card safety limit.\n",
+				resolvedPath.c_str(), MAXIMUM_DECK_CARDS);
+			return false;
+		}
+		int cardId = getCardIdFromName(name);
+		if (cardId < 0)
+		{
+			fprintf(stderr, "Unknown card '%s' in '%s' at line %d.\n",
+				name.c_str(), resolvedPath.c_str(), lineNumber);
+			return false;
+		}
+		for (int copy = 0; copy < count; ++copy)
+		{
+			Card* card = new Card(mNextUniqueId, cardId, player);
+			mCardList.push_back(card);
+			mDecks[player].addCard(card);
+			++mNextUniqueId;
+		}
+		cardCount += count;
 	}
 
-	file.close();
-
-	mDeckNames[p] = s;
+	if (cardCount < MINIMUM_DECK_CARDS)
+	{
+		fprintf(stderr,
+			"Deck '%s' has %d cards; at least %d are required for opening shields and hand.\n",
+			resolvedPath.c_str(), cardCount, MINIMUM_DECK_CARDS);
+		return false;
+	}
+	mDeckNames[player] = resolvedPath;
+	return true;
 }
 
 //void Duel::loadDeck(string s, int p)
@@ -1718,6 +1884,8 @@ void Duel::startDuel()
 {
 	mTurn = 0;
 	mManaUsed = 0;
+	mShieldBreakersThisTurn[0].clear();
+	mShieldBreakersThisTurn[1].clear();
 	for (int i = 0; i < 2; i++)
 	{
 		if (mDecks[i].mCards.size() < 40)
@@ -1761,6 +1929,7 @@ void Duel::resetAttack()
 	mAttackphase = PHASE_NONE;
 	mAttacker = -1;
 	mDefender = -1;
+	mDefenderType = -1;
 	mBreakCount = -1;
 	mShieldTargets.clear();
 }
@@ -1790,6 +1959,34 @@ void Duel::clearCards()
 	}
 	mCardList.clear();
 	mNextUniqueId = 0;
+	mShieldBreakersThisTurn[0].clear();
+	mShieldBreakersThisTurn[1].clear();
+}
+
+void Duel::rebuildShieldBreakersThisTurn()
+{
+	mShieldBreakersThisTurn[0].clear();
+	mShieldBreakersThisTurn[1].clear();
+	for (std::vector<MsgHistoryItem>::reverse_iterator i = mMessageHistory.rbegin(); i != mMessageHistory.rend(); i++)
+	{
+		if (i->msg.getType() == "endturn")
+			break;
+		if (i->msg.getType() == "creaturebreakshield")
+		{
+			int creature = i->msg.getInt("creature");
+			if (creature >= 0 && creature < static_cast<int>(mCardList.size()))
+				mShieldBreakersThisTurn[mCardList.at(creature)->mOwner].insert(creature);
+		}
+	}
+}
+
+bool Duel::hasOtherCreatureBrokenShieldThisTurn(int uid) const
+{
+	if (uid < 0 || uid >= static_cast<int>(mCardList.size()))
+		return false;
+
+	const std::unordered_set<int>& breakers = mShieldBreakersThisTurn[mCardList.at(uid)->mOwner];
+	return breakers.size() > 1 || (breakers.size() == 1 && breakers.count(uid) == 0);
 }
 
 void Duel::resetChoice()

@@ -19,7 +19,8 @@ public:
 	Application();
 	~Application();
 
-	int run(bool smokeTest = false);
+	int run(bool smokeTest = false, const std::string& directPlayerDeck = "",
+		const std::string& directAiDeck = "");
 
 private:
 	enum class Screen
@@ -116,6 +117,8 @@ private:
 	int npcAt(int x, int y, int ignoredNpc = -1) const;
 
 	void startDuel(int npcIndex, bool ignoreProgressLimit = false);
+	bool startDuelWithDecks(const std::string& playerDeck, const std::string& aiDeck,
+		int npcIndex);
 	void stopDuel();
 	void handleDuelEvent(const SDL_Event& event);
 	bool handleGraveyardEvent(const SDL_Event& event);
@@ -128,6 +131,7 @@ private:
 	bool exerciseHeuristicAttackSafetySmoke();
 	bool exerciseHeuristicBlockChoiceSmoke();
 	bool exerciseBinaryChoiceSmoke();
+	bool exerciseActionLabelSmoke();
 	bool beginMandatorySacrificeAiSmoke(const std::string& cardName, int& summonedCard, int& sacrifice);
 	bool verifyMandatorySacrificeAiSmoke(const std::string& cardName, int summonedCard, int sacrifice);
 	bool exerciseGraveyardBrowserSmoke();
@@ -203,6 +207,7 @@ private:
 
 	std::vector<std::string> mMap;
 	std::vector<Npc> mNpcs;
+	std::string mNpcMetadataError;
 	int mPlayerX;
 	int mPlayerY;
 	int mFacingX;
@@ -226,6 +231,7 @@ private:
 	Duel* mDuel;
 	std::thread mDuelThread;
 	int mActiveNpc;
+	bool mDirectDuelMode;
 	int mSelectedCard;
 	int mActionScroll;
 	int mOpenGraveyardPlayer;

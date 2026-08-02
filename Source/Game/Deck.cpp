@@ -1,5 +1,34 @@
 #include "Deck.h"
 
+#include <fstream>
+
+std::string deckLineWithoutComment(const std::string& line)
+{
+	size_t comment = line.find('#');
+	return comment == std::string::npos ? line : line.substr(0, comment);
+}
+
+bool resolveDeckPath(const std::string& requestedPath, std::string& resolvedPath)
+{
+	resolvedPath.clear();
+	if (requestedPath.empty()) return false;
+	std::ifstream exact(requestedPath.c_str());
+	if (exact.good())
+	{
+		resolvedPath = requestedPath;
+		return true;
+	}
+	const bool absolute = requestedPath[0] == '/' ||
+		(requestedPath.size() > 1 && requestedPath[1] == ':');
+	const bool alreadyInDecks = requestedPath.compare(0, 6, "Decks/") == 0;
+	if (absolute || alreadyInDecks) return false;
+	const std::string defaultPath = "Decks/" + requestedPath;
+	std::ifstream fallback(defaultPath.c_str());
+	if (!fallback.good()) return false;
+	resolvedPath = defaultPath;
+	return true;
+}
+
 Deck::Deck()
 {
 }
@@ -46,6 +75,15 @@ void Deck::addCard(Card* c)
 	c->mIsVisible[0] = false;
 	c->mIsVisible[1] = false;
 	mCards.push_back(c);
+}
+
+void Deck::addCardToBottom(Card* c)
+{
+	c->flip();
+	c->untap();
+	c->mIsVisible[0] = false;
+	c->mIsVisible[1] = false;
+	mCards.insert(mCards.begin(), c);
 }
 
 void Deck::shuffle()

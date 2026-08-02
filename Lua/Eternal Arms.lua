@@ -1,3 +1,6 @@
+package.path = package.path .. ';./?.lua;'
+require("Lua/Invincible Blood")
+
 Cards["Deklowaz, the Terminator"] = {
 	shieldtrigger = 0,
 	blocker = 0,
@@ -120,7 +123,14 @@ Cards["Gajirabute, Vile Centurion"] = {
 	blocker = 0,
 	breaker = 1,
 
-	HandleMessage = function(id) --todo
+	HandleMessage = function(id)
+		local summon = function(id)
+			local ch = createChoice("Choose an opponent's shield to put into their graveyard",0,id,getCardOwner(id),Checks.InOppShields)
+			if(ch>=0) then
+				moveCard(ch,ZONE_GRAVEYARD)
+			end
+		end
+		Abils.onSummon(id,summon)
 	end
 }
 

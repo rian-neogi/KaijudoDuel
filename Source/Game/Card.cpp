@@ -28,9 +28,40 @@ Card::Card(int uid, int cid, int owner) : mUniqueId(uid), mCardId(cid), mOwner(o
 	mManaCost = gCardDatabase[cid].ManaCost;
 	mCivilization = gCardDatabase[cid].Civilization;
 
+	int stackTop = lua_gettop(LuaCards);
 	lua_getglobal(LuaCards, "Cards");
+	if (!lua_istable(LuaCards, -1))
+	{
+		fprintf(stderr, "Lua card table is unavailable while constructing '%s'\n", mName.c_str());
+		lua_settop(LuaCards, stackTop);
+		mIsShieldTrigger = 0;
+		mBreaker = mType == TYPE_CREATURE ? 1 : 0;
+		mIsBlocker = 0;
+		mIsTapped = false;
+		mIsFlipped = false;
+		mIsVisible[0] = true;
+		mIsVisible[1] = true;
+		mZone = ZONE_DECK;
+		mSummoningSickness = 1;
+		return;
+	}
 	//printf("name %s %d\n", gCardDatabase[cid].Name.c_str(), cid);
 	lua_getfield(LuaCards, -1, gCardDatabase[cid].Name.c_str());
+	if (!lua_istable(LuaCards, -1))
+	{
+		fprintf(stderr, "Lua rules are missing for card '%s'\n", mName.c_str());
+		lua_settop(LuaCards, stackTop);
+		mIsShieldTrigger = 0;
+		mBreaker = mType == TYPE_CREATURE ? 1 : 0;
+		mIsBlocker = 0;
+		mIsTapped = false;
+		mIsFlipped = false;
+		mIsVisible[0] = true;
+		mIsVisible[1] = true;
+		mZone = ZONE_DECK;
+		mSummoningSickness = 1;
+		return;
+	}
 
 	/*lua_getfield(LuaCards, -1, "name");
 	mName = lua_tostring(LuaCards, -1);
@@ -80,8 +111,7 @@ Card::Card(int uid, int cid, int owner) : mUniqueId(uid), mCardId(cid), mOwner(o
 	mManaCost = lua_tointeger(LuaCards, -1);
 	lua_pop(LuaCards, 1);*/
 
-	lua_pop(LuaCards, 1);
-	lua_pop(LuaCards, 1);
+	lua_settop(LuaCards, stackTop);
 
 	mIsTapped = false;
 	mIsFlipped = false;
@@ -438,6 +468,7 @@ bool initCards()
 	loadSet("Resources/Sets XML/DM-07 Invincible Charge/set.xml", "DM-07 Invincible Charge");
 	loadSet("Resources/Sets XML/DM-08 Invincible Legend/set.xml", "DM-08 Invincible Legend");
 	loadSet("Resources/Sets XML/DM-09 Invincible Blood/set.xml", "DM-09 Invincible Blood");
+	loadSet("Resources/Sets XML/DM-10 Eternal Arms/set.xml", "DM-10 Eternal Arms");
 	loadSet("Resources/Sets XML/Promo and DMC Packs/set.xml", "Promo and DMC Packs");
 
 	return true;

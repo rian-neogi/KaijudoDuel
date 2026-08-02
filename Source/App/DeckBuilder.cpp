@@ -3,6 +3,7 @@
 #include "AppSupport.h"
 #include "Game/Card.h"
 #include "Game/CardData.h"
+#include "Game/Deck.h"
 
 #include <algorithm>
 #include <cctype>
@@ -90,12 +91,18 @@ namespace
 
 	bool parseDeckLine(const std::string& raw, int& count, std::string& name)
 	{
-		std::string line = raw;
+		std::string line = deckLineWithoutComment(raw);
 		if (!line.empty() && line.back() == '\r') line.pop_back();
-		size_t space = line.find(' ');
+		size_t first = line.find_first_not_of(" \t");
+		if (first == std::string::npos) return false;
+		size_t last = line.find_last_not_of(" \t");
+		line = line.substr(first, last - first + 1);
+		size_t space = line.find_first_of(" \t");
 		if (space == std::string::npos) return false;
 		count = std::atoi(line.substr(0, space).c_str());
-		name = line.substr(space + 1);
+		first = line.find_first_not_of(" \t", space);
+		if (first == std::string::npos) return false;
+		name = line.substr(first);
 		return count > 0 && !name.empty();
 	}
 }
@@ -196,9 +203,11 @@ void Application::ensurePlayerDataLoaded()
 		size_t equals = line.find('=');
 		if (equals == std::string::npos) continue;
 		std::string npcName = line.substr(4, equals - 4);
-		int wins = std::max(0, std::min(4, std::atoi(line.substr(equals + 1).c_str())));
+		int wins = std::max(0, std::atoi(line.substr(equals + 1).c_str()));
 		for (size_t i = 0; i < mNpcs.size(); ++i)
-			if (mNpcs[i].isDuelist() && mNpcs[i].name == npcName) mNpcs[i].wins = wins;
+			if (mNpcs[i].isDuelist() &&
+				(mNpcs[i].id == npcName || mNpcs[i].name == npcName))
+				mNpcs[i].wins = std::min(mNpcs[i].maxWins, wins);
 	}
 	initializeStory();
 }
@@ -216,7 +225,7 @@ void Application::savePlayerProgress()
 	progress << "story.stage=" << mStoryStage << "\n";
 	progress << "story.clues=" << mStoryClues << "\n";
 	for (size_t i = 0; i < mNpcs.size(); ++i)
-		if (mNpcs[i].isDuelist()) progress << "npc." << mNpcs[i].name << "=" << mNpcs[i].wins << "\n";
+		if (mNpcs[i].isDuelist()) progress << "npc." << mNpcs[i].id << "=" << mNpcs[i].wins << "\n";
 }
 
 void Application::awardNpcVictory(int npcIndex)
@@ -226,17 +235,20 @@ void Application::awardNpcVictory(int npcIndex)
 	Npc& npc = mNpcs[npcIndex];
 	if (!npc.canBattle()) return;
 
+	NpcReward reward = npc.nextReward();
 	++npc.wins;
-	mMoney += npc.goldReward;
-	int rewardId = getCardIdFromName(npc.rewardCard);
+	mMoney += reward.gold;
+	int rewardId = getCardIdFromName(reward.card);
 	bool awardedCard = rewardId >= 0 && rewardId < (int)mCollectionCounts.size();
 	if (awardedCard) ++mCollectionCounts[rewardId];
 	updateStoryProgress();
 	savePlayerProgress();
 
-	mNotice = "Victory over " + npc.name + "! ";
-	if (awardedCard) mNotice += "+1 " + npc.rewardCard + " and ";
-	mNotice += "+" + std::to_string(npc.goldReward) + " gold. Reward " +
+	mNotice = npc.dialogueText("defeat");
+	if (!mNotice.empty()) mNotice += "  ";
+	mNotice += "Victory over " + npc.name + "! ";
+	if (awardedCard) mNotice += "+1 " + reward.card + " and ";
+	mNotice += "+" + std::to_string(reward.gold) + " gold. Reward " +
 		std::to_string(npc.wins) + "/" + std::to_string(npc.maxWins) + ".";
 	mNoticeUntil = SDL_GetTicks() + 6500;
 }

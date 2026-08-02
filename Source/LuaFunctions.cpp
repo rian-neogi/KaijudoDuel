@@ -200,6 +200,7 @@ static int discardCardAtRandom(lua_State* L)
 {
 	Message msg("carddiscardatrandom");
 	msg.addValue("player", lua_tointeger(L, 1));
+	msg.addValue("count", lua_gettop(L) >= 2 ? lua_tointeger(L, 2) : 1);
 	ActiveDuel->mMsgMngr.sendMessage(msg);
 	return 0;
 }
@@ -210,6 +211,7 @@ static int moveCard(lua_State* L)
 	Message msg("cardmove");
 	msg.addValue("card", lua_tointeger(L, 1));
 	msg.addValue("to", lua_tointeger(L, 2));
+	msg.addValue("tobottom", lua_gettop(L) >= 3 ? lua_tointeger(L, 3) : 0);
 	ActiveDuel->mMsgMngr.sendMessage(msg);
 	return 0;
 }
@@ -311,11 +313,13 @@ static int seperateEvolution(lua_State* L)
 
 static int creatureBreakShield(lua_State* L)
 {
-	int s = lua_tointeger(L, 2);
+	int creature = lua_tointeger(L, 1);
+	int shield = lua_tointeger(L, 2);
 	Message msg("creaturebreakshield");
-	msg.addValue("creature", lua_tointeger(L, 1));
-	msg.addValue("attacker", s);
-	msg.addValue("defender", ActiveDuel->mCardList.at(s)->mOwner);
+	msg.addValue("creature", creature);
+	msg.addValue("attacker", creature);
+	msg.addValue("defender", ActiveDuel->mCardList.at(shield)->mOwner);
+	msg.addValue("shield", shield);
 	ActiveDuel->mMsgMngr.sendMessage(msg);
 	return 0;
 }
@@ -450,6 +454,18 @@ static int getDefender(lua_State* L)
 	return 1;
 }
 
+static int getDefenderType(lua_State* L)
+{
+	lua_pushinteger(L, ActiveDuel->mDefenderType);
+	return 1;
+}
+
+static int hasOtherCreatureBrokenShieldThisTurn(lua_State* L)
+{
+	lua_pushinteger(L, ActiveDuel->hasOtherCreatureBrokenShieldThisTurn(lua_tointeger(L, 1)) ? 1 : 0);
+	return 1;
+}
+
 static int getEvoStackSize(lua_State* L)
 {
 	lua_pushinteger(L, ActiveDuel->mCardList.at(lua_tointeger(L, 1))->mEvoStack.size());
@@ -518,6 +534,8 @@ void registerLua(lua_State* L)
 	lua_register(L, "isCardTapped", isCardTapped);
 	lua_register(L, "getAttacker", getAttacker);
 	lua_register(L, "getDefender", getDefender);
+	lua_register(L, "getDefenderType", getDefenderType);
+	lua_register(L, "hasOtherCreatureBrokenShieldThisTurn", hasOtherCreatureBrokenShieldThisTurn);
 	lua_register(L, "getEvoStackSize", getEvoStackSize);
 	lua_register(L, "getEvoStackAt", getEvoStackAt);
 }

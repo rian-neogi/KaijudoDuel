@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <cstdlib>
 #include <limits>
 
@@ -28,7 +29,8 @@ namespace
 	}
 }
 
-HeuristicBot::HeuristicBot(int player) : mPlayer(player)
+HeuristicBot::HeuristicBot(int player, const std::string& personality)
+	: mPlayer(player), mPersonality(lowerText(personality))
 {
 }
 
@@ -199,23 +201,63 @@ double HeuristicBot::scoreBlock(Duel& duel, int blocker) const
 double HeuristicBot::scoreMove(Duel& duel, const Message& move) const
 {
 	const std::string type = messageType(move);
-	if (type == "choiceselect") return scoreChoice(duel, messageInt(move, "selection"));
-	if (type == "cardmana") return scoreManaCharge(duel, messageInt(move, "card"));
+	auto adjusted = [this, &type](double score)
+	{
+		return adjustForPersonality(type, score);
+	};
+	if (type == "choiceselect") return adjusted(scoreChoice(duel, messageInt(move, "selection")));
+	if (type == "cardmana") return adjusted(scoreManaCharge(duel, messageInt(move, "card")));
 	if (type == "cardplay")
 	{
 		int card = messageInt(move, "card");
 		double score = 42.0 + cardValue(duel, card, true) * 4.0;
 		if (messageInt(move, "evobait") >= 0) score += 8.0;
-		return score;
+		return adjusted(score);
 	}
-	if (type == "manatap") return 20.0;
-	if (type == "creatureattack") return scoreAttack(duel, move);
-	if (type == "creatureblock") return scoreBlock(duel, messageInt(move, "blocker"));
-	if (type == "blockskip") return 1.0;
-	if (type == "targetshield") return 20.0;
-	if (type == "triggeruse") return 70.0 + cardValue(duel, messageInt(move, "trigger"), false);
-	if (type == "triggerskip") return 0.0;
-	if (type == "creatureusetapability") return 35.0;
-	if (type == "endturn") return -100.0;
-	return 0.0;
+	if (type == "manatap") return adjusted(20.0);
+	if (type == "creatureattack") return adjusted(scoreAttack(duel, move));
+	if (type == "creatureblock") return adjusted(scoreBlock(duel, messageInt(move, "blocker")));
+	if (type == "blockskip") return adjusted(1.0);
+	if (type == "targetshield") return adjusted(20.0);
+	if (type == "triggeruse") return adjusted(70.0 + cardValue(duel, messageInt(move, "trigger"), false));
+	if (type == "triggerskip") return adjusted(0.0);
+	if (type == "creatureusetapability") return adjusted(35.0);
+	if (type == "endturn") return adjusted(-100.0);
+	return adjusted(0.0);
+}
+
+double HeuristicBot::adjustForPersonality(const std::string& moveType, double score) const
+{
+	if (!std::isfinite(score)) return score;
+	if (mPersonality == "aggressive")
+	{
+		if (moveType == "creatureattack") score += 16.0;
+		else if (moveType == "cardplay") score += 6.0;
+		else if (moveType == "blockskip") score += 3.0;
+	}
+	else if (mPersonality == "defensive")
+	{
+		if (moveType == "creatureblock" || moveType == "triggeruse") score += 12.0;
+		else if (moveType == "creatureattack") score -= 5.0;
+	}
+	else if (mPersonality == "control")
+	{
+		if (moveType == "choiceselect" || moveType == "creatureusetapability") score += 5.0;
+		else if (moveType == "triggeruse") score += 7.0;
+	}
+	else if (mPersonality == "tempo")
+	{
+		if (moveType == "cardplay" || moveType == "creatureattack") score += 7.0;
+		else if (moveType == "cardmana") score -= 2.0;
+	}
+	else if (mPersonality == "ramp")
+	{
+		if (moveType == "cardmana") score += 10.0;
+		else if (moveType == "cardplay") score += 2.0;
+	}
+	else if (mPersonality == "sacrifice")
+	{
+		if (moveType == "choiceselect" || moveType == "cardplay") score += 4.0;
+	}
+	return score;
 }

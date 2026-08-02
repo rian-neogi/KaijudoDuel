@@ -39,6 +39,31 @@ root so it can find the `Lua`, `Decks`, and `Resources` directories:
 ./Bin/KaijudoDuel
 ```
 
+## Command-line options
+
+Open directly into a duel against the heuristic AI by providing the player
+deck first and AI deck second:
+
+```bash
+./Bin/KaijudoDuel --duel \
+  "My Decks/7 - L Tappy Tappy.txt" \
+  "VeiledOne.txt"
+```
+
+The direct-duel process closes after the match or when Escape is pressed. It
+does not award campaign cards, gold, or NPC victories. Relative deck names are
+searched beneath `Decks/` automatically; explicit existing paths still work.
+Paths containing spaces must be quoted. Deck files use one card entry per line:
+
+```text
+4 Aqua Hulcus
+2 Aqua Sniper
+```
+
+Run `./Bin/KaijudoDuel --help` to display all startup options. Missing files,
+malformed lines, unknown cards, and decks with fewer than ten cards are
+reported before the duel begins.
+
 ## Controls
 
 ### Overworld
@@ -58,7 +83,7 @@ root so it can find the `Lua`, `Decks`, and `Resources` directories:
 - Your hand and the rival's face-down hand are fanned across their side of the table.
 - Click a card outside a pending choice to focus the fallback actions associated with it.
 - Click an action on the right, or press its displayed number key.
-- Press Escape to leave the duel and return to the overworld.
+- Press Escape to leave a campaign duel and return to the overworld. In direct-duel mode, Escape closes the application.
 
 The three NPCs use different decks and can be challenged again after a duel.
 

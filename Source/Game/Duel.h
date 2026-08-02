@@ -5,6 +5,7 @@
 #include <fstream>
 #include <atomic>
 #include <mutex>
+#include <unordered_set>
 
 enum AttackPhase { PHASE_NONE, PHASE_BLOCK, PHASE_TARGET, PHASE_TRIGGER };
 enum CanAttack { CANATTACK_TAPPED, CANATTACK_UNTAPPED, CANATTACK_NO, CANATTACK_ALWAYS };
@@ -45,6 +46,7 @@ public:
 	int mDefenderType;
 	int mBreakCount;
 	std::vector<int> mShieldTargets;
+	std::unordered_set<int> mShieldBreakersThisTurn[2];
 	int mAttackphase;
 
 	int mCastingCard;
@@ -76,8 +78,8 @@ public:
 
 	void copyFrom(Duel* duel);
 
-	void setDecks(std::string p1, std::string p2);
-	void loadDeck(std::string s, int p);
+	bool setDecks(const std::string& p1, const std::string& p2);
+	bool loadDeck(const std::string& path, int player);
 	void startDuel();
 	void nextTurn();
 
@@ -109,6 +111,7 @@ public:
 	void resetCasting();
 	void resetChoice();
 	void clearCards();
+	void rebuildShieldBreakersThisTurn();
 
 	void setMyPlayer(int p);
 
@@ -134,6 +137,11 @@ public:
 	//int getCreatureCanAttackCreatures(int uid);
 	//int getCreatureCanAttackTarget(int attckr, int dfndr);
 	int getCreatureCanAttackCreature(int attckr, int dfndr);
+	int getCreatureCanBeChosen(int uid, int chooser, int source);
+	int getCreatureMustAttack(int uid);
+	int getCreatureForcedBlocker(int uid);
+	bool canCreatureAttackNow(int uid);
+	bool canEndTurn();
 	//int getCreatureCanBeAttacked(int attckr, int dfndr);
 	//int getCreatureCanBeBlocked(int uid);
 	//int getCreatureCanAttackUntappedCreatures(int uid);
@@ -148,6 +156,7 @@ public:
 	std::string getCreatureRace(int uid); //returns the full race string of the creature
 	int getCreatureCanEvolve(int evo, int bait);
 	int getCreatureHasTapAbility(int uid);
+	bool hasOtherCreatureBrokenShieldThisTurn(int uid) const;
 };
 
 extern Duel* ActiveDuel;
