@@ -2,6 +2,7 @@
 
 #include "AppSupport.h"
 #include "Game/Card.h"
+#include "SoundManager.h"
 
 #include <algorithm>
 #include <iostream>
@@ -9,7 +10,7 @@
 using namespace AppSupport;
 
 Application::Application()
-	: mWindow(NULL), mRenderer(NULL), mBoardTexture(NULL), mCardBackTexture(NULL), mRunning(false),
+	: mWindow(NULL), mRenderer(NULL), mBoardTexture(NULL), mCardBackTexture(NULL), mSoundManager(NULL), mRunning(false),
 	  mScreen(Screen::Overworld), mPauseMenuOpen(false), mPlayerX(2), mPlayerY(10), mFacingX(1), mFacingY(0),
 	  mMoveUp(false), mMoveDown(false), mMoveLeft(false), mMoveRight(false), mMoveIntentX(0), mMoveIntentY(0),
 	  mVisualX(2.f), mVisualY(10.f), mDialogueNpc(-1), mNoticeUntil(0),
@@ -65,6 +66,8 @@ bool Application::initialize()
 		std::cerr << "SDL_ttf initialization failed: " << TTF_GetError() << std::endl;
 		return false;
 	}
+	mSoundManager = new SoundManager();
+	SoundMngr = mSoundManager;
 
 	mWindow = SDL_CreateWindow(
 		"Kaijudo Duel", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -106,6 +109,9 @@ void Application::shutdown()
 	mFonts.clear();
 	if (mBoardTexture != NULL) SDL_DestroyTexture(mBoardTexture);
 	if (mCardBackTexture != NULL) SDL_DestroyTexture(mCardBackTexture);
+	if (SoundMngr == mSoundManager) SoundMngr = NULL;
+	delete mSoundManager;
+	mSoundManager = NULL;
 	if (mRenderer != NULL) SDL_DestroyRenderer(mRenderer);
 	if (mWindow != NULL) SDL_DestroyWindow(mWindow);
 	mBoardTexture = NULL;

@@ -13,6 +13,8 @@
 #include <thread>
 #include <vector>
 
+class SoundManager;
+
 class Application
 {
 public:
@@ -199,6 +201,7 @@ private:
 	SDL_Renderer* mRenderer;
 	SDL_Texture* mBoardTexture;
 	SDL_Texture* mCardBackTexture;
+	SoundManager* mSoundManager;
 	std::map<int, SDL_Texture*> mCardTextures;
 	std::map<int, TTF_Font*> mFonts;
 	bool mRunning;

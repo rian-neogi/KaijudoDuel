@@ -37,6 +37,7 @@ set(GAME_SOURCES
 	Source/App/Story.cpp
     Source/CRandom.cpp
     Source/LuaFunctions.cpp
+	Source/LuaTrace.cpp
     Source/SoundManager.cpp
     Source/Game/BattleZone.cpp
     Source/Game/Card.cpp
@@ -87,7 +88,7 @@ if(BUILD_TESTING)
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     )
     set_tests_properties(smoke PROPERTIES
-        ENVIRONMENT "SDL_VIDEODRIVER=dummy"
+        ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy"
         TIMEOUT 30
     )
 endif()

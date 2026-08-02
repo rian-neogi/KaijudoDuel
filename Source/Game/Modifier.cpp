@@ -1,4 +1,6 @@
 #include "Modifier.h"
+#include "Duel.h"
+#include "LuaTrace.h"
 
 lua_State* LuaCards;
 
@@ -44,6 +46,11 @@ int Modifier::handleMessage(int cid, int mid, Message& msg)
 	return 0;*/
 
 	int stackTop = lua_gettop(LuaCards);
+	std::string subject = "modifier";
+	if (ActiveDuel != NULL && cid >= 0 && cid < static_cast<int>(ActiveDuel->mCardList.size()))
+		subject = ActiveDuel->mCardList[cid]->mName + " modifier " + std::to_string(mid);
+	const Message& traceMessage = ActiveDuel == NULL ? msg : ActiveDuel->mCurrentMessage;
+	LuaTrace::logCallback("engine -> lua", "Modifier", subject, cid, traceMessage);
 	lua_rawgeti(LuaCards, LUA_REGISTRYINDEX, mFuncRef);
 	lua_pushinteger(LuaCards, cid);
 	lua_pushinteger(LuaCards, mid);
@@ -51,8 +58,15 @@ int Modifier::handleMessage(int cid, int mid, Message& msg)
 	if (status != LUA_OK)
 	{
 		const char* error = lua_tostring(LuaCards, -1);
+		LuaTrace::logCallback("lua -> engine", "Modifier", subject, cid,
+			ActiveDuel == NULL ? msg : ActiveDuel->mCurrentMessage, error);
 		fprintf(stderr, "Lua modifier error while handling '%s': %s\n",
 			msg.getType().c_str(), error == NULL ? "unknown error" : error);
+	}
+	else
+	{
+		LuaTrace::logCallback("lua -> engine", "Modifier", subject, cid,
+			ActiveDuel == NULL ? msg : ActiveDuel->mCurrentMessage);
 	}
 	lua_settop(LuaCards, stackTop);
 	return 0;

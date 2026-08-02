@@ -175,13 +175,14 @@ end
 Abils.TapAbilityForCiv = function(id, func, civ)
 	if(getMessageType()=="get creaturehastapability") then
 		local cid = getMessageInt("creature")
-		if(getCardOwner(id)==getCardOwner(cid) and getCardCiv(cid)==civ and getCardZone(cid)==ZONE_BATTLE) then
+		if(getCardZone(id)==ZONE_BATTLE and getCardOwner(id)==getCardOwner(cid) and getCardCiv(cid)==civ and getCardZone(cid)==ZONE_BATTLE) then
 			setMessageInt("hastapability",1)
 		end
 	end
 	if(getMessageType()=="post creatureusetapability") then
-		if(getCardOwner(id)==getCardOwner(cid) and getCardCiv(cid)==civ and getCardZone(cid)==ZONE_BATTLE) then
-			func(id)
+		local cid = getMessageInt("creature")
+		if(getCardZone(id)==ZONE_BATTLE and getCardOwner(id)==getCardOwner(cid) and getCardCiv(cid)==civ and getCardZone(cid)==ZONE_BATTLE) then
+			func(cid)
 		end
 	end
 end

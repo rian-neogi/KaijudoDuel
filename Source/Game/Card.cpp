@@ -1,4 +1,6 @@
 #include "Card.h"
+#include "Duel.h"
+#include "LuaTrace.h"
 
 #include <cctype>
 
@@ -179,13 +181,22 @@ int Card::handleMessage(Message& msg)
 		lua_settop(LuaCards, stackTop);
 		return -1;
 	}
+	const Message& traceMessage = ActiveDuel == NULL ? msg : ActiveDuel->mCurrentMessage;
+	LuaTrace::logCallback("engine -> lua", "HandleMessage", mName, mUniqueId, traceMessage);
 	lua_pushinteger(LuaCards, mUniqueId);
 	int status = lua_pcall(LuaCards, 1, 0, 0);
 	if (status != LUA_OK)
 	{
 		const char* error = lua_tostring(LuaCards, -1);
+		LuaTrace::logCallback("lua -> engine", "HandleMessage", mName, mUniqueId,
+			ActiveDuel == NULL ? msg : ActiveDuel->mCurrentMessage, error);
 		fprintf(stderr, "Lua error for '%s' while handling '%s': %s\n",
 			mName.c_str(), msg.getType().c_str(), error == NULL ? "unknown error" : error);
+	}
+	else
+	{
+		LuaTrace::logCallback("lua -> engine", "HandleMessage", mName, mUniqueId,
+			ActiveDuel == NULL ? msg : ActiveDuel->mCurrentMessage);
 	}
 	//sendMessageToBuffs(msg);
 	lua_settop(LuaCards, stackTop);
@@ -211,12 +222,22 @@ void Card::callOnCast()
 		lua_settop(LuaCards, stackTop);
 		return;
 	}
+	Message cast("cast");
+	cast.addValue("card", mUniqueId);
+	cast.addValue("owner", mOwner);
+	cast.addValue("zone", mZone);
+	LuaTrace::logCallback("engine -> lua", "OnCast", mName, mUniqueId, cast);
 	lua_pushinteger(LuaCards, mUniqueId);
 	int status = lua_pcall(LuaCards, 1, 0, 0);
 	if (status != LUA_OK)
 	{
 		const char* error = lua_tostring(LuaCards, -1);
+		LuaTrace::logCallback("lua -> engine", "OnCast", mName, mUniqueId, cast, error);
 		fprintf(stderr, "Lua OnCast error for '%s': %s\n", mName.c_str(), error == NULL ? "unknown error" : error);
+	}
+	else
+	{
+		LuaTrace::logCallback("lua -> engine", "OnCast", mName, mUniqueId, cast);
 	}
 	lua_settop(LuaCards, stackTop);
 }

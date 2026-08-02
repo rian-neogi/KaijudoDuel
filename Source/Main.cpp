@@ -1,8 +1,11 @@
 #include "App/Application.h"
 #include "Game/Card.h"
+#include "LuaTrace.h"
 
+#include <cstdlib>
 #include <iostream>
 #include <string>
+#include <vector>
 
 namespace
 {
@@ -11,32 +14,46 @@ namespace
 		std::cout
 			<< "Usage:\n"
 			<< "  " << executable << "\n"
-			<< "  " << executable << " --duel <player-deck> <ai-deck>\n"
-			<< "  " << executable << " --smoke-test\n"
+			<< "  " << executable << " [--lua-trace] --duel <player-deck> <ai-deck>\n"
+			<< "  " << executable << " [--lua-trace] --smoke-test\n"
 			<< "  " << executable << " --help\n\n"
 			<< "Decks are searched beneath Decks/ by default; quote paths containing spaces.\n"
-			<< "The player deck is listed first.\n";
+			<< "The player deck is listed first.\n"
+			<< "--lua-trace writes a rolling trace to Logs/lua-trace.log.\n";
 	}
 }
 
 int main(int argc, char* argv[])
 {
 	bool smokeTest = false;
+	bool luaTrace = false;
 	std::string playerDeck;
 	std::string aiDeck;
-	if (argc == 2 && (std::string(argv[1]) == "--help" || std::string(argv[1]) == "-h"))
+	std::vector<std::string> arguments;
+	for (int i = 1; i < argc; i++)
+	{
+		if (std::string(argv[i]) == "--lua-trace") luaTrace = true;
+		else arguments.push_back(argv[i]);
+	}
+	const char* traceEnvironment = std::getenv("KAIJUDO_LUA_TRACE");
+	if (traceEnvironment != NULL && std::string(traceEnvironment) != "0") luaTrace = true;
+	LuaTrace::setEnabled(luaTrace);
+	if (luaTrace)
+		std::cerr << "Lua trace enabled: Logs/lua-trace.log" << std::endl;
+
+	if (arguments.size() == 1 && (arguments[0] == "--help" || arguments[0] == "-h"))
 	{
 		printUsage(argv[0]);
 		return 0;
 	}
-	if (argc == 2 && std::string(argv[1]) == "--smoke-test")
+	if (arguments.size() == 1 && arguments[0] == "--smoke-test")
 		smokeTest = true;
-	else if (argc == 4 && std::string(argv[1]) == "--duel")
+	else if (arguments.size() == 3 && arguments[0] == "--duel")
 	{
-		playerDeck = argv[2];
-		aiDeck = argv[3];
+		playerDeck = arguments[1];
+		aiDeck = arguments[2];
 	}
-	else if (argc != 1)
+	else if (!arguments.empty())
 	{
 		std::cerr << "Invalid command-line arguments.\n\n";
 		printUsage(argv[0]);

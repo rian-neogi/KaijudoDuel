@@ -60,6 +60,7 @@ public:
 	int mChoicePlayer;
 	bool mIsChoiceActive;
 	std::vector<int> mChoiceValidCards;
+	bool mZeroPowerCheckPending;
 
 	int mWinner;
 
@@ -112,6 +113,8 @@ public:
 	void resetChoice();
 	void clearCards();
 	void rebuildShieldBreakersThisTurn();
+	void scheduleZeroPowerCheck();
+	void probeBattleZonePower();
 
 	void setMyPlayer(int p);
 

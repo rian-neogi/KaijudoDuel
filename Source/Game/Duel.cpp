@@ -1,4 +1,5 @@
 #include "Duel.h"
+#include "SoundManager.h"
 
 #include <algorithm>
 #include <chrono>
@@ -96,6 +97,7 @@ Duel::Duel()
 	mChoice = NULL;
 	mChoiceCard = -1;
 	mChoicePlayer = -1;
+	mZeroPowerCheckPending = false;
 
 	mWinner = -1;
 
@@ -138,6 +140,7 @@ void Duel::copyFrom(Duel* duel) //incomplete, not used
 	mIsChoiceActive = duel->mIsChoiceActive;
 	mChoiceCard = duel->mChoiceCard;
 	mChoicePlayer = duel->mChoicePlayer;
+	mZeroPowerCheckPending = false;
 
 	mWinner = duel->mWinner;
 
@@ -185,6 +188,7 @@ int Duel::handleMessage(Message& msg)
 		int tozone = msg.getInt("to");
 		Card* c = mCardList.at(cid);
 		int owner = c->mOwner;
+		int fromzone = c->mZone;
 		getZone(owner, c->mZone)->removeCard(c);
 		if (tozone == ZONE_BATTLE && getIsEvolution(cid) == 1) //evolution creatures
 		{
@@ -207,6 +211,8 @@ int Duel::handleMessage(Message& msg)
 				getZone(owner, tozone)->addCard(c);
 		}
 		c->mZone = tozone;
+		if (!mIsSimulation && fromzone != tozone && SoundMngr != NULL)
+			SoundMngr->playSound(SOUND_CARD_MOVE);
 		if (tozone != ZONE_BATTLE)
 		{
 			for (int i = c->mEvoStack.size()-1; i >= 0; i--) //move all cards in stack to the zone seperately
@@ -329,6 +335,13 @@ int Duel::handleMessage(Message& msg)
 		mAttacker = msg.getInt("attacker");
 		mDefender = msg.getInt("defender");
 		mDefenderType = msg.getInt("defendertype");
+		if (!mIsSimulation && SoundMngr != NULL)
+		{
+			int power = getCreaturePower(mAttacker);
+			int sound = power >= 10000 ? SOUND_ATTACK_LARGE :
+				(power >= 6000 ? SOUND_ATTACK_MEDIUM : SOUND_ATTACK_SMALL);
+			SoundMngr->playSound(sound);
+		}
 		//cout << "attack " << attacker << " " << defender << " " << defendertype << endl;
 		//attackphase = PHASE_BLOCK;
 		Message m("changeattackphase");
@@ -414,7 +427,8 @@ int Duel::handleMessage(Message& msg)
 	{
 		mShieldBreakersThisTurn[0].clear();
 		mShieldBreakersThisTurn[1].clear();
-		if (msg.getInt("extraturn") != 1)
+		std::map<std::string, std::string>::const_iterator extra = msg.map.find("extraturn");
+		if (extra == msg.map.end() || std::atoi(extra->second.c_str()) != 1)
 			mTurn = (mTurn + 1) % 2;
 		mManaUsed = 0;
 		Message m("startturn");
@@ -572,7 +586,8 @@ void Duel::undoMessage(Message& msg)
 	}
 	else if (msg.getType() == "endturn")
 	{
-		if (msg.getInt("extraturn") != 1)
+		std::map<std::string, std::string>::const_iterator extra = msg.map.find("extraturn");
+		if (extra == msg.map.end() || std::atoi(extra->second.c_str()) != 1)
 			mTurn = (mTurn + 1) % 2;
 
 		int flag = 0;
@@ -781,6 +796,14 @@ std::vector<Message> Duel::getPossibleMoves()
 	{
 		for (std::vector<Card*>::iterator i = mBattlezones[mTurn].mCards.begin(); i != mBattlezones[mTurn].mCards.end(); i++)
 		{
+			if ((*i)->mIsTapped == false &&
+				((*i)->mSummoningSickness == 0 || getIsSpeedAttacker((*i)->mUniqueId) == 1) &&
+				getCreatureHasTapAbility((*i)->mUniqueId) == 1)
+			{
+				Message tapAbility("creatureusetapability");
+				tapAbility.addValue("creature", (*i)->mUniqueId);
+				moves.push_back(tapAbility);
+			}
 			int canattack = getCreatureCanAttackPlayers((*i)->mUniqueId);
 			if ((canattack == CANATTACK_ALWAYS ||
 				((mCardList.at((*i)->mUniqueId)->mSummoningSickness == 0 || getIsSpeedAttacker((*i)->mUniqueId) == 1) && (canattack == CANATTACK_TAPPED || canattack == CANATTACK_UNTAPPED)))
@@ -1064,7 +1087,12 @@ int Duel::handleInterfaceInput(Message& msg)
 	else if (type == "creatureusetapability")
 	{
 		int cid = msg.getInt("creature");
-		if (getCreatureHasTapAbility(cid) == 1)
+		if (cid >= 0 && cid < static_cast<int>(mCardList.size()) &&
+			mAttackphase == PHASE_NONE && !mIsChoiceActive && mCastingCard == -1 &&
+			getPlayerToMove() == mTurn && mCardList.at(cid)->mOwner == mTurn &&
+			mCardList.at(cid)->mZone == ZONE_BATTLE && !mCardList.at(cid)->mIsTapped &&
+			(mCardList.at(cid)->mSummoningSickness == 0 || getIsSpeedAttacker(cid) == 1) &&
+			getCreatureHasTapAbility(cid) == 1)
 		{
 			mMsgMngr.sendMessage(msg);
 		}
@@ -1155,8 +1183,14 @@ int Duel::waitForChoice()
 bool Duel::dispatchAllMessages()
 {
 	bool worldchanged = false;
-	while (mMsgMngr.hasMoreMessages())
+	while (mMsgMngr.hasMoreMessages() || mZeroPowerCheckPending)
 	{
+		if (!mMsgMngr.hasMoreMessages())
+		{
+			mZeroPowerCheckPending = false;
+			probeBattleZonePower();
+			continue;
+		}
 		Message msg = mMsgMngr.peekMessage();
 		mMsgMngr.dispatch();
 		dispatchMessage(msg);
@@ -1203,6 +1237,51 @@ void Duel::dispatchMessage(Message& msg)
 	}
 
 	//std::cout << "  post\n";
+	bool shouldCheckPower = type == "startturn" || type == "endturn" ||
+		type == "creatureattack" || type == "creaturebattle" || type == "resetattack" ||
+		type == "creatureusetapability";
+	if (type == "cardmove" && mCurrentMessage.getInt("to") == ZONE_BATTLE)
+	{
+		int cid = mCurrentMessage.getInt("card");
+		shouldCheckPower = cid >= 0 && cid < static_cast<int>(mCardList.size()) &&
+			(mCardList.at(cid)->mType == TYPE_CREATURE || mCardList.at(cid)->mType == TYPE_SPELL);
+	}
+	if (shouldCheckPower)
+		scheduleZeroPowerCheck();
+}
+
+void Duel::scheduleZeroPowerCheck()
+{
+	if (mZeroPowerCheckPending)
+		return;
+	mZeroPowerCheckPending = true;
+}
+
+void Duel::probeBattleZonePower()
+{
+	std::vector<int> creatures;
+	creatures.reserve(mBattlezones[0].mCards.size() + mBattlezones[1].mCards.size());
+	for (int player = 0; player < 2; player++)
+	{
+		for (std::vector<Card*>::iterator card = mBattlezones[player].mCards.begin();
+			card != mBattlezones[player].mCards.end(); card++)
+		{
+			if ((*card)->mType == TYPE_CREATURE)
+				creatures.push_back((*card)->mUniqueId);
+		}
+	}
+	for (std::vector<int>::const_iterator creature = creatures.begin(); creature != creatures.end(); creature++)
+	{
+		int uid = *creature;
+		if (uid >= 0 && uid < static_cast<int>(mCardList.size()) &&
+			mCardList.at(uid)->mZone == ZONE_BATTLE && getCreaturePower(uid) == 0)
+		{
+			Message destroy("creaturedestroy");
+			destroy.addValue("creature", uid);
+			destroy.addValue("zoneto", ZONE_GRAVEYARD);
+			mMsgMngr.sendMessage(destroy);
+		}
+	}
 }
 
 void Duel::addChoice(std::string info, int skip, int card, int player, int validref, int actionref)
@@ -1733,7 +1812,7 @@ int Duel::getCreatureHasTapAbility(int uid)
 {
 	Message oldmsg = mCurrentMessage;
 	mCurrentMessage = Message("get creaturehastapability");
-	mCurrentMessage.addValue("hastapability", 1);
+	mCurrentMessage.addValue("hastapability", 0);
 	mCurrentMessage.addValue("creature", uid);
 
 	std::vector<Card*>::iterator i;
@@ -1962,6 +2041,7 @@ void Duel::clearCards()
 	mNextUniqueId = 0;
 	mShieldBreakersThisTurn[0].clear();
 	mShieldBreakersThisTurn[1].clear();
+	mZeroPowerCheckPending = false;
 }
 
 void Duel::rebuildShieldBreakersThisTurn()

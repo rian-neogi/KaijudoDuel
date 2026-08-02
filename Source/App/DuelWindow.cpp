@@ -178,6 +178,16 @@ void Application::handleDuelEvent(const SDL_Event& event)
 					playAction(directAction);
 					return;
 				}
+				if (event.button.clicks >= 2)
+				{
+					Message tapAbility;
+					if (findDragAction("creatureusetapability", item->cardId, -1, tapAbility))
+					{
+						cancelDrag();
+						playAction(tapAbility);
+						return;
+					}
+				}
 				bool draggable = false;
 				{
 					std::lock_guard<std::mutex> lock(gMutex);
@@ -463,7 +473,8 @@ bool Application::exerciseBinaryChoiceSmoke()
 
 bool Application::exerciseActionLabelSmoke()
 {
-	if (mDuel == NULL || mDuel->mCardList.size() < 2 || mDuel->mShields[0].mCards.empty()) return false;
+	if (mDuel == NULL || mDuel->mCardList.size() < 2 || mDuel->mShields[0].mCards.empty() ||
+		mDuel->mDecks[0].mCards.empty()) return false;
 	std::lock_guard<std::mutex> lock(gMutex);
 
 	Card* shield = mDuel->mShields[0].mCards.front();
@@ -475,6 +486,13 @@ bool Application::exerciseActionLabelSmoke()
 	shield->mIsVisible[0] = true;
 	std::string visibleShieldLabel = actionLabel(shieldChoice);
 	shield->mIsVisible[0] = savedShieldVisibility;
+	Card* deckCard = mDuel->mDecks[0].mCards.front();
+	bool savedDeckVisibility = deckCard->mIsVisible[0];
+	Message deckChoice("choiceselect");
+	deckChoice.addValue("selection", deckCard->mUniqueId);
+	deckCard->mIsVisible[0] = false;
+	std::string deckChoiceLabel = actionLabel(deckChoice);
+	deckCard->mIsVisible[0] = savedDeckVisibility;
 
 	Card* attacker = mDuel->mCardList[0];
 	Card* defender = mDuel->mCardList[1];
@@ -500,6 +518,7 @@ bool Application::exerciseActionLabelSmoke()
 
 	return hiddenShieldLabel == "Choose hidden card" &&
 		visibleShieldLabel == "Choose " + shield->mName &&
+		deckChoiceLabel == "Choose " + deckCard->mName &&
 		creatureAttackLabel == "Attack " + defender->mName + " with " + attacker->mName &&
 		playerAttackLabel == "Attack rival with " + attacker->mName;
 }
@@ -793,6 +812,10 @@ bool Application::findDragAction(const std::string& type, int cardId, int target
 			}
 			else if (messageInt(moves[i], "defendertype") != DEFENDER_PLAYER) continue;
 		}
+		else if (type == "creatureusetapability" && messageInt(moves[i], "creature") != cardId)
+		{
+			continue;
+		}
 		result = moves[i];
 		return true;
 	}
@@ -887,7 +910,7 @@ void Application::finishDrag(int mouseX, int mouseY)
 
 bool Application::messageReferencesCard(const Message& message, int cardId) const
 {
-	const char* keys[] = { "card", "attacker", "defender", "blocker", "trigger", "shield", "selection", "evobait" };
+	const char* keys[] = { "card", "creature", "attacker", "defender", "blocker", "trigger", "shield", "selection", "evobait" };
 	for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); ++i)
 	{
 		std::map<std::string, std::string>::const_iterator found = message.map.find(keys[i]);
@@ -923,6 +946,7 @@ std::string Application::actionLabel(const Message& message) const
 	if (type == "cardmana") return "Charge " + cardName(messageInt(message, "card"));
 	if (type == "cardplay") return "Cast " + cardName(messageInt(message, "card"));
 	if (type == "manatap") return "Tap mana: " + cardName(messageInt(message, "card"));
+	if (type == "creatureusetapability") return "Use tap ability: " + cardName(messageInt(message, "creature"));
 	if (type == "creatureattack")
 	{
 		int defenderType = messageInt(message, "defendertype");
@@ -940,7 +964,11 @@ std::string Application::actionLabel(const Message& message) const
 		if (selection == RETURN_BUTTON1)
 			return mDuel->mChoice != NULL && mDuel->mChoice->mButtonCount >= 2 ? "Yes" : "Continue";
 		if (selection == RETURN_BUTTON2) return "No";
-		return selection < 0 ? "Choose option" : "Choose " + cardName(selection);
+		if (selection < 0) return "Choose option";
+		if (mDuel != NULL && selection < static_cast<int>(mDuel->mCardList.size()) &&
+			mDuel->mCardList[selection]->mZone == ZONE_DECK)
+			return "Choose " + mDuel->mCardList[selection]->mName;
+		return "Choose " + cardName(selection);
 	}
 	return type;
 }
