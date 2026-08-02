@@ -25,6 +25,7 @@ endif()
 
 set(GAME_SOURCES
     Source/Main.cpp
+	Source/AI/HeuristicBot.cpp
     Source/App/Application.cpp
     Source/App/CardRenderer.cpp
     Source/App/DuelWindow.cpp

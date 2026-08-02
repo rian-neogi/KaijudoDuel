@@ -47,6 +47,8 @@ rendering, and repeated duel teardown.
 - `Source/App/CardRenderer.cpp`: card textures, zones, hands, animation,
   tapping, dragging, and hover enlargement.
 - `Source/App/AppSupport.h`: shared logical dimensions and small UI helpers.
+- `Source/AI/HeuristicBot.cpp`: phase-aware rival move scoring. Keep it from
+  inspecting identities in opposing hidden zones.
 
 Keep `Application` as the owner of SDL resources and screen state unless a
 change has a clear lifetime model and test coverage.

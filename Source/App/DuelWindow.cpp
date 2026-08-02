@@ -1,11 +1,11 @@
 #include "Application.h"
 
+#include "AI/HeuristicBot.h"
 #include "AppSupport.h"
 #include "Game/Card.h"
 
 #include <algorithm>
 #include <cmath>
-#include <cstdlib>
 #include <iostream>
 #include <set>
 
@@ -276,7 +276,12 @@ void Application::updateDuel(Uint32 deltaTime)
 		if (winner == -1 && mDuel->getPlayerToMove() == 1 && now >= mNextAiMove && !mDuel->mMsgMngr.hasMoreMessages())
 		{
 			std::vector<Message> moves = mDuel->getPossibleMoves();
-			if (!moves.empty()) mDuel->handleInterfaceInput(moves[std::rand() % moves.size()]);
+			if (!moves.empty())
+			{
+				HeuristicBot rival(1);
+				Message move = rival.chooseMove(*mDuel, moves);
+				mDuel->handleInterfaceInput(move);
+			}
 			mNextAiMove = now + 600;
 		}
 	}
