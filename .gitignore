@@ -12,13 +12,6 @@ Resources/*
 !Resources/Textures/
 Resources/Textures/*
 !Resources/Textures/duel-board.png
-!Resources/Sprites/
-Resources/Sprites/*
-!Resources/Sprites/Overworld/
-Resources/Sprites/Overworld/*
-!Resources/Sprites/Overworld/*.png
-Resources/Sprites/Overworld/story-characters-atlas-source.png
-Resources/Sprites/Overworld/story-characters-atlas.png
 .vscode/
 
 # User-specific files

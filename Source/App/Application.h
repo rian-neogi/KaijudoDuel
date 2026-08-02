@@ -162,10 +162,7 @@ private:
 	void drawZone(const std::vector<Card*>& cards, int x, int y, int width, int cardWidth, int cardHeight, bool faceUp, bool clickable);
 	void drawHand(const std::vector<Card*>& cards, bool opponent);
 	void drawCharacter(float gridX, float gridY, bool rival, bool completed,
-		bool shopkeeper = false, bool walking = false, SDL_Texture* sprite = NULL);
-	void loadOverworldSprites();
-	void destroyOverworldSprites();
-	SDL_Texture* overworldSprite(const std::string& key) const;
+		bool shopkeeper = false, bool walking = false);
 	SDL_Color civilizationColor(int civilization) const;
 	void logicalMouse(int windowX, int windowY, int& logicalX, int& logicalY) const;
 	bool contains(const SDL_Rect& rect, int x, int y) const;
@@ -199,7 +196,6 @@ private:
 	SDL_Texture* mBoardTexture;
 	SDL_Texture* mCardBackTexture;
 	std::map<int, SDL_Texture*> mCardTextures;
-	std::map<std::string, SDL_Texture*> mOverworldSprites;
 	std::map<int, TTF_Font*> mFonts;
 	bool mRunning;
 	Screen mScreen;

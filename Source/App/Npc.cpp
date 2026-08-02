@@ -1,31 +1,14 @@
 #include "Npc.h"
 
 #include <algorithm>
-#include <cctype>
 #include <cmath>
-
-namespace
-{
-	std::string makeSpriteKey(const std::string& name)
-	{
-		std::string key;
-		for (size_t i = 0; i < name.size(); ++i)
-		{
-			unsigned char ch = (unsigned char)name[i];
-			if (std::isalnum(ch)) key.push_back((char)std::tolower(ch));
-			else if (!key.empty() && key.back() != '-') key.push_back('-');
-		}
-		while (!key.empty() && key.back() == '-') key.pop_back();
-		return key;
-	}
-}
 
 Npc::Npc(int xValue, int yValue, const std::string& npcName, const std::string& deckPath,
 	const std::string& dialogue, const std::string& reward, int rewardGold,
 	int rewardCount, NpcKind npcKind, const std::string& upgradedDeck)
 	: x(xValue), y(yValue), homeX(xValue), homeY(yValue),
 	  visualX((float)xValue), visualY((float)yValue), nextMoveAt(0),
-	  name(npcName), deck(deckPath), advancedDeck(upgradedDeck), spriteKey(makeSpriteKey(npcName)),
+	  name(npcName), deck(deckPath), advancedDeck(upgradedDeck),
 	  challenge(dialogue), rewardCard(reward), goldReward(rewardGold), wins(0),
 	  maxWins(rewardCount), kind(npcKind),
 	  mWanderState((unsigned int)(xValue * 73856093u) ^

@@ -122,13 +122,12 @@ void Application::drawCard(Card* card, const SDL_Rect& rect, bool faceUp, bool s
 	if (clickable && !floatingHandCard)
 	{
 		const bool immediateHover = card->mZone == ZONE_HAND;
-		if (poppedOut)
-		{
-			// The original card remains the only hover anchor. The enlarged card is
-			// clickable, but moving onto it after leaving this box ends the hover.
-			mCardHitboxes.push_back({ originalBounds, card->mUniqueId, faceUp, true, immediateHover });
-		}
-		mCardHitboxes.push_back({ bounds, card->mUniqueId, faceUp, !poppedOut, immediateHover });
+		// Hover ownership is always tied to the card's fixed, non-popped layout.
+		// If the animated bounds were allowed to become an anchor while the card
+		// shrinks, a pointer just outside originalBounds could repeatedly restart
+		// the pop animation. Keep the animated bounds for clicking only.
+		mCardHitboxes.push_back({ originalBounds, card->mUniqueId, faceUp, true, immediateHover });
+		mCardHitboxes.push_back({ bounds, card->mUniqueId, faceUp, false, immediateHover });
 	}
 }
 
@@ -214,6 +213,18 @@ bool Application::exerciseHoverTimingSmoke()
 	valid = valid && duelHoverCandidateAt(140, 150, immediate) == 11 && immediate;
 	mHoverCandidateCard = -1;
 	valid = valid && duelHoverCandidateAt(140, 150, immediate) == 12;
+
+	// An enlarged or shrinking card may extend above its original position, but
+	// that animated area must never reactivate hover after the pointer leaves the
+	// original card. This guards against rapid pop/un-pop oscillation.
+	mCardHitboxes.clear();
+	SDL_Rect original = { 100, 200, 88, 122 };
+	SDL_Rect animated = { 4, 10, 280, 400 };
+	mCardHitboxes.push_back({ original, 21, true, true, true });
+	mCardHitboxes.push_back({ animated, 21, true, false, true });
+	mHoverCandidateCard = 21;
+	valid = valid && duelHoverCandidateAt(140, 150, immediate) == -1;
+	valid = valid && duelHoverCandidateAt(140, 240, immediate) == 21 && immediate;
 	mCardHitboxes = savedHitboxes;
 	mHoverCandidateCard = savedCandidate;
 	return valid;

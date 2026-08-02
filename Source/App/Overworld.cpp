@@ -269,8 +269,7 @@ void Application::renderOverworld()
 	{
 		if (!npcVisible((int)i)) continue;
 		drawCharacter(mNpcs[i].visualX, mNpcs[i].visualY, mNpcs[i].isDuelist(),
-			mNpcs[i].isComplete(), mNpcs[i].isShopkeeper(), mNpcs[i].isMoving(),
-			overworldSprite(mNpcs[i].spriteKey));
+			mNpcs[i].isComplete(), mNpcs[i].isShopkeeper(), mNpcs[i].isMoving());
 		if (npcHasStoryMarker((int)i))
 		{
 			int markerX = MAP_X + (int)std::round(mNpcs[i].visualX * TILE) + 17;
@@ -282,7 +281,7 @@ void Application::renderOverworld()
 	}
 	bool playerWalking = std::fabs(mPlayerX - mVisualX) > 0.001f ||
 		std::fabs(mPlayerY - mVisualY) > 0.001f;
-	drawCharacter(mVisualX, mVisualY, false, false, false, playerWalking, overworldSprite("player"));
+	drawCharacter(mVisualX, mVisualY, false, false, false, playerWalking);
 
 	fillRect({ 1012, 28, 238, 670 }, 21, 28, 45, 245);
 	outlineRect({ 1012, 28, 238, 670 }, 190, 146, 61, 255, 2);
@@ -333,27 +332,13 @@ void Application::renderOverworld()
 }
 
 void Application::drawCharacter(
-	float gridX, float gridY, bool rival, bool completed, bool shopkeeper, bool walking, SDL_Texture* sprite)
+	float gridX, float gridY, bool rival, bool completed, bool shopkeeper, bool walking)
 {
 	int x = MAP_X + (int)std::round(gridX * TILE);
 	int y = MAP_Y + (int)std::round(gridY * TILE);
 	int stride = walking && (SDL_GetTicks() / 110) % 2 == 0 ? 2 : (walking ? -2 : 0);
 	int bob = walking && (SDL_GetTicks() / 110) % 2 == 0 ? -1 : 0;
 	fillRect({ x + 11, y + 39, 28, 6 }, 8, 14, 18, 100);
-	if (sprite != NULL)
-	{
-		int sourceWidth = 1;
-		int sourceHeight = 1;
-		SDL_QueryTexture(sprite, NULL, NULL, &sourceWidth, &sourceHeight);
-		int spriteHeight = 54;
-		int spriteWidth = std::max(1, (int)std::round(sourceWidth * spriteHeight / (float)sourceHeight));
-		SDL_Rect spriteRect = { x + (TILE - spriteWidth) / 2, y - 8 + bob, spriteWidth, spriteHeight };
-		if (completed) SDL_SetTextureColorMod(sprite, 145, 145, 155);
-		SDL_RenderCopyEx(mRenderer, sprite, NULL, &spriteRect, walking ? stride * 0.8 : 0.0,
-			NULL, SDL_FLIP_NONE);
-		if (completed) SDL_SetTextureColorMod(sprite, 255, 255, 255);
-		return;
-	}
 	fillRect({ x + 17 + stride, y + 35, 6, 9 }, 31, 38, 53);
 	fillRect({ x + 27 - stride, y + 35, 6, 9 }, 31, 38, 53);
 	y += bob;
@@ -365,33 +350,4 @@ void Application::drawCharacter(
 		fillRect({ x + 13, y + 20, 22, 22 }, 31, 88, 185);
 	fillRect({ x + 17, y + 8, 15, 15 }, 224, 172, 126);
 	fillRect({ x + 14, y + 5, 21, 8 }, rival ? 41 : 91, rival ? 24 : 48, rival ? 58 : 22);
-}
-
-void Application::loadOverworldSprites()
-{
-	std::vector<std::string> keys;
-	keys.push_back("player");
-	keys.push_back("rowan");
-	for (size_t i = 0; i < mNpcs.size(); ++i) keys.push_back(mNpcs[i].spriteKey);
-	for (size_t i = 0; i < keys.size(); ++i)
-	{
-		if (mOverworldSprites.find(keys[i]) != mOverworldSprites.end()) continue;
-		std::string path = "Resources/Sprites/Overworld/" + keys[i] + ".png";
-		SDL_Texture* texture = IMG_LoadTexture(mRenderer, path.c_str());
-		if (texture != NULL) mOverworldSprites[keys[i]] = texture;
-	}
-}
-
-void Application::destroyOverworldSprites()
-{
-	for (std::map<std::string, SDL_Texture*>::iterator sprite = mOverworldSprites.begin();
-		sprite != mOverworldSprites.end(); ++sprite)
-		if (sprite->second != NULL) SDL_DestroyTexture(sprite->second);
-	mOverworldSprites.clear();
-}
-
-SDL_Texture* Application::overworldSprite(const std::string& key) const
-{
-	std::map<std::string, SDL_Texture*>::const_iterator found = mOverworldSprites.find(key);
-	return found == mOverworldSprites.end() ? NULL : found->second;
 }

@@ -111,7 +111,6 @@ bool Application::initialize()
 	}
 	SDL_RenderSetLogicalSize(mRenderer, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 	SDL_SetRenderDrawBlendMode(mRenderer, SDL_BLENDMODE_BLEND);
-	loadOverworldSprites();
 
 	mBoardTexture = IMG_LoadTexture(mRenderer, "Resources/Textures/duel-board.png");
 	if (mBoardTexture == NULL)
@@ -128,7 +127,6 @@ void Application::shutdown()
 {
 	stopDuel();
 	destroyCardTextures();
-	destroyOverworldSprites();
 	for (std::map<int, TTF_Font*>::iterator item = mFonts.begin(); item != mFonts.end(); ++item)
 		TTF_CloseFont(item->second);
 	mFonts.clear();

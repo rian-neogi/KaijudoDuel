@@ -43,7 +43,6 @@ public:
 	std::string name;
 	std::string deck;
 	std::string advancedDeck;
-	std::string spriteKey;
 	std::string challenge;
 	std::string rewardCard;
 	int goldReward;
