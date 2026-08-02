@@ -788,10 +788,16 @@ void Application::renderGraveyardPile(int player)
 		return;
 	}
 
-	fillRect({ pile.x + 5, pile.y + 5, pile.w, pile.h }, 12, 17, 27, 210);
-	outlineRect({ pile.x + 5, pile.y + 5, pile.w, pile.h }, 91, 102, 121, 230, 2);
-	fillRect({ pile.x + 2, pile.y + 2, pile.w, pile.h }, 18, 24, 36, 230);
-	outlineRect({ pile.x + 2, pile.y + 2, pile.w, pile.h }, 121, 132, 151, 240, 2);
+	if (cards.size() >= 3)
+	{
+		fillRect({ pile.x + 5, pile.y + 5, pile.w, pile.h }, 12, 17, 27, 210);
+		outlineRect({ pile.x + 5, pile.y + 5, pile.w, pile.h }, 91, 102, 121, 230, 2);
+	}
+	if (cards.size() >= 2)
+	{
+		fillRect({ pile.x + 2, pile.y + 2, pile.w, pile.h }, 18, 24, 36, 230);
+		outlineRect({ pile.x + 2, pile.y + 2, pile.w, pile.h }, 121, 132, 151, 240, 2);
+	}
 	drawCard(cards.back(), pile, true, cards.back()->mUniqueId == mSelectedCard, true);
 	SDL_Rect count = { pile.x + pile.w - 22, pile.y + pile.h - 20, 22, 20 };
 	fillRect(count, 12, 18, 29, 235);

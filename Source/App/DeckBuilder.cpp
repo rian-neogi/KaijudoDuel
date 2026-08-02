@@ -616,9 +616,4 @@ void Application::renderDeckBuilderHoverPreview()
 	}
 	SDL_Color civ = civilizationColor(card.Civilization);
 	outlineRect(preview, civ.r, civ.g, civ.b, 255, 5);
-	SDL_Rect caption = { x, y + height - 54, width, 54 };
-	fillRect(caption, 9, 15, 24, 230);
-	drawText(card.Name, caption.x + 12, caption.y + 8, color(245, 238, 219), 15, caption.w - 24);
-	drawText("Cost " + std::to_string(card.ManaCost), caption.x + 12, caption.y + 32,
-		color(180, 205, 237), 12);
 }

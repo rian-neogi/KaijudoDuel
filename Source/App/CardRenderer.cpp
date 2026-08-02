@@ -50,6 +50,7 @@ void Application::drawHand(const std::vector<Card*>& cards, bool opponent)
 
 void Application::drawCard(Card* card, const SDL_Rect& rect, bool faceUp, bool selected, bool clickable, float angle)
 {
+	(void)selected;
 	AnimatedCard& animation = mCardAnimations[card->mUniqueId];
 	AnimatedCard originalLayout;
 	originalLayout.x = (float)rect.x;
@@ -109,10 +110,7 @@ void Application::drawCard(Card* card, const SDL_Rect& rect, bool faceUp, bool s
 			drawText(card->mName, bounds.x + 5, bounds.y + bounds.h / 3, color(37, 28, 23), 11, bounds.w - 10);
 		}
 
-		SDL_Color border = faceUp ? civilizationColor(card->mCivilization) : color(202, 154, 66);
-		if (selected) border = color(255, 224, 104);
-		outlineRect(bounds, border.r, border.g, border.b, selected ? 255 : 210, selected ? 4 : 2);
-		if (faceUp && card->mType == TYPE_CREATURE && card->mZone != ZONE_HAND)
+		if (faceUp && card->mType == TYPE_CREATURE && card->mZone == ZONE_BATTLE)
 		{
 			SDL_Rect powerBadge = { bounds.x + bounds.w - 27, bounds.y + bounds.h - 23, 25, 21 };
 			fillRect(powerBadge, 18, 25, 35, 225);
@@ -361,9 +359,7 @@ void Application::renderHoverPreview()
 		fillRect(bounds, 224, 210, 177);
 		drawText(card->mName, bounds.x + 14, bounds.y + bounds.h / 3, color(37, 28, 23), 18, bounds.w - 28);
 	}
-	SDL_Color border = civilizationColor(card->mCivilization);
-	outlineRect(bounds, border.r, border.g, border.b, 255, 5);
-	if (card->mType == TYPE_CREATURE && card->mZone != ZONE_HAND)
+	if (card->mType == TYPE_CREATURE && card->mZone == ZONE_BATTLE)
 	{
 		int power = mDuel->mLuaCallbackSuspended ? card->mPower : mDuel->getCreaturePower(card->mUniqueId);
 		SDL_Rect badge = { bounds.x + bounds.w - 58, bounds.y + bounds.h - 43, 50, 34 };
