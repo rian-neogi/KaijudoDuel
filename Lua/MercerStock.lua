@@ -42,7 +42,7 @@ return {
 		},
 		{
 			id = "rock_beast", name = "Rock Beast Shard", position = { x = 11, y = 3 },
-			stock = { "Meteosaur" }
+			stock = { "Meteosaur", "Cratersaur", "Galsaur" }
 		},
 		{
 			id = "machine_eater", name = "Machine Eater Shard", position = { x = 17, y = 3 },

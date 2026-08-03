@@ -18,6 +18,10 @@ namespace
 	const SDL_Rect GRAVEYARD_CLOSE = { 810, 160, 44, 36 };
 	const SDL_Rect GRAVEYARD_PREVIOUS = { 135, 590, 145, 42 };
 	const SDL_Rect GRAVEYARD_NEXT = { 700, 590, 145, 42 };
+	const SDL_Rect ACTION_LOG_BUTTON = { 1004, 746, 252, 40 };
+	const SDL_Rect ACTION_LOG_OVERLAY = { 115, 75, 1050, 650 };
+	const SDL_Rect ACTION_LOG_CLOSE = { 1095, 91, 44, 36 };
+	constexpr int ACTION_LOG_PAGE_SIZE = 17;
 
 	std::string deckDisplayName(const std::string& path)
 	{
@@ -67,6 +71,8 @@ bool Application::startDuelWithDecks(const std::string& playerDeck,
 	mActionScroll = 0;
 	mOpenGraveyardPlayer = -1;
 	mGraveyardOffset = 0;
+	mActionLogOpen = false;
+	mActionLogScroll = 0;
 	mNextAiMove = SDL_GetTicks() + 700;
 	mDuelResult = -1;
 	mDuelResultAt = 0;
@@ -88,6 +94,8 @@ void Application::stopDuel()
 	mCardAnimations.clear();
 	mOpenGraveyardPlayer = -1;
 	mGraveyardOffset = 0;
+	mActionLogOpen = false;
+	mActionLogScroll = 0;
 	mHoveredCard = -1;
 	mHoverCandidateCard = -1;
 	mHoverCandidateSince = 0;
@@ -96,6 +104,7 @@ void Application::stopDuel()
 
 void Application::handleDuelEvent(const SDL_Event& event)
 {
+	if (mActionLogOpen && handleActionLogEvent(event)) return;
 	if (mOpenGraveyardPlayer >= 0 && handleGraveyardEvent(event)) return;
 	if (event.type == SDL_KEYDOWN && !event.key.repeat)
 	{
@@ -124,6 +133,13 @@ void Application::handleDuelEvent(const SDL_Event& event)
 			mSelectedCard = -1;
 			mActionScroll = 0;
 		}
+		if (key == SDLK_l)
+		{
+			mActionLogOpen = true;
+			mActionLogScroll = 0;
+			cancelDrag();
+			return;
+		}
 		if (key >= SDLK_1 && key <= SDLK_9)
 		{
 			int index = (int)(key - SDLK_1);
@@ -148,6 +164,14 @@ void Application::handleDuelEvent(const SDL_Event& event)
 	{
 		int x, y;
 		logicalMouse(event.button.x, event.button.y, x, y);
+		if (contains(ACTION_LOG_BUTTON, x, y))
+		{
+			mActionLogOpen = true;
+			mActionLogScroll = 0;
+			mSelectedCard = -1;
+			cancelDrag();
+			return;
+		}
 		for (int player = 0; player < 2; ++player)
 		{
 			if (contains(graveyardPileRect(player), x, y))
@@ -305,6 +329,40 @@ bool Application::handleGraveyardEvent(const SDL_Event& event)
 			mActionScroll = 0;
 		}
 		return true;
+	}
+	return true;
+}
+
+bool Application::handleActionLogEvent(const SDL_Event& event)
+{
+	if (event.type == SDL_MOUSEMOTION)
+	{
+		logicalMouse(event.motion.x, event.motion.y, mMouseX, mMouseY);
+		return true;
+	}
+	if (event.type == SDL_MOUSEWHEEL)
+	{
+		mActionLogScroll = std::max(0, mActionLogScroll + event.wheel.y * 3);
+		return true;
+	}
+	if (event.type == SDL_KEYDOWN && !event.key.repeat)
+	{
+		if (event.key.keysym.sym == SDLK_ESCAPE || event.key.keysym.sym == SDLK_l)
+		{
+			mActionLogOpen = false;
+			mActionLogScroll = 0;
+		}
+		return true;
+	}
+	if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT)
+	{
+		int x, y;
+		logicalMouse(event.button.x, event.button.y, x, y);
+		if (contains(ACTION_LOG_CLOSE, x, y) || contains(ACTION_LOG_BUTTON, x, y))
+		{
+			mActionLogOpen = false;
+			mActionLogScroll = 0;
+		}
 	}
 	return true;
 }
@@ -973,9 +1031,204 @@ std::string Application::actionLabel(const Message& message) const
 	return type;
 }
 
+std::string Application::actionLogLabel(const Message& message, int player) const
+{
+	std::map<std::string, std::string>::const_iterator typeValue = message.map.find("msgtype");
+	const std::string type = typeValue == message.map.end() ? "" : typeValue->second;
+	auto cardName = [this](int uid) -> std::string
+	{
+		if (mDuel == NULL || uid < 0 || uid >= (int)mDuel->mCardList.size()) return "card";
+		Card* card = mDuel->mCardList[uid];
+		return card->mOwner == 0 || card->mIsVisible[0] ? card->mName : "hidden card";
+	};
+	if (type == "cardmana") return "charged " + cardName(messageInt(message, "card")) + " as mana";
+	if (type == "cardplay")
+	{
+		int cardId = messageInt(message, "card");
+		bool creature = mDuel != NULL && cardId >= 0 && cardId < (int)mDuel->mCardList.size() &&
+			mDuel->mCardList[cardId]->mType == TYPE_CREATURE;
+		return std::string(creature ? "summoned " : "cast ") + cardName(cardId);
+	}
+	if (type == "creatureusetapability")
+		return "used the tap ability of " + cardName(messageInt(message, "creature"));
+	if (type == "creatureattack")
+	{
+		std::string target = messageInt(message, "defendertype") == DEFENDER_PLAYER ?
+			(player == 0 ? "the rival" : "you") : cardName(messageInt(message, "defender"));
+		return "attacked " + target + " with " + cardName(messageInt(message, "attacker"));
+	}
+	if (type == "creatureblock") return "blocked with " + cardName(messageInt(message, "blocker"));
+	if (type == "blockskip") return "declined to block";
+	if (type == "targetshield") return "selected a shield to break";
+	if (type == "triggeruse") return "used shield trigger " + cardName(messageInt(message, "trigger"));
+	if (type == "triggerskip") return "declined remaining shield triggers";
+	if (type == "choiceselect")
+	{
+		int selection = messageInt(message, "selection");
+		return selection >= 0 ? "chose " + cardName(selection) : "made a choice";
+	}
+	if (type == "endturn") return "ended the turn";
+	return "";
+}
+
+void Application::renderAttackIndicator()
+{
+	if (mDuel == NULL || mDuel->mAttackphase == PHASE_NONE ||
+		mDuel->mAttacker < 0 || mDuel->mAttacker >= (int)mDuel->mCardList.size()) return;
+	auto cardRect = [this](int uid, SDL_Rect& result) -> bool
+	{
+		for (std::vector<CardHitbox>::const_reverse_iterator hitbox = mCardHitboxes.rbegin();
+			hitbox != mCardHitboxes.rend(); ++hitbox)
+		{
+			if (hitbox->cardId != uid || !hitbox->hoverAnchor) continue;
+			result = hitbox->rect;
+			return true;
+		}
+		return false;
+	};
+	SDL_Rect attacker;
+	if (!cardRect(mDuel->mAttacker, attacker)) return;
+	SDL_Rect target;
+	if (mDuel->mDefenderType == DEFENDER_CREATURE)
+	{
+		if (!cardRect(mDuel->mDefender, target)) return;
+	}
+	else if (mDuel->mDefenderType == DEFENDER_PLAYER)
+	{
+		target = mDuel->mDefender == 0 ? SDL_Rect{ 12, 738, 944, 55 } : SDL_Rect{ 12, 4, 944, 55 };
+	}
+	else return;
+
+	int startX = attacker.x + attacker.w / 2;
+	int startY = attacker.y + attacker.h / 2;
+	int endX = target.x + target.w / 2;
+	int endY = target.y + target.h / 2;
+	float dx = (float)(endX - startX);
+	float dy = (float)(endY - startY);
+	float length = std::sqrt(dx * dx + dy * dy);
+	if (length > 0.1f)
+	{
+		float ux = dx / length;
+		float uy = dy / length;
+		setColor(244, 76, 63, 235);
+		for (int offset = -2; offset <= 2; ++offset)
+			SDL_RenderDrawLine(mRenderer, startX + offset, startY, endX + offset, endY);
+		int baseX = (int)std::round(endX - ux * 20.f);
+		int baseY = (int)std::round(endY - uy * 20.f);
+		int sideX = (int)std::round(-uy * 9.f);
+		int sideY = (int)std::round(ux * 9.f);
+		SDL_RenderDrawLine(mRenderer, endX, endY, baseX + sideX, baseY + sideY);
+		SDL_RenderDrawLine(mRenderer, endX, endY, baseX - sideX, baseY - sideY);
+	}
+	outlineRect(attacker, 244, 76, 63, 255, 5);
+	outlineRect(target, 255, 211, 83, 255, 5);
+	SDL_Rect attackerBadge = { attacker.x, std::max(2, attacker.y - 23), 82, 21 };
+	fillRect(attackerBadge, 110, 25, 24, 245);
+	drawText("ATTACKER", attackerBadge.x + 7, attackerBadge.y + 3, color(255, 226, 218), 11);
+	SDL_Rect targetBadge = { target.x, target.y > 80 ? target.y - 23 : target.y + target.h + 2, 72, 21 };
+	fillRect(targetBadge, 92, 70, 20, 245);
+	drawText("TARGET", targetBadge.x + 10, targetBadge.y + 3, color(255, 239, 181), 11);
+}
+
+void Application::renderActionLogOverlay()
+{
+	std::vector<std::string> lines;
+	if (mDuel != NULL)
+	{
+		size_t count = std::min(mDuel->mMoveHistory.size(), mDuel->mMovePlayers.size());
+		for (size_t i = 0; i < count; ++i)
+		{
+			std::string detail = actionLogLabel(mDuel->mMoveHistory[i], mDuel->mMovePlayers[i]);
+			if (detail.empty()) continue;
+			std::string actor = mDuel->mMovePlayers[i] == 0 ? "YOU" : "RIVAL";
+			lines.push_back(actor + ": " + detail);
+		}
+	}
+	int maxScroll = std::max(0, (int)lines.size() - ACTION_LOG_PAGE_SIZE);
+	mActionLogScroll = std::max(0, std::min(maxScroll, mActionLogScroll));
+	int first = std::max(0, (int)lines.size() - ACTION_LOG_PAGE_SIZE - mActionLogScroll);
+	int last = std::min((int)lines.size(), first + ACTION_LOG_PAGE_SIZE);
+
+	fillRect({ 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT }, 3, 6, 11, 190);
+	fillRect(ACTION_LOG_OVERLAY, 17, 24, 38, 252);
+	outlineRect(ACTION_LOG_OVERLAY, 190, 145, 62, 255, 4);
+	drawText("DUEL ACTION LOG", 145, 101, color(245, 211, 126), 27);
+	drawText("Newest actions are at the bottom. Use the mouse wheel to review earlier turns.",
+		145, 130, color(181, 197, 221), 13, 850);
+	fillRect(ACTION_LOG_CLOSE, 74, 43, 43, 245);
+	outlineRect(ACTION_LOG_CLOSE, 220, 116, 99, 255, 2);
+	drawText("X", ACTION_LOG_CLOSE.x + 14, ACTION_LOG_CLOSE.y + 7, color(250, 230, 225), 17);
+	if (lines.empty())
+		drawText("No actions have been played yet.", 390, 365, color(178, 190, 210), 18);
+	for (int i = first; i < last; ++i)
+	{
+		int row = i - first;
+		SDL_Rect background = { 143, 165 + row * 29, 994, 25 };
+		if (row % 2 == 0) fillRect(background, 28, 38, 57, 205);
+		drawText(std::to_string(i + 1) + ". " + lines[i], background.x + 8,
+			background.y + 4, color(230, 235, 244), 13, background.w - 16);
+	}
+	if (!lines.empty())
+		drawText(std::to_string(first + 1) + "-" + std::to_string(last) + " of " +
+			std::to_string(lines.size()), 525, 680, color(183, 199, 222), 13);
+}
+
 SDL_Rect Application::graveyardPileRect(int player) const
 {
 	return { 914, player == 1 ? 86 : 551, 54, 76 };
+}
+
+SDL_Rect Application::deckPileRect(int player) const
+{
+	return { 8, player == 1 ? 82 : 551, 54, 76 };
+}
+
+void Application::renderDeckPile(int player)
+{
+	SDL_Rect pile = deckPileRect(player);
+	const std::vector<Card*>& cards = mDuel->mDecks[player].mCards;
+	drawText(player == 1 ? "RIVAL DECK" : "YOUR DECK", 5, player == 1 ? 62 : 632,
+		color(180, 198, 224), 10, 60);
+	for (size_t i = 0; i < cards.size(); ++i)
+	{
+		AnimatedCard& animation = mCardAnimations[cards[i]->mUniqueId];
+		animation.targetX = (float)pile.x;
+		animation.targetY = (float)pile.y;
+		animation.targetWidth = (float)pile.w;
+		animation.targetHeight = (float)pile.h;
+		animation.targetAngle = 0.f;
+		if (!animation.initialized)
+		{
+			animation.x = animation.targetX;
+			animation.y = animation.targetY;
+			animation.width = animation.targetWidth;
+			animation.height = animation.targetHeight;
+			animation.angle = 0.f;
+			animation.initialized = true;
+		}
+	}
+	if (cards.empty())
+	{
+		fillRect(pile, 16, 23, 35, 190);
+		outlineRect(pile, 111, 123, 143, 230, 2);
+		drawText("EMPTY", pile.x + 7, pile.y + 30, color(171, 181, 198), 10);
+		return;
+	}
+	if (cards.size() >= 3)
+	{
+		SDL_Rect backLayer = { pile.x + 5, pile.y + 5, pile.w, pile.h };
+		drawCardBack(backLayer);
+	}
+	if (cards.size() >= 2)
+	{
+		SDL_Rect middleLayer = { pile.x + 2, pile.y + 2, pile.w, pile.h };
+		drawCardBack(middleLayer);
+	}
+	drawCardBack(pile);
+	SDL_Rect count = { pile.x + pile.w - 22, pile.y + pile.h - 20, 22, 20 };
+	fillRect(count, 12, 18, 29, 235);
+	drawText(std::to_string(cards.size()), count.x + 4, count.y + 2,
+		color(244, 225, 171), 11);
 }
 
 void Application::renderGraveyardPile(int player)
@@ -1079,7 +1332,8 @@ void Application::renderDuel()
 	std::string rivalName = mActiveNpc >= 0 ? mNpcs[mActiveNpc].name :
 		"AI: " + deckDisplayName(mDuel->mDeckNames[1]);
 	drawText(rivalName, 18, 14, color(244, 205, 99), 20, 900);
-	drawText("Deck " + std::to_string(mDuel->mDecks[1].mCards.size()), 18, 39, color(229, 235, 245), 13);
+	drawText("Hand " + std::to_string(mDuel->mHands[1].mCards.size()), 18, 39, color(229, 235, 245), 13);
+	renderDeckPile(1);
 	drawHand(mDuel->mHands[1].mCards, true);
 
 	drawZone(mDuel->mManazones[1].mCards, 70, 82, 390, 54, 76, true, true);
@@ -1091,11 +1345,13 @@ void Application::renderDuel()
 	drawZone(mDuel->mShields[0].mCards, 70, 551, 390, 54, 76, false, true);
 	drawZone(mDuel->mManazones[0].mCards, 510, 551, 390, 54, 76, true, true);
 	renderGraveyardPile(0);
+	renderDeckPile(0);
 	drawHand(mDuel->mHands[0].mCards, false);
 	std::string playerName = mDirectDuelMode ?
 		"YOU: " + deckDisplayName(mDuel->mDeckNames[0]) : "YOU";
 	drawText(playerName, 18, 748, color(244, 205, 99), 22, 900);
-	drawText("Deck " + std::to_string(mDuel->mDecks[0].mCards.size()), 18, 775, color(229, 235, 245), 13);
+	drawText("Hand " + std::to_string(mDuel->mHands[0].mCards.size()), 18, 775, color(229, 235, 245), 13);
+	renderAttackIndicator();
 
 	drawText(mDuel->mTurn == 0 ? "YOUR TURN" : "RIVAL THINKING", 1010, 26,
 		mDuel->mTurn == 0 ? color(99, 225, 128) : color(239, 137, 70), 23);
@@ -1118,9 +1374,9 @@ void Application::renderDuel()
 	if (mDuel->getPlayerToMove() == 0 && mDuelResult == -1)
 	{
 		std::vector<Message> actions = visibleActions();
-		int maxScroll = std::max(0, (int)actions.size() - 9);
+		int maxScroll = std::max(0, (int)actions.size() - 8);
 		mActionScroll = std::min(mActionScroll, maxScroll);
-		for (int i = mActionScroll; i < (int)actions.size() && i < mActionScroll + 9; ++i)
+		for (int i = mActionScroll; i < (int)actions.size() && i < mActionScroll + 8; ++i)
 		{
 			int visibleIndex = i - mActionScroll;
 			SDL_Rect button = { 1004, 160 + visibleIndex * 66, 252, 55 };
@@ -1130,12 +1386,17 @@ void Application::renderDuel()
 			drawText(std::to_string(visibleIndex + 1) + ". " + label, button.x + 10, button.y + 9, color(235, 239, 247), 15, button.w - 20);
 			mActionButtons.push_back({ button, actions[i], label });
 		}
-		if ((int)actions.size() > 9) drawText("Mouse wheel: more actions", 1009, 760, color(158, 177, 205), 13);
+		if ((int)actions.size() > 8) drawText("Mouse wheel: more actions", 1009, 708, color(158, 177, 205), 13);
 	}
+	fillRect(ACTION_LOG_BUTTON, 49, 39, 64, 248);
+	outlineRect(ACTION_LOG_BUTTON, 184, 139, 211, 255, 2);
+	drawText("ACTION LOG  [L]", ACTION_LOG_BUTTON.x + 55, ACTION_LOG_BUTTON.y + 10,
+		color(242, 221, 250), 15);
 
 	if (mOpenGraveyardPlayer >= 0) renderGraveyardOverlay();
 	renderDragOverlay();
 	renderHoverPreview();
+	if (mActionLogOpen) renderActionLogOverlay();
 
 	if (mDuelResult != -1)
 	{

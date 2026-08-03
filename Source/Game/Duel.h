@@ -38,6 +38,7 @@ public:
 	std::atomic<bool> mLuaCallbackSuspended;
 	std::vector<MsgHistoryItem> mMessageHistory;
 	std::vector<Message> mMoveHistory;
+	std::vector<int> mMovePlayers;
 	int mCurrentMoveCount;
 
 	CRandom mRandomGen;

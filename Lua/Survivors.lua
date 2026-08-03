@@ -737,7 +737,7 @@ Cards["King Tsunami"] = {
 	HandleMessage = function(id)
         local func = function(id)
             local valid = function(cid,sid)
-                if(Checks.InBattle(cid,sid)==0 and cid~=sid) then
+                if(Checks.InBattle(cid,sid)==1 and cid~=sid) then
                     return 1
                 else
                     return 0

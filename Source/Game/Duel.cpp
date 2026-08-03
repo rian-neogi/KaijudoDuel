@@ -819,33 +819,35 @@ std::vector<Message> Duel::getPossibleMoves()
 	}
 	for (std::vector<Card*>::iterator i = mBattlezones[mTurn].mCards.begin(); i != mBattlezones[mTurn].mCards.end(); i++)
 	{
-			int canattack = getCreatureCanAttackPlayers((*i)->mUniqueId);
-			if ((canattack == CANATTACK_ALWAYS ||
-				((mCardList.at((*i)->mUniqueId)->mSummoningSickness == 0 || getIsSpeedAttacker((*i)->mUniqueId) == 1) && (canattack == CANATTACK_TAPPED || canattack == CANATTACK_UNTAPPED)))
+		bool canAttackThisTurn = mCardList.at((*i)->mUniqueId)->mSummoningSickness == 0 ||
+			getIsSpeedAttacker((*i)->mUniqueId) == 1;
+		int canattack = getCreatureCanAttackPlayers((*i)->mUniqueId);
+		if ((canattack == CANATTACK_ALWAYS ||
+			(canAttackThisTurn && (canattack == CANATTACK_TAPPED || canattack == CANATTACK_UNTAPPED)))
+			&& mCardList.at((*i)->mUniqueId)->mIsTapped == false)
+		{
+			Message msg("creatureattack");
+			msg.addValue("attacker", (*i)->mUniqueId);
+			msg.addValue("defender", getOpponent(mTurn));
+			msg.addValue("defendertype", DEFENDER_PLAYER);
+			moves.push_back(msg);
+		}
+		for (std::vector<Card*>::iterator j = mBattlezones[getOpponent(mTurn)].mCards.begin(); j != mBattlezones[getOpponent(mTurn)].mCards.end(); j++)
+		{
+			int canattack = getCreatureCanAttackCreature((*i)->mUniqueId, (*j)->mUniqueId);
+			if (((*j)->mIsTapped == true || canattack == CANATTACK_UNTAPPED)
+				&& canattack <= CANATTACK_UNTAPPED
+				&& canAttackThisTurn
 				&& mCardList.at((*i)->mUniqueId)->mIsTapped == false)
 			{
 				Message msg("creatureattack");
 				msg.addValue("attacker", (*i)->mUniqueId);
-				msg.addValue("defender", getOpponent(mTurn));
-				msg.addValue("defendertype", DEFENDER_PLAYER);
+				msg.addValue("defender", (*j)->mUniqueId);
+				msg.addValue("defendertype", DEFENDER_CREATURE);
 				moves.push_back(msg);
 			}
-			for (std::vector<Card*>::iterator j = mBattlezones[getOpponent(mTurn)].mCards.begin(); j != mBattlezones[getOpponent(mTurn)].mCards.end(); j++)
-			{
-				int canattack = getCreatureCanAttackCreature((*i)->mUniqueId, (*j)->mUniqueId);
-				if (((*j)->mIsTapped == true || canattack == CANATTACK_UNTAPPED)
-					&& canattack <= CANATTACK_UNTAPPED
-					&& mCardList.at((*i)->mUniqueId)->mSummoningSickness == 0
-					&& mCardList.at((*i)->mUniqueId)->mIsTapped == false)
-				{
-					Message msg("creatureattack");
-					msg.addValue("attacker", (*i)->mUniqueId);
-					msg.addValue("defender", (*j)->mUniqueId);
-					msg.addValue("defendertype", DEFENDER_CREATURE);
-					moves.push_back(msg);
-				}
-			}
 		}
+	}
 
 	return moves;
 }
@@ -854,6 +856,7 @@ int Duel::handleInterfaceInput(Message& msg)
 {
 	mCurrentMoveCount++;
 	mMoveHistory.push_back(msg);
+	mMovePlayers.push_back(getPlayerToMove());
 	std::string type = msg.getType();
 	if (type == "cardplay")
 	{
@@ -896,11 +899,13 @@ int Duel::handleInterfaceInput(Message& msg)
 	{
 		int attck = msg.getInt("attacker");
 		int defen = msg.getInt("defender");
+		bool canAttackThisTurn = mCardList.at(attck)->mSummoningSickness == 0 ||
+			getIsSpeedAttacker(attck) == 1;
 		if (msg.getInt("defendertype") == DEFENDER_PLAYER)
 		{
 			int canattack = getCreatureCanAttackPlayers(attck);
 			if ((canattack == CANATTACK_ALWAYS || 
-				((mCardList.at(attck)->mSummoningSickness == 0 || getIsSpeedAttacker(attck) == 1) && (canattack == CANATTACK_TAPPED || canattack == CANATTACK_UNTAPPED)))
+				(canAttackThisTurn && (canattack == CANATTACK_TAPPED || canattack == CANATTACK_UNTAPPED)))
 				&& mCardList.at(attck)->mIsTapped == false)
 			{
 				mTurnPhase = TURN_PHASE_ATTACK;
@@ -916,7 +921,7 @@ int Duel::handleInterfaceInput(Message& msg)
 			if ((mCardList.at(defen)->mIsTapped == true || canattack == CANATTACK_UNTAPPED)
 				&& canattack <= CANATTACK_UNTAPPED
 				&& mCardList.at(attck)->mIsTapped == false
-				&& mCardList.at(attck)->mSummoningSickness == 0)
+				&& canAttackThisTurn)
 			{
 				mTurnPhase = TURN_PHASE_ATTACK;
 				Message msg2("cardtap");

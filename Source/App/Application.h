@@ -131,6 +131,12 @@ private:
 	void renderGraveyardPile(int player);
 	void renderGraveyardOverlay();
 	SDL_Rect graveyardPileRect(int player) const;
+	void renderDeckPile(int player);
+	SDL_Rect deckPileRect(int player) const;
+	bool handleActionLogEvent(const SDL_Event& event);
+	void renderActionLogOverlay();
+	void renderAttackIndicator();
+	std::string actionLogLabel(const Message& message, int player) const;
 	bool exerciseEvolutionSmoke();
 	bool exerciseHeuristicAttackSafetySmoke();
 	bool exerciseHeuristicBlockChoiceSmoke();
@@ -242,6 +248,8 @@ private:
 	int mActionScroll;
 	int mOpenGraveyardPlayer;
 	int mGraveyardOffset;
+	bool mActionLogOpen;
+	int mActionLogScroll;
 	Uint32 mNextAiMove;
 	int mDuelResult;
 	Uint32 mDuelResultAt;
