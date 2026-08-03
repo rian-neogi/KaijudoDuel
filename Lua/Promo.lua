@@ -2,6 +2,7 @@ package.path = package.path .. ';./?.lua;'
 require("Lua/BaseSet")
 
 Cards["Amnis, Holy Elemental"] = {
+	price_tier = 5,
     name = "Amnis, Holy Elemental",
     set = "Promo",
 	type = TYPE_CREATURE,
@@ -42,6 +43,7 @@ Cards["Amnis, Holy Elemental"] = {
 }
 
 Cards["Armored Groblav"] = {
+	price_tier = 5,
 	name = "Armored Groblav",
 	set = "Promo",
 	type = TYPE_CREATURE,
@@ -81,6 +83,7 @@ Cards["Armored Groblav"] = {
 }
 
 Cards["Gigagrax"] = {
+	price_tier = 3,
 	name = "Gigagrax",
 	set = "Promo",
 	type = TYPE_CREATURE,
@@ -107,6 +110,7 @@ Cards["Gigagrax"] = {
 }
 
 Cards["Loth Rix, the Iridescent"] = {
+	price_tier = 3,
 	name = "Loth Rix, the Iridescent",
 	set = "Promo",
 	type = TYPE_CREATURE,
@@ -130,6 +134,7 @@ Cards["Loth Rix, the Iridescent"] = {
 }
 
 Cards["Neve, the Leveler"] = {
+	price_tier = 3,
 	name = "Neve, the Leveler",
 	set = "Promo",
 	type = TYPE_CREATURE,
@@ -168,6 +173,7 @@ Cards["Neve, the Leveler"] = {
 }
 
 Cards["Olgate, Nightmare Samurai"] = {
+	price_tier = 3,
 	name = "Olgate, Nightmare Samurai",
 	set = "Promo",
 	type = TYPE_CREATURE,
@@ -194,6 +200,7 @@ Cards["Olgate, Nightmare Samurai"] = {
 }
 
 Cards["Star-Cry Dragon"] = {
+	price_tier = 3,
 	name = "Star-Cry Dragon",
 	set = "Promo",
 	type = TYPE_CREATURE,
@@ -218,6 +225,7 @@ Cards["Star-Cry Dragon"] = {
 }
 
 Cards["Twister Fish"] = {
+	price_tier = 3,
 	name = "Twister Fish",
 	set = "Promo",
 	type = TYPE_CREATURE,
@@ -236,6 +244,7 @@ Cards["Twister Fish"] = {
 }
 
 Cards["Velyrika Dragon"] = {
+	price_tier = 3,
 	name = "Velyrika Dragon",
 	set = "Promo",
 	type = TYPE_CREATURE,

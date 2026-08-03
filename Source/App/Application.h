@@ -1,5 +1,6 @@
 #pragma once
 
+#include "App/MercerStock.h"
 #include "App/Npc.h"
 #include "Game/Duel.h"
 
@@ -114,6 +115,7 @@ private:
 	std::string storyDialogueForNpc(int npcIndex) const;
 	std::string storyObjective() const;
 	void tryMove(int dx, int dy);
+	void collectShardAt(int x, int y);
 	void interact();
 	bool isWalkable(int x, int y) const;
 	int npcAt(int x, int y, int ignoredNpc = -1) const;
@@ -210,6 +212,7 @@ private:
 
 	std::vector<std::string> mMap;
 	std::vector<Npc> mNpcs;
+	MercerStockData mMercerStock;
 	std::string mNpcMetadataError;
 	int mPlayerX;
 	int mPlayerY;
@@ -258,6 +261,8 @@ private:
 
 	bool mPlayerDataLoaded;
 	int mMoney;
+	std::set<std::string> mCollectedShards;
+	std::set<std::string> mMercerShards;
 	std::vector<int> mCollectionCounts;
 	std::vector<PlayerDeck> mPlayerDecks;
 	std::string mActiveDeckPath;
@@ -276,6 +281,7 @@ private:
 	int mDeckHoveredCard;
 	std::vector<DeckCardHitbox> mShopCardHitboxes;
 	int mShopHoveredCard;
+	int mShopPage;
 	std::string mShopNotice;
 	Uint32 mShopNoticeUntil;
 };

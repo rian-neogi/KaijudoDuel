@@ -32,6 +32,7 @@ SoundManager::SoundManager()
 	loadSound(SOUND_ATTACK_SMALL, "Resources/Sounds/button2.wav");
 	loadSound(SOUND_ATTACK_MEDIUM, "Resources/Sounds/tap.wav");
 	loadSound(SOUND_ATTACK_LARGE, "Resources/Sounds/rolldie.wav");
+	loadSound(SOUND_EVOLUTION, "Resources/Sounds/stagechangeoldnotification.wav");
 	SDL_PauseAudioDevice(mDevice, 0);
 }
 

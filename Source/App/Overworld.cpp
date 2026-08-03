@@ -208,6 +208,23 @@ void Application::tryMove(int dx, int dy)
 	{
 		mPlayerX = x;
 		mPlayerY = y;
+		collectShardAt(x, y);
+	}
+}
+
+void Application::collectShardAt(int x, int y)
+{
+	for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
+	{
+		const MercerShard& shard = mMercerStock.shards[i];
+		if (shard.x != x || shard.y != y) continue;
+		ensurePlayerDataLoaded();
+		if (mCollectedShards.count(shard.id)) return;
+		mCollectedShards.insert(shard.id);
+		savePlayerProgress();
+		mNotice = "Found " + shard.name + "! Take it to Mercer to expand his stock.";
+		mNoticeUntil = SDL_GetTicks() + 6000;
+		return;
 	}
 }
 
@@ -279,6 +296,17 @@ void Application::renderOverworld()
 			drawText("!", markerX + 2, markerY, color(255, 225, 111), 16);
 		}
 	}
+	for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
+	{
+		const MercerShard& shard = mMercerStock.shards[i];
+		if (mCollectedShards.count(shard.id)) continue;
+		int x = MAP_X + shard.x * TILE;
+		int y = MAP_Y + shard.y * TILE;
+		int shimmer = (int)((SDL_GetTicks() / 180 + i * 3) % 5);
+		fillRect({ x + 19, y + 10 - shimmer / 2, 12, 28 }, 42, 24, 65, 220);
+		fillRect({ x + 14, y + 15 - shimmer / 2, 22, 18 }, 139, 82, 204, 245);
+		fillRect({ x + 19, y + 19 - shimmer / 2, 12, 10 }, 225, 184, 255, 255);
+	}
 	bool playerWalking = std::fabs(mPlayerX - mVisualX) > 0.001f ||
 		std::fabs(mPlayerY - mVisualY) > 0.001f;
 	drawCharacter(mVisualX, mVisualY, CharacterAppearance::Player, false, playerWalking);
@@ -287,12 +315,16 @@ void Application::renderOverworld()
 	outlineRect({ 1012, 28, 238, 670 }, 190, 146, 61, 255, 2);
 	drawText("EMBERGLEN", 1034, 48, color(242, 205, 99), 28);
 	drawText("GOLD " + std::to_string(mMoney), 1034, 91, color(245, 205, 88), 16);
-	drawText("DUELISTS", 1034, 120, color(135, 162, 199), 16);
+	int heldShards = (int)mCollectedShards.size() - (int)mMercerShards.size();
+	drawText("SHARDS " + std::to_string(std::max(0, heldShards)) +
+		"  •  MERCER " + std::to_string(mMercerShards.size()),
+		1034, 113, color(190, 150, 225), 12);
+	drawText("DUELISTS", 1034, 134, color(135, 162, 199), 16);
 	int duelistRow = 0;
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 	{
 		if (mNpcs[i].kind != NpcKind::Duelist) continue;
-		const int rowY = 145 + duelistRow++ * 48;
+		const int rowY = 159 + duelistRow++ * 44;
 		drawText(mNpcs[i].name, 1034, rowY, color(235, 238, 245), 17);
 		drawText(mNpcs[i].statusText(), 1034, rowY + 21,
 			mNpcs[i].isComplete() ? color(92, 208, 121) : color(235, 151, 65), 12);

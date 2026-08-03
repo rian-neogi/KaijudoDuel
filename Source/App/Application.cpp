@@ -23,7 +23,8 @@ Application::Application()
 	  mHoverCandidateSince(0), mPlayerDataLoaded(false), mMoney(0), mActiveDeckIndex(-1),
 	  mEditingDeckIndex(-1), mDeckCollectionPage(0), mDeckListScroll(0),
 	  mDeckContentsScroll(0), mDeckSearchFocused(false), mDeckRenameFocused(false),
-	  mDeckNoticeUntil(0), mDeckHoveredCard(-1), mShopHoveredCard(-1), mShopNoticeUntil(0)
+	  mDeckNoticeUntil(0), mDeckHoveredCard(-1), mShopHoveredCard(-1), mShopPage(0),
+	  mShopNoticeUntil(0)
 {
 	mMap.push_back("####################");
 	mMap.push_back("#......~~~.........#");
@@ -40,6 +41,13 @@ Application::Application()
 
 	if (!loadNpcsFromLua("Lua/Npcs.lua", mNpcs, mNpcMetadataError))
 		std::cerr << "Unable to load NPC metadata: " << mNpcMetadataError << std::endl;
+	std::string stockError;
+	if (!loadMercerStockFromLua("Lua/MercerStock.lua", mMercerStock, stockError))
+	{
+		if (!mNpcMetadataError.empty()) mNpcMetadataError += "\n";
+		mNpcMetadataError += "Unable to load Mercer stock: " + stockError;
+		std::cerr << "Unable to load Mercer stock: " << stockError << std::endl;
+	}
 }
 
 Application::~Application()

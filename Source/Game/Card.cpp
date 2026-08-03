@@ -2,6 +2,7 @@
 #include "Duel.h"
 #include "LuaTrace.h"
 
+#include <algorithm>
 #include <cctype>
 
 //std::vector<std::string> gCardNames;
@@ -457,7 +458,21 @@ void loadSet(std::string path, std::string set_name)
 		}
 		if (civ < 0 || type < 0 || cost < 0)
 			continue;
-		CardData cd(gCardDatabase.size(), name, set_name, race, civ, type, cost, power);
+		int priceTier = 1;
+		int stackTop = lua_gettop(LuaCards);
+		lua_getglobal(LuaCards, "Cards");
+		if (lua_istable(LuaCards, -1))
+		{
+			lua_getfield(LuaCards, -1, name.c_str());
+			if (lua_istable(LuaCards, -1))
+			{
+				lua_getfield(LuaCards, -1, "price_tier");
+				if (lua_isnumber(LuaCards, -1)) priceTier = (int)lua_tointeger(LuaCards, -1);
+			}
+		}
+		lua_settop(LuaCards, stackTop);
+		priceTier = std::max(1, std::min(5, priceTier));
+		CardData cd(gCardDatabase.size(), name, set_name, race, civ, type, cost, power, priceTier);
 		gCardDatabase.push_back(cd);
 	}
 }
@@ -494,6 +509,8 @@ bool initCards()
 	loadSet("Resources/Sets XML/DM-08 Invincible Legend/set.xml", "DM-08 Invincible Legend");
 	loadSet("Resources/Sets XML/DM-09 Invincible Blood/set.xml", "DM-09 Invincible Blood");
 	loadSet("Resources/Sets XML/DM-10 Eternal Arms/set.xml", "DM-10 Eternal Arms");
+	loadSet("Resources/Sets XML/DM-11 Eternal Wave/set.xml", "DM-11 Eternal Wave");
+	loadSet("Resources/Sets XML/DM-12 Eternal Vortex/set.xml", "DM-12 Eternal Vortex");
 	loadSet("Resources/Sets XML/Promo and DMC Packs/set.xml", "Promo and DMC Packs");
 
 	return true;

@@ -199,6 +199,25 @@ void Application::ensurePlayerDataLoaded()
 			mStoryClues = std::max(0, std::atoi(line.substr(13).c_str()));
 			continue;
 		}
+		const std::string collectedPrefix = "shard.collected.";
+		const std::string mercerPrefix = "shard.mercer.";
+		if (line.find(collectedPrefix) == 0 || line.find(mercerPrefix) == 0)
+		{
+			bool givenToMercer = line.find(mercerPrefix) == 0;
+			const std::string& prefix = givenToMercer ? mercerPrefix : collectedPrefix;
+			size_t equals = line.find('=', prefix.size());
+			if (equals == std::string::npos || std::atoi(line.substr(equals + 1).c_str()) != 1)
+				continue;
+			std::string shardId = line.substr(prefix.size(), equals - prefix.size());
+			for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
+			{
+				if (mMercerStock.shards[i].id != shardId) continue;
+				mCollectedShards.insert(shardId);
+				if (givenToMercer) mMercerShards.insert(shardId);
+				break;
+			}
+			continue;
+		}
 		if (line.find("npc.") != 0) continue;
 		size_t equals = line.find('=');
 		if (equals == std::string::npos) continue;
@@ -224,6 +243,12 @@ void Application::savePlayerProgress()
 	progress << "money=" << std::max(0, mMoney) << "\n";
 	progress << "story.stage=" << mStoryStage << "\n";
 	progress << "story.clues=" << mStoryClues << "\n";
+	for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
+	{
+		const std::string& shardId = mMercerStock.shards[i].id;
+		if (mCollectedShards.count(shardId)) progress << "shard.collected." << shardId << "=1\n";
+		if (mMercerShards.count(shardId)) progress << "shard.mercer." << shardId << "=1\n";
+	}
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 		if (mNpcs[i].isDuelist()) progress << "npc." << mNpcs[i].id << "=" << mNpcs[i].wins << "\n";
 }

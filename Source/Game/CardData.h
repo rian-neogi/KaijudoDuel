@@ -15,9 +15,11 @@ public:
 	int Type;
 	int ManaCost;
 	int Power;
+	int PriceTier;
 
 	CardData();
-	CardData(int id, std::string n, std::string s, std::string r, int civ, int type, int cost, int power);
+	CardData(int id, std::string n, std::string s, std::string r, int civ, int type,
+		int cost, int power, int priceTier);
 	~CardData();
 };
 

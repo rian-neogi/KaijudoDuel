@@ -37,10 +37,27 @@ HeuristicBot::HeuristicBot(int player, const std::string& personality)
 Message HeuristicBot::chooseMove(Duel& duel, const std::vector<Message>& moves) const
 {
 	if (moves.empty()) return Message();
+	int preferredPriority = 3;
+	bool ordinaryTurn = !duel.mIsChoiceActive && duel.mAttackphase == PHASE_NONE &&
+		duel.mCastingCard == -1 && duel.getPlayerToMove() == mPlayer;
+	auto movePriority = [](const std::string& type)
+	{
+		if (type == "cardmana") return 0;
+		if (type == "cardplay") return 1;
+		if (type == "creatureusetapability") return 2;
+		return 3;
+	};
+	if (ordinaryTurn)
+	{
+		for (size_t i = 0; i < moves.size(); ++i)
+			preferredPriority = std::min(preferredPriority, movePriority(messageType(moves[i])));
+	}
+
 	size_t bestIndex = moves.size();
 	double bestScore = -std::numeric_limits<double>::infinity();
 	for (size_t i = 0; i < moves.size(); ++i)
 	{
+		if (ordinaryTurn && movePriority(messageType(moves[i])) != preferredPriority) continue;
 		double score = scoreMove(duel, moves[i]);
 		if (score == -std::numeric_limits<double>::infinity()) continue;
 		if (score > bestScore)

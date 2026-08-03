@@ -2,6 +2,7 @@ package.path = package.path .. ';./?.lua;'
 require("Lua/Invincible Soul")
 
 Cards["Siri, Glory Elemental"] = {
+	price_tier = 5,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -31,6 +32,7 @@ Cards["Siri, Glory Elemental"] = {
 }
 
 Cards["Cosmic Nebula"] = {
+	price_tier = 5,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -50,6 +52,7 @@ Cards["Cosmic Nebula"] = {
 }
 
 Cards["Crath Lade, Merciless King"] = {
+	price_tier = 5,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -64,6 +67,7 @@ Cards["Crath Lade, Merciless King"] = {
 }
 
 Cards["Sky Crusher, the Agitator"] = {
+	price_tier = 5,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -85,6 +89,7 @@ Cards["Sky Crusher, the Agitator"] = {
 }
 
 Cards["Headlong Giant"] = {
+	price_tier = 5,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 3,
@@ -117,6 +122,7 @@ Cards["Headlong Giant"] = {
 }
 
 Cards["Gandar, Seeker of Explosions"] = {
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -143,6 +149,7 @@ Cards["Gandar, Seeker of Explosions"] = {
 }
 
 Cards["King Benthos"] = {
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -167,6 +174,7 @@ Cards["King Benthos"] = {
 }
 
 Cards["Battleship Mutant"] = {
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -193,6 +201,7 @@ Cards["Battleship Mutant"] = {
 }
 
 Cards["Armored Transport Galiacruse"] = {
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -217,6 +226,7 @@ Cards["Armored Transport Galiacruse"] = {
 }
 
 Cards["Spinning Totem"] = {
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -243,6 +253,7 @@ Cards["Spinning Totem"] = {
 }
 
 Cards["Bex, the Oracle"] = {
+	price_tier = 1,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -260,6 +271,7 @@ Cards["Bex, the Oracle"] = {
 }
 
 Cards["Geoshine, Spectral Knight"] = {
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -283,6 +295,7 @@ Cards["Geoshine, Spectral Knight"] = {
 }
 
 Cards["Justice Jamming"] = {
+	price_tier = 3,
 	shieldtrigger = 0,
 
 	OnCast = function(id)
@@ -304,6 +317,7 @@ Cards["Justice Jamming"] = {
 }
 
 Cards["Kizar Basiku, the Outrageous"] = {
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 1,
 	breaker = 2,
@@ -315,6 +329,7 @@ Cards["Kizar Basiku, the Outrageous"] = {
 }
 
 Cards["Lightning Charger"] = {
+	price_tier = 2,
 	shieldtrigger = 0,
 
 	OnCast = function(id)
@@ -331,6 +346,7 @@ Cards["Lightning Charger"] = {
 }
 
 Cards["Miracle Portal"] = {
+	price_tier = 1,
 	shieldtrigger = 0,
 
 	OnCast = function(id) --test
@@ -349,6 +365,7 @@ Cards["Miracle Portal"] = {
 }
 
 Cards["Pulsar Tree"] = {
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -365,6 +382,7 @@ Cards["Pulsar Tree"] = {
 }
 
 Cards["Rodi Gale, Night Guardian"] = {
+	price_tier = 1,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -375,6 +393,7 @@ Cards["Rodi Gale, Night Guardian"] = {
 }
 
 Cards["Rom, Vizier of Tendrils"] = {
+	price_tier = 1,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -391,6 +410,7 @@ Cards["Rom, Vizier of Tendrils"] = {
 }
 
 Cards["Rondobil, the Explorer"] = {
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -407,6 +427,7 @@ Cards["Rondobil, the Explorer"] = {
 }
 
 Cards["Aqua Agent"] = {
+	price_tier = 1,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -418,6 +439,7 @@ Cards["Aqua Agent"] = {
 }
 
 Cards["Aqua Fencer"] = {
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -434,6 +456,7 @@ Cards["Aqua Fencer"] = {
 }
 
 Cards["Biancus"] = {
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 1,
 	breaker = 1,
@@ -454,6 +477,7 @@ Cards["Biancus"] = {
 }
 
 Cards["Cetibols"] = {
+	price_tier = 1,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -467,6 +491,7 @@ Cards["Cetibols"] = {
 }
 
 Cards["Curious Eye"] = {
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -488,6 +513,7 @@ Cards["Curious Eye"] = {
 }
 
 Cards["Garatyano"] = {
+	price_tier = 1,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -527,6 +553,7 @@ Cards["Garatyano"] = {
 }
 
 Cards["Riptide Charger"] = {
+	price_tier = 2,
 	shieldtrigger = 0,
 
 	OnCast = function(id)
@@ -543,6 +570,7 @@ Cards["Riptide Charger"] = {
 }
 
 Cards["Splash Zebrafish"] = {
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -560,6 +588,7 @@ Cards["Splash Zebrafish"] = {
 }
 
 Cards["Titanium Cluster"] = {
+	price_tier = 1,
 	shieldtrigger = 0,
 	blocker = 1,
 	breaker = 1,
@@ -571,6 +600,7 @@ Cards["Titanium Cluster"] = {
 }
 
 Cards["Trenchdive Shark"] = {
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -615,6 +645,7 @@ Cards["Trenchdive Shark"] = {
 }
 
 Cards["Dream Pirate, Shadow of Theft"] = {
+	price_tier = 1,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -641,6 +672,7 @@ Cards["Dream Pirate, Shadow of Theft"] = {
 }
 
 Cards["Gezary, Undercover Doll"] = {
+	price_tier = 1,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -651,6 +683,7 @@ Cards["Gezary, Undercover Doll"] = {
 }
 
 Cards["Gigabuster"] = {
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 1,
 	breaker = 1,
@@ -669,6 +702,7 @@ Cards["Gigabuster"] = {
 }
 
 Cards["Hopeless Vortex"] = {
+	price_tier = 3,
 	shieldtrigger = 0,
 
 	OnCast = function(id)
@@ -680,6 +714,7 @@ Cards["Hopeless Vortex"] = {
 }
 
 Cards["Phantasmal Horror Gigazabal"] = {
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -691,6 +726,7 @@ Cards["Phantasmal Horror Gigazabal"] = {
 }
 
 Cards["Propeller Mutant"] = {
+	price_tier = 1,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -704,6 +740,7 @@ Cards["Propeller Mutant"] = {
 }
 
 Cards["Scalpel Spider"] = {
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -720,6 +757,7 @@ Cards["Scalpel Spider"] = {
 }
 
 Cards["Three-Faced Ashura Fang"] = {
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -736,6 +774,7 @@ Cards["Three-Faced Ashura Fang"] = {
 }
 
 Cards["Vacuum Gel"] = { --test
+	price_tier = 1,
 	shieldtrigger = 1,
 
 	OnCast = function(id)
@@ -760,6 +799,7 @@ Cards["Vacuum Gel"] = { --test
 }
 
 Cards["Venom Charger"] = {
+	price_tier = 2,
 	shieldtrigger = 0,
 
 	OnCast = function(id)
@@ -780,6 +820,7 @@ Cards["Venom Charger"] = {
 }
 
 Cards["Apocalypse Vise"] = {
+	price_tier = 3,
 	shieldtrigger = 0,
 
 	OnCast = function(id)
@@ -806,6 +847,7 @@ Cards["Apocalypse Vise"] = {
 }
 
 Cards["Astronaut Skyterror"] = {
+	price_tier = 1,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -832,6 +874,7 @@ Cards["Astronaut Skyterror"] = {
 }
 
 Cards["Cratersaur"] = {
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -858,6 +901,7 @@ Cards["Cratersaur"] = {
 }
 
 Cards["Energy Charger"] = {
+	price_tier = 2,
 	shieldtrigger = 0,
 
 	OnCast = function(id)
@@ -877,6 +921,7 @@ Cards["Energy Charger"] = {
 }
 
 Cards["Gazarias Dragon"] = {
+	price_tier = 1,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -903,6 +948,7 @@ Cards["Gazarias Dragon"] = {
 }
 
 Cards["Kipo's Contraption"] = {
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -926,6 +972,7 @@ Cards["Kipo's Contraption"] = {
 }
 
 Cards["Kooc Pollon"] = {
+	price_tier = 1,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -936,6 +983,7 @@ Cards["Kooc Pollon"] = {
 }
 
 Cards["Otherworldly Warrior Naglu"] = {
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -947,6 +995,7 @@ Cards["Otherworldly Warrior Naglu"] = {
 }
 
 Cards["Valkrowzer, Ultra Rock Beast"] = {
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -958,6 +1007,7 @@ Cards["Valkrowzer, Ultra Rock Beast"] = {
 }
 
 Cards["Wild Racer Chief Garan"] = {
+	price_tier = 1,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -969,6 +1019,7 @@ Cards["Wild Racer Chief Garan"] = {
 }
 
 Cards["Brood Shell"] = {
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -985,6 +1036,7 @@ Cards["Brood Shell"] = {
 }
 
 Cards["Cursed Totem"] = {
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -1000,6 +1052,7 @@ Cards["Cursed Totem"] = {
 }
 
 Cards["Freezing Icehammer"] = {
+	price_tier = 1,
 	shieldtrigger = 0,
 
 	OnCast = function(id)
@@ -1018,6 +1071,7 @@ Cards["Freezing Icehammer"] = {
 }
 
 Cards["Fruit of Eternity"] = {
+	price_tier = 2,
 	shieldtrigger = 1,
 
 	OnCast = function(id) --test
@@ -1037,6 +1091,7 @@ Cards["Fruit of Eternity"] = {
 }
 
 Cards["Launch Locust"] = {
+	price_tier = 1,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -1052,6 +1107,7 @@ Cards["Launch Locust"] = {
 }
 
 Cards["Mulch Charger"] = {
+	price_tier = 2,
 	shieldtrigger = 0,
 
 	OnCast = function(id)
@@ -1068,6 +1124,7 @@ Cards["Mulch Charger"] = {
 }
 
 Cards["Popple, Flowerpetal Dancer"] = {
+	price_tier = 1,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -1081,6 +1138,7 @@ Cards["Popple, Flowerpetal Dancer"] = {
 }
 
 Cards["Stinger Horn, the Delver"] = {
+	price_tier = 1,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -1092,6 +1150,7 @@ Cards["Stinger Horn, the Delver"] = {
 }
 
 Cards["Tangle Fist, the Weaver"] = {
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -1118,6 +1177,7 @@ Cards["Tangle Fist, the Weaver"] = {
 }
 
 Cards["World Tree, Root of Life"] = {
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,

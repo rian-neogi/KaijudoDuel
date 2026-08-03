@@ -2,6 +2,7 @@ package.path = package.path .. ';./?.lua;'
 require("Lua/Shadowclash")
 
 Cards["Ambush Scorpion"] = {
+	price_tier = 1,
 	name = "Ambush Scorpion",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -35,6 +36,7 @@ Cards["Ambush Scorpion"] = {
 }
 
 Cards["Aqua Surfer"] = {
+	price_tier = 2,
 	name = "Aqua Surfer",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -60,6 +62,7 @@ Cards["Aqua Surfer"] = {
 }
 
 Cards["Avalanche Giant"] = {
+	price_tier = 5,
 	name = "Avalanche Giant",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -87,6 +90,7 @@ Cards["Avalanche Giant"] = {
 }
 
 Cards["Balloonshroom Q"] = {
+	price_tier = 2,
 	name = "Balloonshroom Q",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -109,6 +113,7 @@ Cards["Balloonshroom Q"] = {
 }
 
 Cards["Ballus, Dogfight Enforcer Q"] = {
+	price_tier = 2,
 	name = "Ballus, Dogfight Enforcer Q",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -135,6 +140,7 @@ Cards["Ballus, Dogfight Enforcer Q"] = {
 }
 
 Cards["Billion-Degree Dragon"] = {
+	price_tier = 5,
 	name = "Billion-Degree Dragon",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -153,6 +159,7 @@ Cards["Billion-Degree Dragon"] = {
 }
 
 Cards["Bladerush Skyterror Q"] = {
+	price_tier = 4,
 	name = "Bladerush Skyterror Q",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -175,6 +182,7 @@ Cards["Bladerush Skyterror Q"] = {
 }
 
 Cards["Blazosaur Q"] = {
+	price_tier = 1,
 	name = "Blazosaur Q",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -197,6 +205,7 @@ Cards["Blazosaur Q"] = {
 }
 
 Cards["Bloodwing Mantis"] = {
+	price_tier = 3,
 	name = "Bloodwing Mantis",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -226,6 +235,7 @@ Cards["Bloodwing Mantis"] = {
 }
 
 Cards["Bolgash Dragon"] = {
+	price_tier = 2,
 	name = "Bolgash Dragon",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -245,6 +255,7 @@ Cards["Bolgash Dragon"] = {
 }
 
 Cards["Bombat, General of Speed"] = {
+	price_tier = 2,
 	name = "Bombat, General of Speed",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -264,6 +275,7 @@ Cards["Bombat, General of Speed"] = {
 }
 
 Cards["Brutal Charge"] = {
+	price_tier = 3,
 	name = "Brutal Charge",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_SPELL,
@@ -278,6 +290,7 @@ Cards["Brutal Charge"] = {
 }
 
 Cards["Calgo, Vizier of Rainclouds"] = {
+	price_tier = 1,
 	name = "Calgo, Vizier of Rainclouds",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -303,6 +316,7 @@ Cards["Calgo, Vizier of Rainclouds"] = {
 }
 
 Cards["Cannoneer Bargon"] = {
+	price_tier = 3,
 	name = "Cannoneer Bargon",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -322,6 +336,7 @@ Cards["Cannoneer Bargon"] = {
 }
 
 Cards["Cataclysmic Eruption"] = {
+	price_tier = 3,
 	name = "Dew Mushroom",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_SPELL,
@@ -357,6 +372,7 @@ Cards["Cataclysmic Eruption"] = {
 }
 
 Cards["Crow Winger"] = {
+	price_tier = 1,
 	name = "Crow Winger",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -392,6 +408,7 @@ Cards["Crow Winger"] = {
 }
 
 Cards["Cyclone Panic"] = {
+	price_tier = 2,
 	name = "Cyclone Panic",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_SPELL,
@@ -414,6 +431,7 @@ Cards["Cyclone Panic"] = {
 }
 
 Cards["Death Cruzer, the Annihilator"] = {
+	price_tier = 5,
 	name = "Death Cruzer, the Annihilator",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -441,6 +459,7 @@ Cards["Death Cruzer, the Annihilator"] = {
 }
 
 Cards["Divine Riptide"] = {
+	price_tier = 3,
 	name = "Divine Riptide",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_SPELL,
@@ -466,6 +485,7 @@ Cards["Divine Riptide"] = {
 }
 
 Cards["Enchanted Soil"] = {
+	price_tier = 2,
 	name = "Enchanted Soil",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_SPELL,
@@ -488,6 +508,7 @@ Cards["Enchanted Soil"] = {
 }
 
 Cards["Gallia Zohl, Iron Guardian Q"] = {
+	price_tier = 1,
 	name = "Gallia Zohl, Iron Guardian Q",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -510,6 +531,7 @@ Cards["Gallia Zohl, Iron Guardian Q"] = {
 }
 
 Cards["Gigakail"] = {
+	price_tier = 2,
 	name = "Gigakail",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -542,6 +564,7 @@ Cards["Gigakail"] = {
 }
 
 Cards["Gigaling Q"] = {
+	price_tier = 1,
 	name = "Gigaling Q",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -564,6 +587,7 @@ Cards["Gigaling Q"] = {
 }
 
 Cards["Gigazoul"] = {
+	price_tier = 1,
 	name = "Gigazoul",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -596,6 +620,7 @@ Cards["Gigazoul"] = {
 }
 
 Cards["Glory Snow"] = {
+	price_tier = 3,
 	name = "Glory Snow",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_SPELL,
@@ -616,6 +641,7 @@ Cards["Glory Snow"] = {
 }
 
 Cards["Horned Mutant"] = {
+	price_tier = 2,
 	name = "Horned Mutant",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_SPELL,
@@ -642,6 +668,7 @@ Cards["Horned Mutant"] = {
 }
 
 Cards["Jewel Spider"] = {
+	price_tier = 1,
 	name = "Jewel Spider",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -667,6 +694,7 @@ Cards["Jewel Spider"] = {
 }
 
 Cards["King Mazelan"] = {
+	price_tier = 4,
 	name = "King Mazelan",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -692,6 +720,7 @@ Cards["King Mazelan"] = {
 }
 
 Cards["King Tsunami"] = {
+	price_tier = 5,
 	name = "King Tsunami",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -724,6 +753,7 @@ Cards["King Tsunami"] = {
 }
 
 Cards["Kip Chippotto"] = { --test
+	price_tier = 1,
 	name = "Kip Chippotto",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -751,6 +781,7 @@ Cards["Kip Chippotto"] = { --test
 }
 
 Cards["Kulus, Soulshine Enforcer"] = {
+	price_tier = 1,
 	name = "Kulus, Soulshine Enforcer",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -778,6 +809,7 @@ Cards["Kulus, Soulshine Enforcer"] = {
 }
 
 Cards["La Byle, Seeker of the Winds"] = {
+	price_tier = 4,
 	name = "La Byle, Seeker of the Winds",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -797,6 +829,7 @@ Cards["La Byle, Seeker of the Winds"] = {
 }
 
 Cards["La Guile, Seeker of Skyfire"] = {
+	price_tier = 2,
 	name = "La Guile, Seeker of Skyfire",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -815,6 +848,7 @@ Cards["La Guile, Seeker of Skyfire"] = {
 }
 
 Cards["Le Quist, the Oracle"] = {
+	price_tier = 1,
 	name = "Le Quist, the Oracle",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -847,6 +881,7 @@ Cards["Le Quist, the Oracle"] = {
 }
 
 Cards["Lurking Eel"] = {
+	price_tier = 1,
 	name = "Lurking Eel",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -872,6 +907,7 @@ Cards["Lurking Eel"] = {
 }
 
 Cards["Miracle Quest"] = { --test
+	price_tier = 2,
 	name = "Miracle Quest",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_SPELL,
@@ -900,6 +936,7 @@ Cards["Miracle Quest"] = { --test
 }
 
 Cards["Moon Horn"] = {
+	price_tier = 2,
 	name = "Moon Horn",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -935,6 +972,7 @@ Cards["Moon Horn"] = {
 }
 
 Cards["Nocturnal Giant"] = {
+	price_tier = 3,
 	name = "Nocturnal Giant",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -955,6 +993,7 @@ Cards["Nocturnal Giant"] = {
 }
 
 Cards["Obsidian Scarab"] = {
+	price_tier = 4,
 	name = "Obsidian Scarab",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_SPELL,
@@ -988,6 +1027,7 @@ Cards["Obsidian Scarab"] = {
 }
 
 Cards["Pokolul"] = {
+	price_tier = 3,
 	name = "Pokolul",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1007,6 +1047,7 @@ Cards["Pokolul"] = {
 }
 
 Cards["Rikabu, the Dismantler"] = {
+	price_tier = 1,
 	name = "Rikabu, the Dismantler",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1026,6 +1067,7 @@ Cards["Rikabu, the Dismantler"] = {
 }
 
 Cards["Ruthless Skyterror"] = {
+	price_tier = 1,
 	name = "Ruthless Skyterror",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1050,6 +1092,7 @@ Cards["Ruthless Skyterror"] = {
 }
 
 Cards["Scheming Hands"] = {
+	price_tier = 2,
 	name = "Scheming Hands",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_SPELL,
@@ -1064,6 +1107,7 @@ Cards["Scheming Hands"] = {
 }
 
 Cards["Scissor Scarab"] = {
+	price_tier = 1,
 	name = "Scissor Scarab",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1100,6 +1144,7 @@ Cards["Scissor Scarab"] = {
 }
 
 Cards["Sea Slug"] = {
+	price_tier = 3,
 	name = "Sea Slug",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1119,6 +1164,7 @@ Cards["Sea Slug"] = {
 }
 
 Cards["Sinister General Damudo"] = {
+	price_tier = 4,
 	name = "Sinister General Damudo",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1151,6 +1197,7 @@ Cards["Sinister General Damudo"] = {
 }
 
 Cards["Skullsweeper Q"] = {
+	price_tier = 3,
 	name = "Skullsweeper Q",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1173,6 +1220,7 @@ Cards["Skullsweeper Q"] = {
 }
 
 Cards["Slime Veil"] = { --test
+	price_tier = 3,
 	name = "Slime Veil",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_SPELL,
@@ -1197,6 +1245,7 @@ Cards["Slime Veil"] = { --test
 }
 
 Cards["Smash Horn Q"] = {
+	price_tier = 1,
 	name = "Smash Horn Q",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1219,6 +1268,7 @@ Cards["Smash Horn Q"] = {
 }
 
 Cards["Snork La, Shrine Guardian"] = {
+	price_tier = 3,
 	name = "Snork La, Shrine Guardian",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1238,6 +1288,7 @@ Cards["Snork La, Shrine Guardian"] = {
 }
 
 Cards["Solidskin Fish"] = {
+	price_tier = 1,
 	name = "Solidskin Fish",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1263,6 +1314,7 @@ Cards["Solidskin Fish"] = {
 }
 
 Cards["Spikestrike Ichthys Q"] = {
+	price_tier = 1,
 	name = "Spikestrike Ichthys Q",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1285,6 +1337,7 @@ Cards["Spikestrike Ichthys Q"] = {
 }
 
 Cards["Split-Head Hydroturtle Q"] = {
+	price_tier = 2,
 	name = "Split-Head Hydroturtle Q",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1307,6 +1360,7 @@ Cards["Split-Head Hydroturtle Q"] = {
 }
 
 Cards["Steel-Turret Cluster"] = {
+	price_tier = 1,
 	name = "Steel-Turret Cluster",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1333,6 +1387,7 @@ Cards["Steel-Turret Cluster"] = {
 }
 
 Cards["Syforce, Aurora Elemental"] = {
+	price_tier = 3,
 	name = "Syforce, Aurora Elemental",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1358,6 +1413,7 @@ Cards["Syforce, Aurora Elemental"] = {
 }
 
 Cards["Syrius, Firmament Elemental"] = {
+	price_tier = 5,
 	name = "Syrius, Firmament Elemental",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1376,6 +1432,7 @@ Cards["Syrius, Firmament Elemental"] = {
 }
 
 Cards["Thunder Net"] = {
+	price_tier = 2,
 	name = "Thunder Net",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_SPELL,
@@ -1411,6 +1468,7 @@ Cards["Thunder Net"] = {
 }
 
 Cards["Twin-Cannon Skyterror"] = {
+	price_tier = 3,
 	name = "Twin-Cannon Skyterror",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1430,6 +1488,7 @@ Cards["Twin-Cannon Skyterror"] = {
 }
 
 Cards["Vashuna, Sword Dancer"] = {
+	price_tier = 3,
 	name = "Vashuna, Sword Dancer",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1462,6 +1521,7 @@ Cards["Vashuna, Sword Dancer"] = {
 }
 
 Cards["Wisp Howler, Shadow of Tears"] = {
+	price_tier = 1,
 	name = "Wisp Howler, Shadow of Tears",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,

@@ -8,6 +8,7 @@
 #include <unordered_set>
 
 enum AttackPhase { PHASE_NONE, PHASE_BLOCK, PHASE_TARGET, PHASE_TRIGGER };
+enum TurnPhase { TURN_PHASE_MANA, TURN_PHASE_MAIN, TURN_PHASE_ATTACK };
 enum CanAttack { CANATTACK_TAPPED, CANATTACK_UNTAPPED, CANATTACK_NO, CANATTACK_ALWAYS };
 enum ReturnValue { RETURN_BUTTON1 = -1, RETURN_BUTTON2 = -2, RETURN_NOVALID = -3, RETURN_NOTHING = -4, RETURN_QUIT = -5 };
 enum PlayerType { PLAYER_HUMAN, PLAYER_AI };
@@ -70,6 +71,7 @@ public:
 	Message mCurrentMessage;
 
 	int mTurn;
+	int mTurnPhase;
 	int mManaUsed;
 
 	int mPlayerType[2];

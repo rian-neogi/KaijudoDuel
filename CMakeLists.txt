@@ -31,6 +31,7 @@ set(GAME_SOURCES
     Source/App/DuelWindow.cpp
 	Source/App/DeckBuilder.cpp
 	Source/App/Menus.cpp
+	Source/App/MercerStock.cpp
 	Source/App/Npc.cpp
     Source/App/Overworld.cpp
 	Source/App/Shop.cpp

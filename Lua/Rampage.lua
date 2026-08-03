@@ -2,6 +2,7 @@ package.path = package.path .. ';./?.lua;'
 require("Lua/EvoCrushinators")
 
 Cards["Alek, Solidity Enforcer"] = {
+	price_tier = 3,
 	name = "Alek, Solidity Enforcer",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -33,6 +34,7 @@ Cards["Alek, Solidity Enforcer"] = {
 }
 
 Cards["Aless, the Oracle"] = {
+	price_tier = 1,
 	name = "Aless, the Oracle",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -56,6 +58,7 @@ Cards["Aless, the Oracle"] = {
 }
 
 Cards["Angler Cluster"] = {
+	price_tier = 1,
 	name = "Angler Cluster",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -90,6 +93,7 @@ Cards["Angler Cluster"] = {
 }
 
 Cards["Aqua Deformer"] = {
+	price_tier = 3,
 	name = "Aqua Deformer",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -123,6 +127,7 @@ Cards["Aqua Deformer"] = {
 }
 
 Cards["Armored Warrior Quelos"] = {
+	price_tier = 2,
 	name = "Armored Warrior Quelos",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -166,6 +171,7 @@ Cards["Armored Warrior Quelos"] = {
 }
 
 Cards["Aurora of Reversal"] = {
+	price_tier = 3,
 	name = "Aurora of Reversal",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_SPELL,
@@ -189,6 +195,7 @@ Cards["Aurora of Reversal"] = {
 }
 
 Cards["Baby Zoppe"] = {
+	price_tier = 1,
 	name = "Baby Zoppe",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -222,6 +229,7 @@ Cards["Baby Zoppe"] = {
 }
 
 Cards["Baraga, Blade of Gloom"] = {
+	price_tier = 2,
 	name = "Baraga, Blade of Gloom",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -247,6 +255,7 @@ Cards["Baraga, Blade of Gloom"] = {
 }
 
 Cards["Blaze Cannon"] = {
+	price_tier = 3,
 	name = "Blaze Cannon",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_SPELL,
@@ -288,6 +297,7 @@ Cards["Blaze Cannon"] = {
 }
 
 Cards["Boltail Dragon"] = {
+	price_tier = 3,
 	name = "Alek, Solidity Enforcer",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -306,6 +316,7 @@ Cards["Boltail Dragon"] = {
 }
 
 Cards["Bone Piercer"] = {
+	price_tier = 1,
 	name = "Bone Piercer",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -332,6 +343,7 @@ Cards["Bone Piercer"] = {
 }
 
 Cards["Boomerang Comet"] = {
+	price_tier = 2,
 	name = "Boomerang Comet",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_SPELL,
@@ -354,6 +366,7 @@ Cards["Boomerang Comet"] = {
 }
 
 Cards["Chaos Fish"] = {
+	price_tier = 5,
 	name = "Chaos Fish",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -397,6 +410,7 @@ Cards["Chaos Fish"] = {
 }
 
 Cards["Dawn Giant"] = {
+	price_tier = 3,
 	name = "Dawn Giant",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -416,6 +430,7 @@ Cards["Dawn Giant"] = {
 }
 
 Cards["Earthstomp Giant"] = {
+	price_tier = 5,
 	name = "Earthstomp Giant",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -441,6 +456,7 @@ Cards["Earthstomp Giant"] = {
 }
 
 Cards["Eldritch Poison"] = {
+	price_tier = 2,
 	name = "Eldritch Poison",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_SPELL,
@@ -470,6 +486,7 @@ Cards["Eldritch Poison"] = {
 }
 
 Cards["Emeral"] = {
+	price_tier = 1,
 	name = "Emeral",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -499,6 +516,7 @@ Cards["Emeral"] = {
 }
 
 Cards["Explosive Dude Joe"] = {
+	price_tier = 1,
 	name = "Explosive Dude Joe",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -517,6 +535,7 @@ Cards["Explosive Dude Joe"] = {
 }
 
 Cards["Flametropus"] = {
+	price_tier = 3,
 	name = "Flametropus",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -548,6 +567,7 @@ Cards["Flametropus"] = {
 }
 
 Cards["Flood Valve"] = {
+	price_tier = 2,
 	name = "Alek, Solidity Enforcer",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_SPELL,
@@ -566,6 +586,7 @@ Cards["Flood Valve"] = {
 }
 
 Cards["Gamil, Knight of Hatred"] = {
+	price_tier = 3,
 	name = "Gamil, Knight of Hatred",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -599,6 +620,7 @@ Cards["Gamil, Knight of Hatred"] = {
 }
 
 Cards["Garkago Dragon"] = {
+	price_tier = 5,
 	name = "Garkago Dragon",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -631,6 +653,7 @@ Cards["Garkago Dragon"] = {
 }
 
 Cards["Ghastly Drain"] = {
+	price_tier = 3,
 	name = "Ghastly Drain",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_SPELL,
@@ -654,6 +677,7 @@ Cards["Ghastly Drain"] = {
 }
 
 Cards["Gigamantis"] = {
+	price_tier = 4,
 	name = "Gigamantis",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -683,6 +707,7 @@ Cards["Gigamantis"] = {
 }
 
 Cards["Giriel, Ghastly Warrior"] = {
+	price_tier = 5,
 	name = "Alek, Solidity Enforcer",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -701,6 +726,7 @@ Cards["Giriel, Ghastly Warrior"] = {
 }
 
 Cards["Hang Worm, Fetid Larva"] = {
+	price_tier = 2,
 	name = "Hang Worm, Fetid Larva",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -719,6 +745,7 @@ Cards["Hang Worm, Fetid Larva"] = {
 }
 
 Cards["Jack Viper, Shadow of Doom"] = {
+	price_tier = 4,
 	name = "Jack Viper, Shadow of Doom",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -748,6 +775,7 @@ Cards["Jack Viper, Shadow of Doom"] = {
 }
 
 Cards["King Neptas"] = {
+	price_tier = 3,
 	name = "King Neptas",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -780,6 +808,7 @@ Cards["King Neptas"] = {
 }
 
 Cards["King Ponitas"] = {
+	price_tier = 2,
 	name = "King Ponitas",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -816,6 +845,7 @@ Cards["King Ponitas"] = {
 }
 
 Cards["Legendary Bynor"] = {
+	price_tier = 4,
 	name = "Legendary Bynor",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -845,6 +875,7 @@ Cards["Legendary Bynor"] = {
 }
 
 Cards["Lena, Vizier of Brilliance"] = {
+	price_tier = 1,
 	name = "Lena, Vizier of Brilliance",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -870,6 +901,7 @@ Cards["Lena, Vizier of Brilliance"] = {
 }
 
 Cards["Liquid Scope"] = { --check
+	price_tier = 1,
 	name = "Liquid Scope",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_SPELL,
@@ -900,6 +932,7 @@ Cards["Liquid Scope"] = { --check
 }
 
 Cards["Logic Sphere"] = {
+	price_tier = 3,
 	name = "Logic Sphere",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_SPELL,
@@ -918,6 +951,7 @@ Cards["Logic Sphere"] = {
 }
 
 Cards["Mana Nexus"] = {
+	price_tier = 2,
 	name = "Mana Nexus",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_SPELL,
@@ -936,6 +970,7 @@ Cards["Mana Nexus"] = {
 }
 
 Cards["Masked Pomegranate"] = {
+	price_tier = 2,
 	name = "Masked Pomegranate",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -968,6 +1003,7 @@ Cards["Masked Pomegranate"] = {
 }
 
 Cards["Miar, Comet Elemental"] = {
+	price_tier = 5,
 	name = "Miar, Comet Elemental",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -986,6 +1022,7 @@ Cards["Miar, Comet Elemental"] = {
 }
 
 Cards["Mudman"] = {
+	price_tier = 1,
 	name = "Mudman",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -1019,6 +1056,7 @@ Cards["Mudman"] = {
 }
 
 Cards["Muramasa, Duke of Blades"] = {
+	price_tier = 2,
 	name = "Muramasa, Duke of Blades",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -1051,6 +1089,7 @@ Cards["Muramasa, Duke of Blades"] = {
 }
 
 Cards["Pouch Shell"] = {
+	price_tier = 2,
 	name = "Pouch Shell",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -1077,6 +1116,7 @@ Cards["Pouch Shell"] = {
 }
 
 Cards["Psychic Shaper"] = {
+	price_tier = 3,
 	name = "Psychic Shaper",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_SPELL,
@@ -1103,6 +1143,7 @@ Cards["Psychic Shaper"] = {
 }
 
 Cards["Psyshroom"] = {
+	price_tier = 3,
 	name = "Psyshroom",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -1135,6 +1176,7 @@ Cards["Psyshroom"] = {
 }
 
 Cards["Ra Vu, Seeker of Lightning"] = {
+	price_tier = 2,
 	name = "Ra Vu, Seeker of Lightning",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -1167,6 +1209,7 @@ Cards["Ra Vu, Seeker of Lightning"] = {
 }
 
 Cards["Raging Dash-Horn"] = {
+	price_tier = 1,
 	name = "Raging Dash-Horn",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -1215,6 +1258,7 @@ Cards["Raging Dash-Horn"] = {
 }
 
 Cards["Raza Vega, Thunder Guardian"] = {
+	price_tier = 3,
 	name = "Raza Vega, Thunder Guardian",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -1238,6 +1282,7 @@ Cards["Raza Vega, Thunder Guardian"] = {
 }
 
 Cards["Roar of the Earth"] = {
+	price_tier = 1,
 	name = "Roar of the Earth",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_SPELL,
@@ -1263,6 +1308,7 @@ Cards["Roar of the Earth"] = {
 }
 
 Cards["Scratchclaw"] = {
+	price_tier = 3,
 	name = "Scratchclaw",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -1295,6 +1341,7 @@ Cards["Scratchclaw"] = {
 }
 
 Cards["Searing Wave"] = {
+	price_tier = 2,
 	name = "Searing Wave",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_SPELL,
@@ -1319,6 +1366,7 @@ Cards["Searing Wave"] = {
 }
 
 Cards["Shtra"] = {
+	price_tier = 1,
 	name = "Shtra",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -1348,6 +1396,7 @@ Cards["Shtra"] = {
 }
 
 Cards["Sieg Balicula, the Intense"] = {
+	price_tier = 4,
 	name = "Sieg Balicula, the Intense",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -1377,6 +1426,7 @@ Cards["Sieg Balicula, the Intense"] = {
 }
 
 Cards["Snake Attack"] = {
+	price_tier = 1,
 	name = "Snake Attack",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_SPELL,
@@ -1403,6 +1453,7 @@ Cards["Snake Attack"] = {
 }
 
 Cards["Snip Striker Bullraizer"] = {
+	price_tier = 1,
 	name = "Snip Striker Bullraizer",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -1431,6 +1482,7 @@ Cards["Snip Striker Bullraizer"] = {
 }
 
 Cards["Sniper Mosquito"] = {
+	price_tier = 1,
 	name = "Sniper Mosquito",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -1456,6 +1508,7 @@ Cards["Sniper Mosquito"] = {
 }
 
 Cards["Sparkle Flower"] = {
+	price_tier = 2,
 	name = "Sparkle Flower",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -1489,6 +1542,7 @@ Cards["Sparkle Flower"] = {
 }
 
 Cards["Stinger Ball"] = {
+	price_tier = 2,
 	name = "Stinger Ball",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -1516,6 +1570,7 @@ Cards["Stinger Ball"] = {
 }
 
 Cards["Sundrop Armor"] = {
+	price_tier = 1,
 	name = "Sundrop Armor",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_SPELL,
@@ -1534,6 +1589,7 @@ Cards["Sundrop Armor"] = {
 }
 
 Cards["Sword Butterfly"] = {
+	price_tier = 1,
 	name = "Sword Butterfly",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -1553,6 +1609,7 @@ Cards["Sword Butterfly"] = {
 }
 
 Cards["Uberdragon Jabaha"] = {
+	price_tier = 4,
 	name = "Uberdragon Jabaha",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -1582,6 +1639,7 @@ Cards["Uberdragon Jabaha"] = {
 }
 
 Cards["Ur Pale, Seeker of Sunlight"] = {
+	price_tier = 1,
 	name = "Ur Pale, Seeker of Sunlight",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
@@ -1615,6 +1673,7 @@ Cards["Ur Pale, Seeker of Sunlight"] = {
 }
 
 Cards["Volcanic Arrows"] = {
+	price_tier = 1,
 	name = "Volcanic Arrows",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_SPELL,
@@ -1644,6 +1703,7 @@ Cards["Volcanic Arrows"] = {
 }
 
 Cards["Wailing Shadow Belbetphlo"] = {
+	price_tier = 1,
 	name = "Wailing Shadow Belbetphlo",
 	set = "Rampage of the Super Warriors",
 	type = TYPE_CREATURE,
