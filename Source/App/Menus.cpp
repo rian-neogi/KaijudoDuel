@@ -1,6 +1,9 @@
 #include "Application.h"
 
 #include "AppSupport.h"
+#include "SoundManager.h"
+
+#include <algorithm>
 
 using namespace AppSupport;
 
@@ -11,6 +14,15 @@ namespace
 	const SDL_Rect SETTINGS_BUTTON = { 470, 426, 340, 58 };
 	const SDL_Rect QUIT_BUTTON = { 470, 498, 340, 58 };
 	const SDL_Rect SETTINGS_BACK_BUTTON = { 42, 718, 180, 50 };
+	const SDL_Rect SETTINGS_PANEL = { 150, 126, 980, 520 };
+	const SDL_Rect MUSIC_SLIDER = { 445, 246, 555, 12 };
+	const SDL_Rect SOUND_SLIDER = { 445, 356, 555, 12 };
+	const SDL_Rect AUTO_ACTION_TOGGLE = { 445, 472, 92, 42 };
+
+	SDL_Rect sliderHitbox(const SDL_Rect& slider)
+	{
+		return { slider.x - 12, slider.y - 20, slider.w + 24, 52 };
+	}
 }
 
 void Application::handlePauseMenuEvent(const SDL_Event& event)
@@ -103,22 +115,113 @@ void Application::handleSettingsEvent(const SDL_Event& event)
 {
 	if (event.type == SDL_KEYDOWN && !event.key.repeat && event.key.keysym.sym == SDLK_ESCAPE)
 	{
+		mSettingsDraggingSlider = 0;
+		saveSettings();
 		mScreen = Screen::Overworld;
+		return;
+	}
+
+	auto updateSlider = [this](int slider, int mouseX)
+	{
+		const SDL_Rect& track = slider == 1 ? MUSIC_SLIDER : SOUND_SLIDER;
+		int value = std::max(0, std::min(100,
+			(mouseX - track.x) * 100 / track.w));
+		if (slider == 1)
+		{
+			mMusicVolume = value;
+			if (mSoundManager != NULL) mSoundManager->setMusicVolume(value);
+		}
+		else
+		{
+			mSoundVolume = value;
+			if (mSoundManager != NULL) mSoundManager->setSoundVolume(value);
+		}
+	};
+
+	if (event.type == SDL_MOUSEMOTION && mSettingsDraggingSlider != 0)
+	{
+		int x, y;
+		logicalMouse(event.motion.x, event.motion.y, x, y);
+		updateSlider(mSettingsDraggingSlider, x);
+		return;
+	}
+	if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT)
+	{
+		if (mSettingsDraggingSlider != 0)
+		{
+			mSettingsDraggingSlider = 0;
+			saveSettings();
+		}
 		return;
 	}
 	if (event.type != SDL_MOUSEBUTTONDOWN || event.button.button != SDL_BUTTON_LEFT) return;
 	int x, y;
 	logicalMouse(event.button.x, event.button.y, x, y);
-	if (contains(SETTINGS_BACK_BUTTON, x, y)) mScreen = Screen::Overworld;
+	if (contains(SETTINGS_BACK_BUTTON, x, y))
+	{
+		mSettingsDraggingSlider = 0;
+		saveSettings();
+		mScreen = Screen::Overworld;
+		return;
+	}
+	if (contains(sliderHitbox(MUSIC_SLIDER), x, y))
+	{
+		mSettingsDraggingSlider = 1;
+		updateSlider(1, x);
+		return;
+	}
+	if (contains(sliderHitbox(SOUND_SLIDER), x, y))
+	{
+		mSettingsDraggingSlider = 2;
+		updateSlider(2, x);
+		return;
+	}
+	if (contains(AUTO_ACTION_TOGGLE, x, y))
+	{
+		mAutoChooseOnlyAction = !mAutoChooseOnlyAction;
+		saveSettings();
+	}
 }
 
 void Application::renderSettings()
 {
 	fillRect({ 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT }, 12, 19, 31);
 	drawText("SETTINGS", 52, 44, color(244, 207, 112), 38);
-	fillRect({ 42, 112, 1196, 565 }, 21, 29, 45, 245);
-	outlineRect({ 42, 112, 1196, 565 }, 115, 145, 190, 255, 2);
-	drawText("Settings will be added here later.", 420, 365, color(178, 194, 217), 20);
+	fillRect(SETTINGS_PANEL, 21, 29, 45, 245);
+	outlineRect(SETTINGS_PANEL, 115, 145, 190, 255, 2);
+
+	auto drawSlider = [this](const SDL_Rect& track, int value, const std::string& label)
+	{
+		drawText(label, 220, track.y - 12, color(232, 237, 246), 20);
+		fillRect(track, 47, 60, 82, 255);
+		SDL_Rect filled = track;
+		filled.w = track.w * value / 100;
+		fillRect(filled, 100, 166, 225, 255);
+		int knobX = track.x + track.w * value / 100;
+		fillRect({ knobX - 8, track.y - 9, 16, 30 }, 221, 232, 245, 255);
+		outlineRect({ knobX - 8, track.y - 9, 16, 30 }, 78, 112, 151, 255, 2);
+		drawText(std::to_string(value) + "%", 1025, track.y - 12,
+			color(177, 200, 226), 18);
+	};
+	drawSlider(MUSIC_SLIDER, mMusicVolume, "Music volume");
+	drawSlider(SOUND_SLIDER, mSoundVolume, "Sound volume");
+
+	drawText("Auto-choose only duel action", 220, 480, color(232, 237, 246), 20);
+	fillRect(AUTO_ACTION_TOGGLE,
+		mAutoChooseOnlyAction ? 47 : 55,
+		mAutoChooseOnlyAction ? 137 : 64,
+		mAutoChooseOnlyAction ? 89 : 78, 255);
+	outlineRect(AUTO_ACTION_TOGGLE,
+		mAutoChooseOnlyAction ? 104 : 112,
+		mAutoChooseOnlyAction ? 213 : 119,
+		mAutoChooseOnlyAction ? 144 : 133, 255, 2);
+	drawText(mAutoChooseOnlyAction ? "ON" : "OFF",
+		AUTO_ACTION_TOGGLE.x + (mAutoChooseOnlyAction ? 29 : 22),
+		AUTO_ACTION_TOGGLE.y + 11, color(241, 245, 249), 17);
+	drawText("When exactly one legal action is available, the duel will choose it after a short pause.",
+		565, 477, color(161, 178, 202), 15, 485);
+	drawText("Drag either slider to adjust it. Changes are saved automatically.",
+		220, 580, color(139, 159, 185), 14);
 	fillRect(SETTINGS_BACK_BUTTON, 35, 50, 75, 250);
 	outlineRect(SETTINGS_BACK_BUTTON, 112, 149, 205, 255, 2);
 	drawText("Back", SETTINGS_BACK_BUTTON.x + 58, SETTINGS_BACK_BUTTON.y + 13,

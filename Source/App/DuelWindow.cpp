@@ -22,6 +22,8 @@ namespace
 	const SDL_Rect ACTION_LOG_OVERLAY = { 115, 75, 1050, 650 };
 	const SDL_Rect ACTION_LOG_CLOSE = { 1095, 91, 44, 36 };
 	constexpr int ACTION_LOG_PAGE_SIZE = 17;
+	constexpr Uint32 AI_MOVE_DELAY_MS = 600;
+	constexpr Uint32 AI_MANA_TAP_DELAY_MS = 100;
 
 	std::string deckDisplayName(const std::string& path)
 	{
@@ -30,6 +32,20 @@ namespace
 		if (name.size() > 4 && name.substr(name.size() - 4) == ".txt")
 			name.resize(name.size() - 4);
 		return name;
+	}
+
+	std::string actionIdentity(const Message& message)
+	{
+		std::string identity;
+		for (std::map<std::string, std::string>::const_iterator value = message.map.begin();
+			value != message.map.end(); ++value)
+		{
+			identity += value->first;
+			identity += '=';
+			identity += value->second;
+			identity += ';';
+		}
+		return identity;
 	}
 }
 
@@ -66,6 +82,9 @@ bool Application::startDuelWithDecks(const std::string& playerDeck,
 	mHoveredCard = -1;
 	mHoverCandidateCard = -1;
 	mHoverCandidateSince = 0;
+	mOnlyActionCandidate.clear();
+	mOnlyActionCandidateSince = 0;
+	mOnlyActionDispatched = false;
 	cancelDrag();
 	mCardAnimations.clear();
 	mActionScroll = 0;
@@ -99,6 +118,9 @@ void Application::stopDuel()
 	mHoveredCard = -1;
 	mHoverCandidateCard = -1;
 	mHoverCandidateSince = 0;
+	mOnlyActionCandidate.clear();
+	mOnlyActionCandidateSince = 0;
+	mOnlyActionDispatched = false;
 	cancelDrag();
 }
 
@@ -373,23 +395,62 @@ void Application::updateDuel(Uint32 deltaTime)
 	updateCardAnimations(deltaTime);
 	Uint32 now = SDL_GetTicks();
 	int winner = -1;
+	Message automaticAction;
+	bool chooseAutomaticAction = false;
 	{
 		std::lock_guard<std::mutex> lock(gMutex);
 		winner = mDuel->mWinner;
 		if (winner == -1 && mDuel->getPlayerToMove() == 1 && now >= mNextAiMove && !mDuel->mMsgMngr.hasMoreMessages())
 		{
 			std::vector<Message> moves = mDuel->getPossibleMoves();
+			Uint32 nextMoveDelay = AI_MOVE_DELAY_MS;
 			if (!moves.empty())
 			{
 				const std::string personality = mActiveNpc >= 0 ?
 					mNpcs[mActiveNpc].aiPersonality : "balanced";
 				HeuristicBot rival(1, personality);
 				Message move = rival.chooseMove(*mDuel, moves);
+				if (move.getType() == "manatap") nextMoveDelay = AI_MANA_TAP_DELAY_MS;
 				mDuel->handleInterfaceInput(move);
 			}
-			mNextAiMove = now + 600;
+			mNextAiMove = now + nextMoveDelay;
+		}
+
+		bool canChoose = winner == -1 && mAutoChooseOnlyAction &&
+			mDuel->getPlayerToMove() == 0 && !mDuel->mMsgMngr.hasMoreMessages() &&
+			!mActionLogOpen && mOpenGraveyardPlayer < 0 && mDraggingCard < 0;
+		if (canChoose)
+		{
+			std::vector<Message> actions = mDuel->getPossibleMoves();
+			if (actions.size() == 1)
+			{
+				std::string identity = actionIdentity(actions[0]);
+				if (identity != mOnlyActionCandidate)
+				{
+					mOnlyActionCandidate = identity;
+					mOnlyActionCandidateSince = now;
+					mOnlyActionDispatched = false;
+				}
+				else if (!mOnlyActionDispatched && now - mOnlyActionCandidateSince >= 350)
+				{
+					automaticAction = actions[0];
+					mOnlyActionDispatched = true;
+					chooseAutomaticAction = true;
+				}
+			}
+			else
+			{
+				mOnlyActionCandidate.clear();
+				mOnlyActionDispatched = false;
+			}
+		}
+		else
+		{
+			mOnlyActionCandidate.clear();
+			mOnlyActionDispatched = false;
 		}
 	}
+	if (chooseAutomaticAction) playAction(automaticAction);
 
 	if (winner != -1 && mDuelResult == -1)
 	{

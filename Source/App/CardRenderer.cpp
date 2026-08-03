@@ -32,18 +32,28 @@ void Application::drawHand(const std::vector<Card*>& cards, bool opponent)
 	if (cards.empty()) return;
 	const int cardWidth = opponent ? 76 : 88;
 	const int cardHeight = opponent ? 106 : 122;
-	const int availableWidth = opponent ? 440 : 660;
 	const float midpoint = ((float)cards.size() - 1.f) * 0.5f;
-	const int step = cards.size() == 1 ? cardWidth :
-		std::min(cardWidth - 8, std::max(30, (availableWidth - cardWidth) / ((int)cards.size() - 1)));
-	const int totalWidth = cardWidth + step * ((int)cards.size() - 1);
-	const int startX = 490 - totalWidth / 2;
+	const float angleStep = cards.size() <= 1 ? 0.f :
+		std::min(11.f, 64.f / ((float)cards.size() - 1.f));
+	const float pivotX = 490.f;
+	const float radius = cardHeight * 2.3f;
+	const float middleCenterY = (opponent ? -48.f : 650.f) + cardHeight * 0.5f;
+	const float pivotY = middleCenterY + (opponent ? -radius : radius);
+	const float degreesToRadians = 3.14159265f / 180.f;
 	for (size_t i = 0; i < cards.size(); ++i)
 	{
 		const float offset = (float)i - midpoint;
-		const float angle = std::max(-22.f, std::min(22.f, offset * (opponent ? -5.f : 5.f)));
-		const int arc = (int)std::round(std::fabs(offset) * 4.f);
-		SDL_Rect rect = { startX + (int)i * step, opponent ? -48 + arc : 650 + arc, cardWidth, cardHeight };
+		const float angle = offset * angleStep * (opponent ? -1.f : 1.f);
+		const float radians = angle * degreesToRadians;
+		const float centerX = pivotX + (opponent ? -1.f : 1.f) *
+			std::sin(radians) * radius;
+		const float centerY = pivotY + (opponent ? 1.f : -1.f) *
+			std::cos(radians) * radius;
+		SDL_Rect rect = {
+			(int)std::round(centerX - cardWidth * 0.5f),
+			(int)std::round(centerY - cardHeight * 0.5f),
+			cardWidth, cardHeight
+		};
 		drawCard(cards[i], rect, !opponent, cards[i]->mUniqueId == mSelectedCard, !opponent, angle);
 	}
 }

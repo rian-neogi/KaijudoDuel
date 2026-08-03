@@ -27,7 +27,9 @@ Application::Application(bool worldBuilder)
 	  mNextAiMove(0), mDuelResult(-1), mDuelResultAt(0), mDraggingCard(-1),
 	  mDragFromZone(-1), mDragOrigin({ 0, 0, 0, 0 }), mDragMouseX(0), mDragMouseY(0),
 	  mMouseX(-100), mMouseY(-100), mHoveredCard(-1), mHoverCandidateCard(-1),
-	  mHoverCandidateSince(0), mPlayerDataLoaded(false), mMoney(0), mActiveDeckIndex(-1),
+	  mHoverCandidateSince(0), mOnlyActionCandidateSince(0), mOnlyActionDispatched(false),
+	  mPlayerDataLoaded(false), mSettingsLoaded(false), mMusicVolume(35), mSoundVolume(100),
+	  mAutoChooseOnlyAction(false), mSettingsDraggingSlider(0), mMoney(0), mActiveDeckIndex(-1),
 	  mEditingDeckIndex(-1), mDeckCollectionPage(0), mDeckListScroll(0),
 	  mDeckContentsScroll(0), mDeckSearchFocused(false), mDeckRenameFocused(false),
 	  mDeckNoticeUntil(0), mDeckHoveredCard(-1), mShopHoveredCard(-1), mShopPage(0),
@@ -110,6 +112,7 @@ bool Application::initialize()
 	if (mCardBackTexture == NULL)
 		std::cerr << "Card-back texture unavailable; using fallback colors: " << IMG_GetError() << std::endl;
 
+	loadSettings();
 	mRunning = true;
 	return true;
 }
@@ -446,6 +449,16 @@ void Application::handleEvent(const SDL_Event& event)
 
 void Application::update(Uint32 deltaTime)
 {
+	if (mSoundManager != NULL)
+	{
+		const std::string& mapId = currentMapId();
+		bool inEmberglen = mapId == "emberglen" || mapId == "mercers_house" ||
+			mapId == "rook_mira_home";
+		bool townScreen = mScreen == Screen::Overworld || mScreen == Screen::DeckBuilder ||
+			mScreen == Screen::Settings || mScreen == Screen::Shop;
+		if (inEmberglen && townScreen) mSoundManager->playEmberglenTheme();
+		else mSoundManager->stopMusic();
+	}
 	if (mScreen == Screen::Overworld) updateOverworld(deltaTime);
 	else if (mScreen == Screen::Duel) updateDuel(deltaTime);
 }

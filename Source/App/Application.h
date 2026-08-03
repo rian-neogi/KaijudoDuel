@@ -223,6 +223,7 @@ private:
 	bool contains(const SDL_Rect& rect, int x, int y) const;
 
 	void ensurePlayerDataLoaded();
+	void loadSettings();
 	void handleDeckBuilderEvent(const SDL_Event& event);
 	void renderDeckBuilder();
 	void renderDeckBuilderHoverPreview();
@@ -236,6 +237,7 @@ private:
 	std::string availableDeckPath(const std::string& name, const std::string& currentPath) const;
 	void showDeckNotice(const std::string& notice);
 	void savePlayerProgress();
+	void saveSettings();
 	void awardNpcVictory(int npcIndex);
 
 	void enterShop();
@@ -328,8 +330,16 @@ private:
 	int mHoveredCard;
 	int mHoverCandidateCard;
 	Uint32 mHoverCandidateSince;
+	std::string mOnlyActionCandidate;
+	Uint32 mOnlyActionCandidateSince;
+	bool mOnlyActionDispatched;
 
 	bool mPlayerDataLoaded;
+	bool mSettingsLoaded;
+	int mMusicVolume;
+	int mSoundVolume;
+	bool mAutoChooseOnlyAction;
+	int mSettingsDraggingSlider;
 	int mMoney;
 	std::set<std::string> mCollectedShards;
 	std::set<std::string> mMercerShards;

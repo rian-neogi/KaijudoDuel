@@ -109,6 +109,32 @@ namespace
 	}
 }
 
+void Application::loadSettings()
+{
+	if (mSettingsLoaded) return;
+	mSettingsLoaded = true;
+	ensureDirectory(PLAYER_DATA_DIRECTORY);
+
+	std::ifstream settings("PlayerData/settings.txt");
+	std::string setting;
+	while (std::getline(settings, setting))
+	{
+		if (setting.find("music_volume=") == 0)
+			mMusicVolume = std::max(0, std::min(100,
+				std::atoi(setting.substr(13).c_str())));
+		else if (setting.find("sound_volume=") == 0)
+			mSoundVolume = std::max(0, std::min(100,
+				std::atoi(setting.substr(13).c_str())));
+		else if (setting.find("auto_choose_only_action=") == 0)
+			mAutoChooseOnlyAction = std::atoi(setting.substr(24).c_str()) != 0;
+	}
+	if (mSoundManager != NULL)
+	{
+		mSoundManager->setMusicVolume(mMusicVolume);
+		mSoundManager->setSoundVolume(mSoundVolume);
+	}
+}
+
 void Application::ensurePlayerDataLoaded()
 {
 	if (mPlayerDataLoaded) return;
@@ -116,6 +142,7 @@ void Application::ensurePlayerDataLoaded()
 	ensureDirectory(PLAYER_DATA_DIRECTORY);
 	ensureDirectory(PLAYER_DECK_DIRECTORY);
 	mCollectionCounts.assign(gCardDatabase.size(), 0);
+	loadSettings();
 
 	std::ifstream collection("PlayerData/collection.txt");
 	bool collectionLoaded = false;
@@ -262,6 +289,15 @@ void Application::savePlayerProgress()
 	}
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 		if (mNpcs[i].isDuelist()) progress << "npc." << mNpcs[i].id << "=" << mNpcs[i].wins << "\n";
+}
+
+void Application::saveSettings()
+{
+	ensureDirectory(PLAYER_DATA_DIRECTORY);
+	std::ofstream settings("PlayerData/settings.txt", std::ios::trunc);
+	settings << "music_volume=" << mMusicVolume << "\n";
+	settings << "sound_volume=" << mSoundVolume << "\n";
+	settings << "auto_choose_only_action=" << (mAutoChooseOnlyAction ? 1 : 0) << "\n";
 }
 
 void Application::awardNpcVictory(int npcIndex)
