@@ -55,6 +55,42 @@ Abils.Evolution = function(id,race)
     end
 end
 
+Abils.VortexEvolution = function(id,race1,race2) --test
+	if(getMessageType()=="get creatureisevolution" and getMessageInt("creature")==id) then
+		setMessageInt("isevolution",1)
+	elseif(getMessageType()=="get creatureevolutionbaitcount" and getMessageInt("evolution")==id) then
+		setMessageInt("baitcount",2)
+	elseif(getMessageType()=="get creaturecanvortexevolve" and getMessageInt("evolution")==id) then
+		local bait1=getMessageInt("evobait")
+		local bait2=getMessageInt("evobait2")
+		if((isCreatureOfRace(bait1,race1)==1 and isCreatureOfRace(bait2,race2)==1) or
+			(isCreatureOfRace(bait1,race2)==1 and isCreatureOfRace(bait2,race1)==1)) then
+			setMessageInt("canevolve",1)
+		end
+	end
+end
+
+WaveStrikerCards = WaveStrikerCards or {}
+
+Abils.WaveStrikerActive = function(id)
+	local count=0
+	for player=0,1 do
+		for i=0,getZoneSize(player,ZONE_BATTLE)-1 do
+			local card=getCardAt(player,ZONE_BATTLE,i)
+			if(card~=id and WaveStrikerCards[getCardName(card)]) then
+				count=count+1
+			end
+		end
+	end
+	return count>=2
+end
+
+Abils.onWaveStrikerSummon = function(id,ability)
+	Abils.onSummon(id,function(id)
+		if(Abils.WaveStrikerActive(id)) then ability(id) end
+	end)
+end
+
 Abils.bonusPower = function(id, power)
     if(getMessageType()=="get creaturepower") then
 		if(getMessageInt("creature")==id) then

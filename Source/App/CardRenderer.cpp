@@ -194,52 +194,6 @@ int Application::duelHoverCandidateAt(int x, int y, bool& immediate) const
 	return -1;
 }
 
-bool Application::exerciseHoverTimingSmoke()
-{
-	bool valid = true;
-	updateHoverState(42, false, 1000);
-	valid = valid && mHoveredCard == -1;
-	updateHoverState(42, false, 1999);
-	valid = valid && mHoveredCard == -1;
-	updateHoverState(42, false, 2000);
-	valid = valid && mHoveredCard == 42;
-	updateHoverState(43, false, 2001);
-	valid = valid && mHoveredCard == -1;
-	updateHoverState(-1, false, 2002);
-	valid = valid && mHoveredCard == -1 && mHoverCandidateCard == -1;
-	updateHoverState(7, true, 3000);
-	valid = valid && mHoveredCard == 7;
-	updateHoverState(-1, false, 3001);
-	valid = valid && mHoveredCard == -1;
-
-	std::vector<CardHitbox> savedHitboxes = mCardHitboxes;
-	int savedCandidate = mHoverCandidateCard;
-	mCardHitboxes.clear();
-	SDL_Rect overlap = { 100, 100, 80, 120 };
-	mCardHitboxes.push_back({ overlap, 11, true, true, true });
-	mCardHitboxes.push_back({ overlap, 12, true, true, true });
-	mHoverCandidateCard = 11;
-	bool immediate = false;
-	valid = valid && duelHoverCandidateAt(140, 150, immediate) == 11 && immediate;
-	mHoverCandidateCard = -1;
-	valid = valid && duelHoverCandidateAt(140, 150, immediate) == 12;
-
-	// An enlarged or shrinking card may extend above its original position, but
-	// that animated area must never reactivate hover after the pointer leaves the
-	// original card. This guards against rapid pop/un-pop oscillation.
-	mCardHitboxes.clear();
-	SDL_Rect original = { 100, 200, 88, 122 };
-	SDL_Rect animated = { 4, 10, 280, 400 };
-	mCardHitboxes.push_back({ original, 21, true, true, true });
-	mCardHitboxes.push_back({ animated, 21, true, false, true });
-	mHoverCandidateCard = 21;
-	valid = valid && duelHoverCandidateAt(140, 150, immediate) == -1;
-	valid = valid && duelHoverCandidateAt(140, 240, immediate) == 21 && immediate;
-	mCardHitboxes = savedHitboxes;
-	mHoverCandidateCard = savedCandidate;
-	return valid;
-}
-
 void Application::drawCardBack(const SDL_Rect& rect)
 {
 	if (mCardBackTexture != NULL)

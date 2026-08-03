@@ -13,6 +13,7 @@ public:
 	void addCard(Card* c);
 	//void addCard(Card* c, int speedattacker);
 	void evolveCard(Card* c, int evobait); //removes the evobait and adds the evolution at its location
+	void vortexEvolveCard(Card* c, int evobait, int evobait2);
 	void removeCard(Card* c);
 	//void removeBait(Card* c);
 	void seperateEvolution(Card* c); //seperates a card stack

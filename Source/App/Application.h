@@ -112,6 +112,7 @@ private:
 	};
 
 	bool initialize();
+	int runSmokeTests();
 	void shutdown();
 	void handleEvent(const SDL_Event& event);
 	void update(Uint32 deltaTime);
@@ -182,6 +183,7 @@ private:
 	bool exerciseHeuristicBlockChoiceSmoke();
 	bool exerciseHeuristicManaConservationSmoke();
 	bool exerciseMultiCivilizationSmoke();
+	bool exerciseRaceQuerySmoke();
 	bool exerciseBinaryChoiceSmoke();
 	bool exerciseActionLabelSmoke();
 	bool beginMandatorySacrificeAiSmoke(const std::string& cardName, int& summonedCard, int& sacrifice);

@@ -17,43 +17,19 @@ local topCard = function(player)
 	return getCardAt(player,ZONE_DECK,size-1)
 end
 
-local waveStrikerCards = {
-	["Klujadras"] = true,
-	["Asra, Vizier of Safety"] = true,
-	["Lamiel, Destiny Enforcer"] = true,
-	["Merlee, the Oracle"] = true,
-	["Aqua Trickster"] = true,
-	["Revival Soldier"] = true,
-	["Hazaria, Duke of Thorns"] = true,
-	["Jagila, the Hidden Pillager"] = true,
-	["Saliva Worm"] = true,
-	["Bonfire Lizard"] = true,
-	["Eviscerating Warrior Lumez"] = true,
-	["Sapian Tark, Flame Dervish"] = true,
-	["Macho Melon"] = true,
-	["Ninja Pumpkin"] = true,
-	["Skyscraper Shell"] = true
-}
-
-local waveStrikerActive = function(id)
-	local count = 0
-	for player=0,1 do
-		for _,card in ipairs(zoneCards(player,ZONE_BATTLE)) do
-			if(card~=id and waveStrikerCards[getCardName(card)]) then
-				count = count+1
-			end
-		end
-	end
-	return count>=2
+local waveStrikerCards = WaveStrikerCards
+for _,name in ipairs({
+	"Klujadras","Asra, Vizier of Safety","Lamiel, Destiny Enforcer",
+	"Merlee, the Oracle","Aqua Trickster","Revival Soldier",
+	"Hazaria, Duke of Thorns","Jagila, the Hidden Pillager","Saliva Worm",
+	"Bonfire Lizard","Eviscerating Warrior Lumez","Sapian Tark, Flame Dervish",
+	"Macho Melon","Ninja Pumpkin","Skyscraper Shell"
+}) do
+	waveStrikerCards[name]=true
 end
 
-local onWaveStrikerSummon = function(id,ability)
-	Abils.onSummon(id,function(id)
-		if(waveStrikerActive(id)) then
-			ability(id)
-		end
-	end)
-end
+local waveStrikerActive = Abils.WaveStrikerActive
+local onWaveStrikerSummon = Abils.onWaveStrikerSummon
 
 local silentSkill = function(id,ability)
 	if(getMessageType()=="pre startturn" and getMessageInt("player")==getCardOwner(id) and getCardZone(id)==ZONE_BATTLE and isCardTapped(id)==1) then

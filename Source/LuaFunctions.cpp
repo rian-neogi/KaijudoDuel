@@ -585,6 +585,12 @@ static int hasCreatureBrokenShieldThisTurn(lua_State* L)
 	return 1;
 }
 
+static int getCardsDrawnThisTurn(lua_State* L)
+{
+	lua_pushinteger(L, ActiveDuel->getCardsDrawnThisTurn(lua_tointeger(L, 1)));
+	return 1;
+}
+
 static int getEvoStackSize(lua_State* L)
 {
 	Card* card = cardFromLua(L, 1);
@@ -692,6 +698,7 @@ void registerLua(lua_State* L)
 	lua_register(L, "getDefenderType", getDefenderType);
 	lua_register(L, "hasOtherCreatureBrokenShieldThisTurn", hasOtherCreatureBrokenShieldThisTurn);
 	lua_register(L, "hasCreatureBrokenShieldThisTurn", hasCreatureBrokenShieldThisTurn);
+	lua_register(L, "getCardsDrawnThisTurn", getCardsDrawnThisTurn);
 	lua_register(L, "getEvoStackSize", getEvoStackSize);
 	lua_register(L, "getEvoStackAt", getEvoStackAt);
 	lua_register(L, "loseGame", loseGame);

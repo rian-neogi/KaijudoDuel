@@ -256,6 +256,7 @@ double HeuristicBot::scoreMove(Duel& duel, const Message& move) const
 		int card = messageInt(move, "card");
 		double score = 42.0 + cardValue(duel, card, true) * 4.0;
 		if (messageInt(move, "evobait") >= 0) score += 8.0;
+		if (messageInt(move, "evobait2") >= 0) score += 8.0;
 		return adjusted(score);
 	}
 	if (type == "manatap") return adjusted(20.0);

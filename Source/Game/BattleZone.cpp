@@ -75,6 +75,51 @@ void BattleZone::evolveCard(Card* c, int evobait)
 	mCards.at(ebloc) = c;
 }
 
+void BattleZone::vortexEvolveCard(Card* c, int evobait, int evobait2)
+{
+	if (evobait == evobait2)
+	{
+		printf("ERROR: attempting vortex evolution on the same card twice, cid: %d\n", evobait);
+		return;
+	}
+
+	Card* first = NULL;
+	Card* second = NULL;
+	size_t firstLocation = 0;
+	size_t secondLocation = 0;
+	for (size_t i = 0; i < mCards.size(); ++i)
+	{
+		if (mCards[i]->mUniqueId == evobait)
+		{
+			first = mCards[i];
+			firstLocation = i;
+		}
+		else if (mCards[i]->mUniqueId == evobait2)
+		{
+			second = mCards[i];
+			secondLocation = i;
+		}
+	}
+	if (first == NULL || second == NULL)
+	{
+		printf("ERROR: attempting vortex evolution on cards not in battlezone, cids: %d, %d\n",
+			evobait, evobait2);
+		return;
+	}
+
+	c->unflip();
+	c->untap();
+	c->mIsVisible[0] = true;
+	c->mIsVisible[1] = true;
+	c->mSummoningSickness = 0;
+	first->mZone = ZONE_EVOLVED;
+	second->mZone = ZONE_EVOLVED;
+	c->mEvoStack.push_back(first);
+	c->mEvoStack.push_back(second);
+	mCards[firstLocation] = c;
+	mCards.erase(mCards.begin() + secondLocation);
+}
+
 void BattleZone::removeCard(Card* c)
 {
 	int x = 0;

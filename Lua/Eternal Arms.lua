@@ -42,7 +42,7 @@ local silentNames = {
 	["Soderlight, the Cold Blade"] = true
 }
 
-local silentSkill = function(id,ability) --test
+local silentSkill = function(id,ability)
 	if(getMessageType()=="pre startturn" and getMessageInt("player")==getCardOwner(id) and getCardZone(id)==ZONE_BATTLE and isCardTapped(id)==1) then
 		local use = createChoiceNoCheck("Use this creature's silent skill?",2,id,getCardOwner(id),Checks.False)
 		if(use==RETURN_BUTTON1) then
@@ -240,14 +240,21 @@ Cards["Ultimate Dragon"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
+		local message=getMessageType()
+		if((message~="get creaturepower" and message~="get creaturebreaker") or getMessageInt("creature")~=id) then
+			return
+		end
 		local dragons=0
 		for _,card in ipairs(zoneCards(getCardOwner(id),ZONE_BATTLE)) do
 			if(card~=id and isCreatureOfRace(card,"Dragon")==1) then
 				dragons=dragons+1
 			end
 		end
-		Abils.bonusPower(id,dragons*5000)
-		Abils.Breaker(id,dragons+1)
+		if(message=="get creaturepower") then
+			Abils.bonusPower(id,dragons*5000)
+		else
+			Abils.Breaker(id,dragons+1)
+		end
 	end
 }
 

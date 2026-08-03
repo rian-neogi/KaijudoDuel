@@ -49,12 +49,14 @@ public:
 	int mBreakCount;
 	std::vector<int> mShieldTargets;
 	std::unordered_set<int> mShieldBreakersThisTurn[2];
+	int mCardsDrawnThisTurn[2];
 	int mAttackphase;
 
 	int mCastingCard;
 	int mCastingCivilizations;
 	int mCastingCost;
 	int mCastingEvobait;
+	int mCastingEvobait2;
 	std::vector<int> mCastingManaCards;
 
 	Choice* mChoice;
@@ -63,6 +65,7 @@ public:
 	bool mIsChoiceActive;
 	std::vector<int> mChoiceValidCards;
 	bool mZeroPowerCheckPending;
+	int mRaceQueryDepth;
 
 	int mWinner;
 
@@ -167,9 +170,13 @@ public:
 	int isCreatureOfRace(int uid, std::string race); //finds if the word race exists in the creature's race
 	std::string getCreatureRace(int uid); //returns the full race string of the creature
 	int getCreatureCanEvolve(int evo, int bait);
+	int getCreatureCanVortexEvolve(int evo, int bait, int bait2);
+	int getEvolutionBaitCount(int evo);
+	int getShieldChooser(int chooser, int shieldOwner);
 	int getCreatureHasTapAbility(int uid);
 	bool hasCreatureBrokenShieldThisTurn(int uid) const;
 	bool hasOtherCreatureBrokenShieldThisTurn(int uid) const;
+	int getCardsDrawnThisTurn(int player) const;
 };
 
 extern Duel* ActiveDuel;

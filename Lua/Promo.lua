@@ -130,9 +130,9 @@ Cards["Gigagrax"] = {
 	end
 }
 
-Cards["Loth Rix, the Iridescent"] = {
+Cards["Loth Rix, The Iridescent"] = {
 	price_tier = 3,
-	name = "Loth Rix, the Iridescent",
+	name = "Loth Rix, The Iridescent",
 	set = "Promo",
 	type = TYPE_CREATURE,
 	civilization = CIV_LIGHT,

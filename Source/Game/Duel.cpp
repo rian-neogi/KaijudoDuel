@@ -8,6 +8,12 @@
 
 std::mutex gMutex;
 
+static int optionalMessageInt(const Message& message, const char* key, int fallback)
+{
+	std::map<std::string, std::string>::const_iterator value = message.map.find(key);
+	return value == message.map.end() ? fallback : std::atoi(value->second.c_str());
+}
+
 Duel::Duel()
 {
 	mInputLoopRunning = true;
@@ -32,6 +38,7 @@ Duel::Duel()
 		mHands[i].mOwner = i;
 		mManazones[i].mOwner = i;
 		mShields[i].mOwner = i;
+		mCardsDrawnThisTurn[i] = 0;
 
 	//	decks[i].x = ZONE2X;
 	//	graveyards[i].x = ZONE2X;
@@ -92,12 +99,15 @@ Duel::Duel()
 	mCastingCard = -1;
 	mCastingCivilizations = 0;
 	mCastingCost = -1;
+	mCastingEvobait = -1;
+	mCastingEvobait2 = -1;
 
 	mIsChoiceActive = false;
 	mChoice = NULL;
 	mChoiceCard = -1;
 	mChoicePlayer = -1;
 	mZeroPowerCheckPending = false;
+	mRaceQueryDepth = 0;
 
 	mWinner = -1;
 
@@ -132,16 +142,21 @@ void Duel::copyFrom(Duel* duel) //incomplete, not used
 	mBreakCount = duel->mBreakCount;
 	mShieldBreakersThisTurn[0] = duel->mShieldBreakersThisTurn[0];
 	mShieldBreakersThisTurn[1] = duel->mShieldBreakersThisTurn[1];
+	mCardsDrawnThisTurn[0] = duel->mCardsDrawnThisTurn[0];
+	mCardsDrawnThisTurn[1] = duel->mCardsDrawnThisTurn[1];
 
 	mCastingCard = duel->mCastingCard;
 	mCastingCivilizations = duel->mCastingCivilizations;
 	mCastingCost = duel->mCastingCost;
+	mCastingEvobait = duel->mCastingEvobait;
+	mCastingEvobait2 = duel->mCastingEvobait2;
 	mCastingManaCards = duel->mCastingManaCards;
 
 	mIsChoiceActive = duel->mIsChoiceActive;
 	mChoiceCard = duel->mChoiceCard;
 	mChoicePlayer = duel->mChoicePlayer;
 	mZeroPowerCheckPending = false;
+	mRaceQueryDepth = 0;
 
 	mWinner = duel->mWinner;
 
@@ -190,15 +205,23 @@ int Duel::handleMessage(Message& msg)
 		Card* c = mCardList.at(cid);
 		int owner = c->mOwner;
 		int fromzone = c->mZone;
+		if (fromzone == ZONE_BATTLE && optionalMessageInt(msg, "separateevolution", 0) == 1 &&
+			!c->mEvoStack.empty())
+			mBattlezones[owner].seperateEvolution(c);
 		getZone(owner, c->mZone)->removeCard(c);
 		bool isEvolution = tozone == ZONE_BATTLE && getIsEvolution(cid) == 1;
+		int evobait = optionalMessageInt(msg, "evobait", -1);
+		int evobait2 = optionalMessageInt(msg, "evobait2", -1);
 		if (isEvolution) //evolution creatures
 		{
-			int evobait = msg.getInt("evobait");
 			if (evobait == -1)
 			{
 				getZone(owner, tozone)->addCard(c);
 				mBattlezones[owner].addCard(c);
+			}
+			else if (evobait2 != -1)
+			{
+				mBattlezones[owner].vortexEvolveCard(c, evobait, evobait2);
 			}
 			else
 			{
@@ -213,6 +236,17 @@ int Duel::handleMessage(Message& msg)
 				getZone(owner, tozone)->addCard(c);
 		}
 		c->mZone = tozone;
+		if (fromzone == ZONE_DECK && tozone == ZONE_HAND &&
+			optionalMessageInt(msg, "draw", 0) == 1)
+			mCardsDrawnThisTurn[owner]++;
+		if (isEvolution && evobait != -1)
+		{
+			Message evolved("creatureevolve");
+			evolved.addValue("evolution", cid);
+			evolved.addValue("evobait", evobait);
+			evolved.addValue("evobait2", evobait2);
+			mMsgMngr.sendMessage(evolved);
+		}
 		if (tozone == ZONE_MANA &&
 			(c->mCivilizations & (c->mCivilizations - 1)) != 0)
 		{
@@ -289,13 +323,15 @@ int Duel::handleMessage(Message& msg)
 	else if (msg.getType() == "cardplay")
 	{
 		int cid = msg.getInt("card");
-		int eb = msg.getInt("evobait");
+		int eb = optionalMessageInt(msg, "evobait", -1);
+		int eb2 = optionalMessageInt(msg, "evobait2", -1);
 		
 		Message m("cardmove");
 		m.addValue("card", cid);
 		m.addValue("from", mCardList.at(cid)->mZone);
 		m.addValue("to", ZONE_BATTLE);
 		m.addValue("evobait", eb);
+		m.addValue("evobait2", eb2);
 		mMsgMngr.sendMessage(m);
 		//if (!isSimulation)
 		//	SoundMngr->playSound(SOUND_PLAY);
@@ -445,6 +481,8 @@ int Duel::handleMessage(Message& msg)
 	else if (msg.getType() == "startturn")
 	{
 		int plyr = msg.getInt("player");
+		mCardsDrawnThisTurn[0] = 0;
+		mCardsDrawnThisTurn[1] = 0;
 		mTurnPhase = TURN_PHASE_MANA;
 		std::vector<Card*>::iterator i;
 		for (i = mBattlezones[plyr].mCards.begin(); i != mBattlezones[plyr].mCards.end(); i++) //untap creatures
@@ -464,6 +502,9 @@ int Duel::handleMessage(Message& msg)
 		//m.addValue("player", plyr);
 		//MsgMngr.sendMessage(m);
 		drawCards(plyr, 1);
+		Message startDraw("startturndraw");
+		startDraw.addValue("player", plyr);
+		mMsgMngr.sendMessage(startDraw);
 	}
 	else if (msg.getType() == "modifiercreate")
 	{
@@ -561,24 +602,17 @@ void Duel::undoMessage(Message& msg)
 		int tozone = msg.getInt("to");
 		Card* c = mCardList.at(cid);
 		int owner = c->mOwner;
-		getZone(owner, fromzone)->addCard(c);
-		if (tozone == ZONE_BATTLE && getIsEvolution(cid) == 1) //evolution creatures
+		if (tozone == ZONE_BATTLE)
 		{
-			int evobait = msg.getInt("evobait");
-			if (evobait == -1)
-			{
-				getZone(owner, tozone)->removeCard(c);
-				mBattlezones[owner].removeCard(c);
-			}
-			else
-			{
-				mBattlezones[owner].evolveCard(c, evobait);
-			}
+			if (getIsEvolution(cid) == 1 && !c->mEvoStack.empty())
+				mBattlezones[owner].seperateEvolution(c);
+			mBattlezones[owner].removeCard(c);
 		}
 		else
 		{
 			getZone(owner, tozone)->removeCard(c);
 		}
+		getZone(owner, fromzone)->addCard(c);
 		c->mZone = fromzone;
 		mWinner = -1;
 	}
@@ -634,6 +668,8 @@ int Duel::getPlayerToMove()
 		return mChoicePlayer;
 	if (mAttackphase == PHASE_BLOCK || mAttackphase == PHASE_TRIGGER)
 		return getOpponent(mTurn);
+	if (mAttackphase == PHASE_TARGET)
+		return getShieldChooser(mTurn, getOpponent(mTurn));
 	return mTurn;
 }
 
@@ -684,7 +720,7 @@ std::vector<Message> Duel::getPossibleMoves()
 		Message m("triggerskip");
 		moves.push_back(m);
 	}
-	else if (mAttackphase == PHASE_TARGET && player == mTurn) //target shields
+	else if (mAttackphase == PHASE_TARGET) //target shields
 	{
 		for (std::vector<Card*>::iterator i = mShields[getOpponent(mTurn)].mCards.begin(); i != mShields[getOpponent(mTurn)].mCards.end(); i++)
 		{
@@ -767,14 +803,37 @@ std::vector<Message> Duel::getPossibleMoves()
 			{
 				if (getIsEvolution((*card)->mUniqueId) == 1)
 				{
-					for (std::vector<Card*>::iterator bait = mBattlezones[mTurn].mCards.begin(); bait != mBattlezones[mTurn].mCards.end(); bait++)
+					if (getEvolutionBaitCount((*card)->mUniqueId) == 2)
 					{
-						if (getCreatureCanEvolve((*card)->mUniqueId, (*bait)->mUniqueId) == 1)
+						for (size_t first = 0; first < mBattlezones[mTurn].mCards.size(); ++first)
 						{
-							Message play("cardplay");
-							play.addValue("card", (*card)->mUniqueId);
-							play.addValue("evobait", (*bait)->mUniqueId);
-							moves.push_back(play);
+							for (size_t second = first + 1; second < mBattlezones[mTurn].mCards.size(); ++second)
+							{
+								int bait = mBattlezones[mTurn].mCards[first]->mUniqueId;
+								int bait2 = mBattlezones[mTurn].mCards[second]->mUniqueId;
+								if (getCreatureCanVortexEvolve((*card)->mUniqueId, bait, bait2) == 1)
+								{
+									Message play("cardplay");
+									play.addValue("card", (*card)->mUniqueId);
+									play.addValue("evobait", bait);
+									play.addValue("evobait2", bait2);
+									moves.push_back(play);
+								}
+							}
+						}
+					}
+					else
+					{
+						for (std::vector<Card*>::iterator bait = mBattlezones[mTurn].mCards.begin(); bait != mBattlezones[mTurn].mCards.end(); bait++)
+						{
+							if (getCreatureCanEvolve((*card)->mUniqueId, (*bait)->mUniqueId) == 1)
+							{
+								Message play("cardplay");
+								play.addValue("card", (*card)->mUniqueId);
+								play.addValue("evobait", (*bait)->mUniqueId);
+								play.addValue("evobait2", -1);
+								moves.push_back(play);
+							}
 						}
 					}
 				}
@@ -783,6 +842,7 @@ std::vector<Message> Duel::getPossibleMoves()
 					Message play("cardplay");
 					play.addValue("card", (*card)->mUniqueId);
 					play.addValue("evobait", -1);
+					play.addValue("evobait2", -1);
 					moves.push_back(play);
 				}
 			}
@@ -854,16 +914,24 @@ int Duel::handleInterfaceInput(Message& msg)
 		if (mTurnPhase <= TURN_PHASE_MAIN && mManazones[mTurn].getUntappedMana() >= manacost &&
 			canPayForCard(mTurn, whichCard) && getCardCanCast(whichCard)==1) //has appropriate mana
 		{
-			int eb = msg.getInt("evobait");
+			int eb = optionalMessageInt(msg, "evobait", -1);
+			int eb2 = optionalMessageInt(msg, "evobait2", -1);
 			int e = getIsEvolution(whichCard);
-			if ((getCreatureCanEvolve(whichCard, eb) == 1 && e == 1) || e == 0) //can evolve if its an evolution
+			int baitCount = e == 1 ? getEvolutionBaitCount(whichCard) : 0;
+			bool legalEvolution = e == 1 &&
+				((baitCount == 2 &&
+					getCreatureCanVortexEvolve(whichCard, eb, eb2) == 1) ||
+				 (baitCount != 2 &&
+					getCreatureCanEvolve(whichCard, eb) == 1));
+			if (legalEvolution || e == 0)
 			{
 				mTurnPhase = TURN_PHASE_MAIN;
 				mCastingCard = whichCard;
 				mCastingCivilizations = getCardCivilizations(mCastingCard);
 				mCastingCost = getCardCost(mCastingCard);
 				mCastingManaCards.clear();
-				mCastingEvobait = msg.getInt("evobait");
+				mCastingEvobait = eb;
+				mCastingEvobait2 = eb2;
 			}
 			//MsgMngr.sendMessage(msg);
 		}
@@ -1029,6 +1097,7 @@ int Duel::handleInterfaceInput(Message& msg)
 						Message m("cardplay");
 						m.addValue("card", trigger);
 						m.addValue("evobait", -1);
+						m.addValue("evobait2", -1);
 						mMsgMngr.sendMessage(m);
 					}
 				}
@@ -1059,6 +1128,7 @@ int Duel::handleInterfaceInput(Message& msg)
 				Message msg3("cardplay");
 				msg3.addValue("card", mCastingCard);
 				msg3.addValue("evobait", mCastingEvobait);
+				msg3.addValue("evobait2", mCastingEvobait2);
 				mMsgMngr.sendMessage(msg3);
 				resetCasting();
 			}
@@ -1205,6 +1275,14 @@ void Duel::dispatchMessage(Message& msg)
 	std::vector<Card*>::iterator i;
 
 	mCurrentMessage = msg;
+	if (type == "cardmove" && mCurrentMessage.map.find("from") == mCurrentMessage.map.end())
+	{
+		int card = optionalMessageInt(mCurrentMessage, "card", -1);
+		if (card >= 0 && card < static_cast<int>(mCardList.size()))
+			mCurrentMessage.addValue("from", mCardList.at(card)->mZone);
+	}
+	if (type == "creaturebattle" && mCurrentMessage.map.find("blocked") == mCurrentMessage.map.end())
+		mCurrentMessage.addValue("blocked", 0);
 
 	mCurrentMessage.addValue("msgtype", "mod " + type);
 	for (i = mCardList.begin(); i != mCardList.end(); i++)
@@ -1321,6 +1399,29 @@ void Duel::checkChoiceValid()
 		mChoice = NULL;
 		resetChoice();
 		delete targetlessChoice;
+	}
+	else
+	{
+		int shieldOwner = -1;
+		bool onlyOnePlayersShields = true;
+		for (std::vector<int>::const_iterator card = mChoiceValidCards.begin();
+			card != mChoiceValidCards.end(); ++card)
+		{
+			if (mCardList.at(*card)->mZone != ZONE_SHIELD)
+			{
+				onlyOnePlayersShields = false;
+				break;
+			}
+			if (shieldOwner == -1)
+				shieldOwner = mCardList.at(*card)->mOwner;
+			else if (shieldOwner != mCardList.at(*card)->mOwner)
+			{
+				onlyOnePlayersShields = false;
+				break;
+			}
+		}
+		if (onlyOnePlayersShields && shieldOwner >= 0)
+			mChoicePlayer = getShieldChooser(mChoicePlayer, shieldOwner);
 	}
 }
 
@@ -1714,6 +1815,30 @@ int Duel::isCreatureOfRace(int uid, std::string race)
 
 std::string Duel::getCreatureRace(int uid)
 {
+	if (uid < 0 || uid >= static_cast<int>(mCardList.size()))
+		return "";
+
+	// Race-changing modifiers are queried by broadcasting get creaturerace to
+	// every card. Some continuous auras inspect creature races on every
+	// broadcast, so allowing those nested inspections to broadcast again
+	// recursively re-enters the same Lua callbacks until the C stack overflows.
+	// Nested checks only need a stable value while the outer race query is
+	// being assembled: use its current value for the same creature and the
+	// printed race for any other creature.
+	if (mRaceQueryDepth > 0)
+	{
+		if (mCurrentMessage.getType() == "get creaturerace" &&
+			optionalMessageInt(mCurrentMessage, "creature", -1) == uid)
+		{
+			std::map<std::string, std::string>::const_iterator race =
+				mCurrentMessage.map.find("race");
+			if (race != mCurrentMessage.map.end())
+				return race->second;
+		}
+		return mCardList.at(uid)->mRace;
+	}
+
+	++mRaceQueryDepth;
 	Message oldmsg = mCurrentMessage;
 	mCurrentMessage = Message("get creaturerace");
 	mCurrentMessage.addValue("race", mCardList.at(uid)->mRace);
@@ -1725,6 +1850,7 @@ std::string Duel::getCreatureRace(int uid)
 	}
 	std::string race = mCurrentMessage.getString("race");
 	mCurrentMessage = oldmsg;
+	--mRaceQueryDepth;
 	return race;
 }
 
@@ -1803,6 +1929,12 @@ bool Duel::canEndTurn()
 
 int Duel::getCreatureCanEvolve(int evo, int bait)
 {
+	if (evo < 0 || bait < 0 || evo >= static_cast<int>(mCardList.size()) ||
+		bait >= static_cast<int>(mCardList.size()) ||
+		mCardList[evo]->mOwner != mCardList[bait]->mOwner ||
+		mCardList[bait]->mZone != ZONE_BATTLE)
+		return 0;
+
 	Message oldmsg = mCurrentMessage;
 	mCurrentMessage = Message("get creaturecanevolve");
 	mCurrentMessage.addValue("canevolve", 0);
@@ -1817,6 +1949,64 @@ int Duel::getCreatureCanEvolve(int evo, int bait)
 	int c = mCurrentMessage.getInt("canevolve");
 	mCurrentMessage = oldmsg;
 	return c;
+}
+
+int Duel::getCreatureCanVortexEvolve(int evo, int bait, int bait2)
+{
+	if (evo < 0 || bait < 0 || bait2 < 0 || bait == bait2 ||
+		evo >= static_cast<int>(mCardList.size()) ||
+		bait >= static_cast<int>(mCardList.size()) ||
+		bait2 >= static_cast<int>(mCardList.size()) ||
+		mCardList[evo]->mOwner != mCardList[bait]->mOwner ||
+		mCardList[evo]->mOwner != mCardList[bait2]->mOwner ||
+		mCardList[bait]->mZone != ZONE_BATTLE ||
+		mCardList[bait2]->mZone != ZONE_BATTLE)
+		return 0;
+
+	Message oldmsg = mCurrentMessage;
+	mCurrentMessage = Message("get creaturecanvortexevolve");
+	mCurrentMessage.addValue("canevolve", 0);
+	mCurrentMessage.addValue("evolution", evo);
+	mCurrentMessage.addValue("evobait", bait);
+	mCurrentMessage.addValue("evobait2", bait2);
+
+	for (std::vector<Card*>::iterator i = mCardList.begin(); i != mCardList.end(); ++i)
+		(*i)->handleMessage(mCurrentMessage);
+	int result = mCurrentMessage.getInt("canevolve");
+	mCurrentMessage = oldmsg;
+	return result;
+}
+
+int Duel::getEvolutionBaitCount(int evo)
+{
+	if (evo < 0 || evo >= static_cast<int>(mCardList.size()) || getIsEvolution(evo) != 1)
+		return 0;
+
+	Message oldmsg = mCurrentMessage;
+	mCurrentMessage = Message("get creatureevolutionbaitcount");
+	mCurrentMessage.addValue("baitcount", 1);
+	mCurrentMessage.addValue("evolution", evo);
+	for (std::vector<Card*>::iterator i = mCardList.begin(); i != mCardList.end(); ++i)
+		(*i)->handleMessage(mCurrentMessage);
+	int result = mCurrentMessage.getInt("baitcount");
+	mCurrentMessage = oldmsg;
+	return result;
+}
+
+int Duel::getShieldChooser(int chooser, int shieldOwner)
+{
+	if ((chooser != 0 && chooser != 1) || (shieldOwner != 0 && shieldOwner != 1))
+		return chooser;
+
+	Message oldmsg = mCurrentMessage;
+	mCurrentMessage = Message("get shieldchooser");
+	mCurrentMessage.addValue("chooser", chooser);
+	mCurrentMessage.addValue("shieldowner", shieldOwner);
+	for (std::vector<Card*>::iterator card = mCardList.begin(); card != mCardList.end(); ++card)
+		(*card)->handleMessage(mCurrentMessage);
+	int result = mCurrentMessage.getInt("chooser");
+	mCurrentMessage = oldmsg;
+	return result == 0 || result == 1 ? result : chooser;
 }
 
 int Duel::getCreatureHasTapAbility(int uid)
@@ -1944,6 +2134,7 @@ void Duel::drawCards(int player, int count)
 		msg.addValue("card", mDecks[player].mCards.at(mDecks[player].mCards.size() - i - 1)->mUniqueId);
 		msg.addValue("from", mDecks[player].mCards.at(mDecks[player].mCards.size() - i - 1)->mZone);
 		msg.addValue("to", ZONE_HAND);
+		msg.addValue("draw", 1);
 		mMsgMngr.sendMessage(msg);
 	}
 	if (available < count && mWinner == -1)
@@ -2069,6 +2260,8 @@ void Duel::startDuel()
 	mManaUsed = 0;
 	mShieldBreakersThisTurn[0].clear();
 	mShieldBreakersThisTurn[1].clear();
+	mCardsDrawnThisTurn[0] = 0;
+	mCardsDrawnThisTurn[1] = 0;
 	for (int i = 0; i < 2; i++)
 	{
 		if (mDecks[i].mCards.size() < 40)
@@ -2125,6 +2318,7 @@ void Duel::resetCasting()
 	mCastingManaCards.clear();
 	mCastingCost = -1;
 	mCastingEvobait = -1;
+	mCastingEvobait2 = -1;
 }
 
 void Duel::clearCards()
@@ -2147,6 +2341,7 @@ void Duel::clearCards()
 	mShieldBreakersThisTurn[0].clear();
 	mShieldBreakersThisTurn[1].clear();
 	mZeroPowerCheckPending = false;
+	mRaceQueryDepth = 0;
 }
 
 void Duel::rebuildShieldBreakersThisTurn()
@@ -2182,6 +2377,11 @@ bool Duel::hasCreatureBrokenShieldThisTurn(int uid) const
 
 	const std::unordered_set<int>& breakers = mShieldBreakersThisTurn[mCardList.at(uid)->mOwner];
 	return breakers.count(uid) != 0;
+}
+
+int Duel::getCardsDrawnThisTurn(int player) const
+{
+	return player == 0 || player == 1 ? mCardsDrawnThisTurn[player] : 0;
 }
 
 void Duel::resetChoice()
