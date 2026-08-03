@@ -6,6 +6,7 @@
 struct MercerShard
 {
 	std::string id;
+	std::string mapId;
 	std::string name;
 	int x;
 	int y;

@@ -94,6 +94,22 @@ private:
 		SDL_Rect rect;
 		int cardId;
 	};
+	struct WorldArea
+	{
+		std::string id;
+		std::string name;
+		bool indoor;
+		std::vector<std::string> tiles;
+	};
+	struct WorldPortal
+	{
+		std::string fromMap;
+		int fromX;
+		int fromY;
+		std::string toMap;
+		int toX;
+		int toY;
+	};
 
 	bool initialize();
 	void shutdown();
@@ -126,6 +142,12 @@ private:
 	void interact();
 	bool isWalkable(int x, int y) const;
 	int npcAt(int x, int y, int ignoredNpc = -1) const;
+	std::vector<std::string>& currentMap();
+	const std::vector<std::string>& currentMap() const;
+	const std::string& currentMapId() const;
+	int worldAreaIndex(const std::string& id) const;
+	bool activatePortalAt(int x, int y);
+	bool isPortalAt(const std::string& mapId, int x, int y) const;
 	bool loadWorldMap(const std::string& path, std::string& error, bool allowMissingPositions = false);
 	void handleWorldBuilderEvent(const SDL_Event& event);
 	void renderWorldBuilder();
@@ -232,7 +254,12 @@ private:
 	Screen mScreen;
 	bool mPauseMenuOpen;
 
-	std::vector<std::string> mMap;
+	std::vector<WorldArea> mWorldAreas;
+	std::vector<WorldPortal> mWorldPortals;
+	int mCurrentWorldArea;
+	std::string mWorldStartMap;
+	int mWorldStartX;
+	int mWorldStartY;
 	std::vector<Npc> mNpcs;
 	MercerStockData mMercerStock;
 	std::string mNpcMetadataError;

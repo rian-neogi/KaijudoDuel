@@ -104,7 +104,7 @@ void Application::updateOverworld(Uint32 deltaTime)
 	const int directionY[] = { -1, 0, 1, 0 };
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 	{
-		if (!npcVisible((int)i)) continue;
+		if (!npcVisible((int)i) || mNpcs[i].mapId != currentMapId()) continue;
 		Npc& npc = mNpcs[i];
 		npc.updateMovement(deltaTime);
 		if (!npc.canWander()) continue;
@@ -176,20 +176,64 @@ bool Application::exerciseOverworldMovementSmoke()
 	npc.visualX = savedNpcVisualX;
 	npc.visualY = savedNpcVisualY;
 	npc.nextMoveAt = savedNextMoveAt;
-	return playerInterpolated && npcInterpolated;
+
+	int savedArea = mCurrentWorldArea;
+	int savedPortalPlayerX = mPlayerX;
+	int savedPortalPlayerY = mPlayerY;
+	float savedPortalVisualX = mVisualX;
+	float savedPortalVisualY = mVisualY;
+	int savedDialogue = mDialogueNpc;
+	std::string savedNotice = mNotice;
+	Uint32 savedNoticeUntil = mNoticeUntil;
+	bool enteredIndoor = false;
+	bool returnedOutside = false;
+	for (size_t i = 0; i < mWorldPortals.size() && !enteredIndoor; ++i)
+	{
+		int destination = worldAreaIndex(mWorldPortals[i].toMap);
+		if (destination < 0 || !mWorldAreas[destination].indoor) continue;
+		mCurrentWorldArea = worldAreaIndex(mWorldPortals[i].fromMap);
+		enteredIndoor = activatePortalAt(mWorldPortals[i].fromX, mWorldPortals[i].fromY) &&
+			mCurrentWorldArea == destination;
+		for (size_t reverse = 0; reverse < mWorldPortals.size() && enteredIndoor; ++reverse)
+		{
+			if (mWorldPortals[reverse].fromMap != mWorldPortals[i].toMap ||
+				mWorldPortals[reverse].toMap != mWorldPortals[i].fromMap) continue;
+			returnedOutside = activatePortalAt(mWorldPortals[reverse].fromX,
+				mWorldPortals[reverse].fromY) && currentMapId() == mWorldPortals[i].fromMap;
+			break;
+		}
+	}
+	mCurrentWorldArea = savedArea;
+	mPlayerX = savedPortalPlayerX;
+	mPlayerY = savedPortalPlayerY;
+	mVisualX = savedPortalVisualX;
+	mVisualY = savedPortalVisualY;
+	mDialogueNpc = savedDialogue;
+	mNotice = savedNotice;
+	mNoticeUntil = savedNoticeUntil;
+	bool mercerIsIndoors = false;
+	for (size_t i = 0; i < mNpcs.size(); ++i)
+		if (mNpcs[i].id == "mercer")
+		{
+			int area = worldAreaIndex(mNpcs[i].mapId);
+			mercerIsIndoors = area >= 0 && mWorldAreas[area].indoor;
+		}
+	return playerInterpolated && npcInterpolated && enteredIndoor && returnedOutside && mercerIsIndoors;
 }
 
 bool Application::isWalkable(int x, int y) const
 {
-	if (y < 0 || y >= (int)mMap.size() || x < 0 || x >= (int)mMap[y].size()) return false;
-	char tile = mMap[y][x];
-	return tile == '.' || tile == '=';
+	const std::vector<std::string>& map = currentMap();
+	if (y < 0 || y >= (int)map.size() || x < 0 || x >= (int)map[y].size()) return false;
+	char tile = map[y][x];
+	return tile == '.' || tile == '=' || tile == 'F' || tile == 'D';
 }
 
 int Application::npcAt(int x, int y, int ignoredNpc) const
 {
 	for (size_t i = 0; i < mNpcs.size(); ++i)
-		if ((int)i != ignoredNpc && npcVisible((int)i) && mNpcs[i].x == x && mNpcs[i].y == y) return (int)i;
+		if ((int)i != ignoredNpc && npcVisible((int)i) && mNpcs[i].mapId == currentMapId() &&
+			mNpcs[i].x == x && mNpcs[i].y == y) return (int)i;
 	return -1;
 }
 
@@ -201,14 +245,15 @@ void Application::tryMove(int dx, int dy)
 	int y = mPlayerY + dy;
 	bool occupiedByMovingNpc = false;
 	for (size_t i = 0; i < mNpcs.size(); ++i)
-		if (npcVisible((int)i) && x == (int)std::round(mNpcs[i].visualX) &&
+		if (npcVisible((int)i) && mNpcs[i].mapId == currentMapId() &&
+			x == (int)std::round(mNpcs[i].visualX) &&
 			y == (int)std::round(mNpcs[i].visualY))
 			occupiedByMovingNpc = true;
 	if (isWalkable(x, y) && npcAt(x, y) < 0 && !occupiedByMovingNpc)
 	{
 		mPlayerX = x;
 		mPlayerY = y;
-		collectShardAt(x, y);
+		if (!activatePortalAt(x, y)) collectShardAt(x, y);
 	}
 }
 
@@ -217,7 +262,7 @@ void Application::collectShardAt(int x, int y)
 	for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
 	{
 		const MercerShard& shard = mMercerStock.shards[i];
-		if (shard.x != x || shard.y != y) continue;
+		if (shard.mapId != currentMapId() || shard.x != x || shard.y != y) continue;
 		ensurePlayerDataLoaded();
 		if (mCollectedShards.count(shard.id)) return;
 		mCollectedShards.insert(shard.id);
@@ -250,16 +295,19 @@ void Application::renderOverworld()
 {
 	ensurePlayerDataLoaded();
 	fillRect({ 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT }, 13, 21, 34);
-	for (size_t y = 0; y < mMap.size(); ++y)
+	const std::vector<std::string>& map = currentMap();
+	for (size_t y = 0; y < map.size(); ++y)
 	{
-		for (size_t x = 0; x < mMap[y].size(); ++x)
+		for (size_t x = 0; x < map[y].size(); ++x)
 		{
 			SDL_Rect tileRect = { MAP_X + (int)x * TILE, MAP_Y + (int)y * TILE, TILE, TILE };
-			char tile = mMap[y][x];
+			char tile = map[y][x];
 			if (tile == '=') fillRect(tileRect, 162, 132, 76);
 			else if (tile == '~') fillRect(tileRect, 25, 111, 157);
 			else if (tile == 'H') fillRect(tileRect, 126, 65, 43);
 			else if (tile == '#' || tile == 'T') fillRect(tileRect, 26, 75, 33);
+			else if (tile == 'W' || tile == 'D' || tile == 'F' || tile == 'C')
+				fillRect(tileRect, tile == 'F' ? 137 : 91, tile == 'F' ? 91 : 53, tile == 'F' ? 49 : 31);
 			else fillRect(tileRect, 61, 139, 61);
 
 			if (tile == '~')
@@ -277,6 +325,47 @@ void Application::renderOverworld()
 				fillRect({ tileRect.x + 3, tileRect.y + 4, 42, 16 }, 186, 76, 46);
 				fillRect({ tileRect.x + 18, tileRect.y + 23, 13, 25 }, 54, 31, 24);
 			}
+			else if (tile == 'W')
+			{
+				fillRect({ tileRect.x + 2, tileRect.y + 3, 44, 42 }, 124, 72, 38);
+				for (int plank = 0; plank < 4; ++plank)
+					fillRect({ tileRect.x + 3, tileRect.y + 8 + plank * 10, 42, 2 }, 76, 42, 27);
+				fillRect({ tileRect.x + 5, tileRect.y + 2, 5, 46 }, 67, 38, 26);
+				fillRect({ tileRect.x + 38, tileRect.y + 2, 5, 46 }, 67, 38, 26);
+				if (!mWorldAreas[mCurrentWorldArea].indoor &&
+					(y == 0 || (map[y - 1][x] != 'W' && map[y - 1][x] != 'D')))
+				{
+					fillRect({ tileRect.x, tileRect.y, 48, 16 }, 73, 42, 31);
+					fillRect({ tileRect.x + 3, tileRect.y + 3, 42, 5 }, 151, 83, 43);
+					fillRect({ tileRect.x + 8, tileRect.y + 10, 35, 3 }, 109, 56, 35);
+				}
+			}
+			else if (tile == 'D')
+			{
+				fillRect({ tileRect.x + 7, tileRect.y + 2, 34, 46 }, 104, 57, 31);
+				fillRect({ tileRect.x + 11, tileRect.y + 6, 26, 38 }, 139, 78, 39);
+				fillRect({ tileRect.x + 30, tileRect.y + 24, 4, 4 }, 231, 184, 73);
+				fillRect({ tileRect.x + 3, tileRect.y + 2, 42, 5 }, 65, 37, 25);
+				if (!mWorldAreas[mCurrentWorldArea].indoor)
+				{
+					fillRect({ tileRect.x + 34, tileRect.y + 8, 13, 13 }, 206, 160, 72);
+					drawText("M", tileRect.x + 36, tileRect.y + 9, color(72, 43, 28), 9);
+				}
+			}
+			else if (tile == 'F')
+			{
+				for (int plank = 0; plank < 4; ++plank)
+					fillRect({ tileRect.x, tileRect.y + plank * 12, 48, 2 }, 96, 58, 36);
+				fillRect({ tileRect.x + 23, tileRect.y + 2, 2, 10 }, 109, 67, 39);
+				fillRect({ tileRect.x + 10, tileRect.y + 26, 2, 10 }, 109, 67, 39);
+			}
+			else if (tile == 'C')
+			{
+				fillRect({ tileRect.x + 2, tileRect.y + 10, 44, 32 }, 112, 62, 34);
+				fillRect({ tileRect.x, tileRect.y + 7, 48, 7 }, 166, 105, 53);
+				fillRect({ tileRect.x + 8, tileRect.y + 18, 4, 22 }, 71, 40, 27);
+				fillRect({ tileRect.x + 36, tileRect.y + 18, 4, 22 }, 71, 40, 27);
+			}
 			else if (tile == '.')
 				fillRect({ tileRect.x + 7, tileRect.y + 34, 3, 8 }, 111, 180, 64);
 		}
@@ -284,7 +373,7 @@ void Application::renderOverworld()
 
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 	{
-		if (!npcVisible((int)i)) continue;
+		if (!npcVisible((int)i) || mNpcs[i].mapId != currentMapId()) continue;
 		drawCharacter(mNpcs[i].visualX, mNpcs[i].visualY, mNpcs[i].appearance,
 			mNpcs[i].isComplete(), mNpcs[i].isMoving());
 		if (npcHasStoryMarker((int)i))
@@ -299,7 +388,7 @@ void Application::renderOverworld()
 	for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
 	{
 		const MercerShard& shard = mMercerStock.shards[i];
-		if (mCollectedShards.count(shard.id)) continue;
+		if (shard.mapId != currentMapId() || mCollectedShards.count(shard.id)) continue;
 		int x = MAP_X + shard.x * TILE;
 		int y = MAP_Y + shard.y * TILE;
 		int shimmer = (int)((SDL_GetTicks() / 180 + i * 3) % 5);
@@ -313,7 +402,7 @@ void Application::renderOverworld()
 
 	fillRect({ 1012, 28, 238, 670 }, 21, 28, 45, 245);
 	outlineRect({ 1012, 28, 238, 670 }, 190, 146, 61, 255, 2);
-	drawText("EMBERGLEN", 1034, 48, color(242, 205, 99), 28);
+	drawText(mWorldAreas[mCurrentWorldArea].name, 1034, 48, color(242, 205, 99), 24, 205);
 	drawText("GOLD " + std::to_string(mMoney), 1034, 91, color(245, 205, 88), 16);
 	int heldShards = (int)mCollectedShards.size() - (int)mMercerShards.size();
 	drawText("SHARDS " + std::to_string(std::max(0, heldShards)) +

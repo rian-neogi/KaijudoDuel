@@ -28,7 +28,8 @@ Additional launch modes:
 The World Builder is available only through `--world-builder`. It edits map
 tiles and NPC/shard locations. Select entities from the Lua-populated side
 lists or directly on the map, then click or drag them to a free grass/path
-tile. Save with the on-screen button or `Ctrl+S`.
+or indoor floor tile. Switch maps with the on-screen arrows or
+`PageUp`/`PageDown`. Save with the on-screen button or `Ctrl+S`.
 
 When adding a C++ source file, add it to `GAME_SOURCES` in `CMakeLists.txt`.
 Do not restore the legacy Windows/OpenGL interface to the Linux target.
@@ -61,8 +62,9 @@ rendering, and repeated duel teardown.
 - `Source/App/Menus.cpp`: overworld pause menu and auxiliary screens.
 - `Source/App/CardRenderer.cpp`: card textures, zones, hands, animation,
   tapping, dragging, and hover enlargement.
-- `Lua/World.lua`: authoritative 20x12 map plus ID-keyed NPC and shard
-  positions. This file is entirely maintained by the World Builder.
+- `Lua/World.lua`: authoritative named 20x12 maps, player start, portals, and
+  ID-keyed NPC/shard map positions. This file is entirely maintained by the
+  World Builder.
 - `Lua/Npcs.lua`: authoritative NPC identities, kinds, appearances, decks,
   rewards, AI personalities, and dialogue. It does not own positions.
 - `Lua/MercerStock.lua`: Mercer prices, initial stock, shard identities, and
@@ -76,20 +78,25 @@ change has a clear lifetime model and test coverage.
 
 ## World data conventions
 
-- Keep all map tiles and entity coordinates in `Lua/World.lua`; never add
+- Keep all maps, portals, and entity coordinates in `Lua/World.lua`; never add
   `position` fields back to `Lua/Npcs.lua` or `Lua/MercerStock.lua`.
-- NPC and shard position keys must match their metadata `id` fields. Normal
-  gameplay requires every current ID to have a valid `World.lua` position.
+- NPC and shard position keys must match their metadata `id` fields and include
+  a valid `map` ID. Normal gameplay requires every current entity ID to have a
+  valid `World.lua` map position.
 - The World Builder scans the NPC and shard metadata. New IDs without world
   entries are placed automatically on free walkable tiles when the builder is
   launched, mark the world dirty, and are persisted on the next save. Stale
   world IDs disappear on the next save.
 - World Builder saves must modify only `Lua/World.lua`, leaving NPC dialogue,
   decks, rewards, Mercer stock, and other hand-authored metadata untouched.
-- The map is 20 columns by 12 rows. Valid tile characters are `.` (grass),
+- Every map is 20 columns by 12 rows. Outdoor tile characters are `.` (grass),
   `=` (path), `~` (water), `H` (house), `T` (tree), and `#` (dense forest).
-  NPCs and shards require distinct grass/path tiles. The fixed player start is
-  `(2,10)` and must remain walkable and unoccupied.
+  Indoor/wooden-building tiles are `W` (wood wall), `D` (door), `F` (wood
+  floor), and `C` (counter). NPCs and shards require distinct walkable tiles.
+  Player starts, portal entrances, and portal destinations must remain
+  walkable and unoccupied.
+- Portals are directed transitions. Define both directions explicitly when a
+  doorway must support entering and leaving an area.
 
 ## Rules-engine safety
 

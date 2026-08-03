@@ -70,6 +70,7 @@ public:
 	float visualY;
 	unsigned int nextMoveAt;
 	std::string id;
+	std::string mapId;
 	std::string name;
 	std::vector<std::string> decks;
 	std::vector<NpcReward> rewards;
