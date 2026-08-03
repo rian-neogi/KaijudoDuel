@@ -4,6 +4,7 @@
 #include "Game/Card.h"
 #include "Game/CardData.h"
 #include "Game/Deck.h"
+#include "SoundManager.h"
 
 #include <algorithm>
 #include <cctype>
@@ -496,15 +497,31 @@ void Application::handleDeckBuilderEvent(const SDL_Event& event)
 	{
 		int mouseX = mMouseX;
 		int mouseY = mMouseY;
+		int previousPage = mDeckCollectionPage;
+		int previousListScroll = mDeckListScroll;
+		int previousContentsScroll = mDeckContentsScroll;
+		int wheel = event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ?
+			-event.wheel.y : event.wheel.y;
 		if (contains(COLLECTION_PANEL, mouseX, mouseY))
 		{
 			int pages = std::max(1, ((int)filteredCollection().size() + COLLECTION_PAGE_SIZE - 1) / COLLECTION_PAGE_SIZE);
-			mDeckCollectionPage = std::max(0, std::min(pages - 1, mDeckCollectionPage - event.wheel.y));
+			mDeckCollectionPage = std::max(0, std::min(pages - 1, mDeckCollectionPage - wheel));
 		}
 		else if (contains(DECK_LIST_PANEL, mouseX, mouseY))
-			mDeckListScroll = std::max(0, mDeckListScroll - event.wheel.y);
+		{
+			int maximum = std::max(0, (int)mPlayerDecks.size() - 12);
+			mDeckListScroll = std::max(0, std::min(maximum, mDeckListScroll - wheel));
+		}
 		else if (contains(DECK_PANEL, mouseX, mouseY))
-			mDeckContentsScroll = std::max(0, mDeckContentsScroll - event.wheel.y);
+		{
+			int cards = mEditingDeckIndex >= 0 && mEditingDeckIndex < (int)mPlayerDecks.size() ?
+				(int)mPlayerDecks[mEditingDeckIndex].cards.size() : 0;
+			mDeckContentsScroll = std::max(0,
+				std::min(std::max(0, cards - 15), mDeckContentsScroll - wheel));
+		}
+		if ((previousPage != mDeckCollectionPage || previousListScroll != mDeckListScroll ||
+			previousContentsScroll != mDeckContentsScroll) && mSoundManager != NULL)
+			mSoundManager->playSound(SOUND_UI_SCROLL);
 		return;
 	}
 	if (event.type != SDL_MOUSEBUTTONDOWN || event.button.button != SDL_BUTTON_LEFT) return;
@@ -529,11 +546,21 @@ void Application::handleDeckBuilderEvent(const SDL_Event& event)
 	}
 	if (contains(SAVE_BUTTON, x, y)) { saveDeck(mEditingDeckIndex); return; }
 	if (contains(ACTIVE_BUTTON, x, y)) { setActiveDeck(mEditingDeckIndex); return; }
-	if (contains(PREVIOUS_PAGE, x, y)) { mDeckCollectionPage = std::max(0, mDeckCollectionPage - 1); return; }
+	if (contains(PREVIOUS_PAGE, x, y))
+	{
+		int previousPage = mDeckCollectionPage;
+		mDeckCollectionPage = std::max(0, mDeckCollectionPage - 1);
+		if (previousPage != mDeckCollectionPage && mSoundManager != NULL)
+			mSoundManager->playSound(SOUND_UI_SCROLL);
+		return;
+	}
 	if (contains(NEXT_PAGE, x, y))
 	{
 		int pages = std::max(1, ((int)filteredCollection().size() + COLLECTION_PAGE_SIZE - 1) / COLLECTION_PAGE_SIZE);
+		int previousPage = mDeckCollectionPage;
 		mDeckCollectionPage = std::min(pages - 1, mDeckCollectionPage + 1);
+		if (previousPage != mDeckCollectionPage && mSoundManager != NULL)
+			mSoundManager->playSound(SOUND_UI_SCROLL);
 		return;
 	}
 
@@ -573,6 +600,7 @@ void Application::handleDeckBuilderEvent(const SDL_Event& event)
 				if (existing == deck.cards.end()) deck.cards.insert(std::make_pair(cardId, 1));
 				else ++existing->second;
 				deck.dirty = true;
+				if (mSoundManager != NULL) mSoundManager->playSound(SOUND_UI_CARD_ADD);
 			}
 			return;
 		}
@@ -588,6 +616,7 @@ void Application::handleDeckBuilderEvent(const SDL_Event& event)
 			std::advance(card, position);
 			if (--card->second <= 0) deck.cards.erase(card);
 			deck.dirty = true;
+			if (mSoundManager != NULL) mSoundManager->playSound(SOUND_UI_CARD_REMOVE);
 		}
 	}
 }

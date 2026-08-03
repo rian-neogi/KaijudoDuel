@@ -7,6 +7,11 @@
 
 using namespace AppSupport;
 
+namespace
+{
+	constexpr Uint32 DOOR_OPEN_DURATION = 400;
+}
+
 void Application::handleOverworldEvent(const SDL_Event& event)
 {
 	if (handleStoryEvent(event)) return;
@@ -76,7 +81,8 @@ void Application::updateOverworld(Uint32 deltaTime)
 	float playerDx = mPlayerX - mVisualX;
 	float playerDy = mPlayerY - mVisualY;
 	float playerDistance = std::sqrt(playerDx * playerDx + playerDy * playerDy);
-	if (playerDistance <= 0.001f && mDialogueNpc < 0 && (mMoveIntentX != 0 || mMoveIntentY != 0))
+	if (playerDistance <= 0.001f && mOpeningPortal < 0 && mDialogueNpc < 0 &&
+		(mMoveIntentX != 0 || mMoveIntentY != 0))
 	{
 		mVisualX = (float)mPlayerX;
 		mVisualY = (float)mPlayerY;
@@ -101,6 +107,12 @@ void Application::updateOverworld(Uint32 deltaTime)
 	}
 
 	Uint32 now = SDL_GetTicks();
+	if (mOpeningPortal >= 0)
+	{
+		if (playerDistance <= 0.001f && now - mPortalAnimationStarted >= DOOR_OPEN_DURATION)
+			activatePortalAt(mPlayerX, mPlayerY);
+		return;
+	}
 	const int directionX[] = { 0, 1, 0, -1 };
 	const int directionY[] = { -1, 0, 1, 0 };
 	for (size_t i = 0; i < mNpcs.size(); ++i)
@@ -179,6 +191,8 @@ bool Application::exerciseOverworldMovementSmoke()
 	npc.nextMoveAt = savedNextMoveAt;
 
 	int savedArea = mCurrentWorldArea;
+	int savedOpeningPortal = mOpeningPortal;
+	Uint32 savedPortalAnimationStarted = mPortalAnimationStarted;
 	int savedPortalPlayerX = mPlayerX;
 	int savedPortalPlayerY = mPlayerY;
 	float savedPortalVisualX = mVisualX;
@@ -193,18 +207,33 @@ bool Application::exerciseOverworldMovementSmoke()
 		int destination = worldAreaIndex(mWorldPortals[i].toMap);
 		if (destination < 0 || !mWorldAreas[destination].indoor) continue;
 		mCurrentWorldArea = worldAreaIndex(mWorldPortals[i].fromMap);
-		enteredIndoor = activatePortalAt(mWorldPortals[i].fromX, mWorldPortals[i].fromY) &&
-			mCurrentWorldArea == destination;
+		mPlayerX = mWorldPortals[i].fromX;
+		mPlayerY = mWorldPortals[i].fromY;
+		mVisualX = (float)mPlayerX;
+		mVisualY = (float)mPlayerY;
+		enteredIndoor = beginPortalAt(mPlayerX, mPlayerY);
+		mPortalAnimationStarted = SDL_GetTicks() - DOOR_OPEN_DURATION;
+		updateOverworld(0);
+		enteredIndoor = enteredIndoor && mCurrentWorldArea == destination && mOpeningPortal < 0;
 		for (size_t reverse = 0; reverse < mWorldPortals.size() && enteredIndoor; ++reverse)
 		{
 			if (mWorldPortals[reverse].fromMap != mWorldPortals[i].toMap ||
 				mWorldPortals[reverse].toMap != mWorldPortals[i].fromMap) continue;
-			returnedOutside = activatePortalAt(mWorldPortals[reverse].fromX,
-				mWorldPortals[reverse].fromY) && currentMapId() == mWorldPortals[i].fromMap;
+			mPlayerX = mWorldPortals[reverse].fromX;
+			mPlayerY = mWorldPortals[reverse].fromY;
+			mVisualX = (float)mPlayerX;
+			mVisualY = (float)mPlayerY;
+			returnedOutside = beginPortalAt(mPlayerX, mPlayerY);
+			mPortalAnimationStarted = SDL_GetTicks() - DOOR_OPEN_DURATION;
+			updateOverworld(0);
+			returnedOutside = returnedOutside && currentMapId() == mWorldPortals[i].fromMap &&
+				mOpeningPortal < 0;
 			break;
 		}
 	}
 	mCurrentWorldArea = savedArea;
+	mOpeningPortal = savedOpeningPortal;
+	mPortalAnimationStarted = savedPortalAnimationStarted;
 	mPlayerX = savedPortalPlayerX;
 	mPlayerY = savedPortalPlayerY;
 	mVisualX = savedPortalVisualX;
@@ -254,7 +283,7 @@ void Application::tryMove(int dx, int dy)
 	{
 		mPlayerX = x;
 		mPlayerY = y;
-		if (!activatePortalAt(x, y)) collectShardAt(x, y);
+		if (!beginPortalAt(x, y)) collectShardAt(x, y);
 	}
 }
 
@@ -276,6 +305,7 @@ void Application::collectShardAt(int x, int y)
 
 void Application::interact()
 {
+	if (mOpeningPortal >= 0) return;
 	if (std::fabs(mPlayerX - mVisualX) > 0.001f || std::fabs(mPlayerY - mVisualY) > 0.001f) return;
 	if (mDialogueNpc >= 0)
 	{
@@ -345,14 +375,28 @@ void Application::renderOverworld()
 			}
 			else if (tile == 'D')
 			{
-				fillRect({ tileRect.x + 7, tileRect.y + 2, 34, 46 }, 104, 57, 31);
-				fillRect({ tileRect.x + 11, tileRect.y + 6, 26, 38 }, 139, 78, 39);
-				fillRect({ tileRect.x + 30, tileRect.y + 24, 4, 4 }, 231, 184, 73);
-				fillRect({ tileRect.x + 3, tileRect.y + 2, 42, 5 }, 65, 37, 25);
-				if (!mWorldAreas[mCurrentWorldArea].indoor)
+				float open = 0.f;
+				if (mOpeningPortal >= 0 && mOpeningPortal < (int)mWorldPortals.size())
 				{
-					fillRect({ tileRect.x + 34, tileRect.y + 8, 13, 13 }, 206, 160, 72);
-					drawText("M", tileRect.x + 36, tileRect.y + 9, color(72, 43, 28), 9);
+					const WorldPortal& portal = mWorldPortals[mOpeningPortal];
+					if (portal.fromMap == currentMapId() && portal.fromX == (int)x &&
+						portal.fromY == (int)y)
+						open = std::min(1.f, (SDL_GetTicks() - mPortalAnimationStarted) /
+							(float)DOOR_OPEN_DURATION);
+				}
+				fillRect({ tileRect.x + 7, tileRect.y + 2, 34, 46 }, 104, 57, 31);
+				fillRect({ tileRect.x + 11, tileRect.y + 6, 26, 38 }, 24, 20, 19);
+				int doorWidth = std::max(2, (int)std::round(26.f * (1.f - open)));
+				fillRect({ tileRect.x + 11, tileRect.y + 6, doorWidth, 38 }, 139, 78, 39);
+				if (doorWidth >= 8)
+					fillRect({ tileRect.x + 11 + doorWidth - 7, tileRect.y + 24, 4, 4 },
+						231, 184, 73);
+				fillRect({ tileRect.x + 3, tileRect.y + 2, 42, 5 }, 65, 37, 25);
+				if (!mWorldAreas[mCurrentWorldArea].indoor && doorWidth >= 18)
+				{
+					int signX = tileRect.x + 11 + doorWidth - 14;
+					fillRect({ signX, tileRect.y + 8, 13, 13 }, 206, 160, 72);
+					drawText("M", signX + 2, tileRect.y + 9, color(72, 43, 28), 9);
 				}
 			}
 			else if (tile == 'F')

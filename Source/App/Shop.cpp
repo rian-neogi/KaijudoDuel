@@ -3,6 +3,7 @@
 #include "AppSupport.h"
 #include "Game/Card.h"
 #include "Game/CardData.h"
+#include "SoundManager.h"
 
 #include <algorithm>
 
@@ -81,10 +82,13 @@ void Application::handleShopEvent(const SDL_Event& event)
 	if (event.type == SDL_MOUSEWHEEL && event.wheel.y != 0)
 	{
 		int pages = shopPageCount(shopInventory().size());
+		int previousPage = mShopPage;
 		int direction = event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ?
 			-event.wheel.y : event.wheel.y;
 		if (direction > 0) mShopPage = std::max(0, mShopPage - 1);
 		else mShopPage = std::min(pages - 1, mShopPage + 1);
+		if (previousPage != mShopPage && mSoundManager != NULL)
+			mSoundManager->playSound(SOUND_UI_SCROLL);
 		return;
 	}
 	if (event.type == SDL_KEYDOWN && !event.key.repeat)
@@ -98,9 +102,12 @@ void Application::handleShopEvent(const SDL_Event& event)
 		if (key == SDLK_w || key == SDLK_UP || key == SDLK_s || key == SDLK_DOWN)
 		{
 			int pages = shopPageCount(shopInventory().size());
+			int previousPage = mShopPage;
 			if (key == SDLK_w || key == SDLK_UP)
 				mShopPage = std::max(0, mShopPage - 1);
 			else mShopPage = std::min(pages - 1, mShopPage + 1);
+			if (previousPage != mShopPage && mSoundManager != NULL)
+				mSoundManager->playSound(SOUND_UI_SCROLL);
 			return;
 		}
 	}
@@ -117,12 +124,18 @@ void Application::handleShopEvent(const SDL_Event& event)
 	int pages = shopPageCount(inventory.size());
 	if (contains(SHOP_PREV_BUTTON, x, y))
 	{
+		int previousPage = mShopPage;
 		mShopPage = std::max(0, mShopPage - 1);
+		if (previousPage != mShopPage && mSoundManager != NULL)
+			mSoundManager->playSound(SOUND_UI_SCROLL);
 		return;
 	}
 	if (contains(SHOP_NEXT_BUTTON, x, y))
 	{
+		int previousPage = mShopPage;
 		mShopPage = std::min(pages - 1, mShopPage + 1);
+		if (previousPage != mShopPage && mSoundManager != NULL)
+			mSoundManager->playSound(SOUND_UI_SCROLL);
 		return;
 	}
 	if (contains(SHOP_GIVE_BUTTON, x, y))
@@ -162,6 +175,7 @@ void Application::handleShopEvent(const SDL_Event& event)
 			++mCollectionCounts[cardId];
 			savePlayerProgress();
 			mShopNotice = "Purchased " + gCardDatabase[cardId].Name + ".";
+			if (mSoundManager != NULL) mSoundManager->playSound(SOUND_UI_PURCHASE);
 		}
 		mShopNoticeUntil = SDL_GetTicks() + 3500;
 		return;

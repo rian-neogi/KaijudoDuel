@@ -12,6 +12,7 @@ using namespace AppSupport;
 Application::Application(bool worldBuilder)
 	: mWindow(NULL), mRenderer(NULL), mBoardTexture(NULL), mCardBackTexture(NULL), mSoundManager(NULL), mRunning(false),
 	  mScreen(Screen::Overworld), mPauseMenuOpen(false), mPauseMenuSelection(0), mCurrentWorldArea(0),
+	  mOpeningPortal(-1), mPortalAnimationStarted(0),
 	  mWorldStartX(2), mWorldStartY(10), mPlayerX(2), mPlayerY(10), mFacingX(1), mFacingY(0),
 	  mMoveUp(false), mMoveDown(false), mMoveLeft(false), mMoveRight(false), mMoveIntentX(0), mMoveIntentY(0),
 	  mVisualX(2.f), mVisualY(10.f), mDialogueNpc(-1), mNoticeUntil(0),

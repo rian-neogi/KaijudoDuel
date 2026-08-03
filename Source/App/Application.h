@@ -146,6 +146,7 @@ private:
 	const std::vector<std::string>& currentMap() const;
 	const std::string& currentMapId() const;
 	int worldAreaIndex(const std::string& id) const;
+	bool beginPortalAt(int x, int y);
 	bool activatePortalAt(int x, int y);
 	bool isPortalAt(const std::string& mapId, int x, int y) const;
 	bool loadWorldMap(const std::string& path, std::string& error, bool allowMissingPositions = false);
@@ -258,6 +259,8 @@ private:
 	std::vector<WorldArea> mWorldAreas;
 	std::vector<WorldPortal> mWorldPortals;
 	int mCurrentWorldArea;
+	int mOpeningPortal;
+	Uint32 mPortalAnimationStarted;
 	std::string mWorldStartMap;
 	int mWorldStartX;
 	int mWorldStartY;

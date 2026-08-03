@@ -33,6 +33,10 @@ SoundManager::SoundManager()
 	loadSound(SOUND_ATTACK_MEDIUM, "Resources/Sounds/tap.wav");
 	loadSound(SOUND_ATTACK_LARGE, "Resources/Sounds/rolldie.wav");
 	loadSound(SOUND_EVOLUTION, "Resources/Sounds/stagechangeoldnotification.wav");
+	loadSound(SOUND_UI_CARD_ADD, "Resources/Sounds/playcard.wav");
+	loadSound(SOUND_UI_CARD_REMOVE, "Resources/Sounds/button2.wav");
+	loadSound(SOUND_UI_SCROLL, "Resources/Sounds/button1.wav");
+	loadSound(SOUND_UI_PURCHASE, "Resources/Sounds/draw.wav");
 	SDL_PauseAudioDevice(mDevice, 0);
 }
 

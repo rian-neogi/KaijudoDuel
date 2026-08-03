@@ -2,7 +2,7 @@ package.path = package.path .. ';./?.lua;'
 require("Lua/Common")
 
 Cards["Aqua Hulcus"] = {
-	price_tier = 1,
+	price_tier = 2,
 	name = "Aqua Hulcus",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -22,7 +22,7 @@ Cards["Aqua Hulcus"] = {
 }
 
 Cards["Aqua Knight"] = {
-	price_tier = 3,
+	price_tier = 1,
 	name = "Aqua Knight",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -42,7 +42,7 @@ Cards["Aqua Knight"] = {
 }
 
 Cards["Aqua Sniper"] = {
-	price_tier = 5,
+	price_tier = 2,
 	name = "Aqua Sniper",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -72,7 +72,7 @@ Cards["Aqua Sniper"] = {
 }
 
 Cards["Aqua Soldier"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Aqua Soldier",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -111,7 +111,7 @@ Cards["Aqua Vehicle"] = {
 }
 
 Cards["Armored Walker Urherion"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Armored Walker Urherion",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -162,7 +162,7 @@ Cards["Artisan Picora"] = {
 }
 
 Cards["Astrocomet Dragon"] = {
-	price_tier = 5,
+	price_tier = 3,
 	name = "Astrocomet Dragon",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -182,7 +182,7 @@ Cards["Astrocomet Dragon"] = {
 }
 
 Cards["Aura Blast"] = {
-	price_tier = 3,
+	price_tier = 1,
 	name = "Aura Blast",
 	set = "Base Set",
 	type = TYPE_SPELL,
@@ -253,7 +253,7 @@ Cards["Bloody Squito"] = {
 }
 
 Cards["Bolshack Dragon"] = {
-	price_tier = 4,
+	price_tier = 3,
 	name = "Bolshack Dragon",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -305,7 +305,7 @@ Cards["Bone Assassin, the Ripper"] = {
 }
 
 Cards["Bone Spider"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Bone Spider",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -360,7 +360,7 @@ Cards["Brawler Zyler"] = {
 }
 
 Cards["Bronze-Arm Tribe"] = {
-	price_tier = 1,
+	price_tier = 2,
 	name = "Bronze-Arm Tribe",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -444,7 +444,7 @@ Cards["Candy Drop"] = {
 }
 
 Cards["Chaos Strike"] = {
-	price_tier = 3,
+	price_tier = 1,
 	name = "Chaos Strike",
 	set = "Base Set",
 	type = TYPE_SPELL,
@@ -470,7 +470,7 @@ Cards["Chaos Strike"] = {
 }
 
 Cards["Chilias, the Oracle"] = {
-	price_tier = 3,
+	price_tier = 1,
 	name = "Chilias, the Oracle",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -490,7 +490,7 @@ Cards["Chilias, the Oracle"] = {
 }
 
 Cards["Coiling Vines"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Coiling Vines",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -510,7 +510,7 @@ Cards["Coiling Vines"] = {
 }
 
 Cards["Creeping Plague"] = {
-	price_tier = 3,
+	price_tier = 1,
 	name = "Creeping Plague",
 	set = "Base Set",
 	type = TYPE_SPELL,
@@ -540,7 +540,7 @@ Cards["Creeping Plague"] = {
 }
 
 Cards["Crimson Hammer"] = {
-	price_tier = 1,
+	price_tier = 2,
 	name = "Crimson Hammer",
 	set = "Base Set",
 	type = TYPE_SPELL,
@@ -565,7 +565,7 @@ Cards["Crimson Hammer"] = {
 }
 
 Cards["Crystal Memory"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Crystal Memory",
 	set = "Base Set",
 	type = TYPE_SPELL,
@@ -602,7 +602,7 @@ Cards["Cyber Brain"] = {
 }
 
 Cards["Dark Clown"] = {
-	price_tier = 3,
+	price_tier = 1,
 	name = "Dark Clown",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -623,7 +623,7 @@ Cards["Dark Clown"] = {
 }
 
 Cards["Dark Raven, Shadow of Grief"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Dark Raven, Shadow of Grief",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -642,7 +642,7 @@ Cards["Dark Raven, Shadow of Grief"] = {
 }
 
 Cards["Dark Reversal"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Dark Reversal",
 	set = "Base Set",
 	type = TYPE_SPELL,
@@ -680,7 +680,7 @@ Cards["Deadly Fighter Braid Claw"] = {
 }
 
 Cards["Death Smoke"] = {
-	price_tier = 1,
+	price_tier = 2,
 	name = "Death Smoke",
 	set = "Base Set",
 	type = TYPE_SPELL,
@@ -698,7 +698,7 @@ Cards["Death Smoke"] = {
 }
 
 Cards["Deathblade Beetle"] = {
-	price_tier = 5,
+	price_tier = 2,
 	name = "Deathblade Beetle",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -718,7 +718,7 @@ Cards["Deathblade Beetle"] = {
 }
 
 Cards["Deathliger, Lion of Chaos"] = {
-	price_tier = 5,
+	price_tier = 3,
 	name = "Deathliger, Lion of Chaos",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -737,7 +737,7 @@ Cards["Deathliger, Lion of Chaos"] = {
 }
 
 Cards["Dia Nork, Moonlight Guardian"] = {
-	price_tier = 3,
+	price_tier = 1,
 	name = "Dia Nork, Moonlight Guardian",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -757,7 +757,7 @@ Cards["Dia Nork, Moonlight Guardian"] = {
 }
 
 Cards["Dimension Gate"] = {
-	price_tier = 1,
+	price_tier = 2,
 	name = "Dimension Gate",
 	set = "Base Set",
 	type = TYPE_SPELL,
@@ -779,7 +779,7 @@ Cards["Dimension Gate"] = {
 }
 
 Cards["Dome Shell"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Dome Shell",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -799,7 +799,7 @@ Cards["Dome Shell"] = {
 }
 
 Cards["Draglide"] = {
-	price_tier = 3,
+	price_tier = 1,
 	name = "Draglide",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -839,7 +839,7 @@ Cards["Emerald Grass"] = {
 }
 
 Cards["Explosive Fighter Ucarn"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Explosive Fighter Ucarn",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -869,7 +869,7 @@ Cards["Explosive Fighter Ucarn"] = {
 }
 
 Cards["Faerie Child"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Faerie Child",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -959,7 +959,7 @@ Cards["Fire Sweeper Burning Hellion"] = {
 }
 
 Cards["Forest Hornet"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Forest Hornet",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -998,7 +998,7 @@ Cards["Frei, Vizier of Air"] = {
 }
 
 Cards["Gatling Skyterror"] = {
-	price_tier = 4,
+	price_tier = 3,
 	name = "Gatling Skyterror",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1018,7 +1018,7 @@ Cards["Gatling Skyterror"] = {
 }
 
 Cards["Ghost Touch"] = {
-	price_tier = 1,
+	price_tier = 2,
 	name = "Ghost Touch",
 	set = "Base Set",
 	type = TYPE_SPELL,
@@ -1033,7 +1033,7 @@ Cards["Ghost Touch"] = {
 }
 
 Cards["Gigaberos"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Gigaberos",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1067,7 +1067,7 @@ Cards["Gigaberos"] = {
 }
 
 Cards["Gigagiele"] = {
-	price_tier = 3,
+	price_tier = 1,
 	name = "Gigagiele",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1087,7 +1087,7 @@ Cards["Gigagiele"] = {
 }
 
 Cards["Gigargon"] = {
-	price_tier = 4,
+	price_tier = 2,
 	name = "Gigargon",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1137,7 +1137,7 @@ Cards["Golden Wing Striker"] = {
 }
 
 Cards["Gran Gure, Space Guardian"] = {
-	price_tier = 4,
+	price_tier = 3,
 	name = "Gran Gure, Space Guardian",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1157,7 +1157,7 @@ Cards["Gran Gure, Space Guardian"] = {
 }
 
 Cards["Hanusa, Radiance Elemental"] = {
-	price_tier = 5,
+	price_tier = 3,
 	name = "Hanusa, Radiance Elemental",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1235,7 +1235,7 @@ Cards["Iere, Vizier of Bullets"] = {
 }
 
 Cards["Illusionary Merfolk"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Illusionary Merfolk",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1284,7 +1284,7 @@ Cards["Immortal Baron, Vorg"] = {
 }
 
 Cards["Iocant, the Oracle"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Iocant, the Oracle",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1316,7 +1316,7 @@ Cards["Iocant, the Oracle"] = {
 }
 
 Cards["King Coral"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "King Coral",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1335,7 +1335,7 @@ Cards["King Coral"] = {
 }
 
 Cards["King Depthcon"] = {
-	price_tier = 5,
+	price_tier = 3,
 	name = "King Depthcon",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1355,7 +1355,7 @@ Cards["King Depthcon"] = {
 }
 
 Cards["King Ripped-Hide"] = {
-	price_tier = 4,
+	price_tier = 3,
 	name = "King Ripped-Hide",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1401,7 +1401,7 @@ Cards["La Ura Giga, Sky Guardian"] = {
 }
 
 Cards["Lah, Purification Enforcer"] = {
-	price_tier = 3,
+	price_tier = 1,
 	name = "Lah, Purification Enforcer",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1420,7 +1420,7 @@ Cards["Lah, Purification Enforcer"] = {
 }
 
 Cards["Laser Wing"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Laser Wing",
 	set = "Base Set",
 	type = TYPE_SPELL,
@@ -1446,7 +1446,7 @@ Cards["Laser Wing"] = {
 }
 
 Cards["Lok, Vizier of Hunting"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Lok, Vizier of Hunting",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1465,7 +1465,7 @@ Cards["Lok, Vizier of Hunting"] = {
 }
 
 Cards["Magma Gazer"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Magma Gazer",
 	set = "Base Set",
 	type = TYPE_SPELL,
@@ -1508,7 +1508,7 @@ Cards["Marine Flower"] = {
 }
 
 Cards["Masked Horror, Shadow of Scorn"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Masked Horror, Shadow of Scorn",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1564,7 +1564,7 @@ Cards["Meteosaur"] = {
 }
 
 Cards["Miele, Vizier of Lightning"] = {
-	price_tier = 1,
+	price_tier = 2,
 	name = "Miele, Vizier of Lightning",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1650,7 +1650,7 @@ Cards["Natural Snare"] = {
 }
 
 Cards["Night Master, Shadow of Decay"] = {
-	price_tier = 3,
+	price_tier = 1,
 	name = "Night Master, Shadow of Decay",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1666,7 +1666,7 @@ Cards["Night Master, Shadow of Decay"] = {
 }
 
 Cards["Nomad Hero Gigio"] = {
-	price_tier = 3,
+	price_tier = 1,
 	name = "Nomad Hero Gigio",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1686,7 +1686,7 @@ Cards["Nomad Hero Gigio"] = {
 }
 
 Cards["Onslaughter Triceps"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Onslaughter Triceps",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1706,7 +1706,7 @@ Cards["Onslaughter Triceps"] = {
 }
 
 Cards["Pangaea's Song"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Pangaea's Song",
 	set = "Base Set",
 	type = TYPE_SPELL,
@@ -1744,7 +1744,7 @@ Cards["Phantom Fish"] = {
 }
 
 Cards["Poisonous Dahlia"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Poisonous Dahlia",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1764,7 +1764,7 @@ Cards["Poisonous Dahlia"] = {
 }
 
 Cards["Poisonous Mushroom"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Poisonous Mushroom",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1790,7 +1790,7 @@ Cards["Poisonous Mushroom"] = {
 }
 
 Cards["Rayla, Truth Enforcer"] = {
-	price_tier = 4,
+	price_tier = 2,
 	name = "Rayla, Truth Enforcer",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1820,7 +1820,7 @@ Cards["Rayla, Truth Enforcer"] = {
 }
 
 Cards["Red-Eye Scorpion"] = {
-	price_tier = 3,
+	price_tier = 1,
 	name = "Red-Eye Scorpion",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1859,7 +1859,7 @@ Cards["Reusol, the Oracle"] = {
 }
 
 Cards["Revolver Fish"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Revolver Fish",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1879,7 +1879,7 @@ Cards["Revolver Fish"] = {
 }
 
 Cards["Roaring Great-Horn"] = {
-	price_tier = 5,
+	price_tier = 3,
 	name = "Roaring Great-Horn",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1899,7 +1899,7 @@ Cards["Roaring Great-Horn"] = {
 }
 
 Cards["Rothus, the Traveler"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Rothus, the Traveler",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1949,7 +1949,7 @@ Cards["Ruby Grass"] = {
 }
 
 Cards["Saucer-Head Shark"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Saucer-Head Shark",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -1987,7 +1987,7 @@ Cards["Saucer-Head Shark"] = {
 }
 
 Cards["Scarlet Skyterror"] = {
-	price_tier = 5,
+	price_tier = 3,
 	name = "Scarlet Skyterror",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -2026,7 +2026,7 @@ Cards["Scarlet Skyterror"] = {
 }
 
 Cards["Seamine"] = {
-	price_tier = 4,
+	price_tier = 1,
 	name = "Seamine",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -2124,7 +2124,7 @@ Cards["Sonic Wing"] = {
 }
 
 Cards["Spiral Gate"] = {
-	price_tier = 1,
+	price_tier = 2,
 	name = "Spiral Gate",
 	set = "Base Set",
 	type = TYPE_SPELL,
@@ -2142,7 +2142,7 @@ Cards["Spiral Gate"] = {
 }
 
 Cards["Stampeding Longhorn"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Stampeding Longhorn",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -2183,7 +2183,7 @@ Cards["Steel Smasher"] = {
 }
 
 Cards["Stinger Worm"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Stinger Worm",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -2211,7 +2211,7 @@ Cards["Stinger Worm"] = {
 }
 
 Cards["Stonesaur"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Stonesaur",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -2231,7 +2231,7 @@ Cards["Stonesaur"] = {
 }
 
 Cards["Storm Shell"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Storm Shell",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -2262,7 +2262,7 @@ Cards["Storm Shell"] = {
 }
 
 Cards["Super Explosive Volcanodon"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Super Explosive Volcanodon",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -2308,7 +2308,7 @@ Cards["Swamp Worm"] = {
 }
 
 Cards["Szubs Kin, Twilight Guardian"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Szubs Kin, Twilight Guardian",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -2328,7 +2328,7 @@ Cards["Szubs Kin, Twilight Guardian"] = {
 }
 
 Cards["Teleportation"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Teleportation",
 	set = "Base Set",
 	type = TYPE_SPELL,
@@ -2368,7 +2368,7 @@ Cards["Terror Pit"] = {
 }
 
 Cards["Thorny Mandra"] = {
-	price_tier = 4,
+	price_tier = 1,
 	name = "Thorny Mandra",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -2459,7 +2459,7 @@ Cards["Tornado Flame"] = {
 }
 
 Cards["Tower Shell"] = {
-	price_tier = 4,
+	price_tier = 2,
 	name = "Tower Shell",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -2479,7 +2479,7 @@ Cards["Tower Shell"] = {
 }
 
 Cards["Tri-horn Shepherd"] = {
-	price_tier = 3,
+	price_tier = 1,
 	name = "Tri-horn Shepherd",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -2498,7 +2498,7 @@ Cards["Tri-horn Shepherd"] = {
 }
 
 Cards["Tropico"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Tropico",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -2544,7 +2544,7 @@ Cards["Ultimate Force"] = {
 }
 
 Cards["Unicorn Fish"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Unicorn Fish",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -2570,7 +2570,7 @@ Cards["Unicorn Fish"] = {
 }
 
 Cards["Urth, Purifying Elemental"] = {
-	price_tier = 5,
+	price_tier = 3,
 	name = "Urth, Purifying Elemental",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -2590,7 +2590,7 @@ Cards["Urth, Purifying Elemental"] = {
 }
 
 Cards["Vampire Silphy"] = {
-	price_tier = 4,
+	price_tier = 3,
 	name = "Vampire Silphy",
 	set = "Base Set",
 	type = TYPE_CREATURE,
@@ -2686,7 +2686,7 @@ Cards["Writhing Bone Ghoul"] = {
 }
 
 Cards["Zagaan, Knight of Darkness"] = {
-	price_tier = 5,
+	price_tier = 3,
 	name = "Zagaan, Knight of Darkness",
 	set = "Base Set",
 	type = TYPE_CREATURE,

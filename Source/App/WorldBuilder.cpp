@@ -378,6 +378,22 @@ bool Application::isPortalAt(const std::string& mapId, int x, int y) const
 	return false;
 }
 
+bool Application::beginPortalAt(int x, int y)
+{
+	for (size_t i = 0; i < mWorldPortals.size(); ++i)
+	{
+		const WorldPortal& portal = mWorldPortals[i];
+		if (portal.fromMap != currentMapId() || portal.fromX != x || portal.fromY != y)
+			continue;
+		if (worldAreaIndex(portal.toMap) < 0) return false;
+		mOpeningPortal = (int)i;
+		mPortalAnimationStarted = SDL_GetTicks();
+		mDialogueNpc = -1;
+		return true;
+	}
+	return false;
+}
+
 bool Application::activatePortalAt(int x, int y)
 {
 	for (size_t i = 0; i < mWorldPortals.size(); ++i)
@@ -391,6 +407,8 @@ bool Application::activatePortalAt(int x, int y)
 		mPlayerY = portal.toY;
 		mVisualX = (float)mPlayerX;
 		mVisualY = (float)mPlayerY;
+		mOpeningPortal = -1;
+		mPortalAnimationStarted = 0;
 		mDialogueNpc = -1;
 		mNotice = mWorldAreas[destination].indoor ? "Entered " + mWorldAreas[destination].name + "." :
 			"Returned to " + mWorldAreas[destination].name + ".";
