@@ -434,7 +434,10 @@ bool Application::exerciseEvolutionSmoke()
 	int lightBringerId = getCardIdFromName("Chilias, the Oracle");
 	int cyberLordId = getCardIdFromName("Tropico");
 	int vortexId = getCardIdFromName("Wise Starnoid, Avatar of Hope");
-	if (lightBringerId < 0 || cyberLordId < 0 || vortexId < 0) return false;
+	int innocentHunterId = getCardIdFromName("Innocent Hunter, Blade of All");
+	int unrelatedId = getCardIdFromName("Bone Spider");
+	if (lightBringerId < 0 || cyberLordId < 0 || vortexId < 0 ||
+		innocentHunterId < 0 || unrelatedId < 0) return false;
 
 	Duel* savedActiveDuel = ActiveDuel;
 	bool vortexPassed = false;
@@ -454,6 +457,8 @@ bool Application::exerciseEvolutionSmoke()
 
 		int lightBringer = addCard(lightBringerId, ZONE_BATTLE);
 		int cyberLord = addCard(cyberLordId, ZONE_BATTLE);
+		int innocentHunter = addCard(innocentHunterId, ZONE_BATTLE);
+		int unrelated = addCard(unrelatedId, ZONE_BATTLE);
 		int evolution = addCard(vortexId, ZONE_HAND);
 		for (int i = 0; i < 3; ++i)
 		{
@@ -463,6 +468,9 @@ bool Application::exerciseEvolutionSmoke()
 		bool legal = vortex.getEvolutionBaitCount(evolution) == 2 &&
 			vortex.getCreatureCanVortexEvolve(evolution, lightBringer, cyberLord) == 1 &&
 			vortex.getCreatureCanVortexEvolve(evolution, cyberLord, lightBringer) == 1 &&
+			vortex.getCreatureCanVortexEvolve(evolution, innocentHunter, cyberLord) == 1 &&
+			vortex.getCreatureCanVortexEvolve(evolution, lightBringer, innocentHunter) == 1 &&
+			vortex.getCreatureCanVortexEvolve(evolution, innocentHunter, unrelated) == 0 &&
 			vortex.getCreatureCanVortexEvolve(evolution, lightBringer, lightBringer) == 0;
 
 		vortex.mTurn = 0;
@@ -474,10 +482,10 @@ bool Application::exerciseEvolutionSmoke()
 		{
 			if (moves[i].getType() == "cardplay" &&
 				messageInt(moves[i], "card") == evolution &&
-				((messageInt(moves[i], "evobait") == lightBringer &&
+				((messageInt(moves[i], "evobait") == innocentHunter &&
 				  messageInt(moves[i], "evobait2") == cyberLord) ||
 				 (messageInt(moves[i], "evobait") == cyberLord &&
-				  messageInt(moves[i], "evobait2") == lightBringer)))
+				  messageInt(moves[i], "evobait2") == innocentHunter)))
 			{
 				evolveVortex = moves[i];
 				generated = true;
@@ -497,10 +505,10 @@ bool Application::exerciseEvolutionSmoke()
 				vortex.dispatchAllMessages();
 			}
 		}
-		bool stacked = vortex.mBattlezones[0].mCards.size() == 1 &&
+		bool stacked = vortex.mBattlezones[0].mCards.size() == 3 &&
 			vortex.mCardList[evolution]->mZone == ZONE_BATTLE &&
 			vortex.mCardList[evolution]->mEvoStack.size() == 2 &&
-			vortex.mCardList[lightBringer]->mZone == ZONE_EVOLVED &&
+			vortex.mCardList[innocentHunter]->mZone == ZONE_EVOLVED &&
 			vortex.mCardList[cyberLord]->mZone == ZONE_EVOLVED;
 
 		Message leave("cardmove");
@@ -510,7 +518,7 @@ bool Application::exerciseEvolutionSmoke()
 		vortex.dispatchMessage(leave);
 		vortex.dispatchAllMessages();
 		bool movedTogether = vortex.mCardList[evolution]->mZone == ZONE_GRAVEYARD &&
-			vortex.mCardList[lightBringer]->mZone == ZONE_GRAVEYARD &&
+			vortex.mCardList[innocentHunter]->mZone == ZONE_GRAVEYARD &&
 			vortex.mCardList[cyberLord]->mZone == ZONE_GRAVEYARD &&
 			vortex.mCardList[evolution]->mEvoStack.empty();
 		vortexPassed = legal && generated && vortex.mCastingCard == -1 && stacked && movedTogether;

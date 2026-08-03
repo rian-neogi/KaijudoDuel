@@ -63,8 +63,12 @@ Abils.VortexEvolution = function(id,race1,race2) --test
 	elseif(getMessageType()=="get creaturecanvortexevolve" and getMessageInt("evolution")==id) then
 		local bait1=getMessageInt("evobait")
 		local bait2=getMessageInt("evobait2")
-		if((isCreatureOfRace(bait1,race1)==1 and isCreatureOfRace(bait2,race2)==1) or
-			(isCreatureOfRace(bait1,race2)==1 and isCreatureOfRace(bait2,race1)==1)) then
+		local wildcard1=getMessageInt("evobaitwildcard")==1
+		local wildcard2=getMessageInt("evobait2wildcard")==1
+		if(((wildcard1 or isCreatureOfRace(bait1,race1)==1) and
+			(wildcard2 or isCreatureOfRace(bait2,race2)==1)) or
+			((wildcard1 or isCreatureOfRace(bait1,race2)==1) and
+			(wildcard2 or isCreatureOfRace(bait2,race1)==1))) then
 			setMessageInt("canevolve",1)
 		end
 	end

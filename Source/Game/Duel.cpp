@@ -1963,12 +1963,16 @@ int Duel::getCreatureCanVortexEvolve(int evo, int bait, int bait2)
 		mCardList[bait2]->mZone != ZONE_BATTLE)
 		return 0;
 
+	int baitWildcard = getCreatureCanEvolve(evo, bait);
+	int bait2Wildcard = getCreatureCanEvolve(evo, bait2);
 	Message oldmsg = mCurrentMessage;
 	mCurrentMessage = Message("get creaturecanvortexevolve");
 	mCurrentMessage.addValue("canevolve", 0);
 	mCurrentMessage.addValue("evolution", evo);
 	mCurrentMessage.addValue("evobait", bait);
 	mCurrentMessage.addValue("evobait2", bait2);
+	mCurrentMessage.addValue("evobaitwildcard", baitWildcard);
+	mCurrentMessage.addValue("evobait2wildcard", bait2Wildcard);
 
 	for (std::vector<Card*>::iterator i = mCardList.begin(); i != mCardList.end(); ++i)
 		(*i)->handleMessage(mCurrentMessage);
