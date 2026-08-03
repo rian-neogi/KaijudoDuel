@@ -122,6 +122,17 @@ Abils.Charger = function(id)
 	end
 end
 
+local tapAbilitiesLocked = function()
+	for player=0,1 do
+		for i=0,getZoneSize(player,ZONE_BATTLE)-1 do
+			if(getCardName(getCardAt(player,ZONE_BATTLE,i))=="Lockdown Lizard") then
+				return true
+			end
+		end
+	end
+	return false
+end
+
 Abils.TurboRush = function(id,func)
 	if(getCardZone(id)==ZONE_BATTLE and hasOtherCreatureBrokenShieldThisTurn(id)==1) then
 		func(id)
@@ -144,10 +155,11 @@ end
 Abils.Stealth = function(id,civ) --test
 	if(getMessageType()=="get creaturecanblock") then
 		if(getMessageInt("attacker")==id) then
-			local s = getZoneSize(getOpponent(getCardOwner(id)),ZONE_MANA)
+			local opponent = getOpponent(getCardOwner(id))
+			local s = getZoneSize(opponent,ZONE_MANA)
 			local flag = 0
 			for i=0,(s-1) do
-				if(cardHasCivilization(getCardAt(player,zone,i),civ)) then
+				if(cardHasCivilization(getCardAt(opponent,ZONE_MANA,i),civ)==1) then
 					flag = 1
 					break
 				end
@@ -161,12 +173,12 @@ end
 
 Abils.TapAbility = function(id, func)
 	if(getMessageType()=="get creaturehastapability") then
-		if(getMessageInt("creature")==id) then
+		if(getMessageInt("creature")==id and not tapAbilitiesLocked()) then
 			setMessageInt("hastapability",1)
 		end
 	end
 	if(getMessageType()=="post creatureusetapability") then
-		if(getMessageInt("creature")==id) then
+		if(getMessageInt("creature")==id and not tapAbilitiesLocked()) then
 			func(id)
 		end
 	end
@@ -175,13 +187,13 @@ end
 Abils.TapAbilityForCiv = function(id, func, civ)
 	if(getMessageType()=="get creaturehastapability") then
 		local cid = getMessageInt("creature")
-		if(getCardZone(id)==ZONE_BATTLE and getCardOwner(id)==getCardOwner(cid) and cardHasCivilization(cid,civ) and getCardZone(cid)==ZONE_BATTLE) then
+		if(not tapAbilitiesLocked() and getCardZone(id)==ZONE_BATTLE and getCardOwner(id)==getCardOwner(cid) and cardHasCivilization(cid,civ)==1 and getCardZone(cid)==ZONE_BATTLE) then
 			setMessageInt("hastapability",1)
 		end
 	end
 	if(getMessageType()=="post creatureusetapability") then
 		local cid = getMessageInt("creature")
-		if(getCardZone(id)==ZONE_BATTLE and getCardOwner(id)==getCardOwner(cid) and cardHasCivilization(cid,civ) and getCardZone(cid)==ZONE_BATTLE) then
+		if(not tapAbilitiesLocked() and getCardZone(id)==ZONE_BATTLE and getCardOwner(id)==getCardOwner(cid) and cardHasCivilization(cid,civ)==1 and getCardZone(cid)==ZONE_BATTLE) then
 			func(cid)
 		end
 	end

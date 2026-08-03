@@ -751,6 +751,8 @@ bool Application::exerciseHeuristicAttackSafetySmoke()
 	choices.push_back(attackPlayer);
 	choices.push_back(endTurn);
 	Message selected = rival.chooseMove(*mDuel, choices);
+	choices.pop_back();
+	Message forcedSelection = rival.chooseMove(*mDuel, choices);
 
 	attacker->mPower = savedAttackerPower;
 	defender->mPower = savedDefenderPower;
@@ -758,7 +760,7 @@ bool Application::exerciseHeuristicAttackSafetySmoke()
 	defender->mIsTapped = savedTapped;
 	return std::isinf(strongerCreatureScore) && strongerCreatureScore < 0.0 &&
 		std::isinf(strongerBlockerScore) && strongerBlockerScore < 0.0 &&
-		selected.getType() == "endturn";
+		selected.getType() == "endturn" && forcedSelection.getType() == "creatureattack";
 }
 
 bool Application::exerciseHeuristicBlockChoiceSmoke()

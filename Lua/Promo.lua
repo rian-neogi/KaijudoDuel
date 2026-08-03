@@ -82,6 +82,27 @@ Cards["Armored Groblav"] = {
 	end
 }
 
+Cards["Cranium Clamp"] = {
+	price_tier = 3,
+	name = "Cranium Clamp",
+	set = "Promo",
+	type = TYPE_SPELL,
+	civilization = CIV_DARKNESS,
+	cost = 4,
+
+	shieldtrigger = 0,
+
+	OnCast = function(id) --test
+		local opponent = getOpponent(getCardOwner(id))
+		for i=1,2 do
+			local chosen = createChoice("Choose a card from your hand to discard",0,id,opponent,Checks.InOppHand)
+			if(chosen>=0) then
+				discardCard(chosen)
+			end
+		end
+	end
+}
+
 Cards["Gigagrax"] = {
 	price_tier = 3,
 	name = "Gigagrax",

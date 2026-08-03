@@ -2175,6 +2175,15 @@ bool Duel::hasOtherCreatureBrokenShieldThisTurn(int uid) const
 	return breakers.size() > 1 || (breakers.size() == 1 && breakers.count(uid) == 0);
 }
 
+bool Duel::hasCreatureBrokenShieldThisTurn(int uid) const
+{
+	if (uid < 0 || uid >= static_cast<int>(mCardList.size()))
+		return false;
+
+	const std::unordered_set<int>& breakers = mShieldBreakersThisTurn[mCardList.at(uid)->mOwner];
+	return breakers.count(uid) != 0;
+}
+
 void Duel::resetChoice()
 {
 	mChoiceCard = -1;

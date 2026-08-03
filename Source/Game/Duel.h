@@ -168,6 +168,7 @@ public:
 	std::string getCreatureRace(int uid); //returns the full race string of the creature
 	int getCreatureCanEvolve(int evo, int bait);
 	int getCreatureHasTapAbility(int uid);
+	bool hasCreatureBrokenShieldThisTurn(int uid) const;
 	bool hasOtherCreatureBrokenShieldThisTurn(int uid) const;
 };
 

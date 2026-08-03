@@ -63,11 +63,13 @@ Message HeuristicBot::chooseMove(Duel& duel, const std::vector<Message>& moves) 
 	}
 
 	size_t bestIndex = moves.size();
+	size_t fallbackIndex = moves.size();
 	double bestScore = -std::numeric_limits<double>::infinity();
 	for (size_t i = 0; i < moves.size(); ++i)
 	{
 		if (skipManaCharge && messageType(moves[i]) == "cardmana") continue;
 		if (ordinaryTurn && movePriority(messageType(moves[i])) != preferredPriority) continue;
+		if (fallbackIndex == moves.size()) fallbackIndex = i;
 		double score = scoreMove(duel, moves[i]);
 		if (score == -std::numeric_limits<double>::infinity()) continue;
 		if (score > bestScore)
@@ -76,7 +78,9 @@ Message HeuristicBot::chooseMove(Duel& duel, const std::vector<Message>& moves) 
 			bestIndex = i;
 		}
 	}
-	return bestIndex < moves.size() ? moves[bestIndex] : Message();
+	if (bestIndex < moves.size()) return moves[bestIndex];
+	if (fallbackIndex < moves.size()) return moves[fallbackIndex];
+	return moves.front();
 }
 
 double HeuristicBot::cardValue(Duel& duel, int cardId, bool allowLuaQueries) const
