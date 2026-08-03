@@ -155,6 +155,7 @@ private:
 	bool exerciseEvolutionSmoke();
 	bool exerciseHeuristicAttackSafetySmoke();
 	bool exerciseHeuristicBlockChoiceSmoke();
+	bool exerciseHeuristicManaConservationSmoke();
 	bool exerciseBinaryChoiceSmoke();
 	bool exerciseActionLabelSmoke();
 	bool beginMandatorySacrificeAiSmoke(const std::string& cardName, int& summonedCard, int& sacrifice);

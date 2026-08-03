@@ -38,6 +38,7 @@ Message HeuristicBot::chooseMove(Duel& duel, const std::vector<Message>& moves) 
 {
 	if (moves.empty()) return Message();
 	int preferredPriority = 3;
+	bool skipManaCharge = false;
 	bool ordinaryTurn = !duel.mIsChoiceActive && duel.mAttackphase == PHASE_NONE &&
 		duel.mCastingCard == -1 && duel.getPlayerToMove() == mPlayer;
 	auto movePriority = [](const std::string& type)
@@ -49,14 +50,23 @@ Message HeuristicBot::chooseMove(Duel& duel, const std::vector<Message>& moves) 
 	};
 	if (ordinaryTurn)
 	{
+		double bestManaScore = -std::numeric_limits<double>::infinity();
 		for (size_t i = 0; i < moves.size(); ++i)
+			if (messageType(moves[i]) == "cardmana")
+				bestManaScore = std::max(bestManaScore, scoreMove(duel, moves[i]));
+		skipManaCharge = bestManaScore < 5.0;
+		for (size_t i = 0; i < moves.size(); ++i)
+		{
+			if (skipManaCharge && messageType(moves[i]) == "cardmana") continue;
 			preferredPriority = std::min(preferredPriority, movePriority(messageType(moves[i])));
+		}
 	}
 
 	size_t bestIndex = moves.size();
 	double bestScore = -std::numeric_limits<double>::infinity();
 	for (size_t i = 0; i < moves.size(); ++i)
 	{
+		if (skipManaCharge && messageType(moves[i]) == "cardmana") continue;
 		if (ordinaryTurn && movePriority(messageType(moves[i])) != preferredPriority) continue;
 		double score = scoreMove(duel, moves[i]);
 		if (score == -std::numeric_limits<double>::infinity()) continue;
@@ -126,7 +136,19 @@ double HeuristicBot::scoreManaCharge(Duel& duel, int cardId) const
 {
 	if (cardId < 0 || cardId >= (int)duel.mCardList.size()) return -1000.0;
 	Card* card = duel.mCardList[cardId];
-	double score = duel.mManazones[mPlayer].mCards.size() < 8 ? 65.0 : 25.0;
+	int manaCount = (int)duel.mManazones[mPlayer].mCards.size();
+	int handAfterCharge = std::max(0, (int)duel.mHands[mPlayer].mCards.size() - 1);
+	int maximumDeckCost = 0;
+	for (size_t i = 0; i < duel.mCardList.size(); ++i)
+		if (duel.mCardList[i]->mOwner == mPlayer)
+			maximumDeckCost = std::max(maximumDeckCost, duel.mCardList[i]->mManaCost);
+
+	double score = 72.0 - manaCount * 4.5;
+	if (manaCount > 4) score -= (manaCount - 4) * 5.0;
+	if (handAfterCharge < 3) score -= (4 - handAfterCharge) * 18.0;
+	else if (handAfterCharge >= 6) score += 5.0;
+	if (maximumDeckCost > 0 && manaCount >= maximumDeckCost)
+		score -= 90.0 + (manaCount - maximumDeckCost) * 18.0;
 	score -= cardValue(duel, cardId, false) * 2.0;
 	int copiesInHand = 0;
 	for (size_t i = 0; i < duel.mHands[mPlayer].mCards.size(); ++i)
@@ -138,7 +160,7 @@ double HeuristicBot::scoreManaCharge(Duel& duel, int cardId) const
 		if (duel.mManazones[mPlayer].mCards[i]->mCivilization == card->mCivilization)
 			civilizationInMana = true;
 	if (!civilizationInMana) score += 12.0;
-	int manaAfterCharge = (int)duel.mManazones[mPlayer].mCards.size() + 1;
+	int manaAfterCharge = manaCount + 1;
 	if (card->mManaCost > manaAfterCharge + 2) score += 5.0;
 	return score;
 }

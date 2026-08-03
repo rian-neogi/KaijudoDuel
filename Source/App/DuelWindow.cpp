@@ -662,6 +662,64 @@ bool Application::exerciseHeuristicBlockChoiceSmoke()
 		messageInt(selected, "blocker") == lowerWinningBlocker->mUniqueId;
 }
 
+bool Application::exerciseHeuristicManaConservationSmoke()
+{
+	if (mDuel == NULL) return false;
+	std::lock_guard<std::mutex> lock(gMutex);
+	std::vector<Card*> ownedCards;
+	int maximumDeckCost = 0;
+	for (size_t i = 0; i < mDuel->mCardList.size(); ++i)
+	{
+		Card* card = mDuel->mCardList[i];
+		if (card->mOwner != 1) continue;
+		ownedCards.push_back(card);
+		maximumDeckCost = std::max(maximumDeckCost, card->mManaCost);
+	}
+	if (ownedCards.size() < 7 || maximumDeckCost <= 0 ||
+		maximumDeckCost > (int)ownedCards.size()) return false;
+
+	std::vector<Card*> savedMana = mDuel->mManazones[1].mCards;
+	std::vector<Card*> savedHand = mDuel->mHands[1].mCards;
+	int savedTurn = mDuel->mTurn;
+	int savedAttackPhase = mDuel->mAttackphase;
+	int savedCastingCard = mDuel->mCastingCard;
+	bool savedChoiceActive = mDuel->mIsChoiceActive;
+
+	Card* candidate = ownedCards.front();
+	Message charge("cardmana");
+	charge.addValue("card", candidate->mUniqueId);
+	Message endTurn("endturn");
+	HeuristicBot rival(1);
+
+	mDuel->mManazones[1].mCards.assign(ownedCards.begin(), ownedCards.begin() +
+		std::min(3, std::max(0, maximumDeckCost - 1)));
+	mDuel->mHands[1].mCards.assign(ownedCards.begin(), ownedCards.begin() + 7);
+	double fullHandScore = rival.scoreMove(*mDuel, charge);
+	mDuel->mHands[1].mCards.assign(ownedCards.begin(), ownedCards.begin() + 2);
+	double scarceHandScore = rival.scoreMove(*mDuel, charge);
+
+	mDuel->mManazones[1].mCards.assign(ownedCards.begin(),
+		ownedCards.begin() + maximumDeckCost);
+	double cappedManaScore = rival.scoreMove(*mDuel, charge);
+	mDuel->mTurn = 1;
+	mDuel->mAttackphase = PHASE_NONE;
+	mDuel->mCastingCard = -1;
+	mDuel->mIsChoiceActive = false;
+	std::vector<Message> moves;
+	moves.push_back(charge);
+	moves.push_back(endTurn);
+	Message selected = rival.chooseMove(*mDuel, moves);
+
+	mDuel->mManazones[1].mCards = savedMana;
+	mDuel->mHands[1].mCards = savedHand;
+	mDuel->mTurn = savedTurn;
+	mDuel->mAttackphase = savedAttackPhase;
+	mDuel->mCastingCard = savedCastingCard;
+	mDuel->mIsChoiceActive = savedChoiceActive;
+	return fullHandScore > scarceHandScore + 30.0 && cappedManaScore < 5.0 &&
+		selected.getType() == "endturn";
+}
+
 bool Application::beginMandatorySacrificeAiSmoke(
 	const std::string& cardName, int& summonedCard, int& sacrifice)
 {
