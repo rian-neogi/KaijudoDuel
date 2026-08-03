@@ -29,7 +29,8 @@ The World Builder is available only through `--world-builder`. It edits map
 tiles and NPC/shard locations. Select entities from the Lua-populated side
 lists or directly on the map, then click or drag them to a free grass/path
 or indoor floor tile. Switch maps with the on-screen arrows or
-`PageUp`/`PageDown`. Save with the on-screen button or `Ctrl+S`.
+`PageUp`/`PageDown`; pan large maps with the arrow keys. Save with the
+on-screen button or `Ctrl+S`.
 
 When adding a C++ source file, add it to `GAME_SOURCES` in `CMakeLists.txt`.
 Do not restore the legacy Windows/OpenGL interface to the Linux target.
@@ -92,10 +93,14 @@ Builder must not enumerate the bundled gameplay and NPC decks under `Decks`.
   world IDs disappear on the next save.
 - World Builder saves must modify only `Lua/World.lua`, leaving NPC dialogue,
   decks, rewards, Mercer stock, and other hand-authored metadata untouched.
-- Maps are rectangular and may be up to 20 columns by 12 rows. Outdoor tile characters are `.` (grass),
-  `=` (path), `~` (water), `H` (house), `T` (tree), and `#` (dense forest).
+- Maps are rectangular and may be up to 128 columns by 128 rows. Gameplay
+  follows the player through maps larger than the 20-by-12-tile viewport.
+  Outdoor tile characters are `.` (grass), `=` (path), `~` (water), `H`
+  (house), `T` (tree), `#` (dense forest), `B` (bonfire), `A` (feast table),
+  `S` (walkable dueling sand), and `M` (marble).
   Indoor/wooden-building tiles are `W` (wood wall), `D` (door), `F` (wood
-  floor), and `C` (counter). NPCs and shards require distinct walkable tiles.
+  floor), `C` (counter), and `E` (workshop tools). NPCs and shards require
+  distinct walkable tiles.
   Player starts, portal entrances, and portal destinations must remain
   walkable and unoccupied.
 - Portals are directed transitions. Define both directions explicitly when a

@@ -137,6 +137,8 @@ private:
 	bool npcHasStoryMarker(int npcIndex) const;
 	std::string storyDialogueForNpc(int npcIndex) const;
 	std::string storyObjective() const;
+	float overworldCameraX() const;
+	float overworldCameraY() const;
 	void tryMove(int dx, int dy);
 	void collectShardAt(int x, int y);
 	void interact();
@@ -291,6 +293,8 @@ private:
 	int mWorldBuilderSelectedNpc;
 	int mWorldBuilderSelectedShard;
 	int mWorldBuilderListScroll;
+	int mWorldBuilderCameraX;
+	int mWorldBuilderCameraY;
 	bool mWorldBuilderPainting;
 	bool mWorldBuilderDragging;
 	bool mWorldBuilderDirty;

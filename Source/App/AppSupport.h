@@ -17,18 +17,24 @@ namespace AppSupport
 	constexpr int MAP_X = 32;
 	constexpr int MAP_Y = 54;
 	constexpr int TILE = 48;
-	constexpr int MAP_MAX_COLUMNS = 20;
-	constexpr int MAP_MAX_ROWS = 12;
+	constexpr int MAP_VIEW_COLUMNS = 20;
+	constexpr int MAP_VIEW_ROWS = 12;
+	constexpr int WORLD_MAX_COLUMNS = 128;
+	constexpr int WORLD_MAX_ROWS = 128;
+	constexpr int MAP_VIEW_WIDTH = MAP_VIEW_COLUMNS * TILE;
+	constexpr int MAP_VIEW_HEIGHT = MAP_VIEW_ROWS * TILE;
 	constexpr const char* STARTER_DECK_PATH = "Decks/My Decks/7 - L Tappy Tappy.txt";
 
 	inline int mapOriginX(int columns)
 	{
-		return MAP_X + (MAP_MAX_COLUMNS - columns) * TILE / 2;
+		int visibleColumns = columns < MAP_VIEW_COLUMNS ? columns : MAP_VIEW_COLUMNS;
+		return MAP_X + (MAP_VIEW_COLUMNS - visibleColumns) * TILE / 2;
 	}
 
 	inline int mapOriginY(int rows)
 	{
-		return MAP_Y + (MAP_MAX_ROWS - rows) * TILE / 2;
+		int visibleRows = rows < MAP_VIEW_ROWS ? rows : MAP_VIEW_ROWS;
+		return MAP_Y + (MAP_VIEW_ROWS - visibleRows) * TILE / 2;
 	}
 
 	inline SDL_Color color(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 255)

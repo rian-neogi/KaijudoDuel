@@ -171,7 +171,15 @@ bool Application::exerciseOverworldMovementSmoke()
 	mMoveIntentX = savedIntentX;
 	mMoveIntentY = savedIntentY;
 
-	Npc& npc = mNpcs[0];
+	int movementNpc = -1;
+	for (size_t i = 0; i < mNpcs.size(); ++i)
+		if (npcVisible((int)i) && mNpcs[i].mapId == currentMapId() && mNpcs[i].canWander())
+		{
+			movementNpc = (int)i;
+			break;
+		}
+	if (movementNpc < 0) return false;
+	Npc& npc = mNpcs[movementNpc];
 	int savedNpcX = npc.x;
 	int savedNpcY = npc.y;
 	float savedNpcVisualX = npc.visualX;
@@ -256,7 +264,7 @@ bool Application::isWalkable(int x, int y) const
 	const std::vector<std::string>& map = currentMap();
 	if (y < 0 || y >= (int)map.size() || x < 0 || x >= (int)map[y].size()) return false;
 	char tile = map[y][x];
-	return tile == '.' || tile == '=' || tile == 'F' || tile == 'D';
+	return tile == '.' || tile == '=' || tile == 'F' || tile == 'D' || tile == 'S';
 }
 
 int Application::npcAt(int x, int y, int ignoredNpc) const
@@ -322,13 +330,33 @@ void Application::interact()
 	if (mDialogueNpc >= 0) discoverStoryClue(mDialogueNpc);
 }
 
+float Application::overworldCameraX() const
+{
+	const std::vector<std::string>& map = currentMap();
+	float maximum = (float)std::max(0, (int)map[0].size() - MAP_VIEW_COLUMNS);
+	return std::max(0.f, std::min(maximum,
+		mVisualX - (MAP_VIEW_COLUMNS - 1) * 0.5f));
+}
+
+float Application::overworldCameraY() const
+{
+	const std::vector<std::string>& map = currentMap();
+	float maximum = (float)std::max(0, (int)map.size() - MAP_VIEW_ROWS);
+	return std::max(0.f, std::min(maximum,
+		mVisualY - (MAP_VIEW_ROWS - 1) * 0.5f));
+}
+
 void Application::renderOverworld()
 {
 	ensurePlayerDataLoaded();
 	fillRect({ 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT }, 13, 21, 34);
 	const std::vector<std::string>& map = currentMap();
-	int mapX = mapOriginX((int)map[0].size());
-	int mapY = mapOriginY((int)map.size());
+	int mapX = mapOriginX((int)map[0].size()) -
+		(int)std::round(overworldCameraX() * TILE);
+	int mapY = mapOriginY((int)map.size()) -
+		(int)std::round(overworldCameraY() * TILE);
+	SDL_Rect mapViewport = { MAP_X, MAP_Y, MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT };
+	SDL_RenderSetClipRect(mRenderer, &mapViewport);
 	for (size_t y = 0; y < map.size(); ++y)
 	{
 		for (size_t x = 0; x < map[y].size(); ++x)
@@ -339,6 +367,11 @@ void Application::renderOverworld()
 			else if (tile == '~') fillRect(tileRect, 25, 111, 157);
 			else if (tile == 'H') fillRect(tileRect, 126, 65, 43);
 			else if (tile == '#' || tile == 'T') fillRect(tileRect, 26, 75, 33);
+			else if (tile == 'S') fillRect(tileRect, 188, 151, 87);
+			else if (tile == 'M') fillRect(tileRect, 198, 204, 207);
+			else if (tile == 'B') fillRect(tileRect, 83, 64, 42);
+			else if (tile == 'A') fillRect(tileRect, 61, 139, 61);
+			else if (tile == 'E') fillRect(tileRect, 137, 91, 49);
 			else if (tile == 'W' || tile == 'D' || tile == 'F' || tile == 'C')
 				fillRect(tileRect, tile == 'F' ? 137 : 91, tile == 'F' ? 91 : 53, tile == 'F' ? 49 : 31);
 			else fillRect(tileRect, 61, 139, 61);
@@ -376,6 +409,12 @@ void Application::renderOverworld()
 			else if (tile == 'D')
 			{
 				float open = 0.f;
+				bool mercerDoor = false;
+				for (size_t portalIndex = 0; portalIndex < mWorldPortals.size(); ++portalIndex)
+					if (mWorldPortals[portalIndex].fromMap == currentMapId() &&
+						mWorldPortals[portalIndex].fromX == (int)x &&
+						mWorldPortals[portalIndex].fromY == (int)y &&
+						mWorldPortals[portalIndex].toMap == "mercers_house") mercerDoor = true;
 				if (mOpeningPortal >= 0 && mOpeningPortal < (int)mWorldPortals.size())
 				{
 					const WorldPortal& portal = mWorldPortals[mOpeningPortal];
@@ -392,7 +431,7 @@ void Application::renderOverworld()
 					fillRect({ tileRect.x + 11 + doorWidth - 7, tileRect.y + 24, 4, 4 },
 						231, 184, 73);
 				fillRect({ tileRect.x + 3, tileRect.y + 2, 42, 5 }, 65, 37, 25);
-				if (!mWorldAreas[mCurrentWorldArea].indoor && doorWidth >= 18)
+				if (mercerDoor && doorWidth >= 18)
 				{
 					int signX = tileRect.x + 11 + doorWidth - 14;
 					fillRect({ signX, tileRect.y + 8, 13, 13 }, 206, 160, 72);
@@ -412,6 +451,45 @@ void Application::renderOverworld()
 				fillRect({ tileRect.x, tileRect.y + 7, 48, 7 }, 166, 105, 53);
 				fillRect({ tileRect.x + 8, tileRect.y + 18, 4, 22 }, 71, 40, 27);
 				fillRect({ tileRect.x + 36, tileRect.y + 18, 4, 22 }, 71, 40, 27);
+			}
+			else if (tile == 'B')
+			{
+				fillRect({ tileRect.x + 5, tileRect.y + 32, 38, 8 }, 74, 70, 65);
+				fillRect({ tileRect.x + 10, tileRect.y + 29, 28, 10 }, 111, 100, 83);
+				int flicker = (int)((SDL_GetTicks() / 110 + x + y) % 3);
+				fillRect({ tileRect.x + 17, tileRect.y + 13 + flicker, 15, 22 - flicker },
+					221, 69, 32);
+				fillRect({ tileRect.x + 20, tileRect.y + 8 - flicker, 10, 23 }, 249, 137, 36);
+				fillRect({ tileRect.x + 23, tileRect.y + 16, 6, 15 }, 255, 222, 89);
+			}
+			else if (tile == 'A')
+			{
+				fillRect({ tileRect.x + 6, tileRect.y + 6, 36, 5 }, 93, 52, 29);
+				fillRect({ tileRect.x + 6, tileRect.y + 37, 36, 5 }, 93, 52, 29);
+				fillRect({ tileRect.x + 4, tileRect.y + 15, 40, 18 }, 139, 82, 39);
+				fillRect({ tileRect.x + 8, tileRect.y + 18, 32, 3 }, 181, 116, 54);
+				fillRect({ tileRect.x + 12, tileRect.y + 23, 7, 6 }, 232, 208, 151);
+				fillRect({ tileRect.x + 29, tileRect.y + 22, 8, 7 }, 175, 49, 37);
+			}
+			else if (tile == 'S')
+			{
+				fillRect({ tileRect.x + 7, tileRect.y + 10, 5, 3 }, 157, 121, 69);
+				fillRect({ tileRect.x + 34, tileRect.y + 31, 6, 3 }, 211, 177, 109);
+			}
+			else if (tile == 'M')
+			{
+				fillRect({ tileRect.x + 2, tileRect.y + 2, 44, 44 }, 220, 224, 224);
+				fillRect({ tileRect.x + 3, tileRect.y + 22, 42, 2 }, 162, 173, 179);
+				fillRect({ tileRect.x + 17, tileRect.y + 3, 2, 19 }, 177, 186, 190);
+				fillRect({ tileRect.x + 31, tileRect.y + 24, 2, 21 }, 177, 186, 190);
+			}
+			else if (tile == 'E')
+			{
+				fillRect({ tileRect.x + 3, tileRect.y + 24, 42, 17 }, 104, 58, 32);
+				fillRect({ tileRect.x + 5, tileRect.y + 20, 38, 6 }, 171, 108, 51);
+				fillRect({ tileRect.x + 9, tileRect.y + 10, 7, 11 }, 54, 151, 193);
+				fillRect({ tileRect.x + 20, tileRect.y + 7, 6, 14 }, 151, 71, 183);
+				fillRect({ tileRect.x + 31, tileRect.y + 12, 8, 9 }, 217, 158, 48);
 			}
 			else if (tile == '.')
 				fillRect({ tileRect.x + 7, tileRect.y + 34, 3, 8 }, 111, 180, 64);
@@ -446,6 +524,7 @@ void Application::renderOverworld()
 	bool playerWalking = std::fabs(mPlayerX - mVisualX) > 0.001f ||
 		std::fabs(mPlayerY - mVisualY) > 0.001f;
 	drawCharacter(mVisualX, mVisualY, CharacterAppearance::Player, false, playerWalking);
+	SDL_RenderSetClipRect(mRenderer, NULL);
 
 	fillRect({ 1012, 28, 238, 670 }, 21, 28, 45, 245);
 	outlineRect({ 1012, 28, 238, 670 }, 190, 146, 61, 255, 2);
@@ -503,8 +582,14 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 	bool completed, bool walking)
 {
 	const std::vector<std::string>& map = currentMap();
-	int x = mapOriginX((int)map[0].size()) + (int)std::round(gridX * TILE);
-	int y = mapOriginY((int)map.size()) + (int)std::round(gridY * TILE);
+	float cameraX = mScreen == Screen::WorldBuilder ? (float)mWorldBuilderCameraX :
+		overworldCameraX();
+	float cameraY = mScreen == Screen::WorldBuilder ? (float)mWorldBuilderCameraY :
+		overworldCameraY();
+	int x = mapOriginX((int)map[0].size()) +
+		(int)std::round((gridX - cameraX) * TILE);
+	int y = mapOriginY((int)map.size()) +
+		(int)std::round((gridY - cameraY) * TILE);
 	int stride = walking && (SDL_GetTicks() / 110) % 2 == 0 ? 2 : (walking ? -2 : 0);
 	int bob = walking && (SDL_GetTicks() / 110) % 2 == 0 ? -1 : 0;
 	fillRect({ x + 9, y + 39, 31, 6 }, 8, 14, 18, 100);

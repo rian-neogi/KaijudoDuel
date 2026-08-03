@@ -28,6 +28,8 @@ She came to the festival to study how Water techniques could predict cross-civil
 
 Marin respects opponents who change plans halfway through a duel. The player's repeated victories force her to distinguish genuine foresight from the illusion of control. Giving up Aqua Sniper is meaningful because it represents her willingness to let another duelist make choices she cannot predict.
 
+Marin is also preparing for the Grand Championship.
+
 At Glasswater Port in Act II, Marin encounters perfect counterfeit predictions derived from stolen memories. She must choose between flawless information and the uncertainty that allows people to grow.
 
 ## Rook — The Patient Wall
@@ -56,6 +58,8 @@ Rowan trusted Aurelia to supervise the Festival of Five Civilizations. When the 
 
 Aurelia is generous but can become inflexible when afraid. Her duels test whether the player can attack intelligently through a disciplined defense. Each rematch gradually replaces judgment with mutual respect, culminating in her sharing Hanusa's echo.
 
+Aurelia is the first Crest holder, but she does not battle the player until the player is ready for the first crest battle. She also adjudicates the Grand Champsionship when it happens.
+
 When Sunspire's guardians turn on one another in Act II, Aurelia confronts the danger in treating rules as more important than the people they protect. Her later leadership is gentler and more willing to listen.
 
 ## Flint — Arena Mechanic and Firebrand
@@ -70,6 +74,8 @@ He saw the masked stranger beside the arena's power junction moments before the 
 
 Flint is loud, competitive, and quick to make a friend out of anyone willing to accept a rematch. Beneath that confidence is a fear of being useless when speed and force do not solve the problem. The player earns Astrocomet Dragon by surviving his aggression and showing that boldness works best when paired with judgment.
 
+Flint is also preparing to compete in the Grand Championship.
+
 At Cinderrail Foundry, Flint discovers machines built from the same components he once repaired for an unknown buyer. His Act II arc turns guilt into action as he dismantles the Curator's forced-duel engines.
 
 ## Nyx — The Grave Listener
@@ -83,6 +89,8 @@ Nyx is a wandering duelist who arrived in Emberglen shortly before the festival.
 Unlike Mira, who preserves written records, Nyx trusts instinct and ritual. This makes the two natural rivals. Mira thinks Nyx is careless with dangerous memories; Nyx thinks Mira mistakes cataloguing for understanding.
 
 Nyx felt the Fading as a sudden silence in the graveyard zone. The experience terrified them, although they describe it poetically enough that most townspeople never notice. Their severe manner softens during repeated duels, especially when the player demonstrates that sacrifice can create new possibilities rather than merely celebrate loss.
+
+Nyx is going to be competing for the Grand Championships alongside the player.
 
 The Curator's offer at Gloam Quarry is personally tempting: Nyx could erase the echoes of every defeat they failed to prevent. Rejecting that offer becomes their defining choice.
 

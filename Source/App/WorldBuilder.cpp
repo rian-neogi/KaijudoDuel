@@ -26,9 +26,11 @@ namespace
 	const int BUILDER_LIST_Y = 151;
 	const int BUILDER_LIST_ROW = 39;
 	const int BUILDER_LIST_ROWS = 13;
-	const char TILE_TYPES[] = { '.', '=', '~', 'H', 'T', '#', 'W', 'D', 'F', 'C' };
+	const char TILE_TYPES[] = { '.', '=', '~', 'H', 'T', '#', 'W', 'D', 'F', 'C',
+		'B', 'A', 'S', 'M', 'E' };
 	const char* TILE_NAMES[] = { "Grass", "Path", "Water", "House", "Tree", "Forest",
-		"Wood Wall", "Door", "Wood Floor", "Counter" };
+		"Wood Wall", "Door", "Wood Floor", "Counter", "Bonfire", "Feast Table",
+		"Duel Sand", "Marble", "Workshop Tools" };
 	const int TILE_TYPE_COUNT = sizeof(TILE_TYPES) / sizeof(TILE_TYPES[0]);
 
 	SDL_Rect paletteRect(int index)
@@ -36,12 +38,30 @@ namespace
 		return { 1022 + (index % 2) * 116, 151 + (index / 2) * 55, 108, 45 };
 	}
 
+	void clampMapCamera(const std::vector<std::string>& map, int& cameraX, int& cameraY)
+	{
+		cameraX = std::max(0, std::min(std::max(0, (int)map[0].size() - MAP_VIEW_COLUMNS),
+			cameraX));
+		cameraY = std::max(0, std::min(std::max(0, (int)map.size() - MAP_VIEW_ROWS),
+			cameraY));
+	}
+
+	void centerMapCamera(const std::vector<std::string>& map, int x, int y,
+		int& cameraX, int& cameraY)
+	{
+		cameraX = x - MAP_VIEW_COLUMNS / 2;
+		cameraY = y - MAP_VIEW_ROWS / 2;
+		clampMapCamera(map, cameraX, cameraY);
+	}
+
 	bool mapCellAt(int x, int y, const std::vector<std::string>& map,
-		int& cellX, int& cellY)
+		int cameraX, int cameraY, int& cellX, int& cellY)
 	{
 		if (map.empty() || map[0].empty()) return false;
-		int originX = mapOriginX((int)map[0].size());
-		int originY = mapOriginY((int)map.size());
+		if (x < MAP_X || x >= MAP_X + MAP_VIEW_WIDTH || y < MAP_Y ||
+			y >= MAP_Y + MAP_VIEW_HEIGHT) return false;
+		int originX = mapOriginX((int)map[0].size()) - cameraX * TILE;
+		int originY = mapOriginY((int)map.size()) - cameraY * TILE;
 		if (x < originX || y < originY) return false;
 		cellX = (x - originX) / TILE;
 		cellY = (y - originY) / TILE;
@@ -108,7 +128,10 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 		lua_pop(state, 1);
 		return value;
 	};
-	auto walkable = [](char tile) { return tile == '.' || tile == '=' || tile == 'F' || tile == 'D'; };
+	auto walkable = [](char tile)
+	{
+		return tile == '.' || tile == '=' || tile == 'F' || tile == 'D' || tile == 'S';
+	};
 	auto inBounds = [](const WorldArea& area, int x, int y) -> bool
 	{
 		return y >= 0 && y < (int)area.tiles.size() && x >= 0 &&
@@ -143,10 +166,10 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 		}
 		lua_getfield(state, mapTable, "tiles");
 		if (!lua_istable(state, -1) || lua_rawlen(state, -1) == 0 ||
-			lua_rawlen(state, -1) > MAP_MAX_ROWS)
+			lua_rawlen(state, -1) > WORLD_MAX_ROWS)
 		{
 			error = "map '" + area.id + "' must contain between 1 and " +
-				std::to_string(MAP_MAX_ROWS) + " rows";
+				std::to_string(WORLD_MAX_ROWS) + " rows";
 			lua_close(state);
 			return false;
 		}
@@ -158,13 +181,13 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 			std::string value = lua_isstring(state, -1) ? lua_tostring(state, -1) : "";
 			lua_pop(state, 1);
 			if (row == 1) columnCount = value.size();
-			if (columnCount == 0 || columnCount > MAP_MAX_COLUMNS ||
+			if (columnCount == 0 || columnCount > WORLD_MAX_COLUMNS ||
 				value.size() != columnCount ||
-				value.find_first_not_of(".=~HT#WDFC") != std::string::npos)
+				value.find_first_not_of(".=~HT#WDFCBASME") != std::string::npos)
 			{
 				error = "map '" + area.id + "' row " + std::to_string(row) +
 					" must match its first row and contain between 1 and " +
-					std::to_string(MAP_MAX_COLUMNS) + " valid tile characters";
+					std::to_string(WORLD_MAX_COLUMNS) + " valid tile characters";
 				lua_close(state);
 				return false;
 			}
@@ -325,6 +348,8 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 	mPlayerY = startY;
 	mVisualX = (float)startX;
 	mVisualY = (float)startY;
+	centerMapCamera(currentMap(), startX, startY, mWorldBuilderCameraX,
+		mWorldBuilderCameraY);
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 	{
 		mNpcs[i].mapId = npcPositions[i].map;
@@ -445,7 +470,7 @@ void Application::paintWorldBuilderTile(int x, int y)
 	std::vector<std::string>& map = currentMap();
 	if (y < 0 || y >= (int)map.size() || x < 0 || x >= (int)map[y].size()) return;
 	bool walkable = mWorldBuilderTile == '.' || mWorldBuilderTile == '=' ||
-		mWorldBuilderTile == 'F' || mWorldBuilderTile == 'D';
+		mWorldBuilderTile == 'F' || mWorldBuilderTile == 'D' || mWorldBuilderTile == 'S';
 	if (!walkable)
 	{
 		bool hasNpc = false;
@@ -508,7 +533,9 @@ bool Application::saveWorldBuilder(std::string& error)
 	std::ostringstream world;
 	world << "-- World Builder data. This file is entirely maintained by the World Builder.\n"
 		<< "-- Tile legend: . grass, = path, ~ water, H house, T tree, # forest,\n"
-		<< "-- W wooden wall, D door, F wooden floor, C counter.\nreturn {\n\tmaps = {\n";
+		<< "-- W wooden wall, D door, F wooden floor, C counter, B bonfire,\n"
+		<< "-- A feast table, S dueling sand, M marble, E workshop tools.\n"
+		<< "return {\n\tmaps = {\n";
 	for (size_t area = 0; area < mWorldAreas.size(); ++area)
 	{
 		world << "\t\t{\n\t\t\tid = \"" << mWorldAreas[area].id << "\",\n"
@@ -574,6 +601,13 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 			else showWorldBuilderNotice("Save failed: " + error, true);
 			return;
 		}
+		if (key == SDLK_LEFT || key == SDLK_RIGHT || key == SDLK_UP || key == SDLK_DOWN)
+		{
+			mWorldBuilderCameraX += key == SDLK_LEFT ? -1 : (key == SDLK_RIGHT ? 1 : 0);
+			mWorldBuilderCameraY += key == SDLK_UP ? -1 : (key == SDLK_DOWN ? 1 : 0);
+			clampMapCamera(currentMap(), mWorldBuilderCameraX, mWorldBuilderCameraY);
+			return;
+		}
 		if (key >= SDLK_1 && key <= SDLK_9)
 		{
 			mWorldBuilderTab = WorldBuilderTab::Tiles;
@@ -584,9 +618,15 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		else if (key == SDLK_n) mWorldBuilderTab = WorldBuilderTab::Npcs;
 		else if (key == SDLK_s) mWorldBuilderTab = WorldBuilderTab::Shards;
 		else if (key == SDLK_PAGEUP)
+		{
 			mCurrentWorldArea = (mCurrentWorldArea + (int)mWorldAreas.size() - 1) % (int)mWorldAreas.size();
+			mWorldBuilderCameraX = mWorldBuilderCameraY = 0;
+		}
 		else if (key == SDLK_PAGEDOWN)
+		{
 			mCurrentWorldArea = (mCurrentWorldArea + 1) % (int)mWorldAreas.size();
+			mWorldBuilderCameraX = mWorldBuilderCameraY = 0;
+		}
 		else return;
 		mWorldBuilderListScroll = 0;
 		return;
@@ -611,7 +651,8 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		int x, y;
 		logicalMouse(event.motion.x, event.motion.y, x, y);
 		int cellX, cellY;
-		if (mapCellAt(x, y, currentMap(), cellX, cellY))
+		if (mapCellAt(x, y, currentMap(), mWorldBuilderCameraX,
+			mWorldBuilderCameraY, cellX, cellY))
 		{
 			if (mWorldBuilderPainting) paintWorldBuilderTile(cellX, cellY);
 			else if (mWorldBuilderDragging) placeWorldBuilderSelection(cellX, cellY);
@@ -631,11 +672,13 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 	if (contains(BUILDER_PREVIOUS_MAP, x, y))
 	{
 		mCurrentWorldArea = (mCurrentWorldArea + (int)mWorldAreas.size() - 1) % (int)mWorldAreas.size();
+		mWorldBuilderCameraX = mWorldBuilderCameraY = 0;
 		return;
 	}
 	if (contains(BUILDER_NEXT_MAP, x, y))
 	{
 		mCurrentWorldArea = (mCurrentWorldArea + 1) % (int)mWorldAreas.size();
+		mWorldBuilderCameraX = mWorldBuilderCameraY = 0;
 		return;
 	}
 	if (contains(BUILDER_TILES_TAB, x, y))
@@ -663,19 +706,31 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 			{
 				mWorldBuilderSelectedNpc = selected;
 				int map = worldAreaIndex(mNpcs[selected].mapId);
-				if (map >= 0) mCurrentWorldArea = map;
+				if (map >= 0)
+				{
+					mCurrentWorldArea = map;
+					centerMapCamera(currentMap(), mNpcs[selected].x, mNpcs[selected].y,
+						mWorldBuilderCameraX, mWorldBuilderCameraY);
+				}
 			}
 			else if (mWorldBuilderTab == WorldBuilderTab::Shards &&
 				selected < (int)mMercerStock.shards.size())
 			{
 				mWorldBuilderSelectedShard = selected;
 				int map = worldAreaIndex(mMercerStock.shards[selected].mapId);
-				if (map >= 0) mCurrentWorldArea = map;
+				if (map >= 0)
+				{
+					mCurrentWorldArea = map;
+					centerMapCamera(currentMap(), mMercerStock.shards[selected].x,
+						mMercerStock.shards[selected].y, mWorldBuilderCameraX,
+						mWorldBuilderCameraY);
+				}
 			}
 			return;
 		}
 		int cellX, cellY;
-		if (!mapCellAt(x, y, currentMap(), cellX, cellY)) return;
+		if (!mapCellAt(x, y, currentMap(), mWorldBuilderCameraX,
+			mWorldBuilderCameraY, cellX, cellY)) return;
 		if (mWorldBuilderTab == WorldBuilderTab::Tiles)
 		{
 			mWorldBuilderPainting = true;
@@ -714,8 +769,10 @@ void Application::renderWorldBuilder()
 	drawText(mWorldBuilderDirty ? "UNSAVED CHANGES" : "SAVED", 795, 19,
 		mWorldBuilderDirty ? color(244, 139, 88) : color(105, 218, 139), 14);
 	const std::vector<std::string>& map = currentMap();
-	int mapX = mapOriginX((int)map[0].size());
-	int mapY = mapOriginY((int)map.size());
+	int mapX = mapOriginX((int)map[0].size()) - mWorldBuilderCameraX * TILE;
+	int mapY = mapOriginY((int)map.size()) - mWorldBuilderCameraY * TILE;
+	SDL_Rect mapViewport = { MAP_X, MAP_Y, MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT };
+	SDL_RenderSetClipRect(mRenderer, &mapViewport);
 	for (size_t row = 0; row < map.size(); ++row)
 	{
 		for (size_t column = 0; column < map[row].size(); ++column)
@@ -726,6 +783,11 @@ void Application::renderWorldBuilder()
 			else if (type == '~') fillRect(tile, 25, 111, 157);
 			else if (type == 'H') fillRect(tile, 126, 65, 43);
 			else if (type == '#' || type == 'T') fillRect(tile, 26, 75, 33);
+			else if (type == 'S') fillRect(tile, 188, 151, 87);
+			else if (type == 'M') fillRect(tile, 198, 204, 207);
+			else if (type == 'B') fillRect(tile, 83, 64, 42);
+			else if (type == 'A') fillRect(tile, 61, 139, 61);
+			else if (type == 'E') fillRect(tile, 137, 91, 49);
 			else if (type == 'W' || type == 'D' || type == 'F' || type == 'C')
 				fillRect(tile, type == 'F' ? 137 : 91, type == 'F' ? 91 : 53, type == 'F' ? 49 : 31);
 			else fillRect(tile, 61, 139, 61);
@@ -765,6 +827,42 @@ void Application::renderWorldBuilder()
 				fillRect({ tile.x + 2, tile.y + 10, 44, 32 }, 112, 62, 34);
 				fillRect({ tile.x, tile.y + 7, 48, 7 }, 166, 105, 53);
 			}
+			else if (type == 'B')
+			{
+				fillRect({ tile.x + 5, tile.y + 32, 38, 8 }, 74, 70, 65);
+				fillRect({ tile.x + 10, tile.y + 29, 28, 10 }, 111, 100, 83);
+				fillRect({ tile.x + 17, tile.y + 13, 15, 22 }, 221, 69, 32);
+				fillRect({ tile.x + 20, tile.y + 8, 10, 23 }, 249, 137, 36);
+				fillRect({ tile.x + 23, tile.y + 16, 6, 15 }, 255, 222, 89);
+			}
+			else if (type == 'A')
+			{
+				fillRect({ tile.x + 6, tile.y + 6, 36, 5 }, 93, 52, 29);
+				fillRect({ tile.x + 6, tile.y + 37, 36, 5 }, 93, 52, 29);
+				fillRect({ tile.x + 4, tile.y + 15, 40, 18 }, 139, 82, 39);
+				fillRect({ tile.x + 12, tile.y + 23, 7, 6 }, 232, 208, 151);
+				fillRect({ tile.x + 29, tile.y + 22, 8, 7 }, 175, 49, 37);
+			}
+			else if (type == 'S')
+			{
+				fillRect({ tile.x + 7, tile.y + 10, 5, 3 }, 157, 121, 69);
+				fillRect({ tile.x + 34, tile.y + 31, 6, 3 }, 211, 177, 109);
+			}
+			else if (type == 'M')
+			{
+				fillRect({ tile.x + 2, tile.y + 2, 44, 44 }, 220, 224, 224);
+				fillRect({ tile.x + 3, tile.y + 22, 42, 2 }, 162, 173, 179);
+				fillRect({ tile.x + 17, tile.y + 3, 2, 19 }, 177, 186, 190);
+				fillRect({ tile.x + 31, tile.y + 24, 2, 21 }, 177, 186, 190);
+			}
+			else if (type == 'E')
+			{
+				fillRect({ tile.x + 3, tile.y + 24, 42, 17 }, 104, 58, 32);
+				fillRect({ tile.x + 5, tile.y + 20, 38, 6 }, 171, 108, 51);
+				fillRect({ tile.x + 9, tile.y + 10, 7, 11 }, 54, 151, 193);
+				fillRect({ tile.x + 20, tile.y + 7, 6, 14 }, 151, 71, 183);
+				fillRect({ tile.x + 31, tile.y + 12, 8, 9 }, 217, 158, 48);
+			}
 			outlineRect(tile, 10, 20, 27, 100, 1);
 		}
 	}
@@ -801,6 +899,7 @@ void Application::renderWorldBuilder()
 			outlineRect({ mapX + mNpcs[i].x * TILE + 2, mapY + mNpcs[i].y * TILE + 2,
 				TILE - 4, TILE - 4 }, 246, 211, 99, 255, 3);
 	}
+	SDL_RenderSetClipRect(mRenderer, NULL);
 
 	fillRect(BUILDER_PANEL, 20, 28, 44, 248);
 	outlineRect(BUILDER_PANEL, 184, 140, 60, 255, 2);
@@ -834,7 +933,7 @@ void Application::renderWorldBuilder()
 			drawText((i < 9 ? std::to_string(i + 1) + "  " : "   ") + TILE_NAMES[i], button.x + 9,
 				button.y + 15, color(236, 239, 246), 13);
 		}
-		drawText("Click and drag across the map to paint.", 1022, 438,
+		drawText("Click and drag across the map to paint.", 1022, 605,
 			color(179, 195, 218), 13, 220);
 	}
 	else
@@ -870,7 +969,7 @@ void Application::renderWorldBuilder()
 	outlineRect(BUILDER_SAVE, 207, 161, 66, 255, 2);
 	drawText("SAVE TO LUA   Ctrl+S", BUILDER_SAVE.x + 29, BUILDER_SAVE.y + 12,
 		color(245, 226, 181), 14);
-	drawText("T/N/S: tabs  •  Tiles: click/drag  •  Entities: select then click/drag  •  Esc: exit",
+	drawText("T/N/S: tabs  •  Arrows: pan  •  Tiles: paint  •  Entities: select and place",
 		32, 650, color(180, 196, 219), 14, 930);
 	drawText("P marks the player start; cyan outlines mark portals. PageUp/PageDown changes maps.",
 		32, 676, color(142, 173, 217), 13);
