@@ -48,6 +48,13 @@ private:
 		BossReveal,
 		ActComplete
 	};
+	enum class DialogueAction
+	{
+		None,
+		NpcInteraction,
+		ShowReward,
+		Close
+	};
 
 	struct CardHitbox
 	{
@@ -143,6 +150,10 @@ private:
 	void tryMove(int dx, int dy);
 	void collectShardAt(int x, int y);
 	void interact();
+	void beginDialogue(int npcIndex, const std::string& text, DialogueAction action);
+	void clearDialogue();
+	void advanceDialogue();
+	void updateDialogue(Uint32 deltaTime);
 	bool isWalkable(int x, int y) const;
 	int npcAt(int x, int y, int ignoredNpc = -1) const;
 	std::vector<std::string>& currentMap();
@@ -184,6 +195,7 @@ private:
 	bool exerciseHeuristicManaConservationSmoke();
 	bool exerciseMultiCivilizationSmoke();
 	bool exerciseRaceQuerySmoke();
+	bool exerciseCrypticTotemSmoke();
 	bool exerciseBinaryChoiceSmoke();
 	bool exerciseActionLabelSmoke();
 	bool beginMandatorySacrificeAiSmoke(const std::string& cardName, int& summonedCard, int& sacrifice);
@@ -236,12 +248,15 @@ private:
 	bool saveDeck(int deckIndex);
 	void setActiveDeck(int deckIndex);
 	int deckCardCount(const PlayerDeck& deck) const;
+	bool deckHasMinimumCards(const PlayerDeck& deck) const;
 	std::vector<int> filteredCollection() const;
 	std::string availableDeckPath(const std::string& name, const std::string& currentPath) const;
 	void showDeckNotice(const std::string& notice);
 	void savePlayerProgress();
 	void saveSettings();
 	void awardNpcVictory(int npcIndex);
+	bool handleRewardPopupEvent(const SDL_Event& event);
+	void renderRewardPopup();
 
 	void enterShop();
 	void leaveShop();
@@ -287,6 +302,10 @@ private:
 	float mVisualX;
 	float mVisualY;
 	int mDialogueNpc;
+	std::string mDialogueText;
+	size_t mDialogueVisibleBytes;
+	Uint32 mDialogueCharacterAccumulator;
+	DialogueAction mDialogueAction;
 	std::string mNotice;
 	Uint32 mNoticeUntil;
 	int mStoryStage;
@@ -320,6 +339,10 @@ private:
 	Uint32 mNextAiMove;
 	int mDuelResult;
 	Uint32 mDuelResultAt;
+	int mRewardCardId;
+	int mRewardGold;
+	int mPendingRewardCardId;
+	int mPendingRewardGold;
 	std::vector<CardHitbox> mCardHitboxes;
 	std::vector<ActionButton> mActionButtons;
 	std::map<int, AnimatedCard> mCardAnimations;

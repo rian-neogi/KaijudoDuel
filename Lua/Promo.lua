@@ -103,6 +103,32 @@ Cards["Cranium Clamp"] = {
 	end
 }
 
+Cards["Cryptic Totem"] = {
+	price_tier = 3,
+	name = "Cryptic Totem",
+	set = "Promo",
+	type = TYPE_CREATURE,
+	civilization = CIV_NATURE,
+	race = "Mystery Totem",
+	cost = 6,
+
+	shieldtrigger = 0,
+	blocker = 0,
+
+	power = 6000,
+	breaker = 2,
+
+	HandleMessage = function(id)
+		if(getMessageType()=="get canuseshieldtrigger" and
+			getCardZone(id)==ZONE_BATTLE and isCardTapped(id)==1) then
+			local trigger=getMessageInt("card")
+			if(getCardOwner(trigger)~=getCardOwner(id)) then
+				setMessageInt("canuse",0)
+			end
+		end
+	end
+}
+
 Cards["Gigagrax"] = {
 	price_tier = 3,
 	name = "Gigagrax",

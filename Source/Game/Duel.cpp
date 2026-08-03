@@ -2160,7 +2160,6 @@ bool Duel::setDecks(const std::string& p1, const std::string& p2)
 bool Duel::loadDeck(const std::string& path, int player)
 {
 	constexpr int MINIMUM_DECK_CARDS = 10;
-	constexpr int MAXIMUM_DECK_CARDS = 200;
 	mDecks[player].mCards.clear();
 	std::string resolvedPath;
 	if (!resolveDeckPath(path, resolvedPath))
@@ -2201,12 +2200,6 @@ bool Duel::loadDeck(const std::string& path, int player)
 		name.erase(0, first);
 		size_t last = name.find_last_not_of(" \t");
 		name.erase(last + 1);
-		if (cardCount + count > MAXIMUM_DECK_CARDS)
-		{
-			fprintf(stderr, "Deck '%s' exceeds the %d-card safety limit.\n",
-				resolvedPath.c_str(), MAXIMUM_DECK_CARDS);
-			return false;
-		}
 		int cardId = getCardIdFromName(name);
 		if (cardId < 0)
 		{

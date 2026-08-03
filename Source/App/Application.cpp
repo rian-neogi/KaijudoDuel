@@ -9,13 +9,19 @@
 
 using namespace AppSupport;
 
+namespace
+{
+	const SDL_Rect REWARD_OK_BUTTON = { 520, 665, 240, 56 };
+}
+
 Application::Application(bool worldBuilder)
 	: mWindow(NULL), mRenderer(NULL), mBoardTexture(NULL), mCardBackTexture(NULL), mSoundManager(NULL), mRunning(false),
 	  mScreen(Screen::Overworld), mPauseMenuOpen(false), mPauseMenuSelection(0), mCurrentWorldArea(0),
 	  mOpeningPortal(-1), mPortalAnimationStarted(0),
 	  mWorldStartX(2), mWorldStartY(10), mPlayerX(2), mPlayerY(10), mFacingX(1), mFacingY(0),
 	  mMoveUp(false), mMoveDown(false), mMoveLeft(false), mMoveRight(false), mMoveIntentX(0), mMoveIntentY(0),
-	  mVisualX(2.f), mVisualY(10.f), mDialogueNpc(-1), mNoticeUntil(0),
+	  mVisualX(2.f), mVisualY(10.f), mDialogueNpc(-1), mDialogueVisibleBytes(0),
+	  mDialogueCharacterAccumulator(0), mDialogueAction(DialogueAction::None), mNoticeUntil(0),
 	  mStoryStage(0), mStoryClues(0), mStoryScene(StoryScene::None), mStoryScenePage(0),
 	  mWorldBuilderTab(WorldBuilderTab::Tiles), mWorldBuilderTile('.'), mWorldBuilderSelectedNpc(-1),
 	  mWorldBuilderSelectedShard(-1), mWorldBuilderListScroll(0), mWorldBuilderCameraX(0),
@@ -24,7 +30,8 @@ Application::Application(bool worldBuilder)
 	  mWorldBuilderNoticeUntil(0),
 	  mDuel(NULL), mActiveNpc(-1), mDirectDuelMode(false), mSelectedCard(-1), mActionScroll(0),
 	  mOpenGraveyardPlayer(-1), mGraveyardOffset(0), mActionLogOpen(false), mActionLogScroll(0),
-	  mNextAiMove(0), mDuelResult(-1), mDuelResultAt(0), mDraggingCard(-1),
+	  mNextAiMove(0), mDuelResult(-1), mDuelResultAt(0), mRewardCardId(-1),
+	  mRewardGold(0), mPendingRewardCardId(-1), mPendingRewardGold(0), mDraggingCard(-1),
 	  mDragFromZone(-1), mDragOrigin({ 0, 0, 0, 0 }), mDragMouseX(0), mDragMouseY(0),
 	  mMouseX(-100), mMouseY(-100), mHoveredCard(-1), mHoverCandidateCard(-1),
 	  mHoverCandidateSince(0), mOnlyActionCandidateSince(0), mOnlyActionDispatched(false),
@@ -187,6 +194,7 @@ void Application::handleEvent(const SDL_Event& event)
 		mRunning = false;
 		return;
 	}
+	if (mRewardCardId >= 0 && handleRewardPopupEvent(event)) return;
 	if (mScreen == Screen::Overworld) handleOverworldEvent(event);
 	else if (mScreen == Screen::Duel) handleDuelEvent(event);
 	else if (mScreen == Screen::DeckBuilder) handleDeckBuilderEvent(event);
@@ -207,6 +215,7 @@ void Application::update(Uint32 deltaTime)
 		if (inEmberglen && townScreen) mSoundManager->playEmberglenTheme();
 		else mSoundManager->stopMusic();
 	}
+	if (mRewardCardId >= 0) return;
 	if (mScreen == Screen::Overworld) updateOverworld(deltaTime);
 	else if (mScreen == Screen::Duel) updateDuel(deltaTime);
 }
@@ -221,7 +230,66 @@ void Application::render()
 	else if (mScreen == Screen::Shop) renderShop();
 	else if (mScreen == Screen::WorldBuilder) renderWorldBuilder();
 	else renderSettings();
+	if (mRewardCardId >= 0) renderRewardPopup();
 	SDL_RenderPresent(mRenderer);
+}
+
+bool Application::handleRewardPopupEvent(const SDL_Event& event)
+{
+	if (mRewardCardId < 0) return false;
+	bool dismiss = false;
+	if (event.type == SDL_KEYDOWN && !event.key.repeat)
+		dismiss = event.key.keysym.sym == SDLK_RETURN || event.key.keysym.sym == SDLK_SPACE;
+	else if (event.type == SDL_MOUSEMOTION)
+		logicalMouse(event.motion.x, event.motion.y, mMouseX, mMouseY);
+	else if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT)
+	{
+		int x, y;
+		logicalMouse(event.button.x, event.button.y, x, y);
+		dismiss = contains(REWARD_OK_BUTTON, x, y);
+	}
+	if (dismiss)
+	{
+		mRewardCardId = -1;
+		mRewardGold = 0;
+	}
+	return true;
+}
+
+void Application::renderRewardPopup()
+{
+	if (mRewardCardId < 0 || mRewardCardId >= (int)gCardDatabase.size()) return;
+	const CardData& card = gCardDatabase[mRewardCardId];
+	const SDL_Rect panel = { 330, 55, 620, 690 };
+	const SDL_Rect cardRect = { 500, 175, 280, 390 };
+	fillRect({ 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT }, 3, 6, 12, 220);
+	fillRect(panel, 18, 27, 43, 252);
+	outlineRect(panel, 218, 171, 74, 255, 4);
+	drawText("CARD REWARD", 487, 82, color(247, 211, 113), 32);
+	drawText("You won a new card!", 487, 128, color(218, 228, 242), 18);
+
+	SDL_Texture* texture = cardTextureById(mRewardCardId);
+	if (texture != NULL) SDL_RenderCopy(mRenderer, texture, NULL, &cardRect);
+	else
+	{
+		fillRect(cardRect, 220, 207, 176);
+		drawText(card.Name, cardRect.x + 16, cardRect.y + 145,
+			color(39, 30, 23), 18, cardRect.w - 32);
+	}
+	SDL_Color civ = civilizationColor(card.Civilization);
+	outlineRect(cardRect, civ.r, civ.g, civ.b, 255, 4);
+	drawText("+1 " + card.Name, 390, 584, color(241, 235, 216), 20, 500);
+	drawText("Added to your collection" +
+		(mRewardGold > 0 ? "  •  +" + std::to_string(mRewardGold) + " gold" : ""),
+		390, 620, color(164, 190, 220), 15, 500);
+
+	bool hovered = contains(REWARD_OK_BUTTON, mMouseX, mMouseY);
+	fillRect(REWARD_OK_BUTTON, hovered ? 66 : 42, hovered ? 103 : 70,
+		hovered ? 148 : 108, 255);
+	outlineRect(REWARD_OK_BUTTON, hovered ? 158 : 112, hovered ? 204 : 157,
+		hovered ? 248 : 214, 255, 3);
+	drawText("OK", REWARD_OK_BUTTON.x + 101, REWARD_OK_BUTTON.y + 15,
+		color(244, 247, 251), 21);
 }
 
 

@@ -460,20 +460,31 @@ void Application::updateDuel(Uint32 deltaTime)
 	if (mDuelResult != -1 && now - mDuelResultAt > 1800)
 	{
 		bool won = mDuelResult == 0;
-		std::string rival = mActiveNpc >= 0 ? mNpcs[mActiveNpc].name : "your rival";
-		if (won && mActiveNpc >= 0) awardNpcVictory(mActiveNpc);
-		else if (!mDirectDuelMode)
+		int outcomeNpc = mActiveNpc;
+		std::string outcomeDialogue;
+		if (outcomeNpc >= 0)
 		{
-			mNotice = mActiveNpc >= 0 ? mNpcs[mActiveNpc].dialogueText("victory") : "";
-			if (!mNotice.empty()) mNotice += "  ";
-			mNotice += "Defeat. You can challenge " + rival + " again.";
-			mNoticeUntil = now + 5000;
+			Npc& npc = mNpcs[outcomeNpc];
+			if (won)
+			{
+				awardNpcVictory(outcomeNpc);
+				outcomeDialogue = npc.dialogueText("defeat",
+					"A fine duel. You earned this victory.");
+			}
+			else
+				outcomeDialogue = npc.dialogueText("victory",
+					"That duel is mine. Try again when you are ready.");
 		}
 		stopDuel();
 		if (mDirectDuelMode)
 			mRunning = false;
 		else
+		{
 			mScreen = Screen::Overworld;
+			if (outcomeNpc >= 0)
+				beginDialogue(outcomeNpc, outcomeDialogue,
+					won ? DialogueAction::ShowReward : DialogueAction::Close);
+		}
 	}
 }
 

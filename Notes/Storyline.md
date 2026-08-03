@@ -8,7 +8,7 @@ The Hollow storyline for Act I is implemented in the game. Its Fivefold Circuit 
 
 In this world, a card is more than ink and rules. Every card carries an **echo**: a magical impression made from every duelist who has trusted it, risked it, and won or lost with it. Strong echoes allow creatures from the five civilizations to answer a duelist clearly. Weak or damaged echoes cause names, artwork, and even rules text to fade.
 
-Emberglen holds an annual Festival of Five Civilizations to celebrate the fragile peace between Light, Water, Darkness, Fire, and Nature. The player is a young local duelist trained by Rowan, a traveling scholar who treats dueling as a conversation rather than a contest. Rowan intends to use the festival exhibition as the player's first sanctioned match in the Fivefold Circuit, beginning a journey to earn eight Arena Crests and challenge the Grand Champion.
+Emberglen holds an annual Festival of Five Civilizations to celebrate the fragile peace between Light, Water, Darkness, Fire, and Nature. The player is a young local duelist trained by Rowan, a traveling scholar who treats dueling as a conversation rather than a contest. Rowan intends to use the festival exhibition as the player's first sanctioned match in the Fivefold Circuit, beginning a journey to earn nine Arena Crests and challenge the Grand Champion.
 
 Before the exhibition begins, the arena lights fail. Hundreds of cards turn pale and blank. A broken-circle symbol appears on the fragments, and Rowan disappears while pursuing a masked figure across the northern bridge. He leaves one message hidden in the player's deck:
 
@@ -46,23 +46,23 @@ The town's signature cards are still fading. By defeating at least three local d
 
 There the player confronts the Veiled One, a difficult duelist apparently serving the Curator. On defeat, the Veiled One collapses into blank card fragments: it was an enchanted shell rather than a living person. Through it, the Curator announces that Rowan is alive beyond the old road and challenges the player to bring every echo they can restore.
 
-The road out of Emberglen opens. Aurelia then holds the official match that the festival attack interrupted. The player earns the Dawn Crest, and begins both the pursuit of Rowan and the journey toward the Grand Championship.
+The road out of Emberglen begins to recover. Aurelia then holds the official match that the festival attack interrupted, and the player earns the Dawn Crest. During the ceremony, the Crest resonates with a message Rowan hid in the restored town echoes: the Curator is attacking several frontier Resonance Seals at the same time. The northern road opens onto three routes, beginning both the pursuit of Rowan and the player's first genuinely open stage of the Grand Championship quest.
 
 ### Act II: The Broken Road
 
 The old road crosses five frontier sanctuaries, one associated with each civilization, as well as sanctioned Circuit arenas. The Curator's collectors have damaged the sanctuaries and turned their keepers against one another by planting false memories inside their signature cards.
 
-The player travels between settlements, earns five more Arena Crests, wins the trust of local duelists, and repairs each sanctuary's **Resonance Seal**. Crests are ordinary sporting credentials and are not components of the Hollow Deck. Familiar duelists from Emberglen appear during parts of the journey, offering side quests and showing how their own views have changed since Act I. The player also encounters living members of the Curator's organization, each of whom uses decks built around control, denial, and stolen combinations of civilizations.
+The first junction opens Cinderrail Foundry, Glasswater Port, and Rootmaze Commons simultaneously. The player may earn the Forge, Tidal, and Verdant Crests in any order while repairing the Fire, Water, and Nature Resonance Seals. NPC decks and dialogue scale from the number of Crests already held, allowing every route to work as the player's first or third destination.
 
-At the midpoint, the player finds Rowan. He appears to be helping the Curator and refuses rescue, creating doubt about his loyalty. A later hidden message reveals the truth: the Curator has already linked the Hollow Deck to the restored echoes carried by the player. Rowan stayed behind to sabotage the final transfer and needs the player to complete the five Resonance Seals before confronting him.
+Once those three Crests are gathered, the Hollow plot resumes. The player finds a projection of Rowan apparently helping the Curator, and the Chief Collector corrupts the relay into the inner territories. A later hidden message reveals that Rowan stayed behind to sabotage the final transfer. Kestrel Vane repairs the relay, then tests the player in the mandatory fifth Crest match at Confluence Arena.
 
-The act ends at the Archive Gate. The player defeats the Curator's chief collector, but the victory activates the gate exactly as the Curator intended. He takes a copy of the five restored resonance patterns and withdraws into the Archive Below. Rowan breaks free during the transfer, but the Hollow Deck is now almost complete.
+Beyond Confluence, a second set of regions opens. The Tempest Crest at Stormbreak Plateau, the Ashen Crest at Gloam Quarry, and the Mirror Crest at Mirror Arena may again be earned in any order. Sunspire Cloister is available alongside them as a Hollow-only Light Seal route. The player enters each area for both ordinary Circuit progress and a local echo crisis, but the Crests remain sporting credentials rather than magical components of the Hollow Deck.
+
+After the player holds eight Crests and all five Resonance Seals are restored, the Chief Collector attacks the Archive Gate. Defeating the Collector opens the way below, but also lets the Curator copy the completed seal patterns. Rowan breaks free during the transfer while the Hollow Deck reaches an unstable complete state.
 
 ### Act III: The Hollow Archive
 
-Blank zones spread across the world. NPCs begin forgetting past duels, deck lists lose card names, and sections of the overworld become drained of color. The player's collection remains intact because every earned card is anchored by a voluntary bond. The player earns the final Mirror and Unity Crests as the crisis builds, then registers for the Grand Championship.
-
-The Hollow Deck activates before the tournament begins. The championship is suspended, turning the player's descent into the Archive into a defense of both the world and the joyful goal that started the journey.
+Blank zones spread across the world. NPCs begin forgetting past duels, deck lists lose card names, and sections of the overworld become drained of color. The player's collection remains intact because every earned card is anchored by a voluntary bond. The Circuit pauses official progression while the player and Rowan prepare to enter the Hollow Archive.
 
 The player and Rowan gather allies from Emberglen and the five sanctuaries. Each ally holds one route into the Archive Below, turning earlier optional relationships into practical help: shortcuts, shops, healing, deck advice, and protection from environmental hazards.
 
@@ -73,7 +73,9 @@ Inside the archive, the player faces perfected hollow replicas of important riva
 
 After the final victory, Rowan offers the Curator a choice: preserve the archive as a record rather than a replacement for living memory. The Hollow Deck is dismantled, and its captive echoes return to their cards. The Curator survives to face what his fear caused instead of becoming a simple martyr.
 
-After the echoes return, the suspended Grand Championship resumes. The player faces the strongest legal decks in the Circuit and defeats the reigning Champion in a fair final duel. At a restored Festival of Five Civilizations, the new Champion also accepts Rowan's former role as a traveling echo keeper, leaving room for post-game duels and future stories.
+After the echoes return, Caelum Rhos reopens Crown Gate for the final official Crest match. The player presents the previous eight Crests, defeats his five-civilization Survivor deck, and earns the Unity Crest without another crisis interrupting the ceremony.
+
+The now nine-Crest challenger enters the Grand Championship, faces the strongest legal decks in the Circuit, and defeats the reigning Champion in a fair final duel. At a restored Festival of Five Civilizations, the new Champion also accepts Rowan's former role as a traveling echo keeper, leaving room for post-game duels and future stories.
 
 ## Core themes
 

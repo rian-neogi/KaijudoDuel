@@ -120,7 +120,7 @@ local searchDeck = function(id,check,prompt)
 end
 
 Cards["Deklowaz, the Terminator"] = {
-	price_tier = 5,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -139,7 +139,7 @@ Cards["Deklowaz, the Terminator"] = {
 }
 
 Cards["Bluum Erkis, Flare Guardian"] = {
-	price_tier = 5,
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -157,7 +157,7 @@ Cards["Bluum Erkis, Flare Guardian"] = {
 }
 
 Cards["Hawkeye Lunatron"] = {
-	price_tier = 5,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -171,7 +171,7 @@ Cards["Hawkeye Lunatron"] = {
 }
 
 Cards["Bodacious Giant"] = {
-	price_tier = 5,
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -206,7 +206,7 @@ Cards["Terradragon Dakma Balgarow"] = {
 }
 
 Cards["Elixia, Pureblade Elemental"] = {
-	price_tier = 5,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -259,7 +259,7 @@ Cards["Ultimate Dragon"] = {
 }
 
 Cards["Core-Crash Lizard"] = {
-	price_tier = 5,
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -276,7 +276,7 @@ Cards["Core-Crash Lizard"] = {
 }
 
 Cards["Hurricane Crawler"] = {
-	price_tier = 5,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -299,7 +299,7 @@ Cards["Hurricane Crawler"] = {
 }
 
 Cards["Necrodragon Bryzenaga"] = {
-	price_tier = 5,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,

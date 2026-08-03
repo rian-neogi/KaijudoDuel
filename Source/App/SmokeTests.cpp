@@ -31,7 +31,8 @@ int Application::runSmokeTests()
 			std::cerr << "Act I story smoke test failed." << std::endl;
 			return 2;
 		}
-		if (mNpcs.empty() || !startDuelWithDecks(STARTER_DECK_PATH,
+		ensurePlayerDataLoaded();
+		if (mNpcs.empty() || !startDuelWithDecks(mActiveDeckPath,
 			mNpcs[0].deckForBattle(0), 0))
 		{
 			std::cerr << "Unable to start smoke-test duel." << std::endl;
@@ -119,6 +120,11 @@ int Application::runSmokeTests()
 			if (smokeNpc == 0 && smokeFrames == 34 && !exerciseRaceQuerySmoke())
 			{
 				std::cerr << "Recursive race-query smoke test failed." << std::endl;
+				return 2;
+			}
+			if (smokeNpc == 0 && smokeFrames == 35 && !exerciseCrypticTotemSmoke())
+			{
+				std::cerr << "Cryptic Totem shield-trigger smoke test failed." << std::endl;
 				return 2;
 			}
 			if (smokeNpc == 0 && smokeFrames == 60 && mDuel != NULL)
@@ -611,6 +617,43 @@ bool Application::exerciseRaceQuerySmoke()
 	return passed;
 }
 
+bool Application::exerciseCrypticTotemSmoke()
+{
+	int crypticTotemId = getCardIdFromName("Cryptic Totem");
+	int terrorPitId = getCardIdFromName("Terror Pit");
+	if (crypticTotemId < 0 || terrorPitId < 0) return false;
+
+	std::lock_guard<std::mutex> lock(gMutex);
+	Duel* savedActiveDuel = ActiveDuel;
+	bool passed = false;
+	{
+		Duel test;
+		test.mIsSimulation = true;
+		ActiveDuel = &test;
+		auto addCard = [&test](int cardId, int owner, int zone) -> int
+		{
+			int uid = static_cast<int>(test.mCardList.size());
+			Card* card = new Card(uid, cardId, owner);
+			test.mCardList.push_back(card);
+			test.getZone(owner, zone)->addCard(card);
+			card->mZone = zone;
+			return uid;
+		};
+
+		int crypticTotem = addCard(crypticTotemId, 0, ZONE_BATTLE);
+		int opposingTrigger = addCard(terrorPitId, 1, ZONE_SHIELD);
+		int friendlyTrigger = addCard(terrorPitId, 0, ZONE_SHIELD);
+		test.mCardList[crypticTotem]->tap();
+		bool blocksOpponent = test.canUseShieldTrigger(opposingTrigger) == 0;
+		bool allowsOwner = test.canUseShieldTrigger(friendlyTrigger) == 1;
+		test.mCardList[crypticTotem]->untap();
+		bool inactiveWhileUntapped = test.canUseShieldTrigger(opposingTrigger) == 1;
+		passed = blocksOpponent && allowsOwner && inactiveWhileUntapped;
+	}
+	ActiveDuel = savedActiveDuel;
+	return passed;
+}
+
 bool Application::exerciseBinaryChoiceSmoke()
 {
 	if (mDuel == NULL) return false;
@@ -1061,6 +1104,10 @@ bool Application::exerciseOverworldMovementSmoke()
 	float savedPortalVisualX = mVisualX;
 	float savedPortalVisualY = mVisualY;
 	int savedDialogue = mDialogueNpc;
+	std::string savedDialogueText = mDialogueText;
+	size_t savedDialogueVisibleBytes = mDialogueVisibleBytes;
+	Uint32 savedDialogueCharacterAccumulator = mDialogueCharacterAccumulator;
+	DialogueAction savedDialogueAction = mDialogueAction;
 	std::string savedNotice = mNotice;
 	Uint32 savedNoticeUntil = mNoticeUntil;
 	bool enteredIndoor = false;
@@ -1102,6 +1149,10 @@ bool Application::exerciseOverworldMovementSmoke()
 	mVisualX = savedPortalVisualX;
 	mVisualY = savedPortalVisualY;
 	mDialogueNpc = savedDialogue;
+	mDialogueText = savedDialogueText;
+	mDialogueVisibleBytes = savedDialogueVisibleBytes;
+	mDialogueCharacterAccumulator = savedDialogueCharacterAccumulator;
+	mDialogueAction = savedDialogueAction;
 	mNotice = savedNotice;
 	mNoticeUntil = savedNoticeUntil;
 	bool mercerIsIndoors = false;
@@ -1187,6 +1238,18 @@ bool Application::exerciseMenuScreensSmoke()
 	navigate.key.keysym.sym = SDLK_RETURN;
 	handleOverworldEvent(navigate);
 	if (mScreen != Screen::DeckBuilder) return false;
+	if (gCardDatabase.size() < 11) return false;
+	PlayerDeck deckSizeCheck;
+	for (int card = 0; card < 10; ++card) deckSizeCheck.cards[card] = 4;
+	bool fortyCardsLegal = deckHasMinimumCards(deckSizeCheck);
+	deckSizeCheck.cards[10] = 1;
+	bool fortyOneCardsLegal = deckHasMinimumCards(deckSizeCheck);
+	deckSizeCheck.cards[0] = 3;
+	bool fortyCardsStillLegal = deckHasMinimumCards(deckSizeCheck);
+	deckSizeCheck.cards.erase(10);
+	bool thirtyNineCardsIllegal = !deckHasMinimumCards(deckSizeCheck);
+	if (!fortyCardsLegal || !fortyOneCardsLegal || !fortyCardsStillLegal ||
+		!thirtyNineCardsIllegal) return false;
 	for (size_t i = 0; i < mPlayerDecks.size(); ++i)
 		if (!mPlayerDecks[i].path.empty() &&
 			mPlayerDecks[i].path.find("PlayerData/Decks/") != 0) return false;
@@ -1229,5 +1292,29 @@ bool Application::exerciseMenuScreensSmoke()
 	handleShopEvent(shopNavigation);
 	if (mShopPage != 0) return false;
 	handleShopEvent(back);
-	return mScreen == Screen::Overworld;
+	if (mScreen != Screen::Overworld) return false;
+
+	mPendingRewardCardId = getCardIdFromName("Aqua Hulcus");
+	mPendingRewardGold = 100;
+	if (mPendingRewardCardId < 0 || mNpcs.empty()) return false;
+	beginDialogue(0, mNpcs[0].dialogueText("defeat"), DialogueAction::ShowReward);
+	SDL_Event advanceRewardDialogue = {};
+	advanceRewardDialogue.type = SDL_MOUSEBUTTONDOWN;
+	advanceRewardDialogue.button.button = SDL_BUTTON_LEFT;
+	advanceRewardDialogue.button.x = 640;
+	advanceRewardDialogue.button.y = 700;
+	handleEvent(advanceRewardDialogue);
+	bool firstClickOnlyRevealed = mDialogueNpc == 0 &&
+		mDialogueVisibleBytes == mDialogueText.size() && mRewardCardId == -1;
+	handleEvent(advanceRewardDialogue);
+	bool rewardWaitedForDialogue = mDialogueNpc == -1 && mRewardCardId >= 0;
+	renderRewardPopup();
+	SDL_Event dismissReward = {};
+	dismissReward.type = SDL_MOUSEBUTTONDOWN;
+	dismissReward.button.button = SDL_BUTTON_LEFT;
+	dismissReward.button.x = 640;
+	dismissReward.button.y = 693;
+	handleEvent(dismissReward);
+	return firstClickOnlyRevealed && rewardWaitedForDialogue &&
+		mRewardCardId == -1 && mRewardGold == 0 && mScreen == Screen::Overworld;
 }

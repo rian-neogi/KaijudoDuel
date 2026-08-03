@@ -2,11 +2,15 @@
 
 ## Design principles
 
-The eight Crest Holders are sanctioned masters of the Fivefold Circuit. Their official matches obey ordinary duel rules: their difficulty comes from strong decks, specialized AI priorities, and good card selection rather than boss-only effects.
+The nine Crest Holders are sanctioned masters of the Fivefold Circuit. Their official matches obey ordinary duel rules: their difficulty comes from strong decks, specialized AI priorities, and good card selection rather than boss-only effects.
 
 Each holder has an overworld trial that demonstrates the value behind their strategy. Completing a trial grants the right to challenge the holder; winning the duel grants an Arena Crest and unlocks the next tier of Circuit shops and opponents.
 
-The first five holders express individual civilizations or familiar two-civilization combinations. The final three test increasingly complex mixed decks. This creates a natural learning curve toward the Grand Championship.
+The first open-world tier teaches familiar two-civilization strategies. Kestrel's Confluence match then acts as a midpoint examination and opens a second tier of more specialized mixed-deck challenges. This creates a natural learning curve toward the Grand Championship without imposing one route through every region.
+
+The intended campaign order is:
+
+**Dawn → Tidal/Forge/Verdant in any order → Confluence → Tempest/Ashen/Mirror in any order → Hollow finale → Unity → Grand Championship**
 
 ## 1. Aurelia — Holder of the Dawn Crest
 
@@ -42,9 +46,45 @@ Aurelia saw Rowan pursue the blank cards toward the bridge and becomes one of th
 
 - **First victory:** Dawn Crest and Hanusa, Radiance Elemental
 - **Master rematch:** A faster Light/Nature guardian deck that can develop mana while maintaining blockers
-- **Championship role:** Tournament adjudicator and the person who certifies the player's eight Crests
+- **Championship role:** Tournament adjudicator and the person who certifies the player's nine Crests
 
-## 2. Brassa Vale — Holder of the Forge Crest
+
+## 2. Neris Quill — Holder of the Tidal Crest
+
+**Area:** Glasswater Port  
+**Civilizations:** Water and Darkness  
+**Signature card:** Crystal Paladin  
+**Secondary threat:** Marinomancer  
+**Circuit lesson:** Information matters only when it changes a decision
+
+### Public profile
+
+Neris once worked as a shipping investigator, finding contraband by comparing manifests, tide schedules, and card-trade records. He now runs the Glasswater arena from an office filled with maps and handwritten observations about thousands of past duels.
+
+He is courteous, difficult to surprise, and fond of asking challengers why they made a play rather than whether it worked. His navy coat is lined with violet, visually joining his Water and Darkness cards, and a long white feather tucked behind one ear serves as his personal writing quill.
+
+### Arena trial
+
+The port's prediction system presents three simulated opponents. The player receives partial information about each deck and must choose which local cards or routes to pursue before the matches. There is no single correct preparation; the trial checks whether the player can form a plan from incomplete evidence.
+
+### Deck profile
+
+Neris uses Water draw and bounce alongside Darkness discard and removal. Aqua Hulcus and Emeral improve card quality, Corile and Crystal Paladin disrupt board development, and Darkness spells punish opponents who hold their best cards too long.
+
+His AI should consider hand size, mana availability, and the value of delaying a threat rather than treating every bounce effect as permanent removal. It should prefer discard before revealing its main attack plan.
+
+### Hollow-story role
+
+Glasswater's supposedly perfect prediction engine is built from stolen duel memories. Neris is initially tempted to preserve it for study. Marin challenges him to recognize that information taken without consent is not neutral simply because it is accurate.
+
+### Reward and rematches
+
+- **First victory:** Tidal Crest and Crystal Paladin
+- **Master rematch:** Water/Darkness/Light control with shield manipulation
+- **Championship role:** Opponent analyst whose predictions become less certain as the player develops
+
+
+## 3. Brassa Vale — Holder of the Forge Crest
 
 **Area:** Cinderrail Foundry  
 **Civilizations:** Fire and Light  
@@ -80,39 +120,6 @@ The Curator's collectors secretly modified Cinderrail's furnaces to harvest reso
 - **Master rematch:** Fire/Light/Darkness pressure with hand disruption and anti-blocker tools
 - **Championship role:** Broadcast commentator who bluntly analyzes risky plays
 
-## 3. Neris Quill — Holder of the Tidal Crest
-
-**Area:** Glasswater Port  
-**Civilizations:** Water and Darkness  
-**Signature card:** Crystal Paladin  
-**Secondary threat:** Marinomancer  
-**Circuit lesson:** Information matters only when it changes a decision
-
-### Public profile
-
-Neris once worked as a shipping investigator, finding contraband by comparing manifests, tide schedules, and card-trade records. He now runs the Glasswater arena from an office filled with maps and handwritten observations about thousands of past duels.
-
-He is courteous, difficult to surprise, and fond of asking challengers why they made a play rather than whether it worked. His navy coat is lined with violet, visually joining his Water and Darkness cards, and a long white feather tucked behind one ear serves as his personal writing quill.
-
-### Arena trial
-
-The port's prediction system presents three simulated opponents. The player receives partial information about each deck and must choose which local cards or routes to pursue before the matches. There is no single correct preparation; the trial checks whether the player can form a plan from incomplete evidence.
-
-### Deck profile
-
-Neris uses Water draw and bounce alongside Darkness discard and removal. Aqua Hulcus and Emeral improve card quality, Corile and Crystal Paladin disrupt board development, and Darkness spells punish opponents who hold their best cards too long.
-
-His AI should consider hand size, mana availability, and the value of delaying a threat rather than treating every bounce effect as permanent removal. It should prefer discard before revealing its main attack plan.
-
-### Hollow-story role
-
-Glasswater's supposedly perfect prediction engine is built from stolen duel memories. Neris is initially tempted to preserve it for study. Marin challenges him to recognize that information taken without consent is not neutral simply because it is accurate.
-
-### Reward and rematches
-
-- **First victory:** Tidal Crest and Crystal Paladin
-- **Master rematch:** Water/Darkness/Light control with shield manipulation
-- **Championship role:** Opponent analyst whose predictions become less certain as the player develops
 
 ## 4. Oren Canopy — Holder of the Verdant Crest
 
@@ -148,41 +155,8 @@ Rootmaze proves that an echo can briefly survive outside its physical card. Bria
 - **Master rematch:** Nature/Water/Light evolution deck supported by defensive Guardians
 - **Championship role:** Maintains the living paths used by competitors traveling to the capital
 
-## 5. Sister Vey — Holder of the Gloam Crest
 
-**Area:** Gloam Quarry  
-**Civilizations:** Darkness and Fire  
-**Signature card:** Death Phoenix, Avatar of Doom  
-**Secondary threat:** Necrodragon Giland  
-**Circuit lesson:** A sacrifice is meaningful only when the player understands its cost
-
-### Public profile
-
-Vey oversees Gloam's memorial furnaces, where damaged belongings are burned and their histories recorded before the ashes are sealed in the quarry. “Sister” is a civic title rather than a religious rank.
-
-She wears layered charcoal robes with an ember-red lining and carries a lantern made from black iron. Vey is compassionate without being gentle; she allows grief its full weight and has little patience for anyone who uses solemn language to avoid taking action.
-
-### Arena trial
-
-The player receives a temporary set of memorial cards and must decide which to preserve, trade, or risk in three local duels. All cards are returned afterward, but NPC dialogue changes according to the choices. The trial is about making deliberate sacrifices rather than finding a perfect outcome.
-
-### Deck profile
-
-Vey uses small Darkness creatures as controlled sacrifice material while Fire removal and speed attackers prevent the opponent from setting the pace. Her graveyard feeds Necrodragons and eventually Death Phoenix, Avatar of Doom.
-
-Her AI must never skip mandatory sacrifice choices and should evaluate creatures by future graveyard value as well as current power. It should not destroy evolution material without a concrete tactical reason.
-
-### Hollow-story role
-
-Vey initially supports part of the Curator's message. She has watched people become trapped by painful memories and understands the appeal of silence. Mira and Nyx do not defeat that belief through argument; the player changes Vey's mind by showing that remembered losses can enable new choices without dictating them.
-
-### Reward and rematches
-
-- **First victory:** Gloam Crest and Death Phoenix, Avatar of Doom
-- **Master rematch:** Darkness/Fire/Water graveyard control with improved card selection
-- **Championship role:** Provides a quiet memorial for echoes lost during the Hollow crisis
-
-## 6. Kestrel Vane — Holder of the Confluence Crest
+## 5. Kestrel Vane — Holder of the Confluence Crest
 
 **Area:** Confluence Arena at the Archive Gate  
 **Civilizations:** Fire, Nature, and Water  
@@ -218,7 +192,80 @@ Confluence Arena is the central relay of the Circuit's resonance broadcasts. Kes
 - **Master rematch:** Four-civilization Dragon control with Darkness removal
 - **Championship role:** Friendly quarterfinal opponent if the player completed his bonus routes
 
-## 7. Sable Meridian — Holder of the Mirror Crest
+## 6. Natasha Gale — Holder of the Tempest Crest
+
+**Area:** Stormbreak Plateau  
+**Civilizations:** Fire, Light, Nature, and Darkness  
+**Signature card:** Sapian Tark, Flame Dervish  
+**Secondary threat:** Jagila, the Hidden Pillager  
+**Circuit lesson:** The value of a creature changes with the formation around it
+
+### Public profile
+
+Natasha is a storm-route courier who became Crest Holder after keeping the isolated settlements of Stormbreak connected through an entire season of resonance squalls. She knows every rope bridge, lightning shelter, and half-forgotten trail across the plateau, but refuses to prescribe one correct route through it.
+
+She is energetic, candid, and happiest when a challenger solves a problem in a way she did not anticipate. Her short indigo coat is fastened with four civilization-colored cords that whip in the wind, while the silver Tempest Crest sits at the center of a weathered compass strapped to her forearm.
+
+### Arena trial
+
+Stormbreak has three signal towers that may be restored in any order. Each tower changes the wind bridges, opening one route while temporarily closing another, and each is guarded by a duelist with a different Wave Striker formation. The player can return to the central camp to edit decks between towers.
+
+Restoring all three towers opens Natasha's arena. Optional shelters and stranded travelers provide cards or shortcuts, rewarding exploration without dictating a single efficient route.
+
+### Deck profile
+
+Natasha uses a four-civilization Wave Striker deck. Her early creatures look modest in isolation, but Sapian Tark, Jagila, and their allies gain sharply different roles once three Wave Strikers are assembled. Removal and shield triggers protect the formation long enough for it to become dangerous.
+
+Her AI should evaluate the board-wide value of reaching or preserving the Wave Striker threshold, avoid sacrificing a third member for a merely even trade, and recognize when attacking now is safer than waiting for a perfect formation.
+
+### Hollow-story role
+
+The Curator's blank signal appears at Stormbreak as false weather: copied resonance patterns predict storms that never arrive while concealing the dangerous ones. Tamsin initially treats the failures as a navigation problem. She joins the Hollow investigation after discovering that the false forecasts are reconstructed from the final journeys of missing couriers.
+
+Her route can be completed before or after the Ashvault and Mirror Arena. Each completed late route contributes a different way into the Hollow Archive, but none is presented as the canonical first choice.
+
+### Reward and rematches
+
+- **First victory:** Tempest Crest and Sapian Tark, Flame Dervish
+- **Master rematch:** Five-civilization Wave Strikers with stronger threshold protection
+- **Championship role:** Keeps the capital routes open and carries match results between isolated arenas
+
+
+## 7. Sister Vey — Holder of the Ashen Crest
+
+**Area:** Ashvault Memorial Arena, Gloam Quarry  
+**Civilizations:** Darkness and Fire  
+**Signature card:** Death Phoenix, Avatar of Doom  
+**Secondary threat:** Necrodragon Giland  
+**Circuit lesson:** A sacrifice is meaningful only when the player understands its cost
+
+### Public profile
+
+Vey oversees Gloam's memorial furnaces, where damaged belongings are burned and their histories recorded before the ashes are sealed in the quarry. “Sister” is a civic title rather than a religious rank.
+
+She wears layered charcoal robes with an ember-red lining and carries a lantern made from black iron. The Ashen Crest hangs inside the lantern behind heat-darkened glass. Vey is compassionate without being gentle; she allows grief its full weight and has little patience for anyone who uses solemn language to avoid taking action.
+
+### Arena trial
+
+The player receives a temporary set of memorial cards and must decide which to preserve, trade, or risk in three local duels. All cards are returned afterward, but NPC dialogue changes according to the choices. The trial is about making deliberate sacrifices rather than finding a perfect outcome.
+
+### Deck profile
+
+Vey uses small Darkness creatures as controlled sacrifice material while Fire removal and speed attackers prevent the opponent from setting the pace. Her graveyard feeds Necrodragons and eventually Death Phoenix, Avatar of Doom.
+
+Her AI must never skip mandatory sacrifice choices and should evaluate creatures by future graveyard value as well as current power. It should not destroy evolution material without a concrete tactical reason.
+
+### Hollow-story role
+
+Vey initially supports part of the Curator's message. She has watched people become trapped by painful memories and understands the appeal of silence. Mira and Nyx do not defeat that belief through argument; the player changes Vey's mind by showing that remembered losses can enable new choices without dictating them.
+
+### Reward and rematches
+
+- **First victory:** Ashen Crest and Death Phoenix, Avatar of Doom
+- **Master rematch:** Darkness/Fire/Water graveyard control with improved card selection
+- **Championship role:** Provides a quiet memorial for echoes lost during the Hollow crisis
+
+## 8. Sable Meridian — Holder of the Mirror Crest
 
 **Area:** Mirror Arena  
 **Civilizations:** Variable; primarily Water, Light, and Darkness  
@@ -258,7 +305,7 @@ The Curator steals Mirror Arena's match archive to create hollow replicas of pas
 - **Master rematch:** Player chooses which of Sable's three deck variants to face
 - **Championship role:** Semifinal analyst and possible post-game rotating-deck opponent
 
-## 8. Caelum Rhos — Holder of the Unity Crest
+## 9. Caelum Rhos — Holder of the Unity Crest
 
 **Area:** Crown Gate Arena  
 **Civilizations:** All five, using the Survivor archetype  
@@ -274,7 +321,7 @@ He is relaxed, humorous, and completely unshaken by impressive cards. His white 
 
 ### Arena trial
 
-The player must present all seven previous Crests and complete a gauntlet against five junior keepers, each representing one civilization. Deck editing is allowed between these qualifying duels. The official match against Caelum begins only after the player demonstrates familiarity with all five strategic identities.
+The player must present all eight previous Crests and complete a gauntlet against five junior keepers, each representing one civilization. Deck editing is allowed between these qualifying duels. The official match against Caelum begins only after the player demonstrates familiarity with all five strategic identities.
 
 ### Deck profile
 
@@ -288,25 +335,26 @@ His AI should prioritize civilization access in mana, preserve complementary Sur
 
 Caelum is the clearest philosophical counterexample to the Curator. Both use all five civilizations, but the Hollow Deck strips cards of identity to make them interchangeable. Caelum's Survivors retain their identities and become stronger because they share what makes each one distinct.
 
-After the player earns the eighth Crest, the Hollow Deck activates during championship registration. Caelum helps protect the gathered challengers while the player enters the Archive.
+Caelum helps protect Crown Gate while the player enters the Hollow Archive, but refuses to turn a world crisis into an unofficial qualification test. Once the Hollow Deck is defeated and the echoes return, he reopens the arena and offers the player the final fair match of the Circuit.
 
 ### Reward and rematches
 
 - **First victory:** Unity Crest, Q-tronic Omnistrain, and Grand Championship qualification
 - **Master rematch:** Optimized five-civilization Survivors with Bombazar as a calculated finisher
-- **Championship role:** Opens the restored tournament and introduces the player as an eight-Crest challenger
+- **Championship role:** Opens the restored tournament and introduces the player as a nine-Crest challenger
 
 ## Difficulty progression
 
 The holders should teach increasingly demanding skills:
 
 1. **Aurelia:** Combat fundamentals and patience
-2. **Brassa:** Sequencing and evolution preparation
-3. **Neris:** Hand management and incomplete information
+2. **Neris:** Hand management and incomplete information
+3. **Brassa:** Sequencing and evolution preparation
 4. **Oren:** Mana planning and choosing between win conditions
-5. **Vey:** Graveyard value and deliberate sacrifice
-6. **Kestrel:** Mixed-civilization consistency
-7. **Sable:** Matchup adaptation
-8. **Caelum:** Long-term planning across all five civilizations
+5. **Kestrel:** Mixed-civilization consistency
+6. **Tamsin:** Formation thresholds and changing card value
+7. **Vey:** Graveyard value and deliberate sacrifice
+8. **Sable:** Matchup adaptation
+9. **Caelum:** Long-term planning across all five civilizations
 
 The Curator and Hollow Deck may later exceed normal rules for narrative spectacle. Caelum and the eventual Champion should instead represent the highest level of fair, legal play.

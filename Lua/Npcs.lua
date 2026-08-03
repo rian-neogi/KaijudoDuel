@@ -264,7 +264,7 @@ return {
         kind = "boss",
         appearance = "veiled_one",
         max_battles = 1,
-        deck1 = "NPC Decks/VeiledOne.txt",
+        deck1 = "NPC/VeiledOne.txt",
         reward1 = { card = "Urth, Purifying Elemental", gold = 250 },
         ai = { personality = "adaptive" },
         dialogue = {

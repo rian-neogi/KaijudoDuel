@@ -19,6 +19,7 @@ using namespace AppSupport;
 namespace
 {
 	constexpr int COLLECTION_PAGE_SIZE = 15;
+	constexpr int MINIMUM_DECK_SIZE = 40;
 	const char* PLAYER_DATA_DIRECTORY = "PlayerData";
 	const char* PLAYER_DECK_DIRECTORY = "PlayerData/Decks";
 	const SDL_Rect BACK_BUTTON = { 20, 20, 120, 46 };
@@ -312,13 +313,16 @@ void Application::awardNpcVictory(int npcIndex)
 	mMoney += reward.gold;
 	int rewardId = getCardIdFromName(reward.card);
 	bool awardedCard = rewardId >= 0 && rewardId < (int)mCollectionCounts.size();
-	if (awardedCard) ++mCollectionCounts[rewardId];
+	if (awardedCard)
+	{
+		++mCollectionCounts[rewardId];
+		mPendingRewardCardId = rewardId;
+		mPendingRewardGold = reward.gold;
+	}
 	updateStoryProgress();
 	savePlayerProgress();
 
-	mNotice = npc.dialogueText("defeat");
-	if (!mNotice.empty()) mNotice += "  ";
-	mNotice += "Victory over " + npc.name + "! ";
+	mNotice = "Victory over " + npc.name + "! ";
 	if (awardedCard) mNotice += "+1 " + reward.card + " and ";
 	mNotice += "+" + std::to_string(reward.gold) + " gold. Reward " +
 		std::to_string(npc.wins) + "/" + std::to_string(npc.maxWins) + ".";
@@ -331,6 +335,11 @@ int Application::deckCardCount(const PlayerDeck& deck) const
 	for (std::map<int, int>::const_iterator card = deck.cards.begin(); card != deck.cards.end(); ++card)
 		count += card->second;
 	return count;
+}
+
+bool Application::deckHasMinimumCards(const PlayerDeck& deck) const
+{
+	return deckCardCount(deck) >= MINIMUM_DECK_SIZE;
 }
 
 std::vector<int> Application::filteredCollection() const
@@ -388,7 +397,7 @@ bool Application::saveDeck(int deckIndex)
 	deck.dirty = false;
 	if (wasActive)
 	{
-		if (deckCardCount(deck) == 40)
+		if (deckHasMinimumCards(deck))
 		{
 			mActiveDeckPath = deck.path;
 			std::ofstream profile("PlayerData/profile.txt", std::ios::trunc);
@@ -403,7 +412,7 @@ bool Application::saveDeck(int deckIndex)
 				if (mPlayerDecks[i].path == mActiveDeckPath) mActiveDeckIndex = (int)i;
 			std::ofstream profile("PlayerData/profile.txt", std::ios::trunc);
 			profile << "active=" << mActiveDeckPath << "\n";
-			showDeckNotice("Deck saved; the starter deck is active until this deck has 40 cards.");
+			showDeckNotice("Deck saved; the starter deck is active until this deck has at least 40 cards.");
 		}
 	}
 
@@ -415,9 +424,9 @@ bool Application::saveDeck(int deckIndex)
 void Application::setActiveDeck(int deckIndex)
 {
 	if (deckIndex < 0 || deckIndex >= (int)mPlayerDecks.size()) return;
-	if (deckCardCount(mPlayerDecks[deckIndex]) != 40)
+	if (!deckHasMinimumCards(mPlayerDecks[deckIndex]))
 	{
-		showDeckNotice("An active deck must contain exactly 40 cards.");
+		showDeckNotice("An active deck must contain at least 40 cards.");
 		return;
 	}
 	if (mPlayerDecks[deckIndex].dirty || !mPlayerDecks[deckIndex].managed)
@@ -629,8 +638,7 @@ void Application::handleDeckBuilderEvent(const SDL_Event& event)
 			std::map<int, int>::iterator existing = deck.cards.find(cardId);
 			int current = existing == deck.cards.end() ? 0 : existing->second;
 			int owned = cardId < (int)mCollectionCounts.size() ? mCollectionCounts[cardId] : 0;
-			if (deckCardCount(deck) >= 40) showDeckNotice("Deck is already at 40 cards.");
-			else if (current >= std::min(4, owned)) showDeckNotice("No more owned copies are available.");
+			if (current >= std::min(4, owned)) showDeckNotice("No more owned copies are available.");
 			else
 			{
 				if (existing == deck.cards.end()) deck.cards.insert(std::make_pair(cardId, 1));
@@ -771,8 +779,9 @@ void Application::renderDeckBuilder()
 		std::string title = mDeckRenameFocused ? mDeckNameInput + "_" : deck.name;
 		drawText(title, 975, 136, color(231, 236, 244), 18, 265);
 		int total = deckCardCount(deck);
-		drawText(std::to_string(total) + "/40 cards" + (deck.dirty ? "  (unsaved)" : ""),
-			975, 169, total == 40 ? color(105, 222, 132) : color(236, 169, 87), 14, 265);
+		drawText(std::to_string(total) + " cards  •  40 minimum" +
+			(deck.dirty ? "  (unsaved)" : ""), 975, 169,
+			deckHasMinimumCards(deck) ? color(105, 222, 132) : color(236, 169, 87), 14, 265);
 		int visibleRows = 15;
 		mDeckContentsScroll = std::min(mDeckContentsScroll, std::max(0, (int)deck.cards.size() - visibleRows));
 		int i = 0;

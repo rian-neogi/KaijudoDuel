@@ -10,10 +10,25 @@ using namespace AppSupport;
 namespace
 {
 	constexpr Uint32 DOOR_OPEN_DURATION = 400;
+	constexpr Uint32 DIALOGUE_CHARACTER_DELAY = 18;
 }
 
 void Application::handleOverworldEvent(const SDL_Event& event)
 {
+	if (mDialogueNpc >= 0)
+	{
+		if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT)
+			advanceDialogue();
+		else if (event.type == SDL_KEYDOWN && !event.key.repeat)
+		{
+			SDL_Keycode key = event.key.keysym.sym;
+			if (key == SDLK_e || key == SDLK_SPACE || key == SDLK_RETURN)
+				advanceDialogue();
+			else if (key == SDLK_ESCAPE && mDialogueAction == DialogueAction::NpcInteraction)
+				clearDialogue();
+		}
+		return;
+	}
 	if (handleStoryEvent(event)) return;
 	if (mPauseMenuOpen)
 	{
@@ -57,19 +72,10 @@ void Application::handleOverworldEvent(const SDL_Event& event)
 	SDL_Keycode key = event.key.keysym.sym;
 	if (key == SDLK_ESCAPE)
 	{
-		if (mDialogueNpc >= 0) mDialogueNpc = -1;
-		else
-		{
-			mPauseMenuOpen = true;
-			mPauseMenuSelection = 0;
-			mMoveUp = mMoveDown = mMoveLeft = mMoveRight = false;
-			mMoveIntentX = mMoveIntentY = 0;
-		}
-		return;
-	}
-	if (mDialogueNpc >= 0)
-	{
-		if (key == SDLK_e || key == SDLK_SPACE || key == SDLK_RETURN) interact();
+		mPauseMenuOpen = true;
+		mPauseMenuSelection = 0;
+		mMoveUp = mMoveDown = mMoveLeft = mMoveRight = false;
+		mMoveIntentX = mMoveIntentY = 0;
 		return;
 	}
 	if (key == SDLK_e || key == SDLK_SPACE || key == SDLK_RETURN) interact();
@@ -77,7 +83,8 @@ void Application::handleOverworldEvent(const SDL_Event& event)
 
 void Application::updateOverworld(Uint32 deltaTime)
 {
-	if (mPauseMenuOpen || mStoryScene != StoryScene::None) return;
+	updateDialogue(deltaTime);
+	if (mPauseMenuOpen || (mStoryScene != StoryScene::None && mDialogueNpc < 0)) return;
 	float playerDx = mPlayerX - mVisualX;
 	float playerDy = mPlayerY - mVisualY;
 	float playerDistance = std::sqrt(playerDx * playerDx + playerDy * playerDy);
@@ -206,19 +213,75 @@ void Application::interact()
 {
 	if (mOpeningPortal >= 0) return;
 	if (std::fabs(mPlayerX - mVisualX) > 0.001f || std::fabs(mPlayerY - mVisualY) > 0.001f) return;
-	if (mDialogueNpc >= 0)
+	int npcIndex = npcAt(mPlayerX + mFacingX, mPlayerY + mFacingY);
+	if (npcIndex < 0) return;
+	discoverStoryClue(npcIndex);
+	beginDialogue(npcIndex, storyDialogueForNpc(npcIndex), DialogueAction::NpcInteraction);
+}
+
+void Application::beginDialogue(int npcIndex, const std::string& text, DialogueAction action)
+{
+	if (npcIndex < 0 || npcIndex >= (int)mNpcs.size()) return;
+	mDialogueNpc = npcIndex;
+	mDialogueText = text;
+	mDialogueVisibleBytes = 0;
+	mDialogueCharacterAccumulator = 0;
+	mDialogueAction = action;
+	mMoveUp = mMoveDown = mMoveLeft = mMoveRight = false;
+	mMoveIntentX = mMoveIntentY = 0;
+}
+
+void Application::clearDialogue()
+{
+	mDialogueNpc = -1;
+	mDialogueText.clear();
+	mDialogueVisibleBytes = 0;
+	mDialogueCharacterAccumulator = 0;
+	mDialogueAction = DialogueAction::None;
+}
+
+void Application::advanceDialogue()
+{
+	if (mDialogueNpc < 0) return;
+	if (mDialogueVisibleBytes < mDialogueText.size())
 	{
-		Npc& npc = mNpcs[mDialogueNpc];
-		if (npc.isShopkeeper())
-			enterShop();
-		else if (!npc.canBattle())
-			mDialogueNpc = -1;
-		else
-			startDuel(mDialogueNpc);
+		mDialogueVisibleBytes = mDialogueText.size();
+		mDialogueCharacterAccumulator = 0;
 		return;
 	}
-	mDialogueNpc = npcAt(mPlayerX + mFacingX, mPlayerY + mFacingY);
-	if (mDialogueNpc >= 0) discoverStoryClue(mDialogueNpc);
+
+	int npcIndex = mDialogueNpc;
+	DialogueAction action = mDialogueAction;
+	clearDialogue();
+	if (action == DialogueAction::ShowReward)
+	{
+		mRewardCardId = mPendingRewardCardId;
+		mRewardGold = mPendingRewardGold;
+		mPendingRewardCardId = -1;
+		mPendingRewardGold = 0;
+	}
+	else if (action == DialogueAction::NpcInteraction &&
+		npcIndex >= 0 && npcIndex < (int)mNpcs.size())
+	{
+		Npc& npc = mNpcs[npcIndex];
+		if (npc.isShopkeeper()) enterShop();
+		else if (npc.canBattle()) startDuel(npcIndex);
+	}
+}
+
+void Application::updateDialogue(Uint32 deltaTime)
+{
+	if (mDialogueNpc < 0 || mDialogueVisibleBytes >= mDialogueText.size()) return;
+	mDialogueCharacterAccumulator += deltaTime;
+	while (mDialogueCharacterAccumulator >= DIALOGUE_CHARACTER_DELAY &&
+		mDialogueVisibleBytes < mDialogueText.size())
+	{
+		mDialogueCharacterAccumulator -= DIALOGUE_CHARACTER_DELAY;
+		++mDialogueVisibleBytes;
+		while (mDialogueVisibleBytes < mDialogueText.size() &&
+			(static_cast<unsigned char>(mDialogueText[mDialogueVisibleBytes]) & 0xc0) == 0x80)
+			++mDialogueVisibleBytes;
+	}
 }
 
 float Application::overworldCameraX() const
@@ -455,17 +518,26 @@ void Application::renderOverworld()
 		fillRect({ 40, 646, 1200, 128 }, 16, 22, 36, 248);
 		outlineRect({ 40, 646, 1200, 128 }, 194, 148, 62, 255, 3);
 		drawText(npc.name, 68, 664, color(244, 206, 103), 25);
-		std::string dialogue = storyDialogueForNpc(mDialogueNpc);
-		std::string prompt = npc.isShopkeeper() ? "E / Space to browse" : "E / Space to battle";
-		if (npc.isComplete())
+		std::string dialogue = mDialogueText.substr(0, mDialogueVisibleBytes);
+		bool fullyRevealed = mDialogueVisibleBytes >= mDialogueText.size();
+		std::string prompt = "E / Click: continue";
+		if (mDialogueAction == DialogueAction::NpcInteraction && npc.isShopkeeper())
+			prompt = "E / Click: browse";
+		else if (mDialogueAction == DialogueAction::NpcInteraction && npc.isComplete())
 		{
-			prompt = "E / Space to close";
+			prompt = "E / Click: close";
 		}
-		else if (npc.isDuelist()) prompt = npc.rankName() + "  •  E / Space to battle";
+		else if (mDialogueAction == DialogueAction::NpcInteraction && npc.isDuelist())
+			prompt = npc.rankName() + "  •  E / Click: battle";
 		drawText(dialogue, 68, 704, color(232, 237, 246), 19, 1080);
-		drawText(prompt, 965, 742, color(126, 176, 242), 15);
+		if (fullyRevealed)
+		{
+			drawText(prompt, 850, 668, color(126, 176, 242), 15, 340);
+			int arrowOffset = (SDL_GetTicks() / 220) % 2 == 0 ? 0 : 3;
+			drawText("▼", 1191, 739 + arrowOffset, color(244, 206, 103), 17);
+		}
 	}
-	renderStoryScene();
+	if (mDialogueNpc < 0) renderStoryScene();
 	if (mPauseMenuOpen) renderPauseMenu();
 }
 

@@ -157,7 +157,7 @@ Rootmaze trainers use creature families and evolution chains. Their sprites shou
 
 ## Gloam Quarry
 
-Gloam trainers introduce more demanding sacrifice and graveyard strategies. Their dialogue can be solemn or dryly funny without giving them major involvement in Sister Vey's conflict.
+Gloam trainers introduce more demanding sacrifice and graveyard strategies. Their dialogue can be solemn or dryly funny without displacing Sister Vey's Ashen Crest trial or Hollow-story conflict.
 
 ### Rell — Lamplighter
 

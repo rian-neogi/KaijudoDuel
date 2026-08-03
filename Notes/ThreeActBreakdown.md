@@ -2,7 +2,7 @@
 
 ## Campaign structure
 
-The campaign carries two parallel objectives: earn eight Arena Crests to enter the Grand Championship, and investigate the Curator's Hollow Deck. Each act follows the same broad gameplay rhythm while raising the stakes:
+The campaign carries two parallel objectives: earn nine Arena Crests to enter the Grand Championship, and investigate the Curator's Hollow Deck. Each act follows the same broad gameplay rhythm while raising the stakes:
 
 1. Enter a new area and discover a disruption in its card echoes.
 2. Meet duelists whose personalities are reflected in their decks.
@@ -11,6 +11,16 @@ The campaign carries two parallel objectives: earn eight Arena Crests to enter t
 5. Advance either the Circuit journey, the Hollow investigation, or both.
 
 Act I is currently playable. Acts II and III are a design target rather than implemented content.
+
+Progression is controlled by story gates between open regions, not by a fixed order inside those regions:
+
+1. Act I establishes the Hollow mystery and awards the Dawn Crest.
+2. A Hollow-story scene opens the first three Crest regions.
+3. Completing Crests 2–4 in any order advances the Hollow investigation.
+4. The Confluence match awards Crest 5 and opens the inner roads.
+5. Crests 6–8 may be completed in any order.
+6. The Hollow storyline reaches its finale.
+7. The Unity match awards the final Crest, after which the Championship begins.
 
 ## Act I — The Fading of Emberglen
 
@@ -56,13 +66,13 @@ The boss uses all five civilizations and a stronger heuristic AI. Its deck has e
 
 On defeat, the body breaks into blank fragments. The Veiled One was a remotely animated shell carrying a copy of the Curator's intent.
 
-### Act resolution
+### Crest 1 and Act resolution
 
-- The Curator confirms that Rowan lives beyond the old road.
 - Emberglen's restored duelists agree to protect the town.
 - Aurelia conducts the official match interrupted by the festival attack.
-- The player earns the Dawn Crest, the first of eight Circuit Crests.
-- The bridge is safe and the northern route opens.
+- The player earns the Dawn Crest, the first of nine Circuit Crests.
+- The Dawn ceremony triggers a hidden echo from Rowan and confirms that the Curator is attacking several frontier Resonance Seals at once.
+- The bridge is safe, the northern road reaches its first junction, and the Cinderrail, Glasswater, and Rootmaze routes open simultaneously.
 - The player leaves with a growing collection and a personal reason to continue.
 
 ### Systems introduced
@@ -80,24 +90,53 @@ On defeat, the body breaks into blank fragments. The Veiled One was a remotely a
 
 Expand the world, challenge the player's assumptions about Rowan, and show what the Curator's theft does outside Emberglen. The player learns that restoring echoes is not enough; they must also understand how those echoes connect.
 
-### World layout
+### Branching campaign flow
 
-The old road crosses six territories. Five contain civilization Resonance Seals, while five sanctioned arenas award the next Circuit Crests. The overlap varies so that the Circuit and Hollow objectives do not become the same quest. Some territories can be completed in a partly flexible order, with later opponents scaling their decks as the player advances.
+The Fivefold Road opens in tiers instead of as one linear chain. Story gates separate the tiers, but the Crest regions inside each tier can be completed in any order. Opponent deck strength, shop stock, and incidental dialogue scale from the number of Crests held rather than from a fixed regional sequence.
 
-1. **Sunspire Cloister — Light Seal:** The guardians have become rigid and accusatory after their cards display false memories. This is a Hollow-story location without a Crest match.
-2. **Cinderrail Foundry — Fire Seal and Forge Crest:** Brassa Vale discovers that its arena furnaces are harvesting resonance from public duels.
-3. **Glasswater Port — Water Seal and Tidal Crest:** Neris Quill confronts a prediction system built from stolen match memories.
-4. **Rootmaze Commons — Nature Seal and Verdant Crest:** Oren Canopy protects creatures that no longer recognize their bonded duelists.
-5. **Gloam Quarry — Darkness Seal and Gloam Crest:** Sister Vey considers the Curator's promise to erase painful memories.
-6. **Confluence Arena — Confluence Crest:** Kestrel Vane guards the Circuit relay at the Archive Gate.
+The high-level route is:
 
-Each region contains a town hub, several duelists, a shop or specialist, environmental shortcuts, and a sanctuary boss.
+**Dawn → Tidal/Forge/Verdant in any order → Confluence → Tempest/Ashen/Mirror in any order → Hollow finale → Unity → Grand Championship**
+
+### First open-world tier: Crests 2–4
+
+After the Dawn Crest and the next Hollow-story scene, three frontier roads open at once:
+
+- **Cinderrail Foundry — Fire Seal and Forge Crest:** Brassa Vale discovers that its arena furnaces are harvesting resonance from public duels.
+- **Glasswater Port — Water Seal and Tidal Crest:** Neris Quill confronts a prediction system built from stolen match memories.
+- **Rootmaze Commons — Nature Seal and Verdant Crest:** Oren Canopy protects creatures that no longer recognize their bonded duelists.
+
+Each region contains a town hub, local trainers, a shop or specialist, environmental shortcuts, and both a Circuit objective and a Hollow-story problem. Completing one region should provide useful information or cards for the others without making any particular order canonical.
 
 ### The Resonance Seals
 
 Every sanctuary protects one Resonance Seal. A seal does not contain power by itself; it records how its civilization forms trust with duelists. The Curator needs all five patterns to make the Hollow Deck stable.
 
-The player repairs a seal by resolving its local conflict. The Circuit Crest matches occur in the same areas, but Crests are ordinary credentials rather than magical components of the Hollow Deck. This keeps the championship quest and the Curator investigation parallel instead of reducing both to one objective. Side quests produce better rewards and more allies for Act III.
+The player repairs a seal by resolving its local conflict. Some Crest matches occur in the same areas, but Crests are ordinary credentials rather than magical components of the Hollow Deck. This keeps the championship quest and the Curator investigation parallel instead of reducing both to one objective. Side quests produce better rewards and more allies for Act III.
+
+### Midpoint Hollow escalation
+
+After the player holds the Forge, Tidal, and Verdant Crests, the three repaired seals create a projection of Rowan inside the Curator's archive. Rowan refuses rescue and insists that the remaining seals must be restored, making his behavior look like a betrayal.
+
+A hidden message in the player's starter deck later reveals that Rowan is delaying the Hollow Deck from within. Before the player can follow him, the Chief Collector corrupts the Confluence relay and closes every road into the inner territories.
+
+### Crest 5: Confluence
+
+Kestrel Vane restores the physical relay routes but will authorize passage through the Archive Gate only after his official match. The player must defeat his coherent three-civilization deck and earn the Confluence Crest.
+
+The Crest itself does not magically open the world. Victory proves that the player can manage the more complex decks used beyond the gate, while Kestrel's repaired relay and Circuit authority provide the actual access. This distinction preserves the parallel sporting and Hollow-story goals.
+
+### Second open-world tier: Crests 6–8
+
+Beyond Confluence, three more Crest regions open simultaneously:
+
+- **Stormbreak Plateau — Tempest Crest:** Tamsin Gale restores signal towers linked by changing wind bridges and discovers false storms generated from stolen courier memories.
+- **Gloam Quarry — Darkness Seal and Ashen Crest:** Sister Vey considers the Curator's promise to erase painful memories while the Ashvault's memorial echoes begin disappearing.
+- **Mirror Arena — Mirror Crest:** Sable Meridian confronts hollow replicas built from private match records and tests how well the player can adapt when their preferred strategy is understood.
+
+**Sunspire Cloister** also becomes available during this tier as a Hollow-only Light Seal region without a Crest match. Its guardians have become rigid and accusatory after their cards display false memories. The player may interleave Sunspire with the three Crest routes, but must restore its seal before entering the Hollow Archive.
+
+The Tempest, Ashen, and Mirror Crests may be earned in any order. Each route contributes a different ally and entrance option for the finale, so the player's chosen order changes dialogue and immediate rewards without changing which route is valid.
 
 ### Returning NPC roles
 
@@ -106,25 +145,20 @@ The player repairs a seal by resolving its local conflict. The Circuit Crest mat
 - Flint helps break the forced-duel machinery at Cinderrail.
 - Rook and Briar guide displaced creatures through Rootmaze.
 - Mira and Nyx enter Gloam Quarry, where the Curator's promise is most tempting.
+- Tamsin's courier network carries news and supplies between whichever regions the player visits next.
 - Mercer establishes a traveling shop and trades regional cards as routes are restored.
 
 These appearances should be brief enough that new regional NPCs still own their stories.
-
-### Midpoint: Rowan's apparent betrayal
-
-At the third repaired seal, the player sees Rowan inside a projection with the Curator. Rowan refuses to leave and says the player must keep restoring echoes. The scene should make his behavior genuinely suspicious.
-
-A hidden message in the player's starter deck later explains that Rowan is delaying the Hollow Deck from within. He cannot flee without allowing the Curator to finish immediately. He asks the player to complete all five seals and bring their independent patterns to the Archive Gate.
 
 ### Act II boss: The Chief Collector
 
 The Chief Collector is a living believer in the Curator's cause, not another shell. Their deck changes between rounds by copying the civilization and key cards used by the player. The intended counterplay is to adapt the deck rather than rely on one dominant list.
 
-The player wins and opens the Archive Gate, but this was partly anticipated. The Curator copies the repaired seal patterns during the opening. Rowan sabotages the transfer enough to escape, yet the Hollow Deck reaches an unstable complete state.
+After the player earns Crests 6–8 and repairs all five seals, the Chief Collector makes a final attempt to seize the Confluence relay. The player wins and opens the Archive Gate, but this was partly anticipated. The Curator copies the repaired seal patterns during the opening. Rowan sabotages the transfer enough to escape, yet the Hollow Deck reaches an unstable complete state.
 
 ### Act resolution
 
-- The player leaves the frontier with six of the eight Circuit Crests.
+- The player enters the Hollow finale with eight of the nine Circuit Crests.
 - Rowan reunites with the player and admits his role in the Curator's original research.
 - The Curator enters the Archive Below with all five resonance patterns.
 - Blank zones begin spreading into the overworld.
@@ -133,6 +167,8 @@ The player wins and opens the Archive Gate, but this was partly anticipated. The
 ### Systems expanded
 
 - Multiple connected overworld maps
+- Two tiers of regions that can be completed in any order
+- Difficulty and dialogue scaling based on Crest count rather than route order
 - Regional card pools and shops
 - Optional quests that affect later assistance
 - Duelists whose decks upgrade based on campaign progress
@@ -150,15 +186,6 @@ Pay off the player's relationships and collection. The final answer to the Curat
 Blank zones drain color and music from visited maps. Some NPCs temporarily forget dialogue or previous victories. Core services remain available through allies, preventing the high stakes from becoming frustrating.
 
 Emberglen becomes the campaign headquarters. Rowan studies the five seals, Mercer coordinates supplies, and the duelists provide optional rematches that grant final upgrades.
-
-### The final two Crests
-
-Before the Grand Championship, the player must complete the last two sanctioned arenas:
-
-- **Mirror Arena:** Sable Meridian selects a legal deck variant that tests the weaknesses of the player's preferred strategy. Victory grants the Mirror Crest.
-- **Crown Gate Arena:** Caelum Rhos uses a legal five-civilization Survivor deck. Victory grants the Unity Crest and championship qualification.
-
-The Hollow Deck activates during tournament registration. The championship is suspended, and Caelum protects the assembled challengers while the player enters the Archive.
 
 ### Preparing the descent
 
@@ -204,16 +231,21 @@ The player's earned reward cards can receive small narrative bonuses or special 
 
 The player defeats the Hollow Deck. Rowan prevents the archive from collapsing, while the Curator finally sees that the imperfect memories he removed are what let the echoes cooperate against the machine.
 
-The captured echoes return. NPC dialogue and map color are restored in waves, and the suspended Grand Championship can finally resume.
+The captured echoes return. NPC dialogue and map color are restored in waves. With the existential threat resolved, the player's original sporting quest can take center stage again.
+
+### Final Crest: Unity
+
+Caelum Rhos kept Crown Gate safe during the Hollow crisis but deliberately postponed his official match. He requires the player to present the previous eight Crests and complete a five-civilization junior gauntlet before facing his legal Survivor deck.
+
+Victory grants the Unity Crest, the ninth and final credential. Nothing interrupts the ceremony this time. The player qualifies for the Grand Championship because of mastery demonstrated across the Circuit, not because defeating the Hollow Deck automatically made them a champion.
 
 ### Grand Championship finale
 
 The tournament provides a celebratory final challenge after the existential threat:
 
 1. Quarterfinal against an Act II rival or Kestrel Vane.
-2. Semifinal against an advanced Emberglen rival such as Flint, Marin, or Nyx.
-3. Final qualifier against the Circuit's chief arena master.
-4. A fair duel against the reigning Grand Champion, using the strongest legal AI and deck in the game.
+2. Semifinal against Sable or an advanced Emberglen rival such as Flint, Marin, or Nyx.
+3. A fair final duel against the reigning Grand Champion, using the strongest legal AI and deck in the game.
 
 The Champion should be mechanically harder than the Curator without using boss-only rule changes. The player defeats the Hollow Deck through relationships and defeats the Champion through mastery. Rowan then publicly names the new Champion an echo keeper.
 
