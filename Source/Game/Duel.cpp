@@ -237,11 +237,6 @@ int Duel::handleMessage(Message& msg)
 			m.addValue("to", ZONE_GRAVEYARD);
 			mMsgMngr.sendMessage(m);
 		}
-		if (mDecks[owner].mCards.size() == 0)
-		{
-			//player loses game
-			mWinner = getOpponent(mTurn);
-		}
 	}
 	else if (msg.getType() == "creaturedestroy")
 	{
@@ -1864,8 +1859,10 @@ bool Duel::isThereUntappedManaOfCiv(int player,int civ)
 
 void Duel::drawCards(int player, int count)
 {
-	count = count < mDecks[player].mCards.size() ? count : mDecks[player].mCards.size();
-	for (int i = 0; i < count; i++)
+	if (player < 0 || player > 1 || count <= 0)
+		return;
+	int available = std::min(count, static_cast<int>(mDecks[player].mCards.size()));
+	for (int i = 0; i < available; i++)
 	{
 		Message msg("cardmove");
 		msg.addValue("card", mDecks[player].mCards.at(mDecks[player].mCards.size() - i - 1)->mUniqueId);
@@ -1873,6 +1870,8 @@ void Duel::drawCards(int player, int count)
 		msg.addValue("to", ZONE_HAND);
 		mMsgMngr.sendMessage(msg);
 	}
+	if (available < count && mWinner == -1)
+		mWinner = getOpponent(player);
 }
 
 bool Duel::setDecks(const std::string& p1, const std::string& p2)

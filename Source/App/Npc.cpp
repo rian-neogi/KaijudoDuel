@@ -182,6 +182,17 @@ bool Npc::isMoving() const
 	return std::fabs(visualX - x) > 0.001f || std::fabs(visualY - y) > 0.001f;
 }
 
+void Npc::setPosition(int xValue, int yValue)
+{
+	x = homeX = xValue;
+	y = homeY = yValue;
+	visualX = (float)xValue;
+	visualY = (float)yValue;
+	nextMoveAt = 0;
+	mWanderState = (unsigned int)(xValue * 73856093u) ^
+		(unsigned int)(yValue * 19349663u) ^ (unsigned int)name.size() * 83492791u;
+}
+
 void Npc::updateMovement(unsigned int deltaMilliseconds)
 {
 	float dx = x - visualX;
@@ -277,22 +288,8 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 			return false;
 		}
 
-		lua_getfield(state, entry, "position");
-		if (!lua_istable(state, -1))
-		{
-			error = "NPC '" + id + "' needs a position table";
-			lua_close(state);
-			return false;
-		}
-		const int x = luaIntegerField(state, -1, "x", -1);
-		const int y = luaIntegerField(state, -1, "y", -1);
-		lua_pop(state, 1);
-		if (x < 0 || y < 0)
-		{
-			error = "NPC '" + id + "' has an invalid position";
-			lua_close(state);
-			return false;
-		}
+		const int x = 0;
+		const int y = 0;
 
 		const int defaultBattles = kind == NpcKind::Boss ? 1 :
 			(kind == NpcKind::Duelist ? 4 : 0);

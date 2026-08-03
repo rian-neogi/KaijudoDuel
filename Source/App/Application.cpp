@@ -9,12 +9,16 @@
 
 using namespace AppSupport;
 
-Application::Application()
+Application::Application(bool worldBuilder)
 	: mWindow(NULL), mRenderer(NULL), mBoardTexture(NULL), mCardBackTexture(NULL), mSoundManager(NULL), mRunning(false),
 	  mScreen(Screen::Overworld), mPauseMenuOpen(false), mPlayerX(2), mPlayerY(10), mFacingX(1), mFacingY(0),
 	  mMoveUp(false), mMoveDown(false), mMoveLeft(false), mMoveRight(false), mMoveIntentX(0), mMoveIntentY(0),
 	  mVisualX(2.f), mVisualY(10.f), mDialogueNpc(-1), mNoticeUntil(0),
 	  mStoryStage(0), mStoryClues(0), mStoryScene(StoryScene::None), mStoryScenePage(0),
+	  mWorldBuilderTab(WorldBuilderTab::Tiles), mWorldBuilderTile('.'), mWorldBuilderSelectedNpc(-1),
+	  mWorldBuilderSelectedShard(-1), mWorldBuilderListScroll(0), mWorldBuilderPainting(false),
+	  mWorldBuilderDragging(false), mWorldBuilderDirty(false), mWorldBuilderNoticeError(false),
+	  mWorldBuilderNoticeUntil(0),
 	  mDuel(NULL), mActiveNpc(-1), mDirectDuelMode(false), mSelectedCard(-1), mActionScroll(0),
 	  mOpenGraveyardPlayer(-1), mGraveyardOffset(0), mActionLogOpen(false), mActionLogScroll(0),
 	  mNextAiMove(0), mDuelResult(-1), mDuelResultAt(0), mDraggingCard(-1),
@@ -26,27 +30,26 @@ Application::Application()
 	  mDeckNoticeUntil(0), mDeckHoveredCard(-1), mShopHoveredCard(-1), mShopPage(0),
 	  mShopNoticeUntil(0)
 {
-	mMap.push_back("####################");
-	mMap.push_back("#......~~~.........#");
-	mMap.push_back("#..HH..~~~..TTTT...#");
-	mMap.push_back("#..HH.......T..T...#");
-	mMap.push_back("#......====........#");
-	mMap.push_back("#..####=..=..~~~...#");
-	mMap.push_back("#......=..=..~~~...#");
-	mMap.push_back("#......====........#");
-	mMap.push_back("#...TT......HH.....#");
-	mMap.push_back("#...TT......HH.....#");
-	mMap.push_back("#..................#");
-	mMap.push_back("####################");
-
-	if (!loadNpcsFromLua("Lua/Npcs.lua", mNpcs, mNpcMetadataError))
-		std::cerr << "Unable to load NPC metadata: " << mNpcMetadataError << std::endl;
+	std::string npcError;
+	if (!loadNpcsFromLua("Lua/Npcs.lua", mNpcs, npcError))
+	{
+		if (!mNpcMetadataError.empty()) mNpcMetadataError += "\n";
+		mNpcMetadataError += "Unable to load NPC metadata: " + npcError;
+		std::cerr << "Unable to load NPC metadata: " << npcError << std::endl;
+	}
 	std::string stockError;
 	if (!loadMercerStockFromLua("Lua/MercerStock.lua", mMercerStock, stockError))
 	{
 		if (!mNpcMetadataError.empty()) mNpcMetadataError += "\n";
 		mNpcMetadataError += "Unable to load Mercer stock: " + stockError;
 		std::cerr << "Unable to load Mercer stock: " << stockError << std::endl;
+	}
+	std::string worldError;
+	if (!loadWorldMap("Lua/World.lua", worldError, worldBuilder))
+	{
+		if (!mNpcMetadataError.empty()) mNpcMetadataError += "\n";
+		mNpcMetadataError += "Unable to load world map: " + worldError;
+		std::cerr << "Unable to load world map: " << worldError << std::endl;
 	}
 }
 
@@ -132,10 +135,15 @@ void Application::shutdown()
 }
 
 int Application::run(bool smokeTest, const std::string& directPlayerDeck,
-	const std::string& directAiDeck)
+	const std::string& directAiDeck, bool worldBuilder)
 {
 	if (!initialize())
 		return 1;
+	if (worldBuilder)
+	{
+		mScreen = Screen::WorldBuilder;
+		SDL_SetWindowTitle(mWindow, "Kaijudo Duel - World Builder");
+	}
 	mDirectDuelMode = !directPlayerDeck.empty() || !directAiDeck.empty();
 	if (mDirectDuelMode)
 	{
@@ -419,6 +427,7 @@ void Application::handleEvent(const SDL_Event& event)
 	else if (mScreen == Screen::Duel) handleDuelEvent(event);
 	else if (mScreen == Screen::DeckBuilder) handleDeckBuilderEvent(event);
 	else if (mScreen == Screen::Shop) handleShopEvent(event);
+	else if (mScreen == Screen::WorldBuilder) handleWorldBuilderEvent(event);
 	else handleSettingsEvent(event);
 }
 
@@ -436,6 +445,7 @@ void Application::render()
 	else if (mScreen == Screen::Duel) renderDuel();
 	else if (mScreen == Screen::DeckBuilder) renderDeckBuilder();
 	else if (mScreen == Screen::Shop) renderShop();
+	else if (mScreen == Screen::WorldBuilder) renderWorldBuilder();
 	else renderSettings();
 	SDL_RenderPresent(mRenderer);
 }

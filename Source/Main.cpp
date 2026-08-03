@@ -15,6 +15,7 @@ namespace
 			<< "Usage:\n"
 			<< "  " << executable << "\n"
 			<< "  " << executable << " [--lua-trace] --duel <player-deck> <ai-deck>\n"
+			<< "  " << executable << " --world-builder\n"
 			<< "  " << executable << " [--lua-trace] --smoke-test\n"
 			<< "  " << executable << " --help\n\n"
 			<< "Decks are searched beneath Decks/ by default; quote paths containing spaces.\n"
@@ -27,6 +28,7 @@ int main(int argc, char* argv[])
 {
 	bool smokeTest = false;
 	bool luaTrace = false;
+	bool worldBuilder = false;
 	std::string playerDeck;
 	std::string aiDeck;
 	std::vector<std::string> arguments;
@@ -48,6 +50,8 @@ int main(int argc, char* argv[])
 	}
 	if (arguments.size() == 1 && arguments[0] == "--smoke-test")
 		smokeTest = true;
+	else if (arguments.size() == 1 && arguments[0] == "--world-builder")
+		worldBuilder = true;
 	else if (arguments.size() == 3 && arguments[0] == "--duel")
 	{
 		playerDeck = arguments[1];
@@ -68,8 +72,8 @@ int main(int argc, char* argv[])
 
 	int result = 0;
 	{
-		Application application;
-		result = application.run(smokeTest, playerDeck, aiDeck);
+		Application application(worldBuilder);
+		result = application.run(smokeTest, playerDeck, aiDeck, worldBuilder);
 	}
 	cleanupCards();
 	return result;

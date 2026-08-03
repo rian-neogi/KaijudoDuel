@@ -1,7 +1,8 @@
 -- Overworld NPC metadata
+-- NPC positions are owned by Lua/World.lua and maintained by the World Builder.
 --
 -- Add one table to the returned array for each NPC. Required fields are:
---   id, name, kind, position, appearance
+--   id, name, kind, appearance
 -- Duelists and bosses also require max_battles, deck1, and one reward table
 -- for every enabled battle. deck2 through deck4 are optional: a missing deck
 -- reuses the most recently defined deck.
@@ -23,7 +24,6 @@
 --     id = "unique_id",
 --     name = "Display Name",
 --     kind = "duelist",
---     position = { x = 1, y = 1 },
 --     appearance = "mira",
 --     max_battles = 4,
 --     deck1 = "Example.txt",
@@ -46,7 +46,6 @@ return {
         id = "mira",
         name = "Mira",
         kind = "duelist",
-        position = { x = 10, y = 7 },
         appearance = "mira",
         max_battles = 4,
         deck1 = "Zagaan.txt",
@@ -73,7 +72,6 @@ return {
         id = "marin",
         name = "Marin",
         kind = "duelist",
-        position = { x = 16, y = 4 },
         appearance = "marin",
         max_battles = 4,
         deck1 = "AquaSniper.txt",
@@ -99,7 +97,6 @@ return {
         id = "rook",
         name = "Rook",
         kind = "duelist",
-        position = { x = 7, y = 4 },
         appearance = "rook",
         max_battles = 4,
         deck1 = "RoaringGreathorn.txt",
@@ -125,7 +122,6 @@ return {
         id = "aurelia",
         name = "Aurelia",
         kind = "duelist",
-        position = { x = 12, y = 1 },
         appearance = "aurelia",
         max_battles = 4,
         deck1 = "Hanusa.txt",
@@ -152,7 +148,6 @@ return {
         id = "flint",
         name = "Flint",
         kind = "duelist",
-        position = { x = 5, y = 4 },
         appearance = "flint",
         max_battles = 4,
         deck1 = "AstrocometDragon.txt",
@@ -179,7 +174,6 @@ return {
         id = "nyx",
         name = "Nyx",
         kind = "duelist",
-        position = { x = 17, y = 7 },
         appearance = "nyx",
         max_battles = 4,
         deck1 = "Deathliger.txt",
@@ -205,7 +199,6 @@ return {
         id = "tidal",
         name = "Tidal",
         kind = "duelist",
-        position = { x = 10, y = 10 },
         appearance = "tidal",
         max_battles = 4,
         deck1 = "KingDepthcon.txt",
@@ -231,7 +224,6 @@ return {
         id = "briar",
         name = "Briar",
         kind = "duelist",
-        position = { x = 2, y = 6 },
         appearance = "briar",
         max_battles = 4,
         deck1 = "DeathbladeBeetle.txt",
@@ -257,7 +249,6 @@ return {
         id = "mercer",
         name = "Mercer",
         kind = "shopkeeper",
-        position = { x = 18, y = 10 },
         appearance = "mercer",
         ai = { personality = "none" },
         dialogue = {
@@ -271,7 +262,6 @@ return {
         id = "veiled_one",
         name = "The Veiled One",
         kind = "boss",
-        position = { x = 10, y = 4 },
         appearance = "veiled_one",
         max_battles = 1,
         deck1 = "VeiledOne.txt",

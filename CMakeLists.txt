@@ -36,6 +36,7 @@ set(GAME_SOURCES
     Source/App/Overworld.cpp
 	Source/App/Shop.cpp
 	Source/App/Story.cpp
+	Source/App/WorldBuilder.cpp
     Source/CRandom.cpp
     Source/LuaFunctions.cpp
 	Source/LuaTrace.cpp

@@ -16,15 +16,6 @@ namespace
 		return value;
 	}
 
-	int luaIntegerField(lua_State* state, int table, const char* key, int fallback)
-	{
-		table = lua_absindex(state, table);
-		lua_getfield(state, table, key);
-		int value = lua_isnumber(state, -1) ? (int)lua_tointeger(state, -1) : fallback;
-		lua_pop(state, 1);
-		return value;
-	}
-
 	bool readCardList(lua_State* state, int table, const char* key,
 		std::vector<std::string>& cards, std::string& error)
 	{
@@ -126,7 +117,6 @@ bool loadMercerStockFromLua(const std::string& path, MercerStockData& stock,
 		return false;
 	}
 	std::set<std::string> ids;
-	std::set<std::pair<int, int> > positions;
 	const size_t shardCount = lua_rawlen(state, -1);
 	for (size_t i = 1; i <= shardCount; ++i)
 	{
@@ -141,12 +131,9 @@ bool loadMercerStockFromLua(const std::string& path, MercerStockData& stock,
 		MercerShard shard;
 		shard.id = luaStringField(state, shardTable, "id");
 		shard.name = luaStringField(state, shardTable, "name");
-		lua_getfield(state, shardTable, "position");
-		shard.x = lua_istable(state, -1) ? luaIntegerField(state, -1, "x", -1) : -1;
-		shard.y = lua_istable(state, -1) ? luaIntegerField(state, -1, "y", -1) : -1;
-		lua_pop(state, 1);
-		if (shard.id.empty() || shard.name.empty() || shard.x < 0 || shard.y < 0 ||
-			!ids.insert(shard.id).second || !positions.insert(std::make_pair(shard.x, shard.y)).second)
+		shard.x = 0;
+		shard.y = 0;
+		if (shard.id.empty() || shard.name.empty() || !ids.insert(shard.id).second)
 		{
 			error = "invalid or duplicate shard entry " + std::to_string(i);
 			lua_close(state);

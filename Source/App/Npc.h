@@ -57,6 +57,7 @@ public:
 	std::string rankName() const;
 	std::string dialogueText(const std::string& key, const std::string& fallback = "") const;
 	bool isMoving() const;
+	void setPosition(int x, int y);
 	void updateMovement(unsigned int deltaMilliseconds);
 	void scheduleWander(unsigned int now);
 	int nextWanderDirection();

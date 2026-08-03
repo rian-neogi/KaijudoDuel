@@ -19,11 +19,11 @@ class SoundManager;
 class Application
 {
 public:
-	Application();
+	Application(bool worldBuilder = false);
 	~Application();
 
 	int run(bool smokeTest = false, const std::string& directPlayerDeck = "",
-		const std::string& directAiDeck = "");
+		const std::string& directAiDeck = "", bool worldBuilder = false);
 
 private:
 	enum class Screen
@@ -32,7 +32,14 @@ private:
 		Duel,
 		DeckBuilder,
 		Settings,
-		Shop
+		Shop,
+		WorldBuilder
+	};
+	enum class WorldBuilderTab
+	{
+		Tiles,
+		Npcs,
+		Shards
 	};
 	enum class StoryScene
 	{
@@ -119,6 +126,14 @@ private:
 	void interact();
 	bool isWalkable(int x, int y) const;
 	int npcAt(int x, int y, int ignoredNpc = -1) const;
+	bool loadWorldMap(const std::string& path, std::string& error, bool allowMissingPositions = false);
+	void handleWorldBuilderEvent(const SDL_Event& event);
+	void renderWorldBuilder();
+	void paintWorldBuilderTile(int x, int y);
+	void placeWorldBuilderSelection(int x, int y);
+	bool worldBuilderCanPlace(int x, int y, int ignoredNpc, int ignoredShard) const;
+	bool saveWorldBuilder(std::string& error);
+	void showWorldBuilderNotice(const std::string& notice, bool error = false);
 
 	void startDuel(int npcIndex, bool ignoreProgressLimit = false);
 	bool startDuelWithDecks(const std::string& playerDeck, const std::string& aiDeck,
@@ -239,6 +254,17 @@ private:
 	int mStoryClues;
 	StoryScene mStoryScene;
 	int mStoryScenePage;
+	WorldBuilderTab mWorldBuilderTab;
+	char mWorldBuilderTile;
+	int mWorldBuilderSelectedNpc;
+	int mWorldBuilderSelectedShard;
+	int mWorldBuilderListScroll;
+	bool mWorldBuilderPainting;
+	bool mWorldBuilderDragging;
+	bool mWorldBuilderDirty;
+	bool mWorldBuilderNoticeError;
+	std::string mWorldBuilderNotice;
+	Uint32 mWorldBuilderNoticeUntil;
 
 	Duel* mDuel;
 	std::thread mDuelThread;
