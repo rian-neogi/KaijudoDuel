@@ -18,7 +18,8 @@ using namespace AppSupport;
 namespace
 {
 	constexpr int COLLECTION_PAGE_SIZE = 15;
-	const char* STARTER_DECK_PATH = "Decks/My Decks/7 - L Tappy Tappy.txt";
+	const char* PLAYER_DATA_DIRECTORY = "PlayerData";
+	const char* PLAYER_DECK_DIRECTORY = "PlayerData/Decks";
 	const SDL_Rect BACK_BUTTON = { 20, 20, 120, 46 };
 	const SDL_Rect NEW_DECK_BUTTON = { 154, 20, 150, 46 };
 	const SDL_Rect SEARCH_BOX = { 326, 20, 430, 46 };
@@ -111,6 +112,8 @@ void Application::ensurePlayerDataLoaded()
 {
 	if (mPlayerDataLoaded) return;
 	mPlayerDataLoaded = true;
+	ensureDirectory(PLAYER_DATA_DIRECTORY);
+	ensureDirectory(PLAYER_DECK_DIRECTORY);
 	mCollectionCounts.assign(gCardDatabase.size(), 0);
 
 	std::ifstream collection("PlayerData/collection.txt");
@@ -132,12 +135,12 @@ void Application::ensurePlayerDataLoaded()
 		}
 	}
 
-	auto loadDeckFile = [this](const std::string& path, bool managed)
+	auto loadDeckFile = [this](const std::string& path)
 	{
 		PlayerDeck deck;
 		deck.name = fileStem(path);
 		deck.path = path;
-		deck.managed = managed;
+		deck.managed = true;
 		std::ifstream file(path.c_str());
 		std::string line;
 		while (std::getline(file, line))
@@ -151,16 +154,23 @@ void Application::ensurePlayerDataLoaded()
 		mPlayerDecks.push_back(deck);
 	};
 
-	std::vector<std::string> managedDecks = textFilesIn("PlayerData/Decks");
-	for (size_t i = 0; i < managedDecks.size(); ++i) loadDeckFile(managedDecks[i], true);
-	std::vector<std::string> legacyDecks = textFilesIn("Decks/My Decks");
-	for (size_t i = 0; i < legacyDecks.size(); ++i) loadDeckFile(legacyDecks[i], false);
+	std::vector<std::string> playerDecks = textFilesIn(PLAYER_DECK_DIRECTORY);
+	for (size_t i = 0; i < playerDecks.size(); ++i) loadDeckFile(playerDecks[i]);
 
 	mActiveDeckPath = STARTER_DECK_PATH;
 	std::ifstream profile("PlayerData/profile.txt");
 	std::string line;
 	while (std::getline(profile, line))
-		if (line.find("active=") == 0 && fileExists(line.substr(7))) mActiveDeckPath = line.substr(7);
+	{
+		if (line.find("active=") != 0) continue;
+		std::string configuredPath = line.substr(7);
+		for (size_t i = 0; i < mPlayerDecks.size(); ++i)
+			if (mPlayerDecks[i].path == configuredPath)
+			{
+				mActiveDeckPath = configuredPath;
+				break;
+			}
+	}
 	mActiveDeckIndex = -1;
 	for (size_t i = 0; i < mPlayerDecks.size(); ++i)
 		if (mPlayerDecks[i].path == mActiveDeckPath) mActiveDeckIndex = (int)i;
@@ -301,7 +311,7 @@ std::vector<int> Application::filteredCollection() const
 
 std::string Application::availableDeckPath(const std::string& name, const std::string& currentPath) const
 {
-	std::string base = "PlayerData/Decks/" + safeDeckName(name);
+	std::string base = std::string(PLAYER_DECK_DIRECTORY) + "/" + safeDeckName(name);
 	std::string candidate = base + ".txt";
 	if (candidate == currentPath || !fileExists(candidate)) return candidate;
 	for (int suffix = 2; suffix < 1000; ++suffix)
@@ -315,8 +325,8 @@ std::string Application::availableDeckPath(const std::string& name, const std::s
 bool Application::saveDeck(int deckIndex)
 {
 	if (deckIndex < 0 || deckIndex >= (int)mPlayerDecks.size()) return false;
-	ensureDirectory("PlayerData");
-	ensureDirectory("PlayerData/Decks");
+	ensureDirectory(PLAYER_DATA_DIRECTORY);
+	ensureDirectory(PLAYER_DECK_DIRECTORY);
 	PlayerDeck& deck = mPlayerDecks[deckIndex];
 	deck.name = safeDeckName(deck.name);
 	std::string newPath = availableDeckPath(deck.name, deck.managed ? deck.path : "");
@@ -633,11 +643,21 @@ void Application::renderDeckBuilder()
 		int index = mDeckListScroll + i;
 		SDL_Rect row = { 30, 132 + i * 48, 205, 42 };
 		bool selected = index == mEditingDeckIndex;
-		fillRect(row, selected ? 54 : 27, selected ? 72 : 38, selected ? 103 : 57, 245);
-		if (selected) outlineRect(row, 111, 161, 225, 255, 2);
-		std::string prefix = index == mActiveDeckIndex ? "* " : "";
-		drawText(prefix + mPlayerDecks[index].name, row.x + 8, row.y + 6,
-			color(228, 233, 242), 13, 151);
+		bool active = index == mActiveDeckIndex;
+		if (active)
+		{
+			fillRect(row, selected ? 91 : 68, selected ? 76 : 57,
+				selected ? 43 : 35, 245);
+			outlineRect(row, 232, 184, 76, 255, selected ? 3 : 2);
+		}
+		else
+		{
+			fillRect(row, selected ? 54 : 27, selected ? 72 : 38,
+				selected ? 103 : 57, 245);
+			if (selected) outlineRect(row, 111, 161, 225, 255, 2);
+		}
+		drawText(mPlayerDecks[index].name, row.x + 8, row.y + 6,
+			active ? color(255, 226, 145) : color(228, 233, 242), 13, 151);
 		drawText(std::to_string(deckCardCount(mPlayerDecks[index])), row.x + 172, row.y + 9,
 			color(190, 204, 224), 12);
 	}

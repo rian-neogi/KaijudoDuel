@@ -253,6 +253,7 @@ private:
 	bool mRunning;
 	Screen mScreen;
 	bool mPauseMenuOpen;
+	int mPauseMenuSelection;
 
 	std::vector<WorldArea> mWorldAreas;
 	std::vector<WorldPortal> mWorldPortals;

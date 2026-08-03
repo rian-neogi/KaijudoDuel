@@ -10,6 +10,11 @@ using namespace AppSupport;
 void Application::handleOverworldEvent(const SDL_Event& event)
 {
 	if (handleStoryEvent(event)) return;
+	if (mPauseMenuOpen)
+	{
+		handlePauseMenuEvent(event);
+		return;
+	}
 	if ((event.type == SDL_KEYDOWN && !event.key.repeat) || event.type == SDL_KEYUP)
 	{
 		SDL_Keycode movementKey = event.key.keysym.sym;
@@ -42,11 +47,6 @@ void Application::handleOverworldEvent(const SDL_Event& event)
 			return;
 		}
 	}
-	if (mPauseMenuOpen)
-	{
-		handlePauseMenuEvent(event);
-		return;
-	}
 	if (event.type != SDL_KEYDOWN || event.key.repeat)
 		return;
 	SDL_Keycode key = event.key.keysym.sym;
@@ -56,6 +56,7 @@ void Application::handleOverworldEvent(const SDL_Event& event)
 		else
 		{
 			mPauseMenuOpen = true;
+			mPauseMenuSelection = 0;
 			mMoveUp = mMoveDown = mMoveLeft = mMoveRight = false;
 			mMoveIntentX = mMoveIntentY = 0;
 		}

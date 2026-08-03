@@ -76,6 +76,9 @@ rendering, and repeated duel teardown.
 Keep `Application` as the owner of SDL resources and screen state unless a
 change has a clear lifetime model and test coverage.
 
+Player-authored decks are stored exclusively in `PlayerData/Decks`. The Deck
+Builder must not enumerate the bundled gameplay and NPC decks under `Decks`.
+
 ## World data conventions
 
 - Keep all maps, portals, and entity coordinates in `Lua/World.lua`; never add

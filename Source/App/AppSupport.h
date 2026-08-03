@@ -19,6 +19,7 @@ namespace AppSupport
 	constexpr int TILE = 48;
 	constexpr int MAP_MAX_COLUMNS = 20;
 	constexpr int MAP_MAX_ROWS = 12;
+	constexpr const char* STARTER_DECK_PATH = "Decks/My Decks/7 - L Tappy Tappy.txt";
 
 	inline int mapOriginX(int columns)
 	{

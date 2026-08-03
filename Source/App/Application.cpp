@@ -11,7 +11,7 @@ using namespace AppSupport;
 
 Application::Application(bool worldBuilder)
 	: mWindow(NULL), mRenderer(NULL), mBoardTexture(NULL), mCardBackTexture(NULL), mSoundManager(NULL), mRunning(false),
-	  mScreen(Screen::Overworld), mPauseMenuOpen(false), mCurrentWorldArea(0),
+	  mScreen(Screen::Overworld), mPauseMenuOpen(false), mPauseMenuSelection(0), mCurrentWorldArea(0),
 	  mWorldStartX(2), mWorldStartY(10), mPlayerX(2), mPlayerY(10), mFacingX(1), mFacingY(0),
 	  mMoveUp(false), mMoveDown(false), mMoveLeft(false), mMoveRight(false), mMoveIntentX(0), mMoveIntentY(0),
 	  mVisualX(2.f), mVisualY(10.f), mDialogueNpc(-1), mNoticeUntil(0),
@@ -168,7 +168,12 @@ int Application::run(bool smokeTest, const std::string& directPlayerDeck,
 			std::cerr << "Act I story smoke test failed." << std::endl;
 			return 2;
 		}
-		startDuel(0, true);
+		if (mNpcs.empty() || !startDuelWithDecks(STARTER_DECK_PATH,
+			mNpcs[0].deckForBattle(0), 0))
+		{
+			std::cerr << "Unable to start smoke-test duel." << std::endl;
+			return 2;
+		}
 	}
 
 	Uint32 previous = SDL_GetTicks();

@@ -95,10 +95,11 @@ void Application::handleShopEvent(const SDL_Event& event)
 			leaveShop();
 			return;
 		}
-		if (key == SDLK_w || key == SDLK_s)
+		if (key == SDLK_w || key == SDLK_UP || key == SDLK_s || key == SDLK_DOWN)
 		{
 			int pages = shopPageCount(shopInventory().size());
-			if (key == SDLK_w) mShopPage = std::max(0, mShopPage - 1);
+			if (key == SDLK_w || key == SDLK_UP)
+				mShopPage = std::max(0, mShopPage - 1);
 			else mShopPage = std::min(pages - 1, mShopPage + 1);
 			return;
 		}
@@ -206,7 +207,7 @@ void Application::renderShop()
 		color(238, 241, 247), 14);
 	drawText("PAGE " + std::to_string(mShopPage + 1) + "/" + std::to_string(pages),
 		188, 107, color(172, 190, 216), 14);
-	drawText("W/S or mouse wheel", 300, 107, color(143, 163, 190), 14);
+	drawText("W/S, arrows, or mouse wheel", 300, 107, color(143, 163, 190), 14);
 	int heldShards = (int)mCollectedShards.size() - (int)mMercerShards.size();
 	bool canGiveShard = heldShards > 0;
 	fillRect(SHOP_GIVE_BUTTON, canGiveShard ? 66 : 47, canGiveShard ? 52 : 48,
