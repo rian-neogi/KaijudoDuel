@@ -52,10 +52,10 @@ public:
 	int mAttackphase;
 
 	int mCastingCard;
-	int mCastingCiv;
+	int mCastingCivilizations;
 	int mCastingCost;
 	int mCastingEvobait;
-	bool mCastingCivTapped;
+	std::vector<int> mCastingManaCards;
 
 	Choice* mChoice;
 	int mChoiceCard;
@@ -122,6 +122,10 @@ public:
 	void setMyPlayer(int p);
 
 	bool isThereUntappedManaOfCiv(int player, int civ);
+	bool canPayForCard(int player, int uid);
+	bool canTapManaForCasting(int uid);
+	bool canSatisfyCivilizations(int required, const std::vector<int>& fixedCards,
+		const std::vector<int>& availableCards, int futureSlots) const;
 
 	Zone* getZone(int player, int zone);
 	void destroyCard(Card* c);
@@ -153,6 +157,8 @@ public:
 	//int getCreatureCanAttackUntappedCreatures(int uid);
 	int getCardCost(int uid);
 	int getCardCivilization(int uid);
+	int getCardCivilizations(int uid) const;
+	bool cardHasCivilization(int uid, int civ) const;
 	int getIsShieldTrigger(int uid);
 	int canUseShieldTrigger(int uid);
 	int getIsEvolution(int uid);

@@ -254,6 +254,11 @@ int Application::run(bool smokeTest, const std::string& directPlayerDeck,
 				std::cerr << "Heuristic mana conservation smoke test failed." << std::endl;
 				return 2;
 			}
+			if (smokeNpc == 0 && smokeFrames == 33 && !exerciseMultiCivilizationSmoke())
+			{
+				std::cerr << "Multi-civilization rules smoke test failed." << std::endl;
+				return 2;
+			}
 			if (smokeNpc == 0 && smokeFrames == 60 && mDuel != NULL)
 			{
 				int selectionCard = -1;

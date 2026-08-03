@@ -30,6 +30,7 @@ Card::Card(int uid, int cid, int owner) : mUniqueId(uid), mCardId(cid), mOwner(o
 	mPower = gCardDatabase[cid].Power;
 	mManaCost = gCardDatabase[cid].ManaCost;
 	mCivilization = gCardDatabase[cid].Civilization;
+	mCivilizations = gCardDatabase[cid].Civilizations;
 
 	int stackTop = lua_gettop(LuaCards);
 	lua_getglobal(LuaCards, "Cards");
@@ -396,6 +397,7 @@ void loadSet(std::string path, std::string set_name)
 		std::string name = "";
 		std::string race = "";
 		int civ = -1;
+		int civilizations = 0;
 		int type = -1;
 		int cost = -1;
 		int power = 0;
@@ -409,17 +411,27 @@ void loadSet(std::string path, std::string set_name)
 			{
 				if (it2.second.get<std::string>(boost::property_tree::ptree::path_type("<xmlattr>.name")) == "Civilization")
 				{
-					//printf("civ %s\n", it2.second.get<std::string>(boost::property_tree::ptree::path_type("<xmlattr>.value")).c_str());
 					tmp = it2.second.get<std::string>(boost::property_tree::ptree::path_type("<xmlattr>.value"));
-					// The engine still stores one primary civilization.  Keep the
-					// first half as the casting civilization so dual cards are loaded;
-					// their Lua rules retain both colors for card effects.
-					std::string primary = tmp.substr(0, tmp.find('/'));
-					if (primary == "Light") civ = CIV_LIGHT;
-					else if (primary == "Darkness") civ = CIV_DARKNESS;
-					else if (primary == "Fire") civ = CIV_FIRE;
-					else if (primary == "Water") civ = CIV_WATER;
-					else if (primary == "Nature") civ = CIV_NATURE;
+					size_t start = 0;
+					while (start <= tmp.size())
+					{
+						size_t slash = tmp.find('/', start);
+						std::string civilizationName = tmp.substr(start, slash == std::string::npos ?
+							std::string::npos : slash - start);
+						int parsed = -1;
+						if (civilizationName == "Light") parsed = CIV_LIGHT;
+						else if (civilizationName == "Nature") parsed = CIV_NATURE;
+						else if (civilizationName == "Water") parsed = CIV_WATER;
+						else if (civilizationName == "Fire") parsed = CIV_FIRE;
+						else if (civilizationName == "Darkness") parsed = CIV_DARKNESS;
+						if (parsed >= 0)
+						{
+							if (civ < 0) civ = parsed;
+							civilizations |= 1 << parsed;
+						}
+						if (slash == std::string::npos) break;
+						start = slash + 1;
+					}
 				}
 				if (it2.second.get<std::string>(boost::property_tree::ptree::path_type("<xmlattr>.name")) == "Power")
 				{
@@ -472,7 +484,8 @@ void loadSet(std::string path, std::string set_name)
 		}
 		lua_settop(LuaCards, stackTop);
 		priceTier = std::max(1, std::min(5, priceTier));
-		CardData cd(gCardDatabase.size(), name, set_name, race, civ, type, cost, power, priceTier);
+		CardData cd(gCardDatabase.size(), name, set_name, race, civ, civilizations,
+			type, cost, power, priceTier);
 		gCardDatabase.push_back(cd);
 	}
 }

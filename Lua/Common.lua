@@ -147,7 +147,7 @@ Abils.Stealth = function(id,civ) --test
 			local s = getZoneSize(getOpponent(getCardOwner(id)),ZONE_MANA)
 			local flag = 0
 			for i=0,(s-1) do
-				if(getCardCiv(getCardAt(player,zone,i))==civ) then
+				if(cardHasCivilization(getCardAt(player,zone,i),civ)) then
 					flag = 1
 					break
 				end
@@ -175,13 +175,13 @@ end
 Abils.TapAbilityForCiv = function(id, func, civ)
 	if(getMessageType()=="get creaturehastapability") then
 		local cid = getMessageInt("creature")
-		if(getCardZone(id)==ZONE_BATTLE and getCardOwner(id)==getCardOwner(cid) and getCardCiv(cid)==civ and getCardZone(cid)==ZONE_BATTLE) then
+		if(getCardZone(id)==ZONE_BATTLE and getCardOwner(id)==getCardOwner(cid) and cardHasCivilization(cid,civ) and getCardZone(cid)==ZONE_BATTLE) then
 			setMessageInt("hastapability",1)
 		end
 	end
 	if(getMessageType()=="post creatureusetapability") then
 		local cid = getMessageInt("creature")
-		if(getCardZone(id)==ZONE_BATTLE and getCardOwner(id)==getCardOwner(cid) and getCardCiv(cid)==civ and getCardZone(cid)==ZONE_BATTLE) then
+		if(getCardZone(id)==ZONE_BATTLE and getCardOwner(id)==getCardOwner(cid) and cardHasCivilization(cid,civ) and getCardZone(cid)==ZONE_BATTLE) then
 			func(cid)
 		end
 	end

@@ -12,14 +12,15 @@ public:
 	std::string Set;
 	std::string Race;
 	int Civilization;
+	int Civilizations;
 	int Type;
 	int ManaCost;
 	int Power;
 	int PriceTier;
 
 	CardData();
-	CardData(int id, std::string n, std::string s, std::string r, int civ, int type,
-		int cost, int power, int priceTier);
+	CardData(int id, std::string n, std::string s, std::string r, int civ,
+		int civilizations, int type, int cost, int power, int priceTier);
 	~CardData();
 };
 

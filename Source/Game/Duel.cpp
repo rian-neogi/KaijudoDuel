@@ -90,9 +90,8 @@ Duel::Duel()
 	mBreakCount = -1;
 	
 	mCastingCard = -1;
-	mCastingCiv = -1;
+	mCastingCivilizations = 0;
 	mCastingCost = -1;
-	mCastingCivTapped = false;
 
 	mIsChoiceActive = false;
 	mChoice = NULL;
@@ -135,9 +134,9 @@ void Duel::copyFrom(Duel* duel) //incomplete, not used
 	mShieldBreakersThisTurn[1] = duel->mShieldBreakersThisTurn[1];
 
 	mCastingCard = duel->mCastingCard;
-	mCastingCiv = duel->mCastingCiv;
+	mCastingCivilizations = duel->mCastingCivilizations;
 	mCastingCost = duel->mCastingCost;
-	mCastingCivTapped = duel->mCastingCivTapped;
+	mCastingManaCards = duel->mCastingManaCards;
 
 	mIsChoiceActive = duel->mIsChoiceActive;
 	mChoiceCard = duel->mChoiceCard;
@@ -214,6 +213,13 @@ int Duel::handleMessage(Message& msg)
 				getZone(owner, tozone)->addCard(c);
 		}
 		c->mZone = tozone;
+		if (tozone == ZONE_MANA &&
+			(c->mCivilizations & (c->mCivilizations - 1)) != 0)
+		{
+			Message tap("cardtap");
+			tap.addValue("card", cid);
+			mMsgMngr.sendMessage(tap);
+		}
 		if (!mIsSimulation && fromzone != tozone && SoundMngr != NULL)
 			SoundMngr->playSound(isEvolution ? SOUND_EVOLUTION : SOUND_CARD_MOVE);
 		if (tozone != ZONE_BATTLE)
@@ -721,23 +727,11 @@ std::vector<Message> Duel::getPossibleMoves()
 	{
 		for (std::vector<Card*>::iterator i = mManazones[mTurn].mCards.begin(); i != mManazones[mTurn].mCards.end(); i++)
 		{
-			if ((*i)->mIsTapped == false)
+			if ((*i)->mIsTapped == false && canTapManaForCasting((*i)->mUniqueId))
 			{
-				if (mCastingCost == 1) //last card to be tapped
-				{
-					if (getCardCivilization((*i)->mUniqueId) == mCastingCiv || mCastingCivTapped)
-					{
-						Message m("manatap");
-						m.addValue("card", (*i)->mUniqueId);
-						moves.push_back(m);
-					}
-				}
-				else
-				{
-					Message m("manatap");
-					m.addValue("card", (*i)->mUniqueId);
-					moves.push_back(m);
-				}
+				Message m("manatap");
+				m.addValue("card", (*i)->mUniqueId);
+				moves.push_back(m);
 			}
 		}
 	}
@@ -768,7 +762,7 @@ std::vector<Message> Duel::getPossibleMoves()
 		for (std::vector<Card*>::iterator card = mHands[mTurn].mCards.begin(); card != mHands[mTurn].mCards.end(); card++)
 		{
 			if (getCardCost((*card)->mUniqueId) <= mManazones[mTurn].getUntappedMana() &&
-				isThereUntappedManaOfCiv(mTurn, getCardCivilization((*card)->mUniqueId)) &&
+				canPayForCard(mTurn, (*card)->mUniqueId) &&
 				getCardCanCast((*card)->mUniqueId) == 1)
 			{
 				if (getIsEvolution((*card)->mUniqueId) == 1)
@@ -858,7 +852,7 @@ int Duel::handleInterfaceInput(Message& msg)
 		int whichCard = msg.getInt("card");
 		int manacost = getCardCost(whichCard);
 		if (mTurnPhase <= TURN_PHASE_MAIN && mManazones[mTurn].getUntappedMana() >= manacost &&
-			isThereUntappedManaOfCiv(mTurn, getCardCivilization(whichCard)) && getCardCanCast(whichCard)==1) //has appropriate mana
+			canPayForCard(mTurn, whichCard) && getCardCanCast(whichCard)==1) //has appropriate mana
 		{
 			int eb = msg.getInt("evobait");
 			int e = getIsEvolution(whichCard);
@@ -866,9 +860,9 @@ int Duel::handleInterfaceInput(Message& msg)
 			{
 				mTurnPhase = TURN_PHASE_MAIN;
 				mCastingCard = whichCard;
-				mCastingCiv = getCardCivilization(mCastingCard);
+				mCastingCivilizations = getCardCivilizations(mCastingCard);
 				mCastingCost = getCardCost(mCastingCard);
-				mCastingCivTapped = false;
+				mCastingManaCards.clear();
 				mCastingEvobait = msg.getInt("evobait");
 			}
 			//MsgMngr.sendMessage(msg);
@@ -1053,36 +1047,20 @@ int Duel::handleInterfaceInput(Message& msg)
 	else if (type == "manatap")
 	{
 		int card = msg.getInt("card");
-		if (mCardList.at(card)->mIsTapped == false && mCastingCard != -1)
+		if (mCastingCard != -1 && canTapManaForCasting(card))
 		{
-			if (mCastingCost == 1) //last card to be tapped
+			Message msg2("cardtap");
+			msg2.addValue("card", card);
+			mMsgMngr.sendMessage(msg2);
+			mCastingManaCards.push_back(card);
+			mCastingCost--;
+			if (mCastingCost == 0)
 			{
-				if (getCardCivilization(card) == mCastingCiv || mCastingCivTapped)
-				{
-					Message msg2("cardtap");
-					msg2.addValue("card", card);
-					mMsgMngr.sendMessage(msg2);
-					mCastingCost--;
-					mCastingCivTapped = true;
-
-					Message msg3("cardplay");
-					msg3.addValue("card", mCastingCard);
-					msg3.addValue("evobait", mCastingEvobait);
-					mMsgMngr.sendMessage(msg3);
-
-					resetCasting();
-				}
-			}
-			else
-			{
-				Message msg2("cardtap");
-				msg2.addValue("card", card);
-				mMsgMngr.sendMessage(msg2);
-				mCastingCost--;
-				if (getCardCivilization(card) == mCastingCiv)
-				{
-					mCastingCivTapped = true;
-				}
+				Message msg3("cardplay");
+				msg3.addValue("card", mCastingCard);
+				msg3.addValue("evobait", mCastingEvobait);
+				mMsgMngr.sendMessage(msg3);
+				resetCasting();
 			}
 		}
 	}
@@ -1703,6 +1681,17 @@ int Duel::getCardCivilization(int uid)
 	return mCardList.at(uid)->mCivilization;
 }
 
+int Duel::getCardCivilizations(int uid) const
+{
+	return mCardList.at(uid)->mCivilizations;
+}
+
+bool Duel::cardHasCivilization(int uid, int civ) const
+{
+	return uid >= 0 && uid < static_cast<int>(mCardList.size()) && civ >= CIV_LIGHT &&
+		civ <= CIV_DARKNESS && (mCardList.at(uid)->mCivilizations & (1 << civ)) != 0;
+}
+
 int Duel::isCreatureOfRace(int uid, std::string race)
 {
 	std::string r = getCreatureRace(uid);
@@ -1851,10 +1840,97 @@ bool Duel::isThereUntappedManaOfCiv(int player,int civ)
 {
 	for (std::vector<Card*>::iterator i = mManazones[player].mCards.begin(); i != mManazones[player].mCards.end(); i++)
 	{
-		if ((*i)->mIsTapped == false && getCardCivilization((*i)->mUniqueId) == civ)
+		if ((*i)->mIsTapped == false && cardHasCivilization((*i)->mUniqueId, civ))
 			return true;
 	}
 	return false;
+}
+
+bool Duel::canSatisfyCivilizations(int required, const std::vector<int>& fixedCards,
+	const std::vector<int>& availableCards, int futureSlots) const
+{
+	if (required == 0) return true;
+	if (futureSlots < 0) return false;
+	const int maskCount = 1 << (CIV_DARKNESS + 1);
+	std::vector<char> fixedCoverage(maskCount, 0);
+	fixedCoverage[0] = 1;
+	for (size_t cardIndex = 0; cardIndex < fixedCards.size(); ++cardIndex)
+	{
+		int uid = fixedCards[cardIndex];
+		if (uid < 0 || uid >= static_cast<int>(mCardList.size())) return false;
+		int colors = mCardList[uid]->mCivilizations & required;
+		std::vector<char> next = fixedCoverage;
+		for (int covered = 0; covered < maskCount; ++covered)
+		{
+			if (!fixedCoverage[covered]) continue;
+			for (int civ = CIV_LIGHT; civ <= CIV_DARKNESS; ++civ)
+				if ((colors & (1 << civ)) != 0) next[covered | (1 << civ)] = 1;
+		}
+		fixedCoverage.swap(next);
+	}
+
+	std::vector<std::vector<char> > coverage(futureSlots + 1,
+		std::vector<char>(maskCount, 0));
+	coverage[0] = fixedCoverage;
+	for (size_t cardIndex = 0; cardIndex < availableCards.size(); ++cardIndex)
+	{
+		int uid = availableCards[cardIndex];
+		if (uid < 0 || uid >= static_cast<int>(mCardList.size())) continue;
+		int colors = mCardList[uid]->mCivilizations & required;
+		std::vector<std::vector<char> > next = coverage;
+		for (int used = 0; used < futureSlots; ++used)
+		{
+			for (int covered = 0; covered < maskCount; ++covered)
+			{
+				if (!coverage[used][covered]) continue;
+				for (int civ = CIV_LIGHT; civ <= CIV_DARKNESS; ++civ)
+					if ((colors & (1 << civ)) != 0)
+						next[used + 1][covered | (1 << civ)] = 1;
+			}
+		}
+		coverage.swap(next);
+	}
+	for (int used = 0; used <= futureSlots; ++used)
+		if (coverage[used][required]) return true;
+	return false;
+}
+
+bool Duel::canPayForCard(int player, int uid)
+{
+	if (player < 0 || player > 1 || uid < 0 || uid >= static_cast<int>(mCardList.size()))
+		return false;
+	int cost = getCardCost(uid);
+	std::vector<int> mana;
+	for (size_t i = 0; i < mManazones[player].mCards.size(); ++i)
+		if (!mManazones[player].mCards[i]->mIsTapped)
+			mana.push_back(mManazones[player].mCards[i]->mUniqueId);
+	if (cost < 0 || static_cast<int>(mana.size()) < cost) return false;
+	return canSatisfyCivilizations(getCardCivilizations(uid), std::vector<int>(), mana, cost);
+}
+
+bool Duel::canTapManaForCasting(int uid)
+{
+	if (mCastingCard < 0 || mCastingCost <= 0 || uid < 0 ||
+		uid >= static_cast<int>(mCardList.size())) return false;
+	Card* mana = mCardList[uid];
+	if (mana->mOwner != mTurn || mana->mZone != ZONE_MANA || mana->mIsTapped ||
+		std::find(mCastingManaCards.begin(), mCastingManaCards.end(), uid) !=
+		mCastingManaCards.end()) return false;
+
+	std::vector<int> fixedCards = mCastingManaCards;
+	fixedCards.push_back(uid);
+	std::vector<int> availableCards;
+	for (size_t i = 0; i < mManazones[mTurn].mCards.size(); ++i)
+	{
+		Card* card = mManazones[mTurn].mCards[i];
+		if (!card->mIsTapped && card->mUniqueId != uid &&
+			std::find(fixedCards.begin(), fixedCards.end(), card->mUniqueId) == fixedCards.end())
+			availableCards.push_back(card->mUniqueId);
+	}
+	int remainingSlots = mCastingCost - 1;
+	if (static_cast<int>(availableCards.size()) < remainingSlots) return false;
+	return canSatisfyCivilizations(mCastingCivilizations, fixedCards,
+		availableCards, remainingSlots);
 }
 
 void Duel::drawCards(int player, int count)
@@ -2045,8 +2121,8 @@ void Duel::resetCasting()
 {
 	//cout << "casting reset" << endl;
 	mCastingCard = -1;
-	mCastingCiv = -1;
-	mCastingCivTapped = false;
+	mCastingCivilizations = 0;
+	mCastingManaCards.clear();
 	mCastingCost = -1;
 	mCastingEvobait = -1;
 }

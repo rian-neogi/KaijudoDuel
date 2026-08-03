@@ -23,6 +23,7 @@ public:
 	std::string mName;
 	std::string mRace;
 	int mCivilization;
+	int mCivilizations;
 	int mType;
 	int mManaCost;
 	int mPower;

@@ -155,11 +155,12 @@ double HeuristicBot::scoreManaCharge(Duel& duel, int cardId) const
 		if (duel.mHands[mPlayer].mCards[i]->mCardId == card->mCardId) ++copiesInHand;
 	if (copiesInHand > 1) score += (copiesInHand - 1) * 4.0;
 
-	bool civilizationInMana = false;
+	int civilizationsInMana = 0;
 	for (size_t i = 0; i < duel.mManazones[mPlayer].mCards.size(); ++i)
-		if (duel.mManazones[mPlayer].mCards[i]->mCivilization == card->mCivilization)
-			civilizationInMana = true;
-	if (!civilizationInMana) score += 12.0;
+		civilizationsInMana |= duel.mManazones[mPlayer].mCards[i]->mCivilizations;
+	int missingCivilizations = card->mCivilizations & ~civilizationsInMana;
+	for (int civ = CIV_LIGHT; civ <= CIV_DARKNESS; ++civ)
+		if ((missingCivilizations & (1 << civ)) != 0) score += 12.0;
 	int manaAfterCharge = manaCount + 1;
 	if (card->mManaCost > manaAfterCharge + 2) score += 5.0;
 	return score;

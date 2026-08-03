@@ -24,44 +24,6 @@ local moveTop = function(player,zone)
 	end
 end
 
-local dualCivilizations = {
-	["Deklowaz, the Terminator"] = {CIV_DARKNESS,CIV_FIRE},
-	["Bluum Erkis, Flare Guardian"] = {CIV_LIGHT,CIV_WATER},
-	["Tanzanyte, the Awakener"] = {CIV_WATER,CIV_DARKNESS},
-	["Bombazar, Dragon of Destiny"] = {CIV_FIRE,CIV_NATURE},
-	["Techno Totem"] = {CIV_LIGHT,CIV_NATURE},
-	["Aqua Skydiver"] = {CIV_LIGHT,CIV_WATER},
-	["Estol, Vizier of Aqua"] = {CIV_LIGHT,CIV_WATER},
-	["Tajimal, Vizier of Aqua"] = {CIV_LIGHT,CIV_WATER},
-	["Melnia, the Aqua Shadow"] = {CIV_WATER,CIV_DARKNESS},
-	["Pointa, the Aqua Shadow"] = {CIV_WATER,CIV_DARKNESS},
-	["Soderlight, the Cold Blade"] = {CIV_WATER,CIV_DARKNESS},
-	["Dolmarks, the Shadow Warrior"] = {CIV_DARKNESS,CIV_FIRE},
-	["Galek, the Shadow Warrior"] = {CIV_DARKNESS,CIV_FIRE},
-	["Ulex, the Dauntless"] = {CIV_DARKNESS,CIV_FIRE},
-	["Gonta, the Warrior Savage"] = {CIV_FIRE,CIV_NATURE},
-	["Tagtapp, the Retaliator"] = {CIV_FIRE,CIV_NATURE},
-	["Wind Axe, the Warrior Savage"] = {CIV_FIRE,CIV_NATURE},
-	["Lukia Lex, Pinnacle Guardian"] = {CIV_LIGHT,CIV_NATURE},
-	["Sanfist, the Savage Vizier"] = {CIV_LIGHT,CIV_NATURE},
-	["Skysword, the Savage Vizier"] = {CIV_LIGHT,CIV_NATURE}
-}
-
-local hasCivilization = function(card,civ)
-	if(getCardCiv(card)==civ) then
-		return true
-	end
-	local colors = dualCivilizations[getCardName(card)]
-	if(colors~=nil) then
-		for _,color in ipairs(colors) do
-			if(color==civ) then
-				return true
-			end
-		end
-	end
-	return false
-end
-
 local silentNames = {
 	["Kejila, the Hidden Horror"] = true,
 	["Bulgluf, the Spydroid"] = true,
@@ -79,12 +41,6 @@ local silentNames = {
 	["Sporeblast Erengi"] = true,
 	["Soderlight, the Cold Blade"] = true
 }
-
-local entersManaTapped = function(id)
-	if(getMessageType()=="post cardmove" and getMessageInt("card")==id and getMessageInt("to")==ZONE_MANA) then
-		tapCard(id)
-	end
-end
 
 local silentSkill = function(id,ability) --test
 	if(getMessageType()=="pre startturn" and getMessageInt("player")==getCardOwner(id) and getCardZone(id)==ZONE_BATTLE and isCardTapped(id)==1) then
@@ -170,7 +126,6 @@ Cards["Deklowaz, the Terminator"] = {
 	breaker = 1,
 
 	HandleMessage = function(id) --test
-		entersManaTapped(id)
 		Abils.TapAbility(id,function(id)
 			destroyByPower(id,3000)
 			local opponent=getOpponent(getCardOwner(id))
@@ -190,7 +145,6 @@ Cards["Bluum Erkis, Flare Guardian"] = {
 	breaker = 2,
 
 	HandleMessage = function(id) --test
-		entersManaTapped(id)
 		if(getMessageType()=="mod breakshield" and getMessageInt("attacker")==id) then
 			local shield=getMessageInt("shield")
 			setMessageInt("msgContinue",0)
@@ -261,7 +215,7 @@ Cards["Elixia, Pureblade Elemental"] = {
 		local seen,count={},0
 		for _,card in ipairs(zoneCards(getCardOwner(id),ZONE_MANA)) do
 			for civ=CIV_LIGHT,CIV_DARKNESS do
-				if(hasCivilization(card,civ) and not seen[civ]) then
+				if(cardHasCivilization(card,civ) and not seen[civ]) then
 					seen[civ]=true
 					count=count+1
 				end
@@ -479,7 +433,6 @@ Cards["Tanzanyte, the Awakener"] = {
 	breaker = 2,
 
 	HandleMessage = function(id) --test
-		entersManaTapped(id)
 		Abils.TapAbility(id,function(id)
 			local chosen=createChoice("Choose a creature in your graveyard",0,id,getCardOwner(id),Checks.CreatureInYourGraveyard)
 			if(chosen>=0) then
@@ -501,7 +454,6 @@ Cards["Bombazar, Dragon of Destiny"] = {
 	breaker = 2,
 
 	HandleMessage = function(id) --test
-		entersManaTapped(id)
 		Abils.SpeedAttacker(id)
 		Abils.onSummon(id,function(id)
 			for player=0,1 do
@@ -536,7 +488,6 @@ Cards["Techno Totem"] = {
 	breaker = 1,
 
 	HandleMessage = function(id) --test
-		entersManaTapped(id)
 		if(getCardZone(id)==ZONE_BATTLE and isCardTapped(id)==1) then
 			for _,card in ipairs(zoneCards(getCardOwner(id),ZONE_BATTLE)) do
 				if(card~=id) then
@@ -693,7 +644,7 @@ Cards["Lemik, Vizier of Thought"] = {
 	HandleMessage = function(id)
 		if(getCardZone(id)==ZONE_BATTLE) then
 			for _,card in ipairs(zoneCards(getCardOwner(id),ZONE_BATTLE)) do
-				if(hasCivilization(card,CIV_WATER) or hasCivilization(card,CIV_NATURE)) then
+				if(cardHasCivilization(card,CIV_WATER) or cardHasCivilization(card,CIV_NATURE)) then
 					Abils.Blocker(card)
 				end
 			end
@@ -942,7 +893,7 @@ Cards["Fluorogill Manta"] = {
 	HandleMessage = function(id)
 		if(getCardZone(id)==ZONE_BATTLE) then
 			for _,card in ipairs(zoneCards(getCardOwner(id),ZONE_BATTLE)) do
-				if(hasCivilization(card,CIV_LIGHT) or hasCivilization(card,CIV_DARKNESS)) then
+				if(cardHasCivilization(card,CIV_LIGHT) or cardHasCivilization(card,CIV_DARKNESS)) then
 					Abils.cantBeBlocked(card)
 				end
 			end
@@ -1212,7 +1163,7 @@ Cards["Hourglass Mutant"] = {
 	HandleMessage = function(id)
 		if(getCardZone(id)==ZONE_BATTLE) then
 			for _,card in ipairs(zoneCards(getCardOwner(id),ZONE_BATTLE)) do
-				if(hasCivilization(card,CIV_WATER) or hasCivilization(card,CIV_FIRE)) then
+				if(cardHasCivilization(card,CIV_WATER) or cardHasCivilization(card,CIV_FIRE)) then
 					Abils.Slayer(card)
 				end
 			end
@@ -1563,7 +1514,7 @@ Cards["Mykee's Pliers"] = {
 	HandleMessage = function(id)
 		if(getCardZone(id)==ZONE_BATTLE) then
 			for _,card in ipairs(zoneCards(getCardOwner(id),ZONE_BATTLE)) do
-				if(hasCivilization(card,CIV_DARKNESS) or hasCivilization(card,CIV_NATURE)) then
+				if(cardHasCivilization(card,CIV_DARKNESS) or cardHasCivilization(card,CIV_NATURE)) then
 					Abils.SpeedAttacker(card)
 				end
 			end
@@ -1790,7 +1741,7 @@ Cards["Legacy Shell"] = {
 	HandleMessage = function(id)
 		if(getCardZone(id)==ZONE_BATTLE) then
 			for _,card in ipairs(zoneCards(getCardOwner(id),ZONE_BATTLE)) do
-				if(hasCivilization(card,CIV_LIGHT) or hasCivilization(card,CIV_FIRE)) then
+				if(cardHasCivilization(card,CIV_LIGHT) or cardHasCivilization(card,CIV_FIRE)) then
 					Abils.PowerAttacker(card,3000)
 				end
 			end
@@ -1916,7 +1867,6 @@ Cards["Aqua Skydiver"] = {
 	breaker = 1,
 
 	HandleMessage = function(id) --test
-		entersManaTapped(id)
 		Abils.Blocker(id)
 		Abils.returnAfterDestroyed(id)
 	end
@@ -1929,7 +1879,6 @@ Cards["Estol, Vizier of Aqua"] = {
 	breaker = 1,
 
 	HandleMessage = function(id) --test
-		entersManaTapped(id)
 		local summon = function(id)
 			moveTop(getCardOwner(id),ZONE_SHIELD)
 			local ch=createChoice("Choose an opponent's shield to look at",0,id,getCardOwner(id),Checks.InOppShields)
@@ -1951,10 +1900,9 @@ Cards["Tajimal, Vizier of Aqua"] = {
 	breaker = 1,
 
 	HandleMessage = function(id) --test
-		entersManaTapped(id)
 		Abils.Blocker(id)
 		Abils.cantAttackPlayers(id)
-		local battlingFire = (getAttacker()==id and getDefenderType()==DEFENDER_CREATURE and hasCivilization(getDefender(),CIV_FIRE)) or (getDefender()==id and hasCivilization(getAttacker(),CIV_FIRE))
+		local battlingFire = (getAttacker()==id and getDefenderType()==DEFENDER_CREATURE and cardHasCivilization(getDefender(),CIV_FIRE)) or (getDefender()==id and cardHasCivilization(getAttacker(),CIV_FIRE))
 		if(getMessageType()=="get creaturepower" and getMessageInt("creature")==id and battlingFire) then
 			setMessageInt("power",getMessageInt("power")+4000)
 		end
@@ -1968,7 +1916,6 @@ Cards["Melnia, the Aqua Shadow"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-		entersManaTapped(id)
 		Abils.cantBeBlocked(id)
 		Abils.Slayer(id)
 	end
@@ -1981,7 +1928,6 @@ Cards["Pointa, the Aqua Shadow"] = {
 	breaker = 1,
 
 	HandleMessage = function(id) --test
-		entersManaTapped(id)
 		local summon = function(id)
 			local ch=createChoice("Choose an opponent's shield to look at",0,id,getCardOwner(id),Checks.InOppShields)
 			if(ch>=0) then
@@ -2003,7 +1949,6 @@ Cards["Soderlight, the Cold Blade"] = {
 	breaker = 1,
 
 	HandleMessage = function(id) --test
-		entersManaTapped(id)
 		Abils.cantBeBlocked(id)
 		local ability = function(id)
 			local opponent=getOpponent(getCardOwner(id))
@@ -2023,7 +1968,6 @@ Cards["Dolmarks, the Shadow Warrior"] = {
 	breaker = 1,
 
 	HandleMessage = function(id) --test
-		entersManaTapped(id)
 		local summon = function(id)
 			local owner=getCardOwner(id)
 			local ch=createChoice("Choose one of your creatures to destroy",0,id,owner,Checks.InYourBattle)
@@ -2055,7 +1999,6 @@ Cards["Galek, the Shadow Warrior"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-		entersManaTapped(id)
 		local summon = function(id)
 			local ch=createChoice("Choose an opponent's blocker to destroy",0,id,getCardOwner(id),Checks.BlockerInOppBattle)
 			if(ch>=0) then
@@ -2074,7 +2017,6 @@ Cards["Ulex, the Dauntless"] = {
 	breaker = 1,
 
 	HandleMessage = function(id) --test
-		entersManaTapped(id)
 		if(getMessageType()=="mod cardtap" and getMessageInt("card")==id and getTurn()~=getCardOwner(id)) then
 			setMessageInt("msgContinue",0)
 		end
@@ -2088,7 +2030,6 @@ Cards["Gonta, the Warrior Savage"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-		entersManaTapped(id)
 	end
 }
 
@@ -2099,10 +2040,9 @@ Cards["Tagtapp, the Retaliator"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-		entersManaTapped(id)
 		local count=0
 		for _,card in ipairs(zoneCards(getOpponent(getCardOwner(id)),ZONE_MANA)) do
-			if(hasCivilization(card,CIV_WATER)) then
+			if(cardHasCivilization(card,CIV_WATER)) then
 				count=count+1
 			end
 		end
@@ -2120,7 +2060,6 @@ Cards["Wind Axe, the Warrior Savage"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-		entersManaTapped(id)
 		local summon = function(id)
 			local ch=createChoice("Choose an opponent's blocker to destroy",0,id,getCardOwner(id),Checks.BlockerInOppBattle)
 			if(ch>=0) then
@@ -2139,7 +2078,6 @@ Cards["Lukia Lex, Pinnacle Guardian"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-		entersManaTapped(id)
 		Abils.PowerAttacker(id,3000)
 		Abils.untapAtEOT(id)
 	end
@@ -2152,7 +2090,6 @@ Cards["Sanfist, the Savage Vizier"] = {
 	breaker = 1,
 
 	HandleMessage = function(id) --test
-		entersManaTapped(id)
 		Abils.Blocker(id)
 		if(getMessageType()=="mod carddiscard" and getMessageInt("card")==id and getTurn()~=getCardOwner(id)) then
 			local use=createChoiceNoCheck("Put Sanfist into the battle zone instead?",2,id,getCardOwner(id),Checks.False)
@@ -2170,7 +2107,6 @@ Cards["Skysword, the Savage Vizier"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-		entersManaTapped(id)
 		local summon = function(id)
 			local owner=getCardOwner(id)
 			moveTop(owner,ZONE_MANA)

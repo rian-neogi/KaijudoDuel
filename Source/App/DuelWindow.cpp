@@ -490,6 +490,80 @@ void Application::playAction(const Message& message)
 	mActionScroll = 0;
 }
 
+bool Application::exerciseMultiCivilizationSmoke()
+{
+	std::lock_guard<std::mutex> lock(gMutex);
+	int dualCardId = getCardIdFromName("Deklowaz, the Terminator");
+	int darknessCardId = getCardIdFromName("Bone Spider");
+	int fireCardId = getCardIdFromName("Deadly Fighter Braid Claw");
+	if (dualCardId < 0 || darknessCardId < 0 || fireCardId < 0) return false;
+
+	Duel* savedActiveDuel = ActiveDuel;
+	bool valid = true;
+	{
+		Duel test;
+		test.mIsSimulation = true;
+		ActiveDuel = &test;
+		auto addCard = [&test](int cardId, int zone) -> int
+		{
+			int uid = (int)test.mCardList.size();
+			Card* card = new Card(uid, cardId, 0);
+			test.mCardList.push_back(card);
+			test.getZone(0, zone)->addCard(card);
+			card->mZone = zone;
+			return uid;
+		};
+
+		for (int i = 0; i < 6; ++i) addCard(darknessCardId, ZONE_MANA);
+		int fireMana = addCard(fireCardId, ZONE_MANA);
+		int dualCard = addCard(dualCardId, ZONE_HAND);
+		valid = valid && test.cardHasCivilization(dualCard, CIV_DARKNESS) &&
+			test.cardHasCivilization(dualCard, CIV_FIRE) &&
+			!test.cardHasCivilization(dualCard, CIV_LIGHT) && test.canPayForCard(0, dualCard);
+
+		test.mCardList[fireMana]->tap();
+		valid = valid && !test.canPayForCard(0, dualCard);
+		test.mCardList[fireMana]->untap();
+
+		test.mTurn = 0;
+		test.mTurnPhase = TURN_PHASE_MAIN;
+		Message play("cardplay");
+		play.addValue("card", dualCard);
+		play.addValue("evobait", -1);
+		test.handleInterfaceInput(play);
+		int payments = 0;
+		for (int safety = 0; test.mCastingCard != -1 && safety < 10; ++safety)
+		{
+			std::vector<Message> moves = test.getPossibleMoves();
+			std::vector<Message>::iterator mana = std::find_if(moves.begin(), moves.end(),
+				[](Message& move) { return move.getType() == "manatap"; });
+			if (mana == moves.end())
+			{
+				valid = false;
+				break;
+			}
+			test.handleInterfaceInput(*mana);
+			test.dispatchAllMessages();
+			++payments;
+		}
+		valid = valid && payments == 6 && test.mCastingCard == -1 &&
+			test.mCardList[dualCard]->mZone == ZONE_BATTLE &&
+			test.mCardList[fireMana]->mIsTapped;
+
+		int tappedDual = addCard(dualCardId, ZONE_HAND);
+		Message charge("cardmove");
+		charge.addValue("card", tappedDual);
+		charge.addValue("from", ZONE_HAND);
+		charge.addValue("to", ZONE_MANA);
+		test.dispatchMessage(charge);
+		test.dispatchAllMessages();
+		valid = valid && test.mCardList[tappedDual]->mZone == ZONE_MANA &&
+			test.mCardList[tappedDual]->mIsTapped;
+	}
+	ActiveDuel = savedActiveDuel;
+	return valid;
+}
+
 bool Application::exerciseEvolutionSmoke()
 {
 	if (mDuel == NULL) return false;

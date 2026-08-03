@@ -447,6 +447,16 @@ static int getCardCiv(lua_State* L)
 	return 1;
 }
 
+static int cardHasCivilization(lua_State* L)
+{
+	Card* card = cardFromLua(L, 1);
+	int civilization = (int)lua_tointeger(L, 2);
+	lua_pushboolean(L, card != NULL && civilization >= CIV_LIGHT &&
+		civilization <= CIV_DARKNESS &&
+		(card->mCivilizations & (1 << civilization)) != 0);
+	return 1;
+}
+
 static int getCardCost(lua_State* L)
 {
 	Card* card = cardFromLua(L, 1);
@@ -657,6 +667,7 @@ void registerLua(lua_State* L)
 	lua_register(L, "getCardName", getCardName);
 	lua_register(L, "getCardZone", getCardZone);
 	lua_register(L, "getCardCiv", getCardCiv);
+	lua_register(L, "cardHasCivilization", cardHasCivilization);
 	lua_register(L, "getCardCost", getCardCost);
 	lua_register(L, "getCardIsShieldTrigger", getCardIsShieldTrigger);
 	lua_register(L, "getCardType", getCardType);
