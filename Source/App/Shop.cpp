@@ -16,6 +16,12 @@ namespace
 	const SDL_Rect SHOP_GIVE_BUTTON = { 842, 99, 276, 34 };
 	const SDL_Rect SHOP_NEXT_BUTTON = { 1128, 99, 108, 34 };
 	const int SHOP_CARDS_PER_PAGE = 10;
+
+	int shopPageCount(size_t cardCount)
+	{
+		return std::max(1, ((int)cardCount + SHOP_CARDS_PER_PAGE - 1) /
+			SHOP_CARDS_PER_PAGE);
+	}
 }
 
 void Application::enterShop()
@@ -72,10 +78,30 @@ void Application::handleShopEvent(const SDL_Event& event)
 		logicalMouse(event.motion.x, event.motion.y, mMouseX, mMouseY);
 		return;
 	}
-	if (event.type == SDL_KEYDOWN && !event.key.repeat && event.key.keysym.sym == SDLK_ESCAPE)
+	if (event.type == SDL_MOUSEWHEEL && event.wheel.y != 0)
 	{
-		leaveShop();
+		int pages = shopPageCount(shopInventory().size());
+		int direction = event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ?
+			-event.wheel.y : event.wheel.y;
+		if (direction > 0) mShopPage = std::max(0, mShopPage - 1);
+		else mShopPage = std::min(pages - 1, mShopPage + 1);
 		return;
+	}
+	if (event.type == SDL_KEYDOWN && !event.key.repeat)
+	{
+		SDL_Keycode key = event.key.keysym.sym;
+		if (key == SDLK_ESCAPE)
+		{
+			leaveShop();
+			return;
+		}
+		if (key == SDLK_w || key == SDLK_s)
+		{
+			int pages = shopPageCount(shopInventory().size());
+			if (key == SDLK_w) mShopPage = std::max(0, mShopPage - 1);
+			else mShopPage = std::min(pages - 1, mShopPage + 1);
+			return;
+		}
 	}
 	if (event.type != SDL_MOUSEBUTTONDOWN || event.button.button != SDL_BUTTON_LEFT) return;
 
@@ -87,8 +113,7 @@ void Application::handleShopEvent(const SDL_Event& event)
 		return;
 	}
 	std::vector<int> inventory = shopInventory();
-	int pages = std::max(1, ((int)inventory.size() + SHOP_CARDS_PER_PAGE - 1) /
-		SHOP_CARDS_PER_PAGE);
+	int pages = shopPageCount(inventory.size());
 	if (contains(SHOP_PREV_BUTTON, x, y))
 	{
 		mShopPage = std::max(0, mShopPage - 1);
@@ -169,8 +194,7 @@ void Application::renderShop()
 		205, 68, color(172, 190, 216), 15);
 
 	std::vector<int> cards = shopInventory();
-	int pages = std::max(1, ((int)cards.size() + SHOP_CARDS_PER_PAGE - 1) /
-		SHOP_CARDS_PER_PAGE);
+	int pages = shopPageCount(cards.size());
 	mShopPage = std::max(0, std::min(pages - 1, mShopPage));
 	fillRect(SHOP_PREV_BUTTON, 34, 50, 75, 250);
 	outlineRect(SHOP_PREV_BUTTON, 112, 149, 205, 255, 2);
@@ -182,6 +206,7 @@ void Application::renderShop()
 		color(238, 241, 247), 14);
 	drawText("PAGE " + std::to_string(mShopPage + 1) + "/" + std::to_string(pages),
 		188, 107, color(172, 190, 216), 14);
+	drawText("W/S or mouse wheel", 300, 107, color(143, 163, 190), 14);
 	int heldShards = (int)mCollectedShards.size() - (int)mMercerShards.size();
 	bool canGiveShard = heldShards > 0;
 	fillRect(SHOP_GIVE_BUTTON, canGiveShard ? 66 : 47, canGiveShard ? 52 : 48,

@@ -62,7 +62,7 @@ rendering, and repeated duel teardown.
 - `Source/App/Menus.cpp`: overworld pause menu and auxiliary screens.
 - `Source/App/CardRenderer.cpp`: card textures, zones, hands, animation,
   tapping, dragging, and hover enlargement.
-- `Lua/World.lua`: authoritative named 20x12 maps, player start, portals, and
+- `Lua/World.lua`: authoritative named variable-size maps, player start, portals, and
   ID-keyed NPC/shard map positions. This file is entirely maintained by the
   World Builder.
 - `Lua/Npcs.lua`: authoritative NPC identities, kinds, appearances, decks,
@@ -89,7 +89,7 @@ change has a clear lifetime model and test coverage.
   world IDs disappear on the next save.
 - World Builder saves must modify only `Lua/World.lua`, leaving NPC dialogue,
   decks, rewards, Mercer stock, and other hand-authored metadata untouched.
-- Every map is 20 columns by 12 rows. Outdoor tile characters are `.` (grass),
+- Maps are rectangular and may be up to 20 columns by 12 rows. Outdoor tile characters are `.` (grass),
   `=` (path), `~` (water), `H` (house), `T` (tree), and `#` (dense forest).
   Indoor/wooden-building tiles are `W` (wood wall), `D` (door), `F` (wood
   floor), and `C` (counter). NPCs and shards require distinct walkable tiles.

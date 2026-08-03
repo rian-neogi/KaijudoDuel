@@ -17,6 +17,18 @@ namespace AppSupport
 	constexpr int MAP_X = 32;
 	constexpr int MAP_Y = 54;
 	constexpr int TILE = 48;
+	constexpr int MAP_MAX_COLUMNS = 20;
+	constexpr int MAP_MAX_ROWS = 12;
+
+	inline int mapOriginX(int columns)
+	{
+		return MAP_X + (MAP_MAX_COLUMNS - columns) * TILE / 2;
+	}
+
+	inline int mapOriginY(int rows)
+	{
+		return MAP_Y + (MAP_MAX_ROWS - rows) * TILE / 2;
+	}
 
 	inline SDL_Color color(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 255)
 	{

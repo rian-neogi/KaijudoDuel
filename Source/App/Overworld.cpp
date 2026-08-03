@@ -296,11 +296,13 @@ void Application::renderOverworld()
 	ensurePlayerDataLoaded();
 	fillRect({ 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT }, 13, 21, 34);
 	const std::vector<std::string>& map = currentMap();
+	int mapX = mapOriginX((int)map[0].size());
+	int mapY = mapOriginY((int)map.size());
 	for (size_t y = 0; y < map.size(); ++y)
 	{
 		for (size_t x = 0; x < map[y].size(); ++x)
 		{
-			SDL_Rect tileRect = { MAP_X + (int)x * TILE, MAP_Y + (int)y * TILE, TILE, TILE };
+			SDL_Rect tileRect = { mapX + (int)x * TILE, mapY + (int)y * TILE, TILE, TILE };
 			char tile = map[y][x];
 			if (tile == '=') fillRect(tileRect, 162, 132, 76);
 			else if (tile == '~') fillRect(tileRect, 25, 111, 157);
@@ -378,8 +380,8 @@ void Application::renderOverworld()
 			mNpcs[i].isComplete(), mNpcs[i].isMoving());
 		if (npcHasStoryMarker((int)i))
 		{
-			int markerX = MAP_X + (int)std::round(mNpcs[i].visualX * TILE) + 17;
-			int markerY = MAP_Y + (int)std::round(mNpcs[i].visualY * TILE) - 20;
+			int markerX = mapX + (int)std::round(mNpcs[i].visualX * TILE) + 17;
+			int markerY = mapY + (int)std::round(mNpcs[i].visualY * TILE) - 20;
 			fillRect({ markerX - 4, markerY - 2, 20, 22 }, 31, 24, 14, 235);
 			outlineRect({ markerX - 4, markerY - 2, 20, 22 }, 246, 203, 78, 255, 2);
 			drawText("!", markerX + 2, markerY, color(255, 225, 111), 16);
@@ -389,8 +391,8 @@ void Application::renderOverworld()
 	{
 		const MercerShard& shard = mMercerStock.shards[i];
 		if (shard.mapId != currentMapId() || mCollectedShards.count(shard.id)) continue;
-		int x = MAP_X + shard.x * TILE;
-		int y = MAP_Y + shard.y * TILE;
+		int x = mapX + shard.x * TILE;
+		int y = mapY + shard.y * TILE;
 		int shimmer = (int)((SDL_GetTicks() / 180 + i * 3) % 5);
 		fillRect({ x + 19, y + 10 - shimmer / 2, 12, 28 }, 42, 24, 65, 220);
 		fillRect({ x + 14, y + 15 - shimmer / 2, 22, 18 }, 139, 82, 204, 245);
@@ -455,8 +457,9 @@ void Application::renderOverworld()
 void Application::drawCharacter(float gridX, float gridY, CharacterAppearance appearance,
 	bool completed, bool walking)
 {
-	int x = MAP_X + (int)std::round(gridX * TILE);
-	int y = MAP_Y + (int)std::round(gridY * TILE);
+	const std::vector<std::string>& map = currentMap();
+	int x = mapOriginX((int)map[0].size()) + (int)std::round(gridX * TILE);
+	int y = mapOriginY((int)map.size()) + (int)std::round(gridY * TILE);
 	int stride = walking && (SDL_GetTicks() / 110) % 2 == 0 ? 2 : (walking ? -2 : 0);
 	int bob = walking && (SDL_GetTicks() / 110) % 2 == 0 ? -1 : 0;
 	fillRect({ x + 9, y + 39, 31, 6 }, 8, 14, 18, 100);

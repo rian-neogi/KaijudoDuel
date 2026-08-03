@@ -36,12 +36,17 @@ namespace
 		return { 1022 + (index % 2) * 116, 151 + (index / 2) * 55, 108, 45 };
 	}
 
-	bool mapCellAt(int x, int y, int& cellX, int& cellY)
+	bool mapCellAt(int x, int y, const std::vector<std::string>& map,
+		int& cellX, int& cellY)
 	{
-		cellX = (x - MAP_X) / TILE;
-		cellY = (y - MAP_Y) / TILE;
-		return x >= MAP_X && y >= MAP_Y && cellX >= 0 && cellX < 20 &&
-			cellY >= 0 && cellY < 12;
+		if (map.empty() || map[0].empty()) return false;
+		int originX = mapOriginX((int)map[0].size());
+		int originY = mapOriginY((int)map.size());
+		if (x < originX || y < originY) return false;
+		cellX = (x - originX) / TILE;
+		cellY = (y - originY) / TILE;
+		return cellY >= 0 && cellY < (int)map.size() && cellX >= 0 &&
+			cellX < (int)map[cellY].size();
 	}
 
 	bool writeTemporary(const std::string& path, const std::string& contents, std::string& error)
@@ -104,6 +109,11 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 		return value;
 	};
 	auto walkable = [](char tile) { return tile == '.' || tile == '=' || tile == 'F' || tile == 'D'; };
+	auto inBounds = [](const WorldArea& area, int x, int y) -> bool
+	{
+		return y >= 0 && y < (int)area.tiles.size() && x >= 0 &&
+			x < (int)area.tiles[y].size();
+	};
 
 	std::vector<WorldArea> areas;
 	std::set<std::string> areaIds;
@@ -132,21 +142,29 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 			return false;
 		}
 		lua_getfield(state, mapTable, "tiles");
-		if (!lua_istable(state, -1) || lua_rawlen(state, -1) != 12)
+		if (!lua_istable(state, -1) || lua_rawlen(state, -1) == 0 ||
+			lua_rawlen(state, -1) > MAP_MAX_ROWS)
 		{
-			error = "map '" + area.id + "' must contain exactly 12 rows";
+			error = "map '" + area.id + "' must contain between 1 and " +
+				std::to_string(MAP_MAX_ROWS) + " rows";
 			lua_close(state);
 			return false;
 		}
-		for (int row = 1; row <= 12; ++row)
+		const int rowCount = (int)lua_rawlen(state, -1);
+		size_t columnCount = 0;
+		for (int row = 1; row <= rowCount; ++row)
 		{
 			lua_rawgeti(state, -1, row);
 			std::string value = lua_isstring(state, -1) ? lua_tostring(state, -1) : "";
 			lua_pop(state, 1);
-			if (value.size() != 20 || value.find_first_not_of(".=~HT#WDFC") != std::string::npos)
+			if (row == 1) columnCount = value.size();
+			if (columnCount == 0 || columnCount > MAP_MAX_COLUMNS ||
+				value.size() != columnCount ||
+				value.find_first_not_of(".=~HT#WDFC") != std::string::npos)
 			{
 				error = "map '" + area.id + "' row " + std::to_string(row) +
-					" must contain 20 valid tile characters";
+					" must match its first row and contain between 1 and " +
+					std::to_string(MAP_MAX_COLUMNS) + " valid tile characters";
 				lua_close(state);
 				return false;
 			}
@@ -168,7 +186,7 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 	int startY = lua_istable(state, -1) ? intField(-1, "y") : -1;
 	lua_pop(state, 1);
 	int startArea = areaIndex(startMap);
-	if (startArea < 0 || startX < 0 || startX >= 20 || startY < 0 || startY >= 12 ||
+	if (startArea < 0 || !inBounds(areas[startArea], startX, startY) ||
 		!walkable(areas[startArea].tiles[startY][startX]))
 	{
 		error = "world start must reference a walkable map tile";
@@ -203,9 +221,9 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 		lua_pop(state, 2);
 		int fromArea = areaIndex(portal.fromMap);
 		int toArea = areaIndex(portal.toMap);
-		if (fromArea < 0 || toArea < 0 || portal.fromX < 0 || portal.fromX >= 20 ||
-			portal.fromY < 0 || portal.fromY >= 12 || portal.toX < 0 || portal.toX >= 20 ||
-			portal.toY < 0 || portal.toY >= 12 ||
+		if (fromArea < 0 || toArea < 0 ||
+			!inBounds(areas[fromArea], portal.fromX, portal.fromY) ||
+			!inBounds(areas[toArea], portal.toX, portal.toY) ||
 			!walkable(areas[fromArea].tiles[portal.fromY][portal.fromX]) ||
 			!walkable(areas[toArea].tiles[portal.toY][portal.toX]) ||
 			!occupied.insert(std::make_tuple(portal.fromMap, portal.fromX, portal.fromY)).second)
@@ -249,8 +267,7 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 			positions[i].y = intField(-1, "y");
 			lua_pop(state, 1);
 			int mapIndex = areaIndex(positions[i].map);
-			if (mapIndex < 0 || positions[i].x < 0 || positions[i].x >= 20 ||
-				positions[i].y < 0 || positions[i].y >= 12 ||
+			if (mapIndex < 0 || !inBounds(areas[mapIndex], positions[i].x, positions[i].y) ||
 				!walkable(areas[mapIndex].tiles[positions[i].y][positions[i].x]) ||
 				!occupied.insert(std::make_tuple(positions[i].map, positions[i].x, positions[i].y)).second)
 			{
@@ -280,8 +297,8 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 			if (!positions[i].map.empty()) continue;
 			bool placed = false;
 			for (size_t map = 0; map < areas.size() && !placed; ++map)
-				for (int y = 0; y < 12 && !placed; ++y)
-					for (int x = 0; x < 20 && !placed; ++x)
+				for (int y = 0; y < (int)areas[map].tiles.size() && !placed; ++y)
+					for (int x = 0; x < (int)areas[map].tiles[y].size() && !placed; ++x)
 						if (walkable(areas[map].tiles[y][x]) &&
 							occupied.insert(std::make_tuple(areas[map].id, x, y)).second)
 						{
@@ -576,7 +593,7 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		int x, y;
 		logicalMouse(event.motion.x, event.motion.y, x, y);
 		int cellX, cellY;
-		if (mapCellAt(x, y, cellX, cellY))
+		if (mapCellAt(x, y, currentMap(), cellX, cellY))
 		{
 			if (mWorldBuilderPainting) paintWorldBuilderTile(cellX, cellY);
 			else if (mWorldBuilderDragging) placeWorldBuilderSelection(cellX, cellY);
@@ -640,7 +657,7 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 			return;
 		}
 		int cellX, cellY;
-		if (!mapCellAt(x, y, cellX, cellY)) return;
+		if (!mapCellAt(x, y, currentMap(), cellX, cellY)) return;
 		if (mWorldBuilderTab == WorldBuilderTab::Tiles)
 		{
 			mWorldBuilderPainting = true;
@@ -679,11 +696,13 @@ void Application::renderWorldBuilder()
 	drawText(mWorldBuilderDirty ? "UNSAVED CHANGES" : "SAVED", 795, 19,
 		mWorldBuilderDirty ? color(244, 139, 88) : color(105, 218, 139), 14);
 	const std::vector<std::string>& map = currentMap();
+	int mapX = mapOriginX((int)map[0].size());
+	int mapY = mapOriginY((int)map.size());
 	for (size_t row = 0; row < map.size(); ++row)
 	{
 		for (size_t column = 0; column < map[row].size(); ++column)
 		{
-			SDL_Rect tile = { MAP_X + (int)column * TILE, MAP_Y + (int)row * TILE, TILE, TILE };
+			SDL_Rect tile = { mapX + (int)column * TILE, mapY + (int)row * TILE, TILE, TILE };
 			char type = map[row][column];
 			if (type == '=') fillRect(tile, 162, 132, 76);
 			else if (type == '~') fillRect(tile, 25, 111, 157);
@@ -734,22 +753,22 @@ void Application::renderWorldBuilder()
 
 	if (currentMapId() == mWorldStartMap)
 	{
-		fillRect({ MAP_X + mWorldStartX * TILE + 13, MAP_Y + mWorldStartY * TILE + 12,
+		fillRect({ mapX + mWorldStartX * TILE + 13, mapY + mWorldStartY * TILE + 12,
 			23, 25 }, 24, 66, 137, 235);
-		drawText("P", MAP_X + mWorldStartX * TILE + 19, MAP_Y + mWorldStartY * TILE + 16,
+		drawText("P", mapX + mWorldStartX * TILE + 19, mapY + mWorldStartY * TILE + 16,
 			color(215, 232, 255), 14);
 	}
 	for (size_t i = 0; i < mWorldPortals.size(); ++i)
 		if (mWorldPortals[i].fromMap == currentMapId())
-			outlineRect({ MAP_X + mWorldPortals[i].fromX * TILE + 4,
-				MAP_Y + mWorldPortals[i].fromY * TILE + 4, TILE - 8, TILE - 8 },
+			outlineRect({ mapX + mWorldPortals[i].fromX * TILE + 4,
+				mapY + mWorldPortals[i].fromY * TILE + 4, TILE - 8, TILE - 8 },
 				91, 222, 232, 255, 3);
 	for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
 	{
 		const MercerShard& shard = mMercerStock.shards[i];
 		if (shard.mapId != currentMapId()) continue;
-		int x = MAP_X + shard.x * TILE;
-		int y = MAP_Y + shard.y * TILE;
+		int x = mapX + shard.x * TILE;
+		int y = mapY + shard.y * TILE;
 		fillRect({ x + 18, y + 9, 14, 30 }, 47, 25, 71, 230);
 		fillRect({ x + 13, y + 15, 24, 18 }, 146, 87, 211, 250);
 		fillRect({ x + 19, y + 19, 12, 10 }, 231, 193, 255, 255);
@@ -761,7 +780,7 @@ void Application::renderWorldBuilder()
 		if (mNpcs[i].mapId != currentMapId()) continue;
 		drawCharacter((float)mNpcs[i].x, (float)mNpcs[i].y, mNpcs[i].appearance, false, false);
 		if ((int)i == mWorldBuilderSelectedNpc && mWorldBuilderTab == WorldBuilderTab::Npcs)
-			outlineRect({ MAP_X + mNpcs[i].x * TILE + 2, MAP_Y + mNpcs[i].y * TILE + 2,
+			outlineRect({ mapX + mNpcs[i].x * TILE + 2, mapY + mNpcs[i].y * TILE + 2,
 				TILE - 4, TILE - 4 }, 246, 211, 99, 255, 3);
 	}
 

@@ -27,26 +27,22 @@ return {
 			name = "Mercer's House",
 			indoor = true,
 			tiles = {
-				"WWWWWWWWWWWWWWWWWWWW",
-				"WFFFFFFFFFFFFFFFFFFW",
-				"WFFFFFFFFFFFFFFFFFFW",
-				"WFFFFFFFFFFFFFFFFFFW",
-				"WFFFFFFFFFFFFFFFFFFW",
-				"WFFFFFFFCCFCCFFFFFFW",
-				"WFFFFFFFFFFFFFFFFFFW",
-				"WFFFFFFFFFFFFFFFFFFW",
-				"WFFFFFFFFFFFFFFFFFFW",
-				"WFFFFFFFFFFFFFFFFFFW",
-				"WFFFFFFFFFFFFFFFFFFW",
-				"WWWWWWWWWWDWWWWWWWWW"
+				"WWWWWWWWWW",
+				"WFFFFFFFFW",
+				"WFFFFFFFFW",
+				"WFFCCCCFFW",
+				"WFFFFFFFFW",
+				"WFFFFFFFFW",
+				"WFFFFFFFFW",
+				"WWWWWDWWWW"
 			}
 		}
 	},
 	start = { map = "emberglen", x = 2, y = 10 },
 	portals = {
 		{ from = { map = "emberglen", x = 13, y = 9 },
-			to = { map = "mercers_house", x = 10, y = 9 } },
-		{ from = { map = "mercers_house", x = 10, y = 11 },
+			to = { map = "mercers_house", x = 5, y = 6 } },
+		{ from = { map = "mercers_house", x = 5, y = 7 },
 			to = { map = "emberglen", x = 13, y = 10 } }
 	},
 	npcs = {
@@ -58,7 +54,7 @@ return {
 		["nyx"] = { map = "emberglen", x = 17, y = 7 },
 		["tidal"] = { map = "emberglen", x = 10, y = 10 },
 		["briar"] = { map = "emberglen", x = 2, y = 6 },
-		["mercer"] = { map = "mercers_house", x = 10, y = 4 },
+		["mercer"] = { map = "mercers_house", x = 5, y = 2 },
 		["veiled_one"] = { map = "emberglen", x = 10, y = 4 },
 	},
 	shards = {
