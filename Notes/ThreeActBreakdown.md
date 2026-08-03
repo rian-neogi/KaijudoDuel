@@ -72,7 +72,7 @@ On defeat, the body breaks into blank fragments. The Veiled One was a remotely a
 - Aurelia conducts the official match interrupted by the festival attack.
 - The player earns the Dawn Crest, the first of nine Circuit Crests.
 - The Dawn ceremony triggers a hidden echo from Rowan and confirms that the Curator is attacking several frontier Resonance Seals at once.
-- The bridge is safe, the northern road reaches its first junction, and the Cinderrail, Glasswater, and Rootmaze routes open simultaneously.
+- The roads surrounding Emberglen become safe, and the Cinderrail, Glasswater, and Rootmaze routes open simultaneously without closing the way home.
 - The player leaves with a growing collection and a personal reason to continue.
 
 ### Systems introduced
@@ -92,7 +92,7 @@ Expand the world, challenge the player's assumptions about Rowan, and show what 
 
 ### Branching campaign flow
 
-The Fivefold Road opens in tiers instead of as one linear chain. Story gates separate the tiers, but the Crest regions inside each tier can be completed in any order. Opponent deck strength, shop stock, and incidental dialogue scale from the number of Crests held rather than from a fixed regional sequence.
+The Fivefold Road is one connected, bidirectional overworld centered on Emberglen. Story gates determine when the outer roads become safe, but never replace the map or close earlier routes. The Crest regions inside each availability tier can be completed in any order, and the player can return to Mercer or revisit previous towns between every objective. Opponent deck strength, shop stock, and incidental dialogue scale from the number of Crests held rather than from a fixed regional sequence.
 
 The high-level route is:
 
@@ -108,6 +108,8 @@ After the Dawn Crest and the next Hollow-story scene, three frontier roads open 
 
 Each region contains a town hub, local trainers, a shop or specialist, environmental shortcuts, and both a Circuit objective and a Hollow-story problem. Completing one region should provide useful information or cards for the others without making any particular order canonical.
 
+Three side roads lead to **Reedwake**, **Honeyreach**, and **Clayhearth**. These optional towns offer self-contained local quests, specialized shops, and repeatable duelists. They award no Crests, repair no Seals, and are never counted by a story gate.
+
 ### The Resonance Seals
 
 Every sanctuary protects one Resonance Seal. A seal does not contain power by itself; it records how its civilization forms trust with duelists. The Curator needs all five patterns to make the Hollow Deck stable.
@@ -122,21 +124,23 @@ A hidden message in the player's starter deck later reveals that Rowan is delayi
 
 ### Crest 5: Confluence
 
-Kestrel Vane restores the physical relay routes but will authorize passage through the Archive Gate only after his official match. The player must defeat his coherent three-civilization deck and earn the Confluence Crest.
+Kestrel Vane restores the physical relay routes but will authorize the repaired outer-road network only after his official match. The player must defeat his coherent three-civilization deck and earn the Confluence Crest.
 
-The Crest itself does not magically open the world. Victory proves that the player can manage the more complex decks used beyond the gate, while Kestrel's repaired relay and Circuit authority provide the actual access. This distinction preserves the parallel sporting and Hollow-story goals.
+The Crest itself does not magically open the world. Victory proves that the player can manage the more complex decks used beyond the checkpoints, while Kestrel's repaired relay and Circuit authority provide the actual access. Once opened, every road remains bidirectional, including the direct return route from Confluence to Emberglen. This distinction preserves the parallel sporting and Hollow-story goals.
 
 ### Second open-world tier: Crests 6–8
 
 Beyond Confluence, three more Crest regions open simultaneously:
 
-- **Stormbreak Plateau — Tempest Crest:** Tamsin Gale restores signal towers linked by changing wind bridges and discovers false storms generated from stolen courier memories.
+- **Stormbreak Plateau — Tempest Crest:** Natasha Gale restores signal towers linked by changing wind bridges and discovers false storms generated from stolen courier memories.
 - **Gloam Quarry — Darkness Seal and Ashen Crest:** Sister Vey considers the Curator's promise to erase painful memories while the Ashvault's memorial echoes begin disappearing.
 - **Mirror Arena — Mirror Crest:** Sable Meridian confronts hollow replicas built from private match records and tests how well the player can adapt when their preferred strategy is understood.
 
 **Sunspire Cloister** also becomes available during this tier as a Hollow-only Light Seal region without a Crest match. Its guardians have become rigid and accusatory after their cards display false memories. The player may interleave Sunspire with the three Crest routes, but must restore its seal before entering the Hollow Archive.
 
 The Tempest, Ashen, and Mirror Crests may be earned in any order. Each route contributes a different ally and entrance option for the finale, so the player's chosen order changes dialogue and immediate rewards without changing which route is valid.
+
+The late side roads lead to **Cloudrest**, **Lanternfen**, and **Ribbonfair**. Like the first-tier towns, they remain optional during both the Hollow crisis and post-game. Visiting them can broaden the player's collection or unlock cosmetics, but never changes whether the Archive or Crown Gate can be entered.
 
 ### Returning NPC roles
 
@@ -145,8 +149,8 @@ The Tempest, Ashen, and Mirror Crests may be earned in any order. Each route con
 - Flint helps break the forced-duel machinery at Cinderrail.
 - Rook and Briar guide displaced creatures through Rootmaze.
 - Mira and Nyx enter Gloam Quarry, where the Curator's promise is most tempting.
-- Tamsin's courier network carries news and supplies between whichever regions the player visits next.
-- Mercer establishes a traveling shop and trades regional cards as routes are restored.
+- Natasha's courier network carries news and supplies between whichever regions the player visits next.
+- Mercer remains based in Emberglen and expands his shop with regional cards as trade routes are restored.
 
 These appearances should be brief enough that new regional NPCs still own their stories.
 
@@ -166,8 +170,11 @@ After the player earns Crests 6–8 and repairs all five seals, the Chief Collec
 
 ### Systems expanded
 
-- Multiple connected overworld maps
+- One coherent overworld network spanning the regional maps
+- Persistent bidirectional roads linking both availability tiers through Emberglen and Confluence
+- Emberglen as the reusable central hub for Mercer, deck preparation, and returning story characters
 - Two tiers of regions that can be completed in any order
+- Six optional side towns with no Crest, Seal, or required Hollow objective
 - Difficulty and dialogue scaling based on Crest count rather than route order
 - Regional card pools and shops
 - Optional quests that affect later assistance

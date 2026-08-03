@@ -9,7 +9,7 @@
 --
 -- Supported kinds: duelist, shopkeeper, boss
 -- Supported appearances: mira, marin, rook, aurelia, flint, nyx, tidal,
---                        briar, mercer, veiled_one
+--                        briar, mercer, veiled_one, generic1 through generic10
 --
 -- Dialogue is a flat, extensible string table. The current application uses:
 --   greeting, defeat, victory, complete, clue, investigation,
@@ -273,5 +273,185 @@ return {
             victory = "Your echoes will be quieter in the Hollow Deck.",
             complete = "The Curator has already crossed the old road. Rowan still lives—but not for long."
         }
-    }
+    },
+	{
+        id = "pip",
+        name = "Pip",
+        kind = "duelist",
+        appearance = "generic1",
+        max_battles = 2,
+        deck1 = "Zagaan.txt",
+        deck2 = "Deathliger.txt",
+        reward1 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward2 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward3 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward4 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        ai = { personality = "control" },
+        dialogue = {
+            greeting = "Darkness answers my call. Ready to duel?",
+            defeat = "The grave remembers that turn. I will not make the same mistake twice.",
+            victory = "Listen more closely. Your discarded cards were warning you.",
+			talk = ""
+        }
+    },
+	{
+        id = "noma",
+        name = "Noma",
+        kind = "duelist",
+        appearance = "generic2",
+        max_battles = 2,
+        deck1 = "Zagaan.txt",
+        deck2 = "Deathliger.txt",
+        reward1 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward2 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward3 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward4 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        ai = { personality = "control" },
+        dialogue = {
+            greeting = "Darkness answers my call. Ready to duel?",
+            defeat = "The grave remembers that turn. I will not make the same mistake twice.",
+            victory = "Listen more closely. Your discarded cards were warning you.",
+			talk = ""
+        }
+    },
+	{
+        id = "bram",
+        name = "Bram",
+        kind = "duelist",
+        appearance = "generic3",
+        max_battles = 2,
+        deck1 = "Zagaan.txt",
+        deck2 = "Deathliger.txt",
+        reward1 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward2 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward3 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward4 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        ai = { personality = "control" },
+        dialogue = {
+            greeting = "Darkness answers my call. Ready to duel?",
+            defeat = "The grave remembers that turn. I will not make the same mistake twice.",
+            victory = "Listen more closely. Your discarded cards were warning you.",
+			talk = ""
+        }
+    },
+	{
+        id = "elia",
+        name = "Elia",
+        kind = "duelist",
+        appearance = "generic3",
+        max_battles = 2,
+        deck1 = "Zagaan.txt",
+        deck2 = "Deathliger.txt",
+        reward1 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward2 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward3 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward4 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        ai = { personality = "control" },
+        dialogue = {
+            greeting = "Darkness answers my call. Ready to duel?",
+            defeat = "The grave remembers that turn. I will not make the same mistake twice.",
+            victory = "Listen more closely. Your discarded cards were warning you.",
+			talk = ""
+        }
+    },
+	{
+        id = "tomas",
+        name = "Tomas",
+        kind = "duelist",
+        appearance = "generic3",
+        max_battles = 2,
+        deck1 = "Zagaan.txt",
+        deck2 = "Deathliger.txt",
+        reward1 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward2 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward3 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward4 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        ai = { personality = "control" },
+        dialogue = {
+            greeting = "Darkness answers my call. Ready to duel?",
+            defeat = "The grave remembers that turn. I will not make the same mistake twice.",
+            victory = "Listen more closely. Your discarded cards were warning you.",
+			talk = ""
+        }
+    },
+	{
+        id = "senn",
+        name = "Senn",
+        kind = "duelist",
+        appearance = "generic3",
+        max_battles = 2,
+        deck1 = "Zagaan.txt",
+        deck2 = "Deathliger.txt",
+        reward1 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward2 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward3 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward4 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        ai = { personality = "control" },
+        dialogue = {
+            greeting = "Darkness answers my call. Ready to duel?",
+            defeat = "The grave remembers that turn. I will not make the same mistake twice.",
+            victory = "Listen more closely. Your discarded cards were warning you.",
+			talk = ""
+        }
+    },
+	{
+        id = "kipp",
+        name = "Kipp",
+        kind = "duelist",
+        appearance = "generic3",
+        max_battles = 2,
+        deck1 = "Zagaan.txt",
+        deck2 = "Deathliger.txt",
+        reward1 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward2 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward3 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward4 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        ai = { personality = "control" },
+        dialogue = {
+            greeting = "Darkness answers my call. Ready to duel?",
+            defeat = "The grave remembers that turn. I will not make the same mistake twice.",
+            victory = "Listen more closely. Your discarded cards were warning you.",
+			talk = ""
+        }
+    },
+	{
+        id = "ansa",
+        name = "Ansa",
+        kind = "duelist",
+        appearance = "generic3",
+        max_battles = 2,
+        deck1 = "Zagaan.txt",
+        deck2 = "Deathliger.txt",
+        reward1 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward2 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward3 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward4 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        ai = { personality = "control" },
+        dialogue = {
+            greeting = "Darkness answers my call. Ready to duel?",
+            defeat = "The grave remembers that turn. I will not make the same mistake twice.",
+            victory = "Listen more closely. Your discarded cards were warning you.",
+			talk = ""
+        }
+    },
+	{
+        id = "holt",
+        name = "Holt",
+        kind = "duelist",
+        appearance = "generic3",
+        max_battles = 2,
+        deck1 = "Zagaan.txt",
+        deck2 = "Deathliger.txt",
+        reward1 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward2 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward3 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        reward4 = { card = "Zagaan, Knight of Darkness", gold = 100 },
+        ai = { personality = "control" },
+        dialogue = {
+            greeting = "Darkness answers my call. Ready to duel?",
+            defeat = "The grave remembers that turn. I will not make the same mistake twice.",
+            victory = "Listen more closely. Your discarded cards were warning you.",
+			talk = ""
+        }
+    },
 }

@@ -2,6 +2,8 @@
 
 A description of the layout of Emberglen.
 
+The town's history, culture, and campaign role are described in `Notes/TownBackstories.md`.
+
 At the center is the festival square. This has a bonfire surrounded by tables, chairs. Tables have food on them.
 
 Aurelia's House: A grand house made of marble. Its at the north of the town.
@@ -23,7 +25,6 @@ North: Path to another town, where the first crest battle takes place
 South: A spooky forest path
 
 West: TODO
-
 
 
 

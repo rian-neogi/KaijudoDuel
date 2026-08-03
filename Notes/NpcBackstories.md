@@ -133,7 +133,7 @@ Years of trade taught Mercer that cards with damaged ink can still carry valuabl
 
 Mercer once transported sealed archive equipment for Rowan and the Curator without knowing its purpose. The machinery later used at Cinderrail bears his old caravan mark. He carries guilt over this until Flint points out that responsibility lies in what they do after learning the truth.
 
-In Act II, Mercer becomes a traveling shopkeeper whose stock expands with every repaired route. In Act III, his mundane logistics—food, blank cards, safe roads, and messages—are what allow the grand alliance to function.
+In Act II, Mercer remains in Emberglen while his stock expands through every repaired trade route. Couriers and regional merchants bring cards back to his central shop, giving the player a consistent reason to return home. In Act III, his mundane logistics—food, blank cards, safe roads, and messages—are what allow the grand alliance to function.
 
 ## The Veiled One — An Empty Rival
 

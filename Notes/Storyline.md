@@ -46,17 +46,21 @@ The town's signature cards are still fading. By defeating at least three local d
 
 There the player confronts the Veiled One, a difficult duelist apparently serving the Curator. On defeat, the Veiled One collapses into blank card fragments: it was an enchanted shell rather than a living person. Through it, the Curator announces that Rowan is alive beyond the old road and challenges the player to bring every echo they can restore.
 
-The road out of Emberglen begins to recover. Aurelia then holds the official match that the festival attack interrupted, and the player earns the Dawn Crest. During the ceremony, the Crest resonates with a message Rowan hid in the restored town echoes: the Curator is attacking several frontier Resonance Seals at the same time. The northern road opens onto three routes, beginning both the pursuit of Rowan and the player's first genuinely open stage of the Grand Championship quest.
+The roads around Emberglen begin to recover. Aurelia then holds the official match that the festival attack interrupted, and the player earns the Dawn Crest. During the ceremony, the Crest resonates with a message Rowan hid in the restored town echoes: the Curator is attacking several frontier Resonance Seals at the same time. Routes to three regions reopen without cutting Emberglen off, beginning both the pursuit of Rowan and the player's first genuinely open stage of the Grand Championship quest.
 
 ### Act II: The Broken Road
 
 The old road crosses five frontier sanctuaries, one associated with each civilization, as well as sanctioned Circuit arenas. The Curator's collectors have damaged the sanctuaries and turned their keepers against one another by planting false memories inside their signature cards.
 
-The first junction opens Cinderrail Foundry, Glasswater Port, and Rootmaze Commons simultaneously. The player may earn the Forge, Tidal, and Verdant Crests in any order while repairing the Fire, Water, and Nature Resonance Seals. NPC decks and dialogue scale from the number of Crests already held, allowing every route to work as the player's first or third destination.
+Roads from the central Emberglen region open Cinderrail Foundry, Glasswater Port, and Rootmaze Commons simultaneously. The player may earn the Forge, Tidal, and Verdant Crests in any order while repairing the Fire, Water, and Nature Resonance Seals. NPC decks and dialogue scale from the number of Crests already held, allowing every route to work as the player's first or third destination. All routes remain bidirectional, so Mercer continues to serve as the natural collection and deck-building hub.
+
+Side roads also lead to Reedwake, Honeyreach, and Clayhearth. These settlements have their own residents, shops, and local disputes, but contain no Crest, Seal, or required clue. Their purpose is to reward curiosity and make the frontier feel larger than the player's two central quests.
 
 Once those three Crests are gathered, the Hollow plot resumes. The player finds a projection of Rowan apparently helping the Curator, and the Chief Collector corrupts the relay into the inner territories. A later hidden message reveals that Rowan stayed behind to sabotage the final transfer. Kestrel Vane repairs the relay, then tests the player in the mandatory fifth Crest match at Confluence Arena.
 
-Beyond Confluence, a second set of regions opens. The Tempest Crest at Stormbreak Plateau, the Ashen Crest at Gloam Quarry, and the Mirror Crest at Mirror Arena may again be earned in any order. Sunspire Cloister is available alongside them as a Hollow-only Light Seal route. The player enters each area for both ordinary Circuit progress and a local echo crisis, but the Crests remain sporting credentials rather than magical components of the Hollow Deck.
+When the Confluence relay is restored, a second set of connected roads opens without closing the first. The Tempest Crest at Stormbreak Plateau, the Ashen Crest at Gloam Quarry, and the Mirror Crest at Mirror Arena may again be earned in any order. Sunspire Cloister is available alongside them as a Hollow-only Light Seal route. Cross-roads link the outer regions to one another, while Confluence and several loop roads lead back toward Emberglen. The player enters each area for both ordinary Circuit progress and a local echo crisis, but the Crests remain sporting credentials rather than magical components of the Hollow Deck.
+
+Cloudrest, Lanternfen, and Ribbonfair form a second set of optional offshoots. They acknowledge changing world events but do not become sources of secret Hollow research or mandatory allies.
 
 After the player holds eight Crests and all five Resonance Seals are restored, the Chief Collector attacks the Archive Gate. Defeating the Collector opens the way below, but also lets the Curator copy the completed seal patterns. Rowan breaks free during the transfer while the Hollow Deck reaches an unstable complete state.
 

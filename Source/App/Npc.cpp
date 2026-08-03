@@ -50,6 +50,15 @@ namespace
 		else if (value == "briar") result = CharacterAppearance::Briar;
 		else if (value == "mercer") result = CharacterAppearance::Mercer;
 		else if (value == "veiled_one") result = CharacterAppearance::VeiledOne;
+		else if (value.compare(0, 7, "generic") == 0)
+		{
+			const std::string suffix = value.substr(7);
+			int variant = suffix == "10" ? 10 :
+				(suffix.size() == 1 && suffix[0] >= '1' && suffix[0] <= '9' ? suffix[0] - '0' : 0);
+			if (variant == 0) return false;
+			result = static_cast<CharacterAppearance>(
+				static_cast<int>(CharacterAppearance::Generic1) + variant - 1);
+		}
 		else return false;
 		return true;
 	}

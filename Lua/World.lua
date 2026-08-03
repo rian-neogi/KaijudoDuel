@@ -1,7 +1,9 @@
 -- World Builder data. This file is entirely maintained by the World Builder.
 -- Tile legend: . grass, = path, ~ water, H house, T tree, # forest,
 -- W wooden wall, D door, F wooden floor, C counter, B bonfire,
--- A feast table, S dueling sand, M marble, E workshop tools.
+-- A feast table, S dueling sand, M marble, E workshop tools,
+-- R rail, X walkable rail crossing, G metal grate, I industrial brick,
+-- P machinery, V furnace.
 return {
 	maps = {
 		{
@@ -21,7 +23,7 @@ return {
 				"#.SSSSSSSSS.===========.....WWWWW..#",
 				"#.SSSSSSSSS.==A=====A==.....WWDWW..#",
 				"#.SSSSSSSSS.===================....#",
-				"#.SSSSSSSS=======B=================#",
+				"#.SSSSSSSS=======B==================",
 				"#.SSSSSSSSS.===========............#",
 				"#.SSSSSSSSS.==A=====A=============.#",
 				"#.SSSSSSSSS.===========............#",
@@ -35,6 +37,49 @@ return {
 				"#########........============...####",
 				"#########.......................####",
 				"####################################"
+			}
+		},
+		{
+			id = "cinderrail",
+			name = "Cinderrail Foundry",
+			indoor = false,
+			tiles = {
+				"####################################################",
+				"#.....................IIIIII.......................#",
+				"#..IIIIIIIIIII..P.....IIIIII...P.....P..IIIIIIIIII.#",
+				"#..IIIIIIIIIII....P...IIIIII......P.....IIIIIIIIII.#",
+				"#..IIIIIIIIIII........III==I............IIIIIIIIII.#",
+				"#..IIIII==IIII...........==.............IIII==IIII.#",
+				"#.......==...............==.................==.....#",
+				"#RRRRRRRXXRRRRRRRRRRRRRRRXXRRRRRRRRRRRRRRRRRXXRRRRR#",
+				"#RRRRRRRXXRRRRRRRRRRRRRRRXXRRRRRRRRRRRRRRRRRXXRRRRR#",
+				"#.......==...............==.................==.....#",
+				"#.================================================.#",
+				"#.================================================.#",
+				"#..IIIIIII..IIIIIII.GGGGGGGGGGG.IIIIII..IPIPIIIPIPI#",
+				"#..IIIIIII..IIIIIII.GGGGGGGGGGG.IIIIII..IIIIIIIIIII#",
+				"#..IIIIIII..IIIIIII.GGGGSSSGGGG.IIIIII..IIIIIIIIIII#",
+				"#..III=III..III=III.GGGSGGGSGGG.II=III..IIIII=IIIII#",
+				"====================GGGSGPGSGGG=====================",
+				"====================GGGSGGGSGGG=====================",
+				"#..............==...GGGGSSSGGGG...==.........==....#",
+				"#..............==...GGGGGGGGGGG...==.........==....#",
+				"#..H.H..H......==...GGGGGG=========================#",
+				"#..............==...GGGGGG=========================#",
+				"#..H.....H.....==...GGGGGGGGGGG.GG...........==....#",
+				"#.....H.....IIIIIIIII....==.....GG......IIIIIIIIIII#",
+				"#...........IIIIIIIII....==.GGGGGGGGGG..ISSSSSSSSSI#",
+				"============IIIIIIIII======.GGGGGGGGGG..ISSSSSSSSSI#",
+				"============IIIIIIIII======.VV..GG..VV..ISSSSSSSSSI#",
+				"#...........IIIIIIIII.IIDIIPVVP.GG.PVVP.ISSSSSSSSSI#",
+				"#..IIIDIII..IIII=IIII.IIIII.....VV......ISSSSSSSSSI#",
+				"#..IIIIIII......==....IIIII.....VV......ISSSSSSSSSI#",
+				"#..IIIIIII......==....IIIII..P..GG..P...ISSSSSSSSSI#",
+				"#..IIIIIII......==.......==.....GG......ISSSSSSSSSI#",
+				"#...............==.......==.IIIIDDIIII..IIIII==IIII#",
+				"#...............============IIVIIIIVII.......==....#",
+				"#...............=================IIIII.......==....#",
+				"#########################==#########################"
 			}
 		},
 		{
@@ -77,7 +122,11 @@ return {
 		{ from = { map = "emberglen", x = 5, y = 6 },
 			to = { map = "rook_mira_home", x = 5, y = 6 } },
 		{ from = { map = "rook_mira_home", x = 5, y = 7 },
-			to = { map = "emberglen", x = 5, y = 7 } }
+			to = { map = "emberglen", x = 5, y = 7 } },
+		{ from = { map = "emberglen", x = 35, y = 12 },
+			to = { map = "cinderrail", x = 2, y = 16 } },
+		{ from = { map = "cinderrail", x = 0, y = 16 },
+			to = { map = "emberglen", x = 34, y = 12 } }
 	},
 	npcs = {
 		["mira"] = { map = "rook_mira_home", x = 5, y = 2 },
@@ -90,6 +139,15 @@ return {
 		["briar"] = { map = "emberglen", x = 8, y = 12 },
 		["mercer"] = { map = "mercers_house", x = 5, y = 2 },
 		["veiled_one"] = { map = "emberglen", x = 17, y = 10 },
+		["pip"] = { map = "emberglen", x = 12, y = 8 },
+		["noma"] = { map = "emberglen", x = 22, y = 11 },
+		["bram"] = { map = "emberglen", x = 14, y = 23 },
+		["elia"] = { map = "emberglen", x = 3, y = 17 },
+		["tomas"] = { map = "emberglen", x = 21, y = 23 },
+		["senn"] = { map = "emberglen", x = 29, y = 18 },
+		["kipp"] = { map = "cinderrail", x = 11, y = 25 },
+		["ansa"] = { map = "cinderrail", x = 47, y = 20 },
+		["holt"] = { map = "cinderrail", x = 34, y = 25 },
 	},
 	shards = {
 		["living_dead"] = { map = "emberglen", x = 4, y = 1 },

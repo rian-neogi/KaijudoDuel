@@ -1162,7 +1162,76 @@ bool Application::exerciseOverworldMovementSmoke()
 			int area = worldAreaIndex(mNpcs[i].mapId);
 			mercerIsIndoors = area >= 0 && mWorldAreas[area].indoor;
 		}
-	return playerInterpolated && npcInterpolated && enteredIndoor && returnedOutside && mercerIsIndoors;
+	int cinderrailArea = worldAreaIndex("cinderrail");
+	bool cinderrailReady = cinderrailArea >= 0 && !mWorldAreas[cinderrailArea].indoor;
+	std::set<char> industrialTiles;
+	if (cinderrailReady)
+		for (size_t row = 0; row < mWorldAreas[cinderrailArea].tiles.size(); ++row)
+			for (size_t column = 0; column < mWorldAreas[cinderrailArea].tiles[row].size(); ++column)
+				industrialTiles.insert(mWorldAreas[cinderrailArea].tiles[row][column]);
+	const std::string requiredTiles = "RXGIPV";
+	for (size_t i = 0; i < requiredTiles.size(); ++i)
+		cinderrailReady = cinderrailReady && industrialTiles.count(requiredTiles[i]) != 0;
+
+	int arrivalX = -1;
+	int arrivalY = -1;
+	int returnX = -1;
+	int returnY = -1;
+	for (size_t i = 0; i < mWorldPortals.size(); ++i)
+	{
+		const WorldPortal& portal = mWorldPortals[i];
+		if (portal.fromMap == "emberglen" && portal.toMap == "cinderrail")
+		{
+			arrivalX = portal.toX;
+			arrivalY = portal.toY;
+		}
+		else if (portal.fromMap == "cinderrail" && portal.toMap == "emberglen")
+		{
+			returnX = portal.fromX;
+			returnY = portal.fromY;
+		}
+	}
+	cinderrailReady = cinderrailReady && arrivalX >= 0 && returnX >= 0;
+	if (cinderrailReady)
+	{
+		mCurrentWorldArea = cinderrailArea;
+		mPlayerX = arrivalX;
+		mPlayerY = arrivalY;
+		mVisualX = (float)arrivalX;
+		mVisualY = (float)arrivalY;
+		std::set<std::pair<int, int> > reachable;
+		std::vector<std::pair<int, int> > frontier;
+		reachable.insert(std::make_pair(arrivalX, arrivalY));
+		frontier.push_back(std::make_pair(arrivalX, arrivalY));
+		const int dx[] = { 1, 0, -1, 0 };
+		const int dy[] = { 0, 1, 0, -1 };
+		for (size_t next = 0; next < frontier.size(); ++next)
+			for (int direction = 0; direction < 4; ++direction)
+			{
+				int x = frontier[next].first + dx[direction];
+				int y = frontier[next].second + dy[direction];
+				if (!isWalkable(x, y) || !reachable.insert(std::make_pair(x, y)).second) continue;
+				frontier.push_back(std::make_pair(x, y));
+			}
+		cinderrailReady = reachable.count(std::make_pair(returnX, returnY)) != 0;
+		const char* cinderrailNpcs[] = { "kipp", "ansa", "holt" };
+		for (size_t expected = 0; expected < 3; ++expected)
+		{
+			bool found = false;
+			for (size_t i = 0; i < mNpcs.size(); ++i)
+				if (mNpcs[i].id == cinderrailNpcs[expected])
+					found = mNpcs[i].mapId == "cinderrail" &&
+						reachable.count(std::make_pair(mNpcs[i].x, mNpcs[i].y)) != 0;
+			cinderrailReady = cinderrailReady && found;
+		}
+	}
+	mCurrentWorldArea = savedArea;
+	mPlayerX = savedPortalPlayerX;
+	mPlayerY = savedPortalPlayerY;
+	mVisualX = savedPortalVisualX;
+	mVisualY = savedPortalVisualY;
+	return playerInterpolated && npcInterpolated && enteredIndoor && returnedOutside &&
+		mercerIsIndoors && cinderrailReady;
 }
 
 bool Application::exerciseStorySmoke()

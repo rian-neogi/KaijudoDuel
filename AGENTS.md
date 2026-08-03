@@ -97,7 +97,9 @@ Builder must not enumerate the bundled gameplay and NPC decks under `Decks`.
   follows the player through maps larger than the 20-by-12-tile viewport.
   Outdoor tile characters are `.` (grass), `=` (path), `~` (water), `H`
   (house), `T` (tree), `#` (dense forest), `B` (bonfire), `A` (feast table),
-  `S` (walkable dueling sand), and `M` (marble).
+  `S` (walkable dueling sand), `M` (marble), `R` (rail), `X` (walkable rail
+  crossing), `G` (walkable metal grate), `I` (industrial brick), `P`
+  (machinery), and `V` (furnace).
   Indoor/wooden-building tiles are `W` (wood wall), `D` (door), `F` (wood
   floor), `C` (counter), and `E` (workshop tools). NPCs and shards require
   distinct walkable tiles.

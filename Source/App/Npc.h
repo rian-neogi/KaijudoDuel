@@ -23,7 +23,17 @@ enum class CharacterAppearance
 	Tidal,
 	Briar,
 	Mercer,
-	VeiledOne
+	VeiledOne,
+	Generic1,
+	Generic2,
+	Generic3,
+	Generic4,
+	Generic5,
+	Generic6,
+	Generic7,
+	Generic8,
+	Generic9,
+	Generic10
 };
 
 struct NpcReward

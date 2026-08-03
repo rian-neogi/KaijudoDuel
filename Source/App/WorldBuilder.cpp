@@ -27,15 +27,16 @@ namespace
 	const int BUILDER_LIST_ROW = 39;
 	const int BUILDER_LIST_ROWS = 13;
 	const char TILE_TYPES[] = { '.', '=', '~', 'H', 'T', '#', 'W', 'D', 'F', 'C',
-		'B', 'A', 'S', 'M', 'E' };
+		'B', 'A', 'S', 'M', 'E', 'R', 'X', 'G', 'I', 'P', 'V' };
 	const char* TILE_NAMES[] = { "Grass", "Path", "Water", "House", "Tree", "Forest",
 		"Wood Wall", "Door", "Wood Floor", "Counter", "Bonfire", "Feast Table",
-		"Duel Sand", "Marble", "Workshop Tools" };
+		"Duel Sand", "Marble", "Workshop Tools", "Rail", "Rail Crossing",
+		"Metal Grate", "Industrial Brick", "Machinery", "Furnace" };
 	const int TILE_TYPE_COUNT = sizeof(TILE_TYPES) / sizeof(TILE_TYPES[0]);
 
 	SDL_Rect paletteRect(int index)
 	{
-		return { 1022 + (index % 2) * 116, 151 + (index / 2) * 55, 108, 45 };
+		return { 1022 + (index % 2) * 116, 151 + (index / 2) * 47, 108, 39 };
 	}
 
 	void clampMapCamera(const std::vector<std::string>& map, int& cameraX, int& cameraY)
@@ -130,7 +131,8 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 	};
 	auto walkable = [](char tile)
 	{
-		return tile == '.' || tile == '=' || tile == 'F' || tile == 'D' || tile == 'S';
+		return tile == '.' || tile == '=' || tile == 'F' || tile == 'D' || tile == 'S' ||
+			tile == 'X' || tile == 'G';
 	};
 	auto inBounds = [](const WorldArea& area, int x, int y) -> bool
 	{
@@ -183,7 +185,7 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 			if (row == 1) columnCount = value.size();
 			if (columnCount == 0 || columnCount > WORLD_MAX_COLUMNS ||
 				value.size() != columnCount ||
-				value.find_first_not_of(".=~HT#WDFCBASME") != std::string::npos)
+				value.find_first_not_of(".=~HT#WDFCBASMERXGIPV") != std::string::npos)
 			{
 				error = "map '" + area.id + "' row " + std::to_string(row) +
 					" must match its first row and contain between 1 and " +
@@ -470,7 +472,8 @@ void Application::paintWorldBuilderTile(int x, int y)
 	std::vector<std::string>& map = currentMap();
 	if (y < 0 || y >= (int)map.size() || x < 0 || x >= (int)map[y].size()) return;
 	bool walkable = mWorldBuilderTile == '.' || mWorldBuilderTile == '=' ||
-		mWorldBuilderTile == 'F' || mWorldBuilderTile == 'D' || mWorldBuilderTile == 'S';
+		mWorldBuilderTile == 'F' || mWorldBuilderTile == 'D' || mWorldBuilderTile == 'S' ||
+		mWorldBuilderTile == 'X' || mWorldBuilderTile == 'G';
 	if (!walkable)
 	{
 		bool hasNpc = false;
@@ -534,7 +537,9 @@ bool Application::saveWorldBuilder(std::string& error)
 	world << "-- World Builder data. This file is entirely maintained by the World Builder.\n"
 		<< "-- Tile legend: . grass, = path, ~ water, H house, T tree, # forest,\n"
 		<< "-- W wooden wall, D door, F wooden floor, C counter, B bonfire,\n"
-		<< "-- A feast table, S dueling sand, M marble, E workshop tools.\n"
+		<< "-- A feast table, S dueling sand, M marble, E workshop tools,\n"
+		<< "-- R rail, X walkable rail crossing, G metal grate, I industrial brick,\n"
+		<< "-- P machinery, V furnace.\n"
 		<< "return {\n\tmaps = {\n";
 	for (size_t area = 0; area < mWorldAreas.size(); ++area)
 	{
@@ -769,6 +774,7 @@ void Application::renderWorldBuilder()
 	drawText(mWorldBuilderDirty ? "UNSAVED CHANGES" : "SAVED", 795, 19,
 		mWorldBuilderDirty ? color(244, 139, 88) : color(105, 218, 139), 14);
 	const std::vector<std::string>& map = currentMap();
+	const bool cinderrail = currentMapId() == "cinderrail";
 	int mapX = mapOriginX((int)map[0].size()) - mWorldBuilderCameraX * TILE;
 	int mapY = mapOriginY((int)map.size()) - mWorldBuilderCameraY * TILE;
 	SDL_Rect mapViewport = { MAP_X, MAP_Y, MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT };
@@ -779,24 +785,50 @@ void Application::renderWorldBuilder()
 		{
 			SDL_Rect tile = { mapX + (int)column * TILE, mapY + (int)row * TILE, TILE, TILE };
 			char type = map[row][column];
-			if (type == '=') fillRect(tile, 162, 132, 76);
+			if (type == '=') fillRect(tile, cinderrail ? 116 : 162,
+				cinderrail ? 91 : 132, cinderrail ? 58 : 76);
 			else if (type == '~') fillRect(tile, 25, 111, 157);
-			else if (type == 'H') fillRect(tile, 126, 65, 43);
-			else if (type == '#' || type == 'T') fillRect(tile, 26, 75, 33);
-			else if (type == 'S') fillRect(tile, 188, 151, 87);
+			else if (type == 'H') fillRect(tile, cinderrail ? 111 : 126,
+				cinderrail ? 55 : 65, cinderrail ? 39 : 43);
+			else if (type == '#' || type == 'T') fillRect(tile,
+				cinderrail && type == '#' ? 55 : 26,
+				cinderrail && type == '#' ? 45 : 75,
+				cinderrail && type == '#' ? 43 : 33);
+			else if (type == 'S') fillRect(tile, cinderrail ? 118 : 188,
+				cinderrail ? 72 : 151, cinderrail ? 48 : 87);
 			else if (type == 'M') fillRect(tile, 198, 204, 207);
 			else if (type == 'B') fillRect(tile, 83, 64, 42);
 			else if (type == 'A') fillRect(tile, 61, 139, 61);
 			else if (type == 'E') fillRect(tile, 137, 91, 49);
+			else if (type == 'R' || type == 'X') fillRect(tile,
+				type == 'X' ? 104 : 47, type == 'X' ? 83 : 45, type == 'X' ? 57 : 43);
+			else if (type == 'G') fillRect(tile, 73, 80, 86);
+			else if (type == 'I') fillRect(tile, 112, 49, 38);
+			else if (type == 'P') fillRect(tile, 63, 66, 67);
+			else if (type == 'V') fillRect(tile, 64, 47, 43);
 			else if (type == 'W' || type == 'D' || type == 'F' || type == 'C')
 				fillRect(tile, type == 'F' ? 137 : 91, type == 'F' ? 91 : 53, type == 'F' ? 49 : 31);
-			else fillRect(tile, 61, 139, 61);
+			else fillRect(tile, cinderrail ? 82 : 61, cinderrail ? 76 : 139,
+				cinderrail ? 59 : 61);
 			if (type == '~')
 				fillRect({ tile.x + 7, tile.y + 17, 28, 3 }, 92, 189, 210, 190);
+			else if (type == '#' && cinderrail)
+			{
+				fillRect({ tile.x + 3, tile.y + 5, 42, 38 }, 72, 58, 54);
+				fillRect({ tile.x + 7, tile.y + 11, 17, 4 }, 91, 70, 61);
+				fillRect({ tile.x + 27, tile.y + 25, 14, 4 }, 39, 35, 37);
+			}
 			else if (type == '#' || type == 'T')
 			{
 				fillRect({ tile.x + 19, tile.y + 27, 10, 18 }, 85, 48, 26);
 				fillRect({ tile.x + 6, tile.y + 5, 36, 30 }, 41, 116, 49);
+			}
+			else if (type == 'H' && cinderrail)
+			{
+				fillRect({ tile.x + 3, tile.y + 8, 42, 35 }, 139, 60, 43);
+				fillRect({ tile.x, tile.y + 5, 48, 8 }, 63, 56, 55);
+				fillRect({ tile.x + 7, tile.y + 17, 12, 10 }, 231, 177, 72);
+				fillRect({ tile.x + 27, tile.y + 18, 12, 25 }, 66, 55, 51);
 			}
 			else if (type == 'H')
 			{
@@ -863,6 +895,45 @@ void Application::renderWorldBuilder()
 				fillRect({ tile.x + 20, tile.y + 7, 6, 14 }, 151, 71, 183);
 				fillRect({ tile.x + 31, tile.y + 12, 8, 9 }, 217, 158, 48);
 			}
+			else if (type == 'R' || type == 'X')
+			{
+				for (int tie = 2; tie < 48; tie += 10)
+					fillRect({ tile.x + tie, tile.y + 5, 5, 38 },
+						type == 'X' ? 155 : 100, type == 'X' ? 112 : 73,
+						type == 'X' ? 55 : 48);
+				fillRect({ tile.x, tile.y + 9, 48, 5 }, 151, 158, 158);
+				fillRect({ tile.x, tile.y + 34, 48, 5 }, 151, 158, 158);
+			}
+			else if (type == 'G')
+			{
+				fillRect({ tile.x + 2, tile.y + 2, 44, 44 }, 88, 96, 101);
+				for (int grate = 7; grate < 44; grate += 9)
+					fillRect({ tile.x + grate, tile.y + 4, 3, 40 }, 45, 50, 54);
+				fillRect({ tile.x + 2, tile.y + 3, 44, 3 }, 222, 168, 57);
+			}
+			else if (type == 'I')
+			{
+				fillRect({ tile.x + 2, tile.y + 3, 44, 42 }, 135, 55, 40);
+				for (int brick = 10; brick < 43; brick += 11)
+					fillRect({ tile.x + 3, tile.y + brick, 42, 2 }, 73, 39, 37);
+				fillRect({ tile.x, tile.y, 48, 7 }, 58, 55, 55);
+			}
+			else if (type == 'P')
+			{
+				fillRect({ tile.x + 5, tile.y + 6, 38, 37 }, 82, 88, 89);
+				fillRect({ tile.x + 8, tile.y + 10, 32, 6 }, 176, 75, 43);
+				fillRect({ tile.x + 21, tile.y + 16, 8, 23 }, 169, 178, 175);
+				fillRect({ tile.x + 14, tile.y + 23, 22, 8 }, 169, 178, 175);
+			}
+			else if (type == 'V')
+			{
+				fillRect({ tile.x + 5, tile.y + 3, 38, 43 }, 69, 55, 52);
+				fillRect({ tile.x + 11, tile.y + 20, 26, 22 }, 34, 29, 29);
+				fillRect({ tile.x + 14, tile.y + 28, 20, 12 }, 235, 71, 29);
+				fillRect({ tile.x + 19, tile.y + 24, 10, 15 }, 255, 177, 48);
+			}
+			if (cinderrail && type == '=')
+				fillRect({ tile.x, tile.y + 4, 48, 3 }, 190, 145, 55);
 			outlineRect(tile, 10, 20, 27, 100, 1);
 		}
 	}
@@ -933,8 +1004,8 @@ void Application::renderWorldBuilder()
 			drawText((i < 9 ? std::to_string(i + 1) + "  " : "   ") + TILE_NAMES[i], button.x + 9,
 				button.y + 15, color(236, 239, 246), 13);
 		}
-		drawText("Click and drag across the map to paint.", 1022, 605,
-			color(179, 195, 218), 13, 220);
+			drawText("Click or drag to paint.", 1022, 678,
+				color(179, 195, 218), 13, 220);
 	}
 	else
 	{

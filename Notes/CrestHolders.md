@@ -220,7 +220,7 @@ Her AI should evaluate the board-wide value of reaching or preserving the Wave S
 
 ### Hollow-story role
 
-The Curator's blank signal appears at Stormbreak as false weather: copied resonance patterns predict storms that never arrive while concealing the dangerous ones. Tamsin initially treats the failures as a navigation problem. She joins the Hollow investigation after discovering that the false forecasts are reconstructed from the final journeys of missing couriers.
+The Curator's blank signal appears at Stormbreak as false weather: copied resonance patterns predict storms that never arrive while concealing the dangerous ones. Natasha initially treats the failures as a navigation problem. She joins the Hollow investigation after discovering that the false forecasts are reconstructed from the final journeys of missing couriers.
 
 Her route can be completed before or after the Ashvault and Mirror Arena. Each completed late route contributes a different way into the Hollow Archive, but none is presented as the canonical first choice.
 
@@ -352,7 +352,7 @@ The holders should teach increasingly demanding skills:
 3. **Brassa:** Sequencing and evolution preparation
 4. **Oren:** Mana planning and choosing between win conditions
 5. **Kestrel:** Mixed-civilization consistency
-6. **Tamsin:** Formation thresholds and changing card value
+6. **Natasha:** Formation thresholds and changing card value
 7. **Vey:** Graveyard value and deliberate sacrifice
 8. **Sable:** Matchup adaptation
 9. **Caelum:** Long-term planning across all five civilizations

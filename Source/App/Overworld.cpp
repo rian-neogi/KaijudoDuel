@@ -162,7 +162,8 @@ bool Application::isWalkable(int x, int y) const
 	const std::vector<std::string>& map = currentMap();
 	if (y < 0 || y >= (int)map.size() || x < 0 || x >= (int)map[y].size()) return false;
 	char tile = map[y][x];
-	return tile == '.' || tile == '=' || tile == 'F' || tile == 'D' || tile == 'S';
+	return tile == '.' || tile == '=' || tile == 'F' || tile == 'D' || tile == 'S' ||
+		tile == 'X' || tile == 'G';
 }
 
 int Application::npcAt(int x, int y, int ignoredNpc) const
@@ -305,6 +306,7 @@ void Application::renderOverworld()
 	ensurePlayerDataLoaded();
 	fillRect({ 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT }, 13, 21, 34);
 	const std::vector<std::string>& map = currentMap();
+	const bool cinderrail = currentMapId() == "cinderrail";
 	int mapX = mapOriginX((int)map[0].size()) -
 		(int)std::round(overworldCameraX() * TILE);
 	int mapY = mapOriginY((int)map.size()) -
@@ -317,28 +319,56 @@ void Application::renderOverworld()
 		{
 			SDL_Rect tileRect = { mapX + (int)x * TILE, mapY + (int)y * TILE, TILE, TILE };
 			char tile = map[y][x];
-			if (tile == '=') fillRect(tileRect, 162, 132, 76);
+			if (tile == '=') fillRect(tileRect, cinderrail ? 116 : 162,
+				cinderrail ? 91 : 132, cinderrail ? 58 : 76);
 			else if (tile == '~') fillRect(tileRect, 25, 111, 157);
-			else if (tile == 'H') fillRect(tileRect, 126, 65, 43);
-			else if (tile == '#' || tile == 'T') fillRect(tileRect, 26, 75, 33);
-			else if (tile == 'S') fillRect(tileRect, 188, 151, 87);
+			else if (tile == 'H') fillRect(tileRect, cinderrail ? 111 : 126,
+				cinderrail ? 55 : 65, cinderrail ? 39 : 43);
+			else if (tile == '#' || tile == 'T') fillRect(tileRect,
+				cinderrail && tile == '#' ? 55 : 26,
+				cinderrail && tile == '#' ? 45 : 75,
+				cinderrail && tile == '#' ? 43 : 33);
+			else if (tile == 'S') fillRect(tileRect, cinderrail ? 118 : 188,
+				cinderrail ? 72 : 151, cinderrail ? 48 : 87);
 			else if (tile == 'M') fillRect(tileRect, 198, 204, 207);
 			else if (tile == 'B') fillRect(tileRect, 83, 64, 42);
 			else if (tile == 'A') fillRect(tileRect, 61, 139, 61);
 			else if (tile == 'E') fillRect(tileRect, 137, 91, 49);
+			else if (tile == 'R' || tile == 'X') fillRect(tileRect,
+				tile == 'X' ? 104 : 47, tile == 'X' ? 83 : 45, tile == 'X' ? 57 : 43);
+			else if (tile == 'G') fillRect(tileRect, 73, 80, 86);
+			else if (tile == 'I') fillRect(tileRect, 112, 49, 38);
+			else if (tile == 'P') fillRect(tileRect, 63, 66, 67);
+			else if (tile == 'V') fillRect(tileRect, 64, 47, 43);
 			else if (tile == 'W' || tile == 'D' || tile == 'F' || tile == 'C')
 				fillRect(tileRect, tile == 'F' ? 137 : 91, tile == 'F' ? 91 : 53, tile == 'F' ? 49 : 31);
-			else fillRect(tileRect, 61, 139, 61);
+			else fillRect(tileRect, cinderrail ? 82 : 61, cinderrail ? 76 : 139,
+				cinderrail ? 59 : 61);
 
 			if (tile == '~')
 			{
 				int wave = (int)((SDL_GetTicks() / 180 + x * 5 + y * 3) % 24);
 				fillRect({ tileRect.x + 7, tileRect.y + 10 + wave / 3, 28, 3 }, 92, 189, 210, 190);
 			}
+			else if (tile == '#' && cinderrail)
+			{
+				fillRect({ tileRect.x + 3, tileRect.y + 5, 42, 38 }, 72, 58, 54);
+				fillRect({ tileRect.x + 7, tileRect.y + 11, 17, 4 }, 91, 70, 61);
+				fillRect({ tileRect.x + 27, tileRect.y + 25, 14, 4 }, 39, 35, 37);
+				fillRect({ tileRect.x + 18, tileRect.y + 15, 4, 13 }, 45, 39, 40);
+			}
 			else if (tile == '#' || tile == 'T')
 			{
 				fillRect({ tileRect.x + 19, tileRect.y + 27, 10, 18 }, 85, 48, 26);
 				fillRect({ tileRect.x + 6, tileRect.y + 5, 36, 30 }, 41, 116, 49);
+			}
+			else if (tile == 'H' && cinderrail)
+			{
+				fillRect({ tileRect.x + 3, tileRect.y + 8, 42, 35 }, 139, 60, 43);
+				fillRect({ tileRect.x, tileRect.y + 5, 48, 8 }, 63, 56, 55);
+				fillRect({ tileRect.x + 7, tileRect.y + 17, 12, 10 }, 231, 177, 72);
+				fillRect({ tileRect.x + 27, tileRect.y + 18, 12, 25 }, 66, 55, 51);
+				fillRect({ tileRect.x + 30, tileRect.y + 22, 5, 8 }, 222, 143, 56);
 			}
 			else if (tile == 'H')
 			{
@@ -377,10 +407,17 @@ void Application::renderOverworld()
 						open = std::min(1.f, (SDL_GetTicks() - mPortalAnimationStarted) /
 							(float)DOOR_OPEN_DURATION);
 				}
-				fillRect({ tileRect.x + 7, tileRect.y + 2, 34, 46 }, 104, 57, 31);
+				fillRect({ tileRect.x + 7, tileRect.y + 2, 34, 46 },
+					cinderrail ? 75 : 104, cinderrail ? 71 : 57, cinderrail ? 68 : 31);
 				fillRect({ tileRect.x + 11, tileRect.y + 6, 26, 38 }, 24, 20, 19);
 				int doorWidth = std::max(2, (int)std::round(26.f * (1.f - open)));
-				fillRect({ tileRect.x + 11, tileRect.y + 6, doorWidth, 38 }, 139, 78, 39);
+				fillRect({ tileRect.x + 11, tileRect.y + 6, doorWidth, 38 },
+					cinderrail ? 107 : 139, cinderrail ? 111 : 78, cinderrail ? 112 : 39);
+				if (cinderrail && doorWidth > 6)
+				{
+					fillRect({ tileRect.x + 13, tileRect.y + 10, doorWidth - 4, 4 }, 164, 65, 42);
+					fillRect({ tileRect.x + 13, tileRect.y + 34, doorWidth - 4, 3 }, 224, 169, 61);
+				}
 				if (doorWidth >= 8)
 					fillRect({ tileRect.x + 11 + doorWidth - 7, tileRect.y + 24, 4, 4 },
 						231, 184, 73);
@@ -427,8 +464,17 @@ void Application::renderOverworld()
 			}
 			else if (tile == 'S')
 			{
-				fillRect({ tileRect.x + 7, tileRect.y + 10, 5, 3 }, 157, 121, 69);
-				fillRect({ tileRect.x + 34, tileRect.y + 31, 6, 3 }, 211, 177, 109);
+				if (cinderrail)
+				{
+					fillRect({ tileRect.x + 3, tileRect.y + 3, 42, 42 }, 132, 76, 48);
+					fillRect({ tileRect.x + 3, tileRect.y + 5, 42, 3 }, 225, 178, 71);
+					fillRect({ tileRect.x + 22, tileRect.y + 8, 3, 35 }, 91, 49, 40);
+				}
+				else
+				{
+					fillRect({ tileRect.x + 7, tileRect.y + 10, 5, 3 }, 157, 121, 69);
+					fillRect({ tileRect.x + 34, tileRect.y + 31, 6, 3 }, 211, 177, 109);
+				}
 			}
 			else if (tile == 'M')
 			{
@@ -445,9 +491,111 @@ void Application::renderOverworld()
 				fillRect({ tileRect.x + 20, tileRect.y + 7, 6, 14 }, 151, 71, 183);
 				fillRect({ tileRect.x + 31, tileRect.y + 12, 8, 9 }, 217, 158, 48);
 			}
+			else if (tile == 'R' || tile == 'X')
+			{
+				for (int tie = 2; tie < 48; tie += 10)
+					fillRect({ tileRect.x + tie, tileRect.y + 5, 5, 38 },
+						tile == 'X' ? 155 : 100, tile == 'X' ? 112 : 73,
+						tile == 'X' ? 55 : 48);
+				fillRect({ tileRect.x, tileRect.y + 9, 48, 5 }, 151, 158, 158);
+				fillRect({ tileRect.x, tileRect.y + 34, 48, 5 }, 151, 158, 158);
+				fillRect({ tileRect.x, tileRect.y + 11, 48, 2 }, 221, 225, 220);
+				fillRect({ tileRect.x, tileRect.y + 36, 48, 2 }, 221, 225, 220);
+				if (tile == 'X')
+					for (int plate = 3; plate < 48; plate += 9)
+						fillRect({ tileRect.x + plate, tileRect.y + 16, 6, 15 }, 186, 151, 72);
+			}
+			else if (tile == 'G')
+			{
+				fillRect({ tileRect.x + 2, tileRect.y + 2, 44, 44 }, 88, 96, 101);
+				for (int grate = 7; grate < 44; grate += 9)
+					fillRect({ tileRect.x + grate, tileRect.y + 4, 3, 40 }, 45, 50, 54);
+				fillRect({ tileRect.x + 2, tileRect.y + 3, 44, 3 }, 222, 168, 57);
+				fillRect({ tileRect.x + 5, tileRect.y + 8, 4, 4 }, 196, 204, 202);
+				fillRect({ tileRect.x + 39, tileRect.y + 36, 4, 4 }, 196, 204, 202);
+			}
+			else if (tile == 'I')
+			{
+				fillRect({ tileRect.x + 2, tileRect.y + 3, 44, 42 }, 135, 55, 40);
+				for (int brick = 10; brick < 43; brick += 11)
+					fillRect({ tileRect.x + 3, tileRect.y + brick, 42, 2 }, 73, 39, 37);
+				fillRect({ tileRect.x + 23, tileRect.y + 4, 2, 8 }, 75, 40, 37);
+				fillRect({ tileRect.x + 12, tileRect.y + 14, 2, 7 }, 75, 40, 37);
+				fillRect({ tileRect.x + 34, tileRect.y + 25, 2, 7 }, 75, 40, 37);
+				if (y == 0 || map[y - 1][x] != 'I')
+				{
+					fillRect({ tileRect.x, tileRect.y, 48, 7 }, 58, 55, 55);
+					fillRect({ tileRect.x + 4, tileRect.y + 7, 10, 5 }, 191, 88, 49);
+					fillRect({ tileRect.x + 26, tileRect.y + 7, 10, 5 }, 191, 88, 49);
+				}
+				if ((x + y) % 3 == 0)
+					fillRect({ tileRect.x + 8, tileRect.y + 18, 13, 11 }, 225, 173, 69);
+			}
+			else if (tile == 'P')
+			{
+				fillRect({ tileRect.x + 5, tileRect.y + 6, 38, 37 }, 82, 88, 89);
+				fillRect({ tileRect.x + 8, tileRect.y + 10, 32, 6 }, 176, 75, 43);
+				fillRect({ tileRect.x + 21, tileRect.y + 16, 8, 23 }, 169, 178, 175);
+				fillRect({ tileRect.x + 14, tileRect.y + 23, 22, 8 }, 169, 178, 175);
+				int pulse = (SDL_GetTicks() / 240 + x + y) % 2 == 0 ? 0 : 3;
+				fillRect({ tileRect.x + 12 + pulse, tileRect.y + 34, 7, 5 }, 235, 174, 54);
+				fillRect({ tileRect.x + 32 - pulse, tileRect.y + 20, 5, 5 }, 97, 213, 182);
+			}
+			else if (tile == 'V')
+			{
+				fillRect({ tileRect.x + 5, tileRect.y + 3, 38, 43 }, 69, 55, 52);
+				fillRect({ tileRect.x + 9, tileRect.y, 30, 8 }, 105, 89, 81);
+				fillRect({ tileRect.x + 11, tileRect.y + 20, 26, 22 }, 34, 29, 29);
+				int flicker = (int)((SDL_GetTicks() / 105 + x * 3 + y) % 4);
+				fillRect({ tileRect.x + 14, tileRect.y + 29 - flicker, 20, 11 + flicker },
+					235, 71, 29);
+				fillRect({ tileRect.x + 19, tileRect.y + 24 + flicker, 10, 15 - flicker },
+					255, 177, 48);
+				fillRect({ tileRect.x + 8, tileRect.y + 12, 32, 4 }, 203, 175, 106);
+			}
 			else if (tile == '.')
-				fillRect({ tileRect.x + 7, tileRect.y + 34, 3, 8 }, 111, 180, 64);
+			{
+				if (cinderrail)
+				{
+					fillRect({ tileRect.x + 7, tileRect.y + 35, 5, 3 }, 117, 94, 61);
+					fillRect({ tileRect.x + 32, tileRect.y + 13, 3, 3 }, 58, 57, 52);
+				}
+				else fillRect({ tileRect.x + 7, tileRect.y + 34, 3, 8 }, 111, 180, 64);
+			}
+			if (cinderrail && tile == '=')
+			{
+				SDL_Color route = color(190, 145, 55);
+				if ((y == 25 || y == 26) && x <= 25) route = color(88, 170, 93);
+				else if (y >= 32 && x >= 15 && x <= 33) route = color(141, 91, 177);
+				else if (x >= 45 && y >= 15 && y <= 21) route = color(222, 225, 216);
+				bool verticalRoute = (x == 25 || x == 26) && y != 10 && y != 11 &&
+					y != 16 && y != 17 && y != 25 && y != 26 && y != 34;
+				if (verticalRoute)
+					fillRect({ tileRect.x + 4, tileRect.y, 3, 48 }, route.r, route.g, route.b);
+				else fillRect({ tileRect.x, tileRect.y + 4, 48, 3 }, route.r, route.g, route.b);
+				fillRect({ tileRect.x + 8, tileRect.y + 26, 5, 5 }, 74, 66, 57);
+				fillRect({ tileRect.x + 36, tileRect.y + 14, 4, 4 }, 205, 174, 104);
+			}
 		}
+	}
+	if (cinderrail)
+	{
+		int stationX = mapX + 8 * TILE;
+		int stationY = mapY + TILE;
+		fillRect({ stationX + 8, stationY, 80, 102 }, 116, 50, 39);
+		fillRect({ stationX + 3, stationY, 90, 9 }, 55, 54, 56);
+		fillRect({ stationX + 28, stationY + 17, 39, 39 }, 44, 42, 43);
+		fillRect({ stationX + 33, stationY + 22, 29, 29 }, 223, 207, 159);
+		fillRect({ stationX + 46, stationY + 25, 3, 13 }, 61, 56, 52);
+		fillRect({ stationX + 47, stationY + 36, 10, 3 }, 61, 56, 52);
+		drawText("CENTRAL STATION", mapX + 4 * TILE, mapY + 4 * TILE + 14,
+			color(250, 211, 104), 12, 9 * TILE);
+		drawText("FORGE SQUARE", mapX + 21 * TILE, mapY + 13 * TILE + 12,
+			color(244, 207, 92), 12, 9 * TILE);
+		drawText("FOUNDRY HALL", mapX + 42 * TILE, mapY + 13 * TILE + 12,
+			color(248, 205, 102), 12, 8 * TILE);
+		drawText("FORGE ARENA", mapX + 42 * TILE, mapY + 23 * TILE + 12,
+			color(255, 219, 137), 12, 8 * TILE);
 	}
 
 	for (size_t i = 0; i < mNpcs.size(); ++i)
@@ -558,9 +706,23 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 	fillRect({ x + 9, y + 39, 31, 6 }, 8, 14, 18, 100);
 	y += bob;
 
+	const int appearanceValue = static_cast<int>(appearance);
+	const int genericFirst = static_cast<int>(CharacterAppearance::Generic1);
+	const int genericVariant = appearanceValue >= genericFirst &&
+		appearanceValue <= static_cast<int>(CharacterAppearance::Generic10) ?
+		appearanceValue - genericFirst : -1;
 	SDL_Color trousers = color(31, 38, 53);
 	SDL_Color shoes = color(17, 22, 31);
-	if (appearance == CharacterAppearance::Rook || appearance == CharacterAppearance::Briar)
+	if (genericVariant >= 0)
+	{
+		const SDL_Color genericTrousers[10] = {
+			color(35, 48, 77), color(48, 67, 43), color(88, 58, 34), color(48, 37, 70),
+			color(30, 70, 82), color(91, 74, 42), color(65, 37, 35), color(38, 42, 49),
+			color(75, 43, 66), color(38, 55, 84)
+		};
+		trousers = genericTrousers[genericVariant];
+	}
+	else if (appearance == CharacterAppearance::Rook || appearance == CharacterAppearance::Briar)
 		trousers = color(60, 56, 37);
 	else if (appearance == CharacterAppearance::Aurelia)
 		trousers = color(184, 167, 112);
@@ -702,6 +864,129 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 		block(29, 13, 2, 2, color(44, 40, 25));
 		block(23, 28, 5, 6, color(157, 110, 48));
 		break;
+
+	case CharacterAppearance::Generic1:
+	case CharacterAppearance::Generic2:
+	case CharacterAppearance::Generic3:
+	case CharacterAppearance::Generic4:
+	case CharacterAppearance::Generic5:
+	case CharacterAppearance::Generic6:
+	case CharacterAppearance::Generic7:
+	case CharacterAppearance::Generic8:
+	case CharacterAppearance::Generic9:
+	case CharacterAppearance::Generic10:
+	{
+		const SDL_Color outfits[10] = {
+			color(42, 86, 166), color(59, 119, 70), color(190, 104, 43), color(109, 63, 145),
+			color(34, 128, 145), color(226, 205, 112), color(174, 55, 45), color(65, 72, 83),
+			color(187, 69, 132), color(63, 103, 176)
+		};
+		const SDL_Color accents[10] = {
+			color(225, 68, 54), color(151, 199, 92), color(246, 178, 64), color(208, 139, 231),
+			color(93, 207, 204), color(247, 238, 185), color(247, 113, 61), color(151, 165, 180),
+			color(244, 148, 190), color(157, 201, 244)
+		};
+		const SDL_Color hairColors[10] = {
+			color(73, 44, 28), color(47, 67, 38), color(189, 83, 31), color(67, 40, 78),
+			color(32, 78, 101), color(226, 186, 81), color(40, 30, 28), color(47, 48, 54),
+			color(129, 58, 93), color(213, 220, 229)
+		};
+		const SDL_Color skinTones[10] = {
+			skin, skin, color(220, 159, 103), color(238, 188, 150), skinShadow,
+			color(235, 188, 142), color(139, 88, 65), color(201, 148, 111),
+			color(240, 190, 153), color(217, 166, 130)
+		};
+		const SDL_Color outfit = outfits[genericVariant];
+		const SDL_Color accent = accents[genericVariant];
+		const SDL_Color hair = hairColors[genericVariant];
+		const SDL_Color genericSkin = skinTones[genericVariant];
+		const bool broad = genericVariant == 2 || genericVariant == 6 || genericVariant == 7;
+		block(broad ? 9 : 11, 18, broad ? 32 : 28, 22, outline);
+		block(broad ? 11 : 13, 20, broad ? 28 : 24, 19, outfit);
+		block(broad ? 8 : 10, 21, 7, 8, broad && genericVariant == 6 ? genericSkin : outfit);
+		block(broad ? 36 : 35, 21, 7, 8, broad && genericVariant == 6 ? genericSkin : outfit);
+		block(14, 29, 23, 4, accent);
+		block(18, 7, 15, 15, genericSkin);
+		block(29, 13, 2, 2, color(43, 35, 31));
+
+		switch (genericVariant)
+		{
+		case 0: // cap and short jacket
+			block(15, 4, 21, 7, hair);
+			block(13, 2, 24, 6, accent);
+			block(31, 7, 10, 3, accent);
+			block(20, 22, 4, 15, color(224, 224, 215));
+			break;
+		case 1: // hood and long side locks
+			block(13, 3, 24, 8, hair);
+			block(13, 9, 5, 17, hair);
+			block(33, 9, 5, 17, hair);
+			block(15, 2, 20, 4, accent);
+			block(17, 20, 17, 5, color(38, 77, 49));
+			break;
+		case 2: // spiked hair and utility vest
+			block(14, 5, 23, 7, hair);
+			block(14, 1, 5, 7, hair);
+			block(22, 0, 5, 8, hair);
+			block(31, 2, 6, 7, hair);
+			block(12, 20, 5, 17, accent);
+			block(34, 20, 5, 17, accent);
+			break;
+		case 3: // bob cut and square glasses
+			block(14, 3, 23, 9, hair);
+			block(14, 9, 5, 15, hair);
+			block(33, 9, 5, 15, hair);
+			block(17, 11, 8, 5, color(32, 34, 45));
+			block(28, 11, 8, 5, color(32, 34, 45));
+			block(24, 12, 5, 2, color(32, 34, 45));
+			break;
+		case 4: // bandanna with trailing knot
+			block(14, 5, 23, 7, hair);
+			block(13, 4, 25, 4, accent);
+			block(36, 6, 7, 5, accent);
+			block(39, 10, 5, 8, accent);
+			block(20, 20, 12, 4, color(221, 231, 217));
+			break;
+		case 5: // high ponytail and bright collar
+			block(14, 4, 23, 8, hair);
+			block(34, 1, 7, 8, hair);
+			block(39, 5, 5, 13, hair);
+			block(12, 20, 27, 5, accent);
+			block(23, 25, 6, 9, color(198, 156, 55));
+			break;
+		case 6: // athletic headband and wrist guards
+			block(14, 4, 23, 8, hair);
+			block(13, 7, 25, 4, accent);
+			block(8, 26, 8, 4, color(83, 31, 30));
+			block(36, 26, 8, 4, color(83, 31, 30));
+			block(17, 20, 17, 5, color(112, 35, 33));
+			break;
+		case 7: // beanie, scarf, and long coat
+			block(14, 5, 23, 7, hair);
+			block(13, 1, 25, 8, accent);
+			block(16, 0, 19, 3, accent);
+			block(11, 20, 29, 7, color(48, 54, 65));
+			block(14, 25, 24, 5, accent);
+			break;
+		case 8: // twin tails
+			block(14, 4, 23, 8, hair);
+			block(9, 6, 8, 14, hair);
+			block(35, 6, 8, 14, hair);
+			block(8, 5, 7, 5, accent);
+			block(38, 5, 7, 5, accent);
+			block(21, 21, 10, 5, color(238, 202, 219));
+			break;
+		case 9: // swept pale hair and shoulder satchel
+			block(13, 4, 24, 8, hair);
+			block(12, 2, 9, 6, hair);
+			block(31, 1, 8, 7, hair);
+			block(34, 9, 5, 11, hair);
+			block(15, 20, 5, 18, accent);
+			block(35, 27, 8, 11, color(120, 76, 42));
+			break;
+		}
+		break;
+	}
 
 	case CharacterAppearance::Mercer:
 		block(10, 18, 30, 22, outline);
