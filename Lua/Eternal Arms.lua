@@ -1809,7 +1809,7 @@ Cards["Soulswap"] = {
 				end
 				return 0
 			end
-			local ch=createChoice("Choose a non-evolution creature from that mana zone",0,id,player,valid)
+			local ch=createChoice("Choose a non-evolution creature from that mana zone",0,id,getCardOwner(id),valid)
 			if(ch>=0) then
 				moveCard(ch,ZONE_BATTLE)
 			end
