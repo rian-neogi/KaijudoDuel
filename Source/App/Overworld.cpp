@@ -163,7 +163,7 @@ bool Application::isWalkable(int x, int y) const
 	if (y < 0 || y >= (int)map.size() || x < 0 || x >= (int)map[y].size()) return false;
 	char tile = map[y][x];
 	return tile == '.' || tile == '=' || tile == 'F' || tile == 'D' || tile == 'S' ||
-		tile == 'X' || tile == 'G';
+		tile == 'X' || tile == 'G' || tile == 'U';
 }
 
 int Application::npcAt(int x, int y, int ignoredNpc) const
@@ -307,6 +307,7 @@ void Application::renderOverworld()
 	fillRect({ 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT }, 13, 21, 34);
 	const std::vector<std::string>& map = currentMap();
 	const bool cinderrail = currentMapId() == "cinderrail";
+	const bool oldRoad = currentMapId() == "old_road";
 	int mapX = mapOriginX((int)map[0].size()) -
 		(int)std::round(overworldCameraX() * TILE);
 	int mapY = mapOriginY((int)map.size()) -
@@ -319,8 +320,8 @@ void Application::renderOverworld()
 		{
 			SDL_Rect tileRect = { mapX + (int)x * TILE, mapY + (int)y * TILE, TILE, TILE };
 			char tile = map[y][x];
-			if (tile == '=') fillRect(tileRect, cinderrail ? 116 : 162,
-				cinderrail ? 91 : 132, cinderrail ? 58 : 76);
+			if (tile == '=') fillRect(tileRect, oldRoad ? 124 : (cinderrail ? 116 : 162),
+				oldRoad ? 112 : (cinderrail ? 91 : 132), oldRoad ? 88 : (cinderrail ? 58 : 76));
 			else if (tile == '~') fillRect(tileRect, 25, 111, 157);
 			else if (tile == 'H') fillRect(tileRect, cinderrail ? 111 : 126,
 				cinderrail ? 55 : 65, cinderrail ? 39 : 43);
@@ -330,7 +331,9 @@ void Application::renderOverworld()
 				cinderrail && tile == '#' ? 43 : 33);
 			else if (tile == 'S') fillRect(tileRect, cinderrail ? 118 : 188,
 				cinderrail ? 72 : 151, cinderrail ? 48 : 87);
-			else if (tile == 'M') fillRect(tileRect, 198, 204, 207);
+			else if (tile == 'M') fillRect(tileRect, oldRoad ? 79 : 198,
+				oldRoad ? 72 : 204, oldRoad ? 65 : 207);
+			else if (tile == 'Q') fillRect(tileRect, 201, 196, 177);
 			else if (tile == 'B') fillRect(tileRect, 83, 64, 42);
 			else if (tile == 'A') fillRect(tileRect, 61, 139, 61);
 			else if (tile == 'E') fillRect(tileRect, 137, 91, 49);
@@ -340,6 +343,10 @@ void Application::renderOverworld()
 			else if (tile == 'I') fillRect(tileRect, 112, 49, 38);
 			else if (tile == 'P') fillRect(tileRect, 63, 66, 67);
 			else if (tile == 'V') fillRect(tileRect, 64, 47, 43);
+			else if (tile == 'K') fillRect(tileRect, 91, 48, 37);
+			else if (tile == 'J') fillRect(tileRect, 67, 68, 70);
+			else if (tile == 'U') fillRect(tileRect, 31, 99, 132);
+			else if (tile == 'O') fillRect(tileRect, 73, 65, 59);
 			else if (tile == 'W' || tile == 'D' || tile == 'F' || tile == 'C')
 				fillRect(tileRect, tile == 'F' ? 137 : 91, tile == 'F' ? 91 : 53, tile == 'F' ? 49 : 31);
 			else fillRect(tileRect, cinderrail ? 82 : 61, cinderrail ? 76 : 139,
@@ -375,6 +382,66 @@ void Application::renderOverworld()
 				fillRect({ tileRect.x + 3, tileRect.y + 4, 42, 16 }, 186, 76, 46);
 				fillRect({ tileRect.x + 18, tileRect.y + 23, 13, 25 }, 54, 31, 24);
 			}
+			else if (tile == 'U')
+			{
+				fillRect({ tileRect.x, tileRect.y + 6, 48, 36 }, 31, 99, 132);
+				int current = (int)((SDL_GetTicks() / 190 + x * 2 + y) % 13);
+				fillRect({ tileRect.x + 4 + current, tileRect.y + 18, 20, 3 }, 92, 176, 190);
+				for (int plank = 0; plank < 48; plank += 9)
+				{
+					fillRect({ tileRect.x + plank, tileRect.y + 8, 8, 32 }, 129, 82, 45);
+					fillRect({ tileRect.x + plank + 1, tileRect.y + 10, 6, 3 }, 172, 117, 62);
+				}
+				fillRect({ tileRect.x, tileRect.y + 5, 48, 5 }, 66, 45, 32);
+				fillRect({ tileRect.x, tileRect.y + 39, 48, 5 }, 66, 45, 32);
+				fillRect({ tileRect.x, tileRect.y + 7, 48, 2 }, 218, 169, 83);
+			}
+			else if (tile == 'O')
+			{
+				fillRect({ tileRect.x + 2, tileRect.y + 3, 44, 42 }, 91, 80, 69);
+				fillRect({ tileRect.x + 5, tileRect.y + 8, 19, 8 }, 116, 99, 78);
+				fillRect({ tileRect.x + 27, tileRect.y + 18, 15, 9 }, 58, 55, 54);
+				fillRect({ tileRect.x + 10, tileRect.y + 27, 24, 4 }, 66, 60, 56);
+				fillRect({ tileRect.x + 20, tileRect.y + 14, 3, 14 }, 54, 51, 50);
+				fillRect({ tileRect.x + 33, tileRect.y + 7, 7, 3 }, 143, 118, 84);
+			}
+			else if (tile == 'K')
+			{
+				fillRect({ tileRect.x, tileRect.y + 3, 48, 42 }, 111, 56, 40);
+				fillRect({ tileRect.x, tileRect.y + 2, 48, 7 }, 63, 39, 34);
+				for (int shingle = 0; shingle < 4; ++shingle)
+				{
+					int shingleY = tileRect.y + 11 + shingle * 9;
+					fillRect({ tileRect.x, shingleY, 48, 3 }, 67, 38, 33);
+					int offset = shingle % 2 == 0 ? 5 : 13;
+					for (int seam = offset; seam < 48; seam += 17)
+						fillRect({ tileRect.x + seam, shingleY - 6, 2, 6 }, 79, 42, 34);
+				}
+				fillRect({ tileRect.x, tileRect.y + 42, 48, 5 }, 50, 34, 31);
+				if (x == 0 || map[y][x - 1] != 'K')
+					fillRect({ tileRect.x, tileRect.y + 4, 4, 41 }, 48, 33, 30);
+				if (x + 1 >= map[y].size() || map[y][x + 1] != 'K')
+					fillRect({ tileRect.x + 44, tileRect.y + 4, 4, 41 }, 48, 33, 30);
+			}
+			else if (tile == 'Q')
+			{
+				fillRect({ tileRect.x + 1, tileRect.y + 3, 46, 42 }, 216, 213, 199);
+				fillRect({ tileRect.x + 1, tileRect.y + 3, 46, 6 }, 244, 241, 222);
+				for (int course = 0; course < 4; ++course)
+				{
+					int courseY = tileRect.y + 11 + course * 9;
+					fillRect({ tileRect.x + 2, courseY, 44, 2 }, 157, 164, 164);
+					int offset = course % 2 == 0 ? 8 : 18;
+					for (int seam = offset; seam < 48; seam += 20)
+						fillRect({ tileRect.x + seam, courseY - 7, 2, 7 }, 181, 185, 179);
+				}
+				fillRect({ tileRect.x, tileRect.y + 42, 48, 5 }, 174, 139, 67);
+				fillRect({ tileRect.x, tileRect.y + 42, 48, 2 }, 238, 207, 117);
+				if (x == 0 || map[y][x - 1] != 'Q')
+					fillRect({ tileRect.x, tileRect.y + 4, 4, 41 }, 139, 142, 139);
+				if (x + 1 >= map[y].size() || map[y][x + 1] != 'Q')
+					fillRect({ tileRect.x + 44, tileRect.y + 4, 4, 41 }, 139, 142, 139);
+			}
 			else if (tile == 'W')
 			{
 				fillRect({ tileRect.x + 2, tileRect.y + 3, 44, 42 }, 124, 72, 38);
@@ -382,13 +449,6 @@ void Application::renderOverworld()
 					fillRect({ tileRect.x + 3, tileRect.y + 8 + plank * 10, 42, 2 }, 76, 42, 27);
 				fillRect({ tileRect.x + 5, tileRect.y + 2, 5, 46 }, 67, 38, 26);
 				fillRect({ tileRect.x + 38, tileRect.y + 2, 5, 46 }, 67, 38, 26);
-				if (!mWorldAreas[mCurrentWorldArea].indoor &&
-					(y == 0 || (map[y - 1][x] != 'W' && map[y - 1][x] != 'D')))
-				{
-					fillRect({ tileRect.x, tileRect.y, 48, 16 }, 73, 42, 31);
-					fillRect({ tileRect.x + 3, tileRect.y + 3, 42, 5 }, 151, 83, 43);
-					fillRect({ tileRect.x + 8, tileRect.y + 10, 35, 3 }, 109, 56, 35);
-				}
 			}
 			else if (tile == 'D')
 			{
@@ -478,10 +538,21 @@ void Application::renderOverworld()
 			}
 			else if (tile == 'M')
 			{
-				fillRect({ tileRect.x + 2, tileRect.y + 2, 44, 44 }, 220, 224, 224);
-				fillRect({ tileRect.x + 3, tileRect.y + 22, 42, 2 }, 162, 173, 179);
-				fillRect({ tileRect.x + 17, tileRect.y + 3, 2, 19 }, 177, 186, 190);
-				fillRect({ tileRect.x + 31, tileRect.y + 24, 2, 21 }, 177, 186, 190);
+				if (oldRoad)
+				{
+					fillRect({ tileRect.x + 11, tileRect.y + 5, 27, 39 }, 102, 91, 76);
+					fillRect({ tileRect.x + 14, tileRect.y + 8, 21, 31 }, 127, 110, 84);
+					fillRect({ tileRect.x + 17, tileRect.y + 13, 15, 4 }, 58, 83, 69);
+					fillRect({ tileRect.x + 21, tileRect.y + 20, 7, 12 }, 62, 91, 75);
+					fillRect({ tileRect.x + 7, tileRect.y + 42, 35, 4 }, 53, 48, 45);
+				}
+				else
+				{
+					fillRect({ tileRect.x + 2, tileRect.y + 2, 44, 44 }, 220, 224, 224);
+					fillRect({ tileRect.x + 3, tileRect.y + 22, 42, 2 }, 162, 173, 179);
+					fillRect({ tileRect.x + 17, tileRect.y + 3, 2, 19 }, 177, 186, 190);
+					fillRect({ tileRect.x + 31, tileRect.y + 24, 2, 21 }, 177, 186, 190);
+				}
 			}
 			else if (tile == 'E')
 			{
@@ -514,6 +585,24 @@ void Application::renderOverworld()
 				fillRect({ tileRect.x + 5, tileRect.y + 8, 4, 4 }, 196, 204, 202);
 				fillRect({ tileRect.x + 39, tileRect.y + 36, 4, 4 }, 196, 204, 202);
 			}
+			else if (tile == 'J')
+			{
+				fillRect({ tileRect.x + 1, tileRect.y + 3, 46, 42 }, 75, 76, 77);
+				fillRect({ tileRect.x, tileRect.y + 40, 48, 7 }, 43, 45, 47);
+				for (int panel = 0; panel < 48; panel += 16)
+				{
+					fillRect({ tileRect.x + panel, tileRect.y + 3, 3, 38 }, 43, 47, 49);
+					fillRect({ tileRect.x + panel + 3, tileRect.y + 7, 12, 4 }, 142, 77, 51);
+					fillRect({ tileRect.x + panel + 6, tileRect.y + 11, 9, 4 }, 125, 72, 51);
+					fillRect({ tileRect.x + panel + 9, tileRect.y + 15, 6, 4 }, 108, 67, 52);
+				}
+				fillRect({ tileRect.x + 4, tileRect.y + 24, 40, 7 }, 155, 170, 171);
+				fillRect({ tileRect.x + 7, tileRect.y + 26, 34, 3 }, 104, 189, 202);
+				if (x == 0 || map[y][x - 1] != 'J')
+					fillRect({ tileRect.x, tileRect.y + 2, 4, 43 }, 38, 42, 44);
+				if (x + 1 >= map[y].size() || map[y][x + 1] != 'J')
+					fillRect({ tileRect.x + 44, tileRect.y + 2, 4, 43 }, 38, 42, 44);
+			}
 			else if (tile == 'I')
 			{
 				fillRect({ tileRect.x + 2, tileRect.y + 3, 44, 42 }, 135, 55, 40);
@@ -522,12 +611,6 @@ void Application::renderOverworld()
 				fillRect({ tileRect.x + 23, tileRect.y + 4, 2, 8 }, 75, 40, 37);
 				fillRect({ tileRect.x + 12, tileRect.y + 14, 2, 7 }, 75, 40, 37);
 				fillRect({ tileRect.x + 34, tileRect.y + 25, 2, 7 }, 75, 40, 37);
-				if (y == 0 || map[y - 1][x] != 'I')
-				{
-					fillRect({ tileRect.x, tileRect.y, 48, 7 }, 58, 55, 55);
-					fillRect({ tileRect.x + 4, tileRect.y + 7, 10, 5 }, 191, 88, 49);
-					fillRect({ tileRect.x + 26, tileRect.y + 7, 10, 5 }, 191, 88, 49);
-				}
 				if ((x + y) % 3 == 0)
 					fillRect({ tileRect.x + 8, tileRect.y + 18, 13, 11 }, 225, 173, 69);
 			}
@@ -562,7 +645,16 @@ void Application::renderOverworld()
 				}
 				else fillRect({ tileRect.x + 7, tileRect.y + 34, 3, 8 }, 111, 180, 64);
 			}
-			if (cinderrail && tile == '=')
+			if (oldRoad && tile == '=')
+			{
+				fillRect({ tileRect.x + 2, tileRect.y + 5, 18, 15 }, 143, 130, 101);
+				fillRect({ tileRect.x + 24, tileRect.y + 7, 21, 13 }, 105, 98, 82);
+				fillRect({ tileRect.x + 6, tileRect.y + 25, 25, 14 }, 104, 98, 82);
+				fillRect({ tileRect.x + 34, tileRect.y + 26, 12, 12 }, 148, 131, 95);
+				fillRect({ tileRect.x + 19, tileRect.y + 8, 3, 8 }, 62, 82, 60);
+				fillRect({ tileRect.x + 31, tileRect.y + 34, 5, 3 }, 67, 91, 62);
+			}
+			else if (cinderrail && tile == '=')
 			{
 				SDL_Color route = color(190, 145, 55);
 				if ((y == 25 || y == 26) && x <= 25) route = color(88, 170, 93);

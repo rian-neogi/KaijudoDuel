@@ -1169,51 +1169,114 @@ bool Application::exerciseOverworldMovementSmoke()
 		for (size_t row = 0; row < mWorldAreas[cinderrailArea].tiles.size(); ++row)
 			for (size_t column = 0; column < mWorldAreas[cinderrailArea].tiles[row].size(); ++column)
 				industrialTiles.insert(mWorldAreas[cinderrailArea].tiles[row][column]);
-	const std::string requiredTiles = "RXGIPV";
+	const std::string requiredTiles = "RXGIPVJ";
 	for (size_t i = 0; i < requiredTiles.size(); ++i)
 		cinderrailReady = cinderrailReady && industrialTiles.count(requiredTiles[i]) != 0;
+	int emberglenArea = worldAreaIndex("emberglen");
+	bool emberglenBuildingTilesReady = emberglenArea >= 0;
+	std::set<char> emberglenTiles;
+	if (emberglenBuildingTilesReady)
+		for (size_t row = 0; row < mWorldAreas[emberglenArea].tiles.size(); ++row)
+			for (size_t column = 0; column < mWorldAreas[emberglenArea].tiles[row].size(); ++column)
+				emberglenTiles.insert(mWorldAreas[emberglenArea].tiles[row][column]);
+	emberglenBuildingTilesReady = emberglenBuildingTilesReady &&
+		emberglenTiles.count('K') != 0 && emberglenTiles.count('W') != 0 &&
+		emberglenTiles.count('Q') != 0 && emberglenTiles.count('M') != 0;
 
-	int arrivalX = -1;
-	int arrivalY = -1;
-	int returnX = -1;
-	int returnY = -1;
+	int oldRoadArea = worldAreaIndex("old_road");
+	bool oldRoadReady = oldRoadArea >= 0 && !mWorldAreas[oldRoadArea].indoor;
+	std::set<char> oldRoadTiles;
+	if (oldRoadReady)
+		for (size_t row = 0; row < mWorldAreas[oldRoadArea].tiles.size(); ++row)
+			for (size_t column = 0; column < mWorldAreas[oldRoadArea].tiles[row].size(); ++column)
+				oldRoadTiles.insert(mWorldAreas[oldRoadArea].tiles[row][column]);
+	const std::string requiredRoadTiles = "=~UOKW";
+	for (size_t i = 0; i < requiredRoadTiles.size(); ++i)
+		oldRoadReady = oldRoadReady && oldRoadTiles.count(requiredRoadTiles[i]) != 0;
+
+	int oldArrivalX = -1;
+	int oldArrivalY = -1;
+	int oldReturnX = -1;
+	int oldReturnY = -1;
+	int oldExitX = -1;
+	int oldExitY = -1;
+	int cinderArrivalX = -1;
+	int cinderArrivalY = -1;
+	int cinderReturnX = -1;
+	int cinderReturnY = -1;
+	int oldEastArrivalX = -1;
+	int oldEastArrivalY = -1;
 	for (size_t i = 0; i < mWorldPortals.size(); ++i)
 	{
 		const WorldPortal& portal = mWorldPortals[i];
-		if (portal.fromMap == "emberglen" && portal.toMap == "cinderrail")
+		if (portal.fromMap == "emberglen" && portal.toMap == "old_road")
 		{
-			arrivalX = portal.toX;
-			arrivalY = portal.toY;
+			oldArrivalX = portal.toX;
+			oldArrivalY = portal.toY;
 		}
-		else if (portal.fromMap == "cinderrail" && portal.toMap == "emberglen")
+		else if (portal.fromMap == "old_road" && portal.toMap == "emberglen")
 		{
-			returnX = portal.fromX;
-			returnY = portal.fromY;
+			oldReturnX = portal.fromX;
+			oldReturnY = portal.fromY;
+		}
+		else if (portal.fromMap == "old_road" && portal.toMap == "cinderrail")
+		{
+			oldExitX = portal.fromX;
+			oldExitY = portal.fromY;
+			cinderArrivalX = portal.toX;
+			cinderArrivalY = portal.toY;
+		}
+		else if (portal.fromMap == "cinderrail" && portal.toMap == "old_road")
+		{
+			cinderReturnX = portal.fromX;
+			cinderReturnY = portal.fromY;
+			oldEastArrivalX = portal.toX;
+			oldEastArrivalY = portal.toY;
 		}
 	}
-	cinderrailReady = cinderrailReady && arrivalX >= 0 && returnX >= 0;
-	if (cinderrailReady)
+	oldRoadReady = oldRoadReady && oldArrivalX >= 0 && oldReturnX >= 0 && oldExitX >= 0 &&
+		oldEastArrivalX >= 0;
+	cinderrailReady = cinderrailReady && cinderArrivalX >= 0 && cinderReturnX >= 0;
+	const int dx[] = { 1, 0, -1, 0 };
+	const int dy[] = { 0, 1, 0, -1 };
+	auto reachableFrom = [this, &dx, &dy](int area, int x, int y)
 	{
-		mCurrentWorldArea = cinderrailArea;
-		mPlayerX = arrivalX;
-		mPlayerY = arrivalY;
-		mVisualX = (float)arrivalX;
-		mVisualY = (float)arrivalY;
+		mCurrentWorldArea = area;
 		std::set<std::pair<int, int> > reachable;
 		std::vector<std::pair<int, int> > frontier;
-		reachable.insert(std::make_pair(arrivalX, arrivalY));
-		frontier.push_back(std::make_pair(arrivalX, arrivalY));
-		const int dx[] = { 1, 0, -1, 0 };
-		const int dy[] = { 0, 1, 0, -1 };
+		if (!isWalkable(x, y)) return reachable;
+		reachable.insert(std::make_pair(x, y));
+		frontier.push_back(std::make_pair(x, y));
 		for (size_t next = 0; next < frontier.size(); ++next)
 			for (int direction = 0; direction < 4; ++direction)
 			{
-				int x = frontier[next].first + dx[direction];
-				int y = frontier[next].second + dy[direction];
-				if (!isWalkable(x, y) || !reachable.insert(std::make_pair(x, y)).second) continue;
-				frontier.push_back(std::make_pair(x, y));
+				int nextX = frontier[next].first + dx[direction];
+				int nextY = frontier[next].second + dy[direction];
+				if (!isWalkable(nextX, nextY) ||
+					!reachable.insert(std::make_pair(nextX, nextY)).second) continue;
+				frontier.push_back(std::make_pair(nextX, nextY));
 			}
-		cinderrailReady = reachable.count(std::make_pair(returnX, returnY)) != 0;
+		return reachable;
+	};
+	if (oldRoadReady)
+	{
+		std::set<std::pair<int, int> > reachable =
+			reachableFrom(oldRoadArea, oldArrivalX, oldArrivalY);
+		oldRoadReady = reachable.count(std::make_pair(oldReturnX, oldReturnY)) != 0 &&
+			reachable.count(std::make_pair(oldExitX, oldExitY)) != 0 &&
+			reachable.count(std::make_pair(oldEastArrivalX, oldEastArrivalY)) != 0;
+		bool rookFound = false;
+		for (size_t i = 0; i < mNpcs.size(); ++i)
+			if (mNpcs[i].id == "rook")
+				rookFound = mNpcs[i].mapId == "old_road" &&
+					reachable.count(std::make_pair(mNpcs[i].x, mNpcs[i].y)) != 0;
+		oldRoadReady = oldRoadReady && rookFound;
+	}
+	if (cinderrailReady)
+	{
+		std::set<std::pair<int, int> > reachable =
+			reachableFrom(cinderrailArea, cinderArrivalX, cinderArrivalY);
+		cinderrailReady = reachable.count(std::make_pair(cinderReturnX, cinderReturnY)) != 0;
 		const char* cinderrailNpcs[] = { "kipp", "ansa", "holt" };
 		for (size_t expected = 0; expected < 3; ++expected)
 		{
@@ -1231,7 +1294,7 @@ bool Application::exerciseOverworldMovementSmoke()
 	mVisualX = savedPortalVisualX;
 	mVisualY = savedPortalVisualY;
 	return playerInterpolated && npcInterpolated && enteredIndoor && returnedOutside &&
-		mercerIsIndoors && cinderrailReady;
+		mercerIsIndoors && oldRoadReady && cinderrailReady && emberglenBuildingTilesReady;
 }
 
 bool Application::exerciseStorySmoke()

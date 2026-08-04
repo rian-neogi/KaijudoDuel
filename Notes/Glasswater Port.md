@@ -4,7 +4,7 @@
 
 Glasswater should feel like a major port city rather than a compact regional town. It has several neighborhoods, a working commercial harbor, civic offices, residential canals, specialized markets, a large sanctioned arena, and old infrastructure beneath the streets.
 
-The city is a required first-tier region containing the Tidal Crest and Water Resonance Seal. Its roads connect to Emberglen and Rootmaze Commons, while its western ferry route reaches the optional village of Reedwake.
+The city is a required first-tier region containing the Tidal Crest and Water Resonance Seal. Its Watershed Gate enters the shared crossroads for Emberglen and Rootmaze Commons, while its western ferry route reaches the optional village of Reedwake.
 
 ## Navigation principles
 
@@ -32,10 +32,11 @@ The city is a required first-tier region containing the Tidal Crest and Water Re
                               [Gull & Lantern] -- [Prediction Hall] -- [Challenger Lodge]
                                       |                  |
                               [Canal Homes] ------ [Glassgarden]
-                                 /          \             |
-                   Road to Rootmaze      East Road    [Deepwell House]
-                                           |             |
-                                  Road to Emberglen  [Water Sanctuary]
+                                      \              |
+                                [Watershed Gate]  [Deepwell House]
+                                       |             |
+                            Watershed Crossroads [Water Sanctuary]
+                           (Emberglen / Rootmaze)
 ```
 
 This diagram is schematic. The final city should use curved canals, staggered streets, and warehouse blocks rather than a perfectly rectangular grid.
@@ -396,17 +397,11 @@ Restoring the Seal requires resolving the consent conflict in Prediction Hall an
 
 ## Regional exits
 
-### East Road to Emberglen
+### Watershed Gate to Emberglen and Rootmaze Commons
 
-The main inland road leaves through a broad customs arch east of the South Canals. Blue and gold route markers identify the direct path to Emberglen. Mercer's cargo wagons use this entrance, so it remains wide, obvious, and permanently bidirectional after Act I.
+The city's sole inland portal leaves through a broad customs arch southeast of the South Canals and enters Watershed Crossroads. The shared route divides outside the city toward Emberglen and Rootmaze Commons. Blue-and-gold markers identify the Emberglen branch, while blue-and-green railings identify the managed stream toward Rootmaze.
 
-A parcel depot beside the gate shows goods waiting for Emberglen and provides dialogue when Mercer's inventory expands.
-
-### South Road to Rootmaze Commons
-
-The Rootmaze route begins where the southern canal narrows into a managed stream. Green railings, flexible culverts, and a small bridge-maintenance shed show cooperation between the two regions.
-
-This road creates a loop between first-tier areas. It should remain usable regardless of which Crest the player pursues first.
+Mercer's cargo wagons and Rootmaze handcarts use the same gate, so it remains wide, obvious, and permanently bidirectional after Act I. A parcel depot beside the arch sorts goods for both destinations and provides dialogue when Mercer's inventory expands. This three-way connector preserves the first-tier loop without maintaining two separate Glasswater road maps.
 
 ### West Ferry to Reedwake
 

@@ -27,16 +27,17 @@ namespace
 	const int BUILDER_LIST_ROW = 39;
 	const int BUILDER_LIST_ROWS = 13;
 	const char TILE_TYPES[] = { '.', '=', '~', 'H', 'T', '#', 'W', 'D', 'F', 'C',
-		'B', 'A', 'S', 'M', 'E', 'R', 'X', 'G', 'I', 'P', 'V' };
+		'B', 'A', 'S', 'M', 'Q', 'E', 'R', 'X', 'G', 'I', 'P', 'V', 'K', 'J', 'U', 'O' };
 	const char* TILE_NAMES[] = { "Grass", "Path", "Water", "House", "Tree", "Forest",
 		"Wood Wall", "Door", "Wood Floor", "Counter", "Bonfire", "Feast Table",
-		"Duel Sand", "Marble", "Workshop Tools", "Rail", "Rail Crossing",
-		"Metal Grate", "Industrial Brick", "Machinery", "Furnace" };
+		"Duel Sand", "Marble", "Marble Roof", "Workshop Tools", "Rail", "Rail Crossing",
+		"Metal Grate", "Industrial Brick", "Machinery", "Furnace", "Timber Roof",
+		"Industrial Roof", "Timber Bridge", "Rocky Cliff" };
 	const int TILE_TYPE_COUNT = sizeof(TILE_TYPES) / sizeof(TILE_TYPES[0]);
 
 	SDL_Rect paletteRect(int index)
 	{
-		return { 1022 + (index % 2) * 116, 151 + (index / 2) * 47, 108, 39 };
+		return { 1022 + (index % 2) * 116, 151 + (index / 2) * 39, 108, 33 };
 	}
 
 	void clampMapCamera(const std::vector<std::string>& map, int& cameraX, int& cameraY)
@@ -132,7 +133,7 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 	auto walkable = [](char tile)
 	{
 		return tile == '.' || tile == '=' || tile == 'F' || tile == 'D' || tile == 'S' ||
-			tile == 'X' || tile == 'G';
+			tile == 'X' || tile == 'G' || tile == 'U';
 	};
 	auto inBounds = [](const WorldArea& area, int x, int y) -> bool
 	{
@@ -185,7 +186,7 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 			if (row == 1) columnCount = value.size();
 			if (columnCount == 0 || columnCount > WORLD_MAX_COLUMNS ||
 				value.size() != columnCount ||
-				value.find_first_not_of(".=~HT#WDFCBASMERXGIPV") != std::string::npos)
+				value.find_first_not_of(".=~HT#WDFCBASMQERXGIPVKJUO") != std::string::npos)
 			{
 				error = "map '" + area.id + "' row " + std::to_string(row) +
 					" must match its first row and contain between 1 and " +
@@ -413,6 +414,12 @@ bool Application::beginPortalAt(int x, int y)
 		if (portal.fromMap != currentMapId() || portal.fromX != x || portal.fromY != y)
 			continue;
 		if (worldAreaIndex(portal.toMap) < 0) return false;
+		if (portal.fromMap == "emberglen" && portal.toMap == "old_road" && mStoryStage < 4)
+		{
+			mNotice = "The Old Road is unsafe. Finish the Emberglen investigation first.";
+			mNoticeUntil = SDL_GetTicks() + 4500;
+			return false;
+		}
 		mOpeningPortal = (int)i;
 		mPortalAnimationStarted = SDL_GetTicks();
 		mDialogueNpc = -1;
@@ -438,7 +445,8 @@ bool Application::activatePortalAt(int x, int y)
 		mPortalAnimationStarted = 0;
 		mDialogueNpc = -1;
 		mNotice = mWorldAreas[destination].indoor ? "Entered " + mWorldAreas[destination].name + "." :
-			"Returned to " + mWorldAreas[destination].name + ".";
+			(portal.toMap == mWorldStartMap ? "Returned to " : "Arrived at ") +
+			mWorldAreas[destination].name + ".";
 		mNoticeUntil = SDL_GetTicks() + 2500;
 		return true;
 	}
@@ -473,7 +481,7 @@ void Application::paintWorldBuilderTile(int x, int y)
 	if (y < 0 || y >= (int)map.size() || x < 0 || x >= (int)map[y].size()) return;
 	bool walkable = mWorldBuilderTile == '.' || mWorldBuilderTile == '=' ||
 		mWorldBuilderTile == 'F' || mWorldBuilderTile == 'D' || mWorldBuilderTile == 'S' ||
-		mWorldBuilderTile == 'X' || mWorldBuilderTile == 'G';
+		mWorldBuilderTile == 'X' || mWorldBuilderTile == 'G' || mWorldBuilderTile == 'U';
 	if (!walkable)
 	{
 		bool hasNpc = false;
@@ -536,10 +544,10 @@ bool Application::saveWorldBuilder(std::string& error)
 	std::ostringstream world;
 	world << "-- World Builder data. This file is entirely maintained by the World Builder.\n"
 		<< "-- Tile legend: . grass, = path, ~ water, H house, T tree, # forest,\n"
-		<< "-- W wooden wall, D door, F wooden floor, C counter, B bonfire,\n"
-		<< "-- A feast table, S dueling sand, M marble, E workshop tools,\n"
+		<< "-- W wooden wall, K timber roof, D door, F wooden floor, C counter, B bonfire,\n"
+		<< "-- A feast table, S dueling sand, M marble, Q marble roof, E workshop tools,\n"
 		<< "-- R rail, X walkable rail crossing, G metal grate, I industrial brick,\n"
-		<< "-- P machinery, V furnace.\n"
+		<< "-- P machinery, V furnace, J industrial roof, U timber bridge, O rocky cliff.\n"
 		<< "return {\n\tmaps = {\n";
 	for (size_t area = 0; area < mWorldAreas.size(); ++area)
 	{
@@ -775,6 +783,7 @@ void Application::renderWorldBuilder()
 		mWorldBuilderDirty ? color(244, 139, 88) : color(105, 218, 139), 14);
 	const std::vector<std::string>& map = currentMap();
 	const bool cinderrail = currentMapId() == "cinderrail";
+	const bool oldRoad = currentMapId() == "old_road";
 	int mapX = mapOriginX((int)map[0].size()) - mWorldBuilderCameraX * TILE;
 	int mapY = mapOriginY((int)map.size()) - mWorldBuilderCameraY * TILE;
 	SDL_Rect mapViewport = { MAP_X, MAP_Y, MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT };
@@ -785,8 +794,8 @@ void Application::renderWorldBuilder()
 		{
 			SDL_Rect tile = { mapX + (int)column * TILE, mapY + (int)row * TILE, TILE, TILE };
 			char type = map[row][column];
-			if (type == '=') fillRect(tile, cinderrail ? 116 : 162,
-				cinderrail ? 91 : 132, cinderrail ? 58 : 76);
+			if (type == '=') fillRect(tile, oldRoad ? 124 : (cinderrail ? 116 : 162),
+				oldRoad ? 112 : (cinderrail ? 91 : 132), oldRoad ? 88 : (cinderrail ? 58 : 76));
 			else if (type == '~') fillRect(tile, 25, 111, 157);
 			else if (type == 'H') fillRect(tile, cinderrail ? 111 : 126,
 				cinderrail ? 55 : 65, cinderrail ? 39 : 43);
@@ -796,7 +805,8 @@ void Application::renderWorldBuilder()
 				cinderrail && type == '#' ? 43 : 33);
 			else if (type == 'S') fillRect(tile, cinderrail ? 118 : 188,
 				cinderrail ? 72 : 151, cinderrail ? 48 : 87);
-			else if (type == 'M') fillRect(tile, 198, 204, 207);
+			else if (type == 'M') fillRect(tile, oldRoad ? 79 : 198,
+				oldRoad ? 72 : 204, oldRoad ? 65 : 207);
 			else if (type == 'B') fillRect(tile, 83, 64, 42);
 			else if (type == 'A') fillRect(tile, 61, 139, 61);
 			else if (type == 'E') fillRect(tile, 137, 91, 49);
@@ -806,6 +816,10 @@ void Application::renderWorldBuilder()
 			else if (type == 'I') fillRect(tile, 112, 49, 38);
 			else if (type == 'P') fillRect(tile, 63, 66, 67);
 			else if (type == 'V') fillRect(tile, 64, 47, 43);
+			else if (type == 'K') fillRect(tile, 91, 48, 37);
+			else if (type == 'J') fillRect(tile, 67, 68, 70);
+			else if (type == 'U') fillRect(tile, 31, 99, 132);
+			else if (type == 'O') fillRect(tile, 73, 65, 59);
 			else if (type == 'W' || type == 'D' || type == 'F' || type == 'C')
 				fillRect(tile, type == 'F' ? 137 : 91, type == 'F' ? 91 : 53, type == 'F' ? 49 : 31);
 			else fillRect(tile, cinderrail ? 82 : 61, cinderrail ? 76 : 139,
@@ -834,6 +848,32 @@ void Application::renderWorldBuilder()
 			{
 				fillRect({ tile.x + 3, tile.y + 4, 42, 16 }, 186, 76, 46);
 				fillRect({ tile.x + 18, tile.y + 23, 13, 25 }, 54, 31, 24);
+			}
+			else if (type == 'U')
+			{
+				fillRect({ tile.x, tile.y + 6, 48, 36 }, 31, 99, 132);
+				for (int plank = 0; plank < 48; plank += 9)
+					fillRect({ tile.x + plank, tile.y + 8, 8, 32 }, 129, 82, 45);
+				fillRect({ tile.x, tile.y + 5, 48, 5 }, 66, 45, 32);
+				fillRect({ tile.x, tile.y + 39, 48, 5 }, 66, 45, 32);
+			}
+			else if (type == 'O')
+			{
+				fillRect({ tile.x + 2, tile.y + 3, 44, 42 }, 91, 80, 69);
+				fillRect({ tile.x + 5, tile.y + 8, 19, 8 }, 116, 99, 78);
+				fillRect({ tile.x + 27, tile.y + 18, 15, 9 }, 58, 55, 54);
+				fillRect({ tile.x + 10, tile.y + 27, 24, 4 }, 66, 60, 56);
+			}
+			else if (type == 'K')
+			{
+				fillRect({ tile.x, tile.y + 3, 48, 42 }, 111, 56, 40);
+				fillRect({ tile.x, tile.y + 2, 48, 7 }, 63, 39, 34);
+				for (int shingle = 0; shingle < 4; ++shingle)
+				{
+					int shingleY = tile.y + 11 + shingle * 9;
+					fillRect({ tile.x, shingleY, 48, 3 }, 67, 38, 33);
+				}
+				fillRect({ tile.x, tile.y + 42, 48, 5 }, 50, 34, 31);
 			}
 			else if (type == 'W')
 			{
@@ -882,10 +922,20 @@ void Application::renderWorldBuilder()
 			}
 			else if (type == 'M')
 			{
-				fillRect({ tile.x + 2, tile.y + 2, 44, 44 }, 220, 224, 224);
-				fillRect({ tile.x + 3, tile.y + 22, 42, 2 }, 162, 173, 179);
-				fillRect({ tile.x + 17, tile.y + 3, 2, 19 }, 177, 186, 190);
-				fillRect({ tile.x + 31, tile.y + 24, 2, 21 }, 177, 186, 190);
+				if (oldRoad)
+				{
+					fillRect({ tile.x + 11, tile.y + 5, 27, 39 }, 102, 91, 76);
+					fillRect({ tile.x + 14, tile.y + 8, 21, 31 }, 127, 110, 84);
+					fillRect({ tile.x + 17, tile.y + 13, 15, 4 }, 58, 83, 69);
+					fillRect({ tile.x + 21, tile.y + 20, 7, 12 }, 62, 91, 75);
+				}
+				else
+				{
+					fillRect({ tile.x + 2, tile.y + 2, 44, 44 }, 220, 224, 224);
+					fillRect({ tile.x + 3, tile.y + 22, 42, 2 }, 162, 173, 179);
+					fillRect({ tile.x + 17, tile.y + 3, 2, 19 }, 177, 186, 190);
+					fillRect({ tile.x + 31, tile.y + 24, 2, 21 }, 177, 186, 190);
+				}
 			}
 			else if (type == 'E')
 			{
@@ -911,12 +961,24 @@ void Application::renderWorldBuilder()
 					fillRect({ tile.x + grate, tile.y + 4, 3, 40 }, 45, 50, 54);
 				fillRect({ tile.x + 2, tile.y + 3, 44, 3 }, 222, 168, 57);
 			}
+			else if (type == 'J')
+			{
+				fillRect({ tile.x + 1, tile.y + 3, 46, 42 }, 75, 76, 77);
+				fillRect({ tile.x, tile.y + 40, 48, 7 }, 43, 45, 47);
+				for (int panel = 0; panel < 48; panel += 16)
+				{
+					fillRect({ tile.x + panel, tile.y + 3, 3, 38 }, 43, 47, 49);
+					fillRect({ tile.x + panel + 3, tile.y + 7, 12, 4 }, 142, 77, 51);
+					fillRect({ tile.x + panel + 6, tile.y + 11, 9, 4 }, 125, 72, 51);
+				}
+				fillRect({ tile.x + 4, tile.y + 24, 40, 7 }, 155, 170, 171);
+				fillRect({ tile.x + 7, tile.y + 26, 34, 3 }, 104, 189, 202);
+			}
 			else if (type == 'I')
 			{
 				fillRect({ tile.x + 2, tile.y + 3, 44, 42 }, 135, 55, 40);
 				for (int brick = 10; brick < 43; brick += 11)
 					fillRect({ tile.x + 3, tile.y + brick, 42, 2 }, 73, 39, 37);
-				fillRect({ tile.x, tile.y, 48, 7 }, 58, 55, 55);
 			}
 			else if (type == 'P')
 			{
@@ -932,7 +994,14 @@ void Application::renderWorldBuilder()
 				fillRect({ tile.x + 14, tile.y + 28, 20, 12 }, 235, 71, 29);
 				fillRect({ tile.x + 19, tile.y + 24, 10, 15 }, 255, 177, 48);
 			}
-			if (cinderrail && type == '=')
+			if (oldRoad && type == '=')
+			{
+				fillRect({ tile.x + 2, tile.y + 5, 18, 15 }, 143, 130, 101);
+				fillRect({ tile.x + 24, tile.y + 7, 21, 13 }, 105, 98, 82);
+				fillRect({ tile.x + 6, tile.y + 25, 25, 14 }, 104, 98, 82);
+				fillRect({ tile.x + 34, tile.y + 26, 12, 12 }, 148, 131, 95);
+			}
+			else if (cinderrail && type == '=')
 				fillRect({ tile.x, tile.y + 4, 48, 3 }, 190, 145, 55);
 			outlineRect(tile, 10, 20, 27, 100, 1);
 		}

@@ -20,8 +20,8 @@ An asterisk marks an optional town. Optional towns are short offshoots: the play
                  Reedwake*                 Confluence Arena -------- Hollow Archive
                      |                      /     |    \
               Glasswater Port -------------/      |     \------------- Stormbreak Plateau -- Cloudrest*
-                    /  \                          |                          /
-                   /    \                         |                         /
+                    /  \                          |
+                   /    \                         |
         Honeyreach* -- Rootmaze Commons ----- Emberglen ----- Cinderrail Foundry -- Clayhearth*
                             \                    |                    /
                              \                   |                   /
@@ -30,11 +30,21 @@ An asterisk marks an optional town. Optional towns are short offshoots: the play
                                            Lanternfen*
 ```
 
-The diagram is schematic. Exact terrain may bend these roads, but the connections and ability to backtrack should remain.
+The diagram is schematic. Exact terrain may bend these roads, but the connections and ability to backtrack should remain. A triangle in this destination-only view can represent one shared three-exit map rather than three separate roads.
+
+## Shared three-way connectors
+
+| Connector map | Exits |
+| --- | --- |
+| Watershed Crossroads | Emberglen, Glasswater Port, Rootmaze Commons |
+| Ribbonway Crossroads | Confluence Arena, Mirror Arena, Ribbonfair |
+| Sunmirror Causeway | Confluence Arena, Mirror Arena, Sunspire Cloister |
+
+Each row is one playable connecting area with three portals. It is not shorthand for three pairwise connector maps. Ribbonway Crossroads and Sunmirror Causeway deliberately provide two different routes between Confluence and Mirror: the former is the lively Ribbonfair-side route, while the latter is the warded Sunspire-side route.
 
 ## Road network
 
-The adjacency list is authoritative for the planned topology when the ASCII spacing is ambiguous. Each listed connection works in both directions after its gate is unlocked.
+The adjacency list is authoritative for the planned topology when the ASCII spacing is ambiguous. “Direct” means reachable through one connecting area without crossing another destination; several direct links may therefore share the same three-exit connector. Each listed connection works in both directions after its gate is unlocked.
 
 | Destination | Direct road connections |
 | --- | --- |
@@ -42,10 +52,10 @@ The adjacency list is authoritative for the planned topology when the ASCII spac
 | Glasswater Port | Emberglen, Rootmaze Commons, Reedwake |
 | Rootmaze Commons | Emberglen, Glasswater Port, Cinderrail Foundry, Honeyreach |
 | Cinderrail Foundry | Emberglen, Rootmaze Commons, Gloam Quarry, Clayhearth |
-| Confluence Arena | Emberglen, Mirror Arena, Stormbreak Plateau, Gloam Quarry, Sunspire Cloister, Hollow Archive |
+| Confluence Arena | Emberglen, Mirror Arena, Stormbreak Plateau, Sunspire Cloister, Ribbonfair, Hollow Archive |
 | Mirror Arena | Confluence Arena, Stormbreak Plateau, Sunspire Cloister, Ribbonfair, Crown Gate |
-| Stormbreak Plateau | Confluence Arena, Mirror Arena, Gloam Quarry, Cloudrest |
-| Gloam Quarry | Emberglen, Cinderrail Foundry, Confluence Arena, Stormbreak Plateau, Lanternfen |
+| Stormbreak Plateau | Confluence Arena, Mirror Arena, Cloudrest |
+| Gloam Quarry | Emberglen, Cinderrail Foundry, Lanternfen |
 | Sunspire Cloister | Confluence Arena, Mirror Arena |
 | Crown Gate | Mirror Arena |
 | Hollow Archive | Confluence Arena |
@@ -54,9 +64,9 @@ The adjacency list is authoritative for the planned topology when the ASCII spac
 | Clayhearth | Cinderrail Foundry |
 | Cloudrest | Stormbreak Plateau |
 | Lanternfen | Gloam Quarry |
-| Ribbonfair | Mirror Arena |
+| Ribbonfair | Confluence Arena, Mirror Arena |
 
-These cross-links create loops around Emberglen and Confluence. A player leaving Stormbreak can travel directly to Gloam or Mirror, return through Confluence, or continue all the way back to Emberglen without using a menu or one-way transition.
+These cross-links create loops around Emberglen and Confluence. A player leaving Stormbreak can travel directly to Mirror, return through Confluence, or continue all the way back to Emberglen without using a menu or one-way transition. Gloam is a separate southern branch reached through Emberglen or Cinderrail.
 
 ## Progression gates
 
@@ -74,11 +84,11 @@ Reedwake, Honeyreach, and Clayhearth open with their neighboring routes but rema
 
 Confluence is physically connected to Emberglen from the beginning, but its relay checkpoint blocks travel into the outer regions. After the player holds the Tidal, Verdant, and Forge Crests and completes the midpoint Hollow scene, Kestrel offers the Confluence match.
 
-Winning restores the Confluence relay and permanently opens the roads to Stormbreak, Gloam Quarry, Mirror Arena, and Sunspire. It does not close or replace any earlier road.
+Winning restores the Confluence relay and permanently opens the outer network toward Stormbreak, Gloam Quarry, Mirror Arena, and Sunspire. Gloam is reached through Emberglen or Cinderrail rather than by a direct road from Confluence or Stormbreak. Opening the network does not close or replace any earlier road.
 
 ### Crests 6–8
 
-Stormbreak, Gloam Quarry, and Mirror Arena may be completed in any order. Roads between these regions form an outer loop, while Confluence provides a direct route back to Emberglen and the first-tier regions.
+Stormbreak, Gloam Quarry, and Mirror Arena may be completed in any order. Stormbreak and Mirror have direct cross-links to Confluence and each other, while Gloam branches from Emberglen and Cinderrail. The persistent central roads keep all three objectives accessible without imposing an order.
 
 Cloudrest, Lanternfen, and Ribbonfair open with their neighboring routes but remain optional. Sunspire is a required Hollow-story region with no Crest.
 
@@ -111,4 +121,4 @@ Caelum's Unity match is the final Crest objective. Crown Gate remains connected 
 | Crown Gate | Unity Crest after Hollow finale | Yes |
 | Grand Championship | Sporting finale | Yes |
 
-Required-town histories are in `Notes/TownBackstories.md`. Detailed optional-town concepts are in `Notes/OptionalTowns.md`. Building plans for Cinderrail, Glasswater, and Rootmaze are in their matching files under `Notes/`.
+Required-town histories are in `Notes/TownBackstories.md`. Detailed optional-town concepts are in `Notes/OptionalTowns.md`. Building plans for Cinderrail, Glasswater, Rootmaze, and Gloam Quarry are in their matching files under `Notes/`. The playable routes between destinations are catalogued in `Notes/ConnectingAreas.md`.

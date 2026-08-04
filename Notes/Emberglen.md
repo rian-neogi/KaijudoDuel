@@ -6,7 +6,7 @@ The town's history, culture, and campaign role are described in `Notes/TownBacks
 
 At the center is the festival square. This has a bonfire surrounded by tables, chairs. Tables have food on them.
 
-Aurelia's House: A grand house made of marble. Its at the north of the town.
+Aurelia's House: A grand house made of marble at the north of town. Its upper exterior uses carved ivory marble roof tiles with gold-trimmed eaves, while the lower rows remain marble walls.
 
 Mercer's House: A wooden hut. Inside Mercer has his experimental tools and his shop. This on the east of town.
 
@@ -25,7 +25,6 @@ North: Path to another town, where the first crest battle takes place
 South: A spooky forest path
 
 West: TODO
-
 
 
 

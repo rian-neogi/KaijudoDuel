@@ -4,7 +4,7 @@
 
 Rootmaze Commons should feel like a settlement that grew with a living forest rather than one imposed on top of it. It is made of several clearings connected by broad roots, flexible bridges, and shallow waterways. The central services remain easy to find, while optional trails and shortcuts can shift during the Rootmaze story.
 
-The town is a required first-tier region containing the Verdant Crest and Nature Resonance Seal. It connects directly to Glasswater Port, Emberglen, Cinderrail Foundry, and the optional town of Honeyreach.
+The town is a required first-tier region containing the Verdant Crest and Nature Resonance Seal. Its Northwater Gate enters the shared crossroads for Glasswater Port and Emberglen; separate routes lead to Cinderrail Foundry and the optional town of Honeyreach.
 
 ## Navigation principles
 
@@ -18,7 +18,7 @@ The town is a required first-tier region containing the Verdant Crest and Nature
 ## Schematic layout
 
 ```text
-                              Road to Glasswater Port
+                    Watershed Crossroads (Glasswater / Emberglen)
                                        |
                               [Northwater Gate]
                                        |
@@ -28,7 +28,7 @@ The town is a required first-tier region containing the Verdant Crest and Nature
                          \          /       |      \
                     [Heartroot]  [Card Shop] |    [Wayfarer's Nest]
                          |                   |
-                [Nature Sanctuary]     [Homeward Walk] -------- Road to Emberglen
+                [Nature Sanctuary]     [Homeward Walk]
                          |                  /       \
                 [Verdant Arena]     [Canopy Homes]  [Creature House]
                          |                  |               \
@@ -104,7 +104,7 @@ Its sign depicts a bird nest holding five differently colored cards.
 
 The Glasswater road enters through a wide wetland clearing rather than a wall or formal gate. Blue cloth strips and floating markers identify the safe route when the stream rises. A covered checkpoint contains road conditions and a handcart for moving goods.
 
-The northern route leads directly toward Glasswater Port. An optional branch near the gate reaches a fishing platform and a hidden item clearing, but required travel stays obvious.
+The northern route enters Watershed Crossroads, where clearly marked branches continue to Glasswater Port and Emberglen. This is Rootmaze's only portal into that shared map. An optional branch near the gate reaches a fishing platform and a hidden item clearing, but required travel stays obvious.
 
 ### Waterstep Market
 
@@ -134,11 +134,11 @@ The reedwright can repair a damaged bridge during the main Rootmaze story and la
 
 ## Eastern district: Homeward Walk
 
-### Homeward Gate and Emberglen road
+### Homeward Walk
 
-The Emberglen approach is the town's broadest and most stable road. Gold leaf markers line a packed-earth path suitable for Mercer's supply carts. A carved sign shows the distance to Emberglen and reminds travelers that all roads through Rootmaze are shared paths.
+Homeward Walk is the town's broadest and most stable internal road. Gold leaf markers line a packed-earth path suitable for Mercer's supply carts. It curves back through Greatroot Common to Northwater Gate, where the single external portal enters Watershed Crossroads and its Emberglen branch.
 
-This exit should remain accessible after the player's first arrival, allowing immediate backtracking to Mercer and earlier NPCs.
+A carved sign shows the distance to Emberglen and reminds travelers that all roads through Rootmaze are shared paths. The walk and Northwater Gate remain accessible after the player's first arrival, allowing immediate backtracking to Mercer without creating a second Rootmaze connector portal.
 
 ### Creature Rest House
 

@@ -97,12 +97,15 @@ Builder must not enumerate the bundled gameplay and NPC decks under `Decks`.
   follows the player through maps larger than the 20-by-12-tile viewport.
   Outdoor tile characters are `.` (grass), `=` (path), `~` (water), `H`
   (house), `T` (tree), `#` (dense forest), `B` (bonfire), `A` (feast table),
-  `S` (walkable dueling sand), `M` (marble), `R` (rail), `X` (walkable rail
+  `S` (walkable dueling sand), `M` (marble), `Q` (marble roof), `R` (rail),
+  `X` (walkable rail
   crossing), `G` (walkable metal grate), `I` (industrial brick), `P`
-  (machinery), and `V` (furnace).
+  (machinery), `V` (furnace), `K` (timber roof), `J` (industrial roof), `U`
+  (walkable timber bridge), and `O` (rocky cliff).
   Indoor/wooden-building tiles are `W` (wood wall), `D` (door), `F` (wood
-  floor), `C` (counter), and `E` (workshop tools). NPCs and shards require
-  distinct walkable tiles.
+  floor), `C` (counter), and `E` (workshop tools). Outdoor buildings must use
+  explicit `K`, `J`, or `Q` roof tiles rather than relying on wall tiles to draw a
+  roof automatically. NPCs and shards require distinct walkable tiles.
   Player starts, portal entrances, and portal destinations must remain
   walkable and unoccupied.
 - Portals are directed transitions. Define both directions explicitly when a

@@ -162,6 +162,8 @@ The Curator's false forecasts hide real storms beneath copied courier memories. 
 **Visual identity:** Terraced black-stone pits, ember-lit lifts, memorial furnaces, carved name walls, and sturdy homes beneath canvas ash screens  
 **Common decks:** Darkness/Fire sacrifice, graveyard recursion, removal, speed attackers, and Necrodragon evolutions
 
+The detailed quarry, memorial district, arena, sanctuary, and building plan is in `Notes/Gloam Quarry.md`.
+
 ### Founding and history
 
 Gloam Quarry began as a source of dense black stone used for bridge anchors and furnace linings. The stone preserves scratches and heat marks unusually well, leading workers to carve shift records directly into the walls. After a historic collapse, those records allowed rescuers to understand exactly what happened and prevent a second disaster.
@@ -178,7 +180,7 @@ Darkness cards place value in the graveyard, while Fire cards turn prepared reso
 
 ### Campaign role
 
-The Curator's promise is most persuasive here because Gloam knows memory can preserve pain as well as wisdom. Vey's conflict cannot be resolved by insisting that every memory is automatically good. The player helps the town choose remembrance without submission, restores the Darkness Seal, and keeps its roads to Emberglen, Cinderrail, Stormbreak, and Lanternfen open.
+The Curator's promise is most persuasive here because Gloam knows memory can preserve pain as well as wisdom. Vey's conflict cannot be resolved by insisting that every memory is automatically good. The player helps the town choose remembrance without submission, restores the Darkness Seal, and keeps its roads to Emberglen, Cinderrail, and Lanternfen open.
 
 ## Mirror Arena District
 

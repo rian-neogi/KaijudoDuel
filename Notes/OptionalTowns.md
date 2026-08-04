@@ -109,7 +109,7 @@ The apothecary sells graveyard- and mana-oriented support cards. A repeatable bo
 
 ### Ribbonfair
 
-**Side road:** Beyond the Mirror Arena district  
+**Side road:** Ribbonway Crossroads, shared with Confluence and Mirror Arena<br>
 **Visual identity:** A semi-permanent carnival of striped tents, painted wagons, paper streamers, and portable duel stages  
 **Common decks:** Rotating civilizations and unusual theme restrictions rather than one regional archetype
 
