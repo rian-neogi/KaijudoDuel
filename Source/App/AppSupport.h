@@ -4,6 +4,8 @@
 
 #include <SDL.h>
 
+#include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <map>
 #include <string>
@@ -19,16 +21,56 @@ namespace AppSupport
 	constexpr int TILE = 48;
 	constexpr int MAP_VIEW_COLUMNS = 20;
 	constexpr int MAP_VIEW_ROWS = 12;
-	constexpr int WORLD_MAX_COLUMNS = 128;
-	constexpr int WORLD_MAX_ROWS = 128;
+	constexpr int OVERWORLD_VIEW_COLUMNS = 25;
+	constexpr int WORLD_MAX_COLUMNS = 1024;
+	constexpr int WORLD_MAX_ROWS = 1024;
 	constexpr int MAP_VIEW_WIDTH = MAP_VIEW_COLUMNS * TILE;
 	constexpr int MAP_VIEW_HEIGHT = MAP_VIEW_ROWS * TILE;
+	constexpr int OVERWORLD_VIEW_WIDTH = OVERWORLD_VIEW_COLUMNS * TILE;
 	constexpr const char* STARTER_DECK_PATH = "Decks/My Decks/7 - L Tappy Tappy.txt";
 
-	inline int mapOriginX(int columns)
+	struct TileBounds
 	{
-		int visibleColumns = columns < MAP_VIEW_COLUMNS ? columns : MAP_VIEW_COLUMNS;
-		return MAP_X + (MAP_VIEW_COLUMNS - visibleColumns) * TILE / 2;
+		int left;
+		int top;
+		int right;
+		int bottom;
+
+		int tileCount() const
+		{
+			return std::max(0, right - left) * std::max(0, bottom - top);
+		}
+
+		bool contains(int x, int y) const
+		{
+			return x >= left && x < right && y >= top && y < bottom;
+		}
+
+		bool intersects(int otherLeft, int otherTop, int otherRight, int otherBottom) const
+		{
+			return otherLeft < right && otherRight > left &&
+				otherTop < bottom && otherBottom > top;
+		}
+	};
+
+	inline TileBounds visibleTileBounds(float cameraX, float cameraY,
+		int columns, int rows, int viewportColumns = MAP_VIEW_COLUMNS,
+		int viewportRows = MAP_VIEW_ROWS, int margin = 1)
+	{
+		TileBounds result;
+		result.left = std::max(0, (int)std::floor(cameraX) - margin);
+		result.top = std::max(0, (int)std::floor(cameraY) - margin);
+		result.right = std::min(columns,
+			(int)std::ceil(cameraX + viewportColumns) + margin);
+		result.bottom = std::min(rows,
+			(int)std::ceil(cameraY + viewportRows) + margin);
+		return result;
+	}
+
+	inline int mapOriginX(int columns, int viewportColumns = MAP_VIEW_COLUMNS)
+	{
+		int visibleColumns = columns < viewportColumns ? columns : viewportColumns;
+		return MAP_X + (viewportColumns - visibleColumns) * TILE / 2;
 	}
 
 	inline int mapOriginY(int rows)

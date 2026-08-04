@@ -30,17 +30,17 @@ An asterisk marks an optional town. Optional towns are short offshoots: the play
                                            Lanternfen*
 ```
 
-The diagram is schematic. Exact terrain may bend these roads, but the connections and ability to backtrack should remain. A triangle in this destination-only view can represent one shared three-exit map rather than three separate roads.
+The diagram is schematic. Exact terrain may bend these roads, but the connections and ability to backtrack should remain. A triangle in this destination-only view can represent one shared three-exit region rather than three separate roads.
 
 ## Shared three-way connectors
 
-| Connector map | Exits |
+| Connector region | Exits |
 | --- | --- |
 | Watershed Crossroads | Emberglen, Glasswater Port, Rootmaze Commons |
 | Ribbonway Crossroads | Confluence Arena, Mirror Arena, Ribbonfair |
 | Sunmirror Causeway | Confluence Arena, Mirror Arena, Sunspire Cloister |
 
-Each row is one playable connecting area with three portals. It is not shorthand for three pairwise connector maps. Ribbonway Crossroads and Sunmirror Causeway deliberately provide two different routes between Confluence and Mirror: the former is the lively Ribbonfair-side route, while the latter is the warded Sunspire-side route.
+Each row is one playable connecting area with three seamless exits. It is not shorthand for three pairwise connector regions. Ribbonway Crossroads and Sunmirror Causeway deliberately provide two different routes between Confluence and Mirror: the former is the lively Ribbonfair-side route, while the latter is the warded Sunspire-side route.
 
 ## Road network
 

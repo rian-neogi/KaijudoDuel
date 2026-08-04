@@ -4,16 +4,16 @@
 
 Connecting areas are playable routes between settlements, arenas, sanctuaries, and major story locations. They make the campaign feel like one continuous world instead of a collection of destinations selected from a menu.
 
-Each connector in this document states exactly which destinations it joins. Most have two exits, while shared junction maps have three. Unless a profile explicitly says otherwise, travel between every pair of exits is bidirectional after its progression gate opens and remains open for the rest of the game.
+Each connector in this document states exactly which destinations it joins. Most have two exits, while shared junction regions have three. Unless a profile explicitly says otherwise, travel between every pair of exits is bidirectional after its progression gate opens and remains open for the rest of the game.
 
 `Notes/WorldMap.md` remains authoritative for planned regional adjacency. `Lua/World.lua` remains authoritative for connectors that have actually been implemented.
 
-Names attached to planned connectors are working map names. Their exits and bidirectional topology are more important than preserving a particular road name during implementation.
+Names attached to planned connectors are working region names. Their exits and bidirectional topology are more important than preserving a particular road name during implementation.
 
 ## Status terms
 
-- **Implemented:** The connector has a map and working portals in `Lua/World.lua`.
-- **Planned:** The connector belongs to the agreed world topology but does not yet have a playable map.
+- **Implemented:** The connector is a traversable region of the seamless exterior in `Lua/World.lua`.
+- **Planned:** The connector belongs to the agreed world topology but does not yet have a playable exterior region.
 - **Locked:** The physical route may be visible, but story progression prevents crossing its outer checkpoint.
 - **Open:** The player may traverse the route in both directions.
 
@@ -24,7 +24,7 @@ Connecting areas are not towns. They may contain trainers, collectibles, shelter
 | Connecting area | Connects | Availability | Status |
 | --- | --- | --- | --- |
 | Old Road | Emberglen ↔ Cinderrail Foundry | After Act I | Implemented |
-| Watershed Crossroads | Emberglen ↔ Glasswater Port ↔ Rootmaze Commons | After Act I | Planned |
+| Watershed Crossroads | Emberglen ↔ Glasswater Port ↔ Rootmaze Commons | After Act I | Implemented |
 | Blackstone Road | Emberglen ↔ Gloam Quarry | After Confluence relay | Planned |
 | Fivefold Highway | Emberglen ↔ Confluence Arena | Midpoint route | Planned |
 | Reedwake Ferry | Glasswater Port ↔ Reedwake | First optional tier | Planned |
@@ -32,13 +32,13 @@ Connecting areas are not towns. They may contain trainers, collectibles, shelter
 | Honeyroot Trail | Rootmaze Commons ↔ Honeyreach | First optional tier | Planned |
 | Kiln Descent | Cinderrail Foundry ↔ Gloam Quarry | After Confluence relay | Planned |
 | Artisan Road | Cinderrail Foundry ↔ Clayhearth | First optional tier | Planned |
-| Ribbonway Crossroads | Confluence Arena ↔ Mirror Arena ↔ Ribbonfair | After Confluence relay | Planned |
+| Western Crossroads | Confluence Arena ↔ Mirror Arena ↔ Ribbonfair | After Confluence relay | Planned |
 | Courier Rise | Confluence Arena ↔ Stormbreak Plateau | After Confluence relay | Planned |
-| Sunmirror Causeway | Confluence Arena ↔ Mirror Arena ↔ Sunspire Cloister | After Confluence relay | Planned |
+| Eastern Crossroads | Confluence Arena ↔ Mirror Arena ↔ Sunspire Cloister | After Confluence relay | Planned |
 | Archive Approach | Confluence Arena ↔ Hollow Archive | Hollow finale | Planned |
 | Prism Pass | Mirror Arena ↔ Stormbreak Plateau | Second open-world tier | Planned |
-| Crownway | Mirror Arena ↔ Crown Gate | After Hollow finale | Planned |
-| Springline Trail | Stormbreak Plateau ↔ Cloudrest | Second optional tier | Planned |
+| Path to Crown Gate | Mirror Arena ↔ Crown Gate | After Hollow finale | Planned |
+| Springline Trail | Stormbreak Plateau ↔ Cloudrest Peak | Second optional tier | Planned |
 | Lantern Steps | Gloam Quarry ↔ Lanternfen | Second optional tier | Planned |
 
 ## Central routes from Emberglen
@@ -47,7 +47,7 @@ Connecting areas are not towns. They may contain trainers, collectibles, shelter
 
 **Connects:** Emberglen's eastern exit ↔ Cinderrail Foundry's western station road  
 **Availability:** Opens after Act I  
-**Status:** Implemented as `old_road` in `Lua/World.lua`
+**Status:** Implemented as the `old_road` region of the seamless `overworld` map in `Lua/World.lua`
 
 The Old Road is a former primary freight route whose traffic declined as newer links opened. It gradually changes from Emberglen woodland into the rocky ridge surrounding Cinderrail. Its current 48-by-24 map includes a winding cobbled path, stream, timber bridge, old maintenance checkpoint, waystones, campfire, forest banks, and exposed stone.
 
@@ -59,11 +59,11 @@ The Emberglen entrance remains locked until the Act I investigation and boss con
 
 **Connects:** Emberglen's western road ↔ Glasswater Port's Watershed Gate ↔ Rootmaze Commons' Northwater Gate  
 **Availability:** Opens after Act I  
-**Status:** Planned
+**Status:** Implemented as the `watershed_crossroads` region of the seamless `overworld` map in `Lua/World.lua`
 
-Watershed Crossroads is one continuous three-way map rather than three separate roads. Its central landmark is an old toll shelter beside the point where Emberglen's drainage stream divides between Glasswater's canals and Rootmaze's root-supported wetlands. Gold orchard markers identify Emberglen, blue tide markers identify Glasswater, and green leaf signs identify Rootmaze.
+Watershed Crossroads is one continuous three-way region rather than three separate roads. Its central landmark is an old toll shelter beside the point where Emberglen's drainage stream divides between Glasswater's canals and Rootmaze's root-supported wetlands. Gold orchard markers identify Emberglen, blue tide markers identify Glasswater, and green leaf signs identify Rootmaze.
 
-The Emberglen branch passes through orchards and a caravan pull-off. The Glasswater branch crosses two broad canal bridges before revealing the city's lighthouse. The Rootmaze branch follows a shallow stream beneath living roots. A creature shelter and small optional loops may sit around the junction, but every pair of exits must be connected by a stable, obvious route. This single map replaces Tideglass Road, Homeward Walk, and Northwater Greenway.
+The current 64-by-36 region sits directly west of Emberglen. The Emberglen branch passes through orchards and a caravan pull-off. The Glasswater branch crosses two broad canal bridges beneath a lighthouse silhouette and joins the city's Watershed Gate directly, while the Rootmaze branch follows a shallow stream beneath living roots into Northwater Gate. The old toll shelter, creature shelter, colored route markers, and small optional loops make the junction recognizable without interrupting its permanent walkable routes. This single region replaces Tideglass Road, Homeward Walk, and Northwater Greenway.
 
 ### Blackstone Road
 
@@ -229,8 +229,8 @@ The route should contain competitor lodges, registration milestones, formal gard
 
 ## Implementation conventions
 
-- Give each connector its own snake-case map ID, such as `old_road`, `watershed_crossroads`, or `storm_stair`.
-- Define both directions for every destination portal explicitly in `Lua/World.lua`. Destination tiles should sit a short distance inside the map so arrival never immediately triggers the return portal.
+- Give each connector a named snake-case region ID, such as `old_road` or `watershed_crossroads`, inside the seamless exterior map.
+- Join exterior destinations with adjacent walkable tiles. Reserve bidirectional portals for interiors and other deliberately separate spaces.
 - Portal sources, destinations, NPCs, shards, and player starts require distinct walkable tiles.
 - A connector must provide one permanently reliable route between every pair of its exits. Optional loops, shortcuts, lifts, ferries, and changing paths cannot replace those routes.
 - Routes should visually blend all of their endpoints. The junction or midpoint is a transition, not an unrelated biome.
@@ -239,7 +239,7 @@ The route should contain competitor lodges, registration milestones, formal gard
 - Every connector should offer at least one visual landmark visible from its main route: a bridge, shelter, overlook, signal tower, carved wall, ferry, or unusual tree.
 - Connecting maps may contain collectible shards and optional rewards, but those rewards must not permanently disappear when a story gate changes.
 - Once a progression gate opens, it should never close an earlier route or prevent backtracking to Mercer in Emberglen.
-- The World Builder must be able to edit every connector using the same tile, portal, entity, and collision rules as town maps.
+- The World Builder must be able to edit every connector using the same tile ID, region, entity, and collision rules as towns.
 
 ## Suggested implementation order
 

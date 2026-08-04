@@ -179,9 +179,9 @@ std::string Application::storyDialogueForNpc(int npcIndex) const
 
 void Application::renderStoryTracker()
 {
-	fillRect({ 36, 9, 930, 43 }, 16, 27, 43, 238);
-	outlineRect({ 36, 9, 930, 43 }, 83, 121, 174, 255, 2);
-	drawText("ACT I  •  " + storyObjective(), 50, 20, color(199, 216, 240), 15, 900);
+	fillRect({ 36, 9, 1208, 43 }, 16, 27, 43, 238);
+	outlineRect({ 36, 9, 1208, 43 }, 83, 121, 174, 255, 2);
+	drawText("ACT I  •  " + storyObjective(), 50, 20, color(199, 216, 240), 15, 1178);
 }
 
 void Application::renderStoryScene()

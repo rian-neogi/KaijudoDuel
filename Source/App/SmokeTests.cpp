@@ -15,7 +15,7 @@ namespace
 {
 	constexpr Uint32 DOOR_OPEN_DURATION = 400;
 	const SDL_Rect GRAVEYARD_NEXT = { 700, 590, 145, 42 };
-	const SDL_Rect SETTINGS_BUTTON = { 470, 426, 340, 58 };
+	const SDL_Rect SETTINGS_BUTTON = { 890, 430, 300, 58 };
 }
 
 int Application::runSmokeTests()
@@ -282,7 +282,11 @@ int Application::runSmokeTests()
 				return 2;
 			}
 			SDL_Delay(5);
-			const int smokeFrameLimit = smokeNpc == 0 ? 300 : 60;
+			// The first duel exercises a complete AI/render cycle and NPC 5 owns the
+			// Stinger Worm sequence above. Remaining NPCs need only enough frames to
+			// validate deck startup, rendering, and teardown; keeping each at a full
+			// second made metadata growth linearly exhaust the CTest timeout.
+			const int smokeFrameLimit = smokeNpc == 0 ? 300 : (smokeNpc == 5 ? 60 : 20);
 			if (++smokeFrames >= smokeFrameLimit)
 			{
 				smokeFrames = 0;
@@ -1162,81 +1166,70 @@ bool Application::exerciseOverworldMovementSmoke()
 			int area = worldAreaIndex(mNpcs[i].mapId);
 			mercerIsIndoors = area >= 0 && mWorldAreas[area].indoor;
 		}
-	int cinderrailArea = worldAreaIndex("cinderrail");
-	bool cinderrailReady = cinderrailArea >= 0 && !mWorldAreas[cinderrailArea].indoor;
-	std::set<char> industrialTiles;
-	if (cinderrailReady)
-		for (size_t row = 0; row < mWorldAreas[cinderrailArea].tiles.size(); ++row)
-			for (size_t column = 0; column < mWorldAreas[cinderrailArea].tiles[row].size(); ++column)
-				industrialTiles.insert(mWorldAreas[cinderrailArea].tiles[row][column]);
-	const std::string requiredTiles = "RXGIPVJ";
-	for (size_t i = 0; i < requiredTiles.size(); ++i)
-		cinderrailReady = cinderrailReady && industrialTiles.count(requiredTiles[i]) != 0;
-	int emberglenArea = worldAreaIndex("emberglen");
-	bool emberglenBuildingTilesReady = emberglenArea >= 0;
-	std::set<char> emberglenTiles;
-	if (emberglenBuildingTilesReady)
-		for (size_t row = 0; row < mWorldAreas[emberglenArea].tiles.size(); ++row)
-			for (size_t column = 0; column < mWorldAreas[emberglenArea].tiles[row].size(); ++column)
-				emberglenTiles.insert(mWorldAreas[emberglenArea].tiles[row][column]);
-	emberglenBuildingTilesReady = emberglenBuildingTilesReady &&
-		emberglenTiles.count('K') != 0 && emberglenTiles.count('W') != 0 &&
-		emberglenTiles.count('Q') != 0 && emberglenTiles.count('M') != 0;
+	TileBounds largeWorldBounds = visibleTileBounds(500.25f, 500.5f, 1024, 1024);
+	TileBounds overworldBounds = visibleTileBounds(500.25f, 500.5f, 1024, 1024,
+		OVERWORLD_VIEW_COLUMNS, MAP_VIEW_ROWS);
+	TileBounds smallMapBounds = visibleTileBounds(0.f, 0.f, 10, 8);
+	bool viewportCullingReady = largeWorldBounds.left == 499 &&
+		largeWorldBounds.top == 499 && largeWorldBounds.right == 522 &&
+		largeWorldBounds.bottom == 514 &&
+		largeWorldBounds.tileCount() <= (MAP_VIEW_COLUMNS + 3) * (MAP_VIEW_ROWS + 3) &&
+		largeWorldBounds.contains(500, 500) && !largeWorldBounds.contains(100, 100) &&
+		largeWorldBounds.intersects(500, 500, 501, 501) &&
+		!largeWorldBounds.intersects(0, 0, 10, 10) &&
+		overworldBounds.left == 499 && overworldBounds.top == 499 &&
+		overworldBounds.right == 527 && overworldBounds.bottom == 514 &&
+		overworldBounds.tileCount() <= (OVERWORLD_VIEW_COLUMNS + 3) *
+			(MAP_VIEW_ROWS + 3) &&
+		smallMapBounds.left == 0 && smallMapBounds.top == 0 &&
+		smallMapBounds.right == 10 && smallMapBounds.bottom == 8 &&
+		smallMapBounds.tileCount() == 80;
+	int overworldArea = worldAreaIndex("overworld");
+	bool seamlessWorldReady = overworldArea >= 0 && !mWorldAreas[overworldArea].indoor;
+	int outdoorAreas = 0;
+	for (size_t area = 0; area < mWorldAreas.size(); ++area)
+		if (!mWorldAreas[area].indoor) ++outdoorAreas;
+	seamlessWorldReady = seamlessWorldReady && outdoorAreas == 1 &&
+		mWorldAreas[overworldArea].tiles.size() == 108 &&
+		mWorldAreas[overworldArea].tiles[0].size() == 296;
+	std::set<char> worldTiles;
+	if (seamlessWorldReady)
+		for (size_t row = 0; row < mWorldAreas[overworldArea].tiles.size(); ++row)
+			for (size_t column = 0; column < mWorldAreas[overworldArea].tiles[row].size(); ++column)
+			{
+				char glyph = mWorldAreas[overworldArea].tiles[row][column];
+				worldTiles.insert(glyph);
+				seamlessWorldReady = seamlessWorldReady &&
+					WorldTiles::isValid(WorldTiles::fromGlyph(glyph));
+			}
+	const std::string requiredWorldTiles = "0123456789abcdefghijklmnopqRXGIPVJKWQMOU";
+	for (size_t i = 0; i < requiredWorldTiles.size(); ++i)
+		seamlessWorldReady = seamlessWorldReady &&
+			worldTiles.count(requiredWorldTiles[i]) != 0;
 
-	int oldRoadArea = worldAreaIndex("old_road");
-	bool oldRoadReady = oldRoadArea >= 0 && !mWorldAreas[oldRoadArea].indoor;
-	std::set<char> oldRoadTiles;
-	if (oldRoadReady)
-		for (size_t row = 0; row < mWorldAreas[oldRoadArea].tiles.size(); ++row)
-			for (size_t column = 0; column < mWorldAreas[oldRoadArea].tiles[row].size(); ++column)
-				oldRoadTiles.insert(mWorldAreas[oldRoadArea].tiles[row][column]);
-	const std::string requiredRoadTiles = "=~UOKW";
-	for (size_t i = 0; i < requiredRoadTiles.size(); ++i)
-		oldRoadReady = oldRoadReady && oldRoadTiles.count(requiredRoadTiles[i]) != 0;
-
-	int oldArrivalX = -1;
-	int oldArrivalY = -1;
-	int oldReturnX = -1;
-	int oldReturnY = -1;
-	int oldExitX = -1;
-	int oldExitY = -1;
-	int cinderArrivalX = -1;
-	int cinderArrivalY = -1;
-	int cinderReturnX = -1;
-	int cinderReturnY = -1;
-	int oldEastArrivalX = -1;
-	int oldEastArrivalY = -1;
+	const WorldRegion* glasswaterRegion = worldRegionAt("overworld", 43, 25);
+	const WorldRegion* rootmazeRegion = worldRegionAt("overworld", 50, 78);
+	const WorldRegion* watershedRegion = worldRegionAt("overworld", 130, 50);
+	const WorldRegion* emberglenRegion = worldRegionAt("overworld", 177, 50);
+	const WorldRegion* oldRoadRegion = worldRegionAt("overworld", 220, 44);
+	const WorldRegion* cinderrailRegion = worldRegionAt("overworld", 255, 57);
+	seamlessWorldReady = seamlessWorldReady && glasswaterRegion != NULL &&
+		rootmazeRegion != NULL &&
+		watershedRegion != NULL &&
+		emberglenRegion != NULL && oldRoadRegion != NULL && cinderrailRegion != NULL &&
+		glasswaterRegion->id == "glasswater" &&
+		rootmazeRegion->id == "rootmaze" &&
+		watershedRegion->id == "watershed_crossroads" &&
+		emberglenRegion->id == "emberglen" && oldRoadRegion->id == "old_road" &&
+		cinderrailRegion->id == "cinderrail";
 	for (size_t i = 0; i < mWorldPortals.size(); ++i)
 	{
-		const WorldPortal& portal = mWorldPortals[i];
-		if (portal.fromMap == "emberglen" && portal.toMap == "old_road")
-		{
-			oldArrivalX = portal.toX;
-			oldArrivalY = portal.toY;
-		}
-		else if (portal.fromMap == "old_road" && portal.toMap == "emberglen")
-		{
-			oldReturnX = portal.fromX;
-			oldReturnY = portal.fromY;
-		}
-		else if (portal.fromMap == "old_road" && portal.toMap == "cinderrail")
-		{
-			oldExitX = portal.fromX;
-			oldExitY = portal.fromY;
-			cinderArrivalX = portal.toX;
-			cinderArrivalY = portal.toY;
-		}
-		else if (portal.fromMap == "cinderrail" && portal.toMap == "old_road")
-		{
-			cinderReturnX = portal.fromX;
-			cinderReturnY = portal.fromY;
-			oldEastArrivalX = portal.toX;
-			oldEastArrivalY = portal.toY;
-		}
+		int from = worldAreaIndex(mWorldPortals[i].fromMap);
+		int to = worldAreaIndex(mWorldPortals[i].toMap);
+		seamlessWorldReady = seamlessWorldReady && from >= 0 && to >= 0 &&
+			(mWorldAreas[from].indoor || mWorldAreas[to].indoor);
 	}
-	oldRoadReady = oldRoadReady && oldArrivalX >= 0 && oldReturnX >= 0 && oldExitX >= 0 &&
-		oldEastArrivalX >= 0;
-	cinderrailReady = cinderrailReady && cinderArrivalX >= 0 && cinderReturnX >= 0;
+
 	const int dx[] = { 1, 0, -1, 0 };
 	const int dy[] = { 0, 1, 0, -1 };
 	auto reachableFrom = [this, &dx, &dy](int area, int x, int y)
@@ -1258,43 +1251,75 @@ bool Application::exerciseOverworldMovementSmoke()
 			}
 		return reachable;
 	};
-	if (oldRoadReady)
+	std::set<std::pair<int, int> > reachable;
+	if (seamlessWorldReady)
 	{
-		std::set<std::pair<int, int> > reachable =
-			reachableFrom(oldRoadArea, oldArrivalX, oldArrivalY);
-		oldRoadReady = reachable.count(std::make_pair(oldReturnX, oldReturnY)) != 0 &&
-			reachable.count(std::make_pair(oldExitX, oldExitY)) != 0 &&
-			reachable.count(std::make_pair(oldEastArrivalX, oldEastArrivalY)) != 0;
-		bool rookFound = false;
+		reachable = reachableFrom(overworldArea, mWorldStartX, mWorldStartY);
+		seamlessWorldReady = reachable.count(std::make_pair(0, 19)) != 0 &&
+			reachable.count(std::make_pair(95, 39)) != 0 &&
+			reachable.count(std::make_pair(96, 39)) != 0 &&
+			reachable.count(std::make_pair(95, 61)) != 0 &&
+			reachable.count(std::make_pair(96, 61)) != 0 &&
+			reachable.count(std::make_pair(47, 107)) != 0 &&
+			reachable.count(std::make_pair(95, 97)) != 0 &&
+			reachable.count(std::make_pair(159, 53)) != 0 &&
+			reachable.count(std::make_pair(160, 53)) != 0 &&
+			reachable.count(std::make_pair(195, 47)) != 0 &&
+			reachable.count(std::make_pair(196, 47)) != 0 &&
+			reachable.count(std::make_pair(243, 48)) != 0 &&
+			reachable.count(std::make_pair(244, 48)) != 0;
+	}
+	const char* regionalNpcs[] = { "rook", "kipp", "ansa", "holt",
+		"neris", "pell", "iri", "sol", "oren", "fern", "toma", "moss" };
+	const char* expectedRegions[] = { "old_road", "cinderrail", "cinderrail", "cinderrail",
+		"glasswater", "glasswater", "glasswater", "glasswater",
+		"rootmaze", "rootmaze", "rootmaze", "rootmaze" };
+	for (size_t expected = 0; expected < 12; ++expected)
+	{
+		bool found = false;
 		for (size_t i = 0; i < mNpcs.size(); ++i)
-			if (mNpcs[i].id == "rook")
-				rookFound = mNpcs[i].mapId == "old_road" &&
-					reachable.count(std::make_pair(mNpcs[i].x, mNpcs[i].y)) != 0;
-		oldRoadReady = oldRoadReady && rookFound;
+			if (mNpcs[i].id == regionalNpcs[expected])
+			{
+				const WorldRegion* region = worldRegionAt(mNpcs[i].mapId, mNpcs[i].x, mNpcs[i].y);
+				found = mNpcs[i].mapId == "overworld" && region != NULL &&
+					region->id == expectedRegions[expected] &&
+					reachable.count(std::make_pair(mNpcs[i].x, mNpcs[i].y)) != 0 &&
+					(mNpcs[i].id != "neris" || mNpcs[i].crestId == "tidal") &&
+					(mNpcs[i].id != "oren" || mNpcs[i].crestId == "verdant");
+			}
+		seamlessWorldReady = seamlessWorldReady && found;
 	}
-	if (cinderrailReady)
-	{
-		std::set<std::pair<int, int> > reachable =
-			reachableFrom(cinderrailArea, cinderArrivalX, cinderArrivalY);
-		cinderrailReady = reachable.count(std::make_pair(cinderReturnX, cinderReturnY)) != 0;
-		const char* cinderrailNpcs[] = { "kipp", "ansa", "holt" };
-		for (size_t expected = 0; expected < 3; ++expected)
-		{
-			bool found = false;
-			for (size_t i = 0; i < mNpcs.size(); ++i)
-				if (mNpcs[i].id == cinderrailNpcs[expected])
-					found = mNpcs[i].mapId == "cinderrail" &&
-						reachable.count(std::make_pair(mNpcs[i].x, mNpcs[i].y)) != 0;
-			cinderrailReady = cinderrailReady && found;
-		}
-	}
+	int savedStoryStage = mStoryStage;
+	mCurrentWorldArea = overworldArea;
+	mPlayerX = 195;
+	mPlayerY = 47;
+	mVisualX = 195.f;
+	mVisualY = 47.f;
+	mStoryStage = 0;
+	tryMove(1, 0);
+	bool roadGateReady = mPlayerX == 195;
+	mStoryStage = 4;
+	tryMove(1, 0);
+	roadGateReady = roadGateReady && mPlayerX == 196;
+	mPlayerX = 160;
+	mPlayerY = 53;
+	mVisualX = 160.f;
+	mVisualY = 53.f;
+	mStoryStage = 0;
+	tryMove(-1, 0);
+	bool watershedGateReady = mPlayerX == 160;
+	mStoryStage = 4;
+	tryMove(-1, 0);
+	watershedGateReady = watershedGateReady && mPlayerX == 159;
+	mStoryStage = savedStoryStage;
 	mCurrentWorldArea = savedArea;
 	mPlayerX = savedPortalPlayerX;
 	mPlayerY = savedPortalPlayerY;
 	mVisualX = savedPortalVisualX;
 	mVisualY = savedPortalVisualY;
 	return playerInterpolated && npcInterpolated && enteredIndoor && returnedOutside &&
-		mercerIsIndoors && oldRoadReady && cinderrailReady && emberglenBuildingTilesReady;
+		mercerIsIndoors && seamlessWorldReady && roadGateReady && watershedGateReady &&
+		viewportCullingReady;
 }
 
 bool Application::exerciseStorySmoke()
@@ -1359,6 +1384,21 @@ bool Application::exerciseMenuScreensSmoke()
 	mPauseMenuOpen = true;
 	mPauseMenuSelection = 0;
 	renderOverworld();
+	if (mCrestTextures.size() != 9) return false;
+	for (std::map<std::string, SDL_Texture*>::const_iterator texture = mCrestTextures.begin();
+		texture != mCrestTextures.end(); ++texture)
+		if (texture->second == NULL) return false;
+	int aureliaIndex = -1;
+	for (size_t i = 0; i < mNpcs.size(); ++i)
+		if (mNpcs[i].id == "aurelia") aureliaIndex = (int)i;
+	if (aureliaIndex < 0 || mNpcs[aureliaIndex].crestId != "dawn") return false;
+	int savedAureliaWins = mNpcs[aureliaIndex].wins;
+	mNpcs[aureliaIndex].wins = 0;
+	bool crestStartsLocked = !hasCrest("dawn");
+	mNpcs[aureliaIndex].wins = 1;
+	bool crestUnlocks = hasCrest("dawn");
+	mNpcs[aureliaIndex].wins = savedAureliaWins;
+	if (!crestStartsLocked || !crestUnlocks) return false;
 	SDL_Event navigate = {};
 	navigate.type = SDL_KEYDOWN;
 	navigate.key.keysym.sym = SDLK_DOWN;
@@ -1425,6 +1465,51 @@ bool Application::exerciseMenuScreensSmoke()
 	if (mShopPage != 0) return false;
 	handleShopEvent(back);
 	if (mScreen != Screen::Overworld) return false;
+
+	Screen savedScreen = mScreen;
+	WorldBuilderTab savedBuilderTab = mWorldBuilderTab;
+	int savedBuilderArea = mCurrentWorldArea;
+	int savedBuilderCameraX = mWorldBuilderCameraX;
+	int savedBuilderCameraY = mWorldBuilderCameraY;
+	int builderArea = worldAreaIndex("overworld");
+	if (builderArea < 0) return false;
+	mScreen = Screen::WorldBuilder;
+	mCurrentWorldArea = builderArea;
+	mWorldBuilderTab = WorldBuilderTab::Tiles;
+	mWorldBuilderCameraX = 10;
+	mWorldBuilderCameraY = 10;
+	mWorldBuilderMoveUp = mWorldBuilderMoveDown = false;
+	mWorldBuilderMoveLeft = mWorldBuilderMoveRight = false;
+	mWorldBuilderPanAccumulator = 0;
+	renderWorldBuilder();
+	SDL_Event pan = {};
+	pan.type = SDL_KEYDOWN;
+	pan.key.keysym.sym = SDLK_RIGHT;
+	handleWorldBuilderEvent(pan);
+	updateWorldBuilder(160);
+	pan.type = SDL_KEYUP;
+	handleWorldBuilderEvent(pan);
+	int stoppedCameraX = mWorldBuilderCameraX;
+	updateWorldBuilder(160);
+	bool arrowHeld = stoppedCameraX == 13 && mWorldBuilderCameraX == stoppedCameraX;
+	pan = {};
+	pan.type = SDL_KEYDOWN;
+	pan.key.keysym.sym = SDLK_s;
+	handleWorldBuilderEvent(pan);
+	updateWorldBuilder(160);
+	pan.type = SDL_KEYUP;
+	handleWorldBuilderEvent(pan);
+	bool wasdHeld = mWorldBuilderCameraY == 13 &&
+		mWorldBuilderTab == WorldBuilderTab::Tiles;
+	mWorldBuilderMoveUp = mWorldBuilderMoveDown = false;
+	mWorldBuilderMoveLeft = mWorldBuilderMoveRight = false;
+	mWorldBuilderPanAccumulator = 0;
+	mWorldBuilderCameraX = savedBuilderCameraX;
+	mWorldBuilderCameraY = savedBuilderCameraY;
+	mWorldBuilderTab = savedBuilderTab;
+	mCurrentWorldArea = savedBuilderArea;
+	mScreen = savedScreen;
+	if (!arrowHeld || !wasdHeld) return false;
 
 	mPendingRewardCardId = getCardIdFromName("Aqua Hulcus");
 	mPendingRewardGold = 100;

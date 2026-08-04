@@ -24,6 +24,8 @@ enum class CharacterAppearance
 	Briar,
 	Mercer,
 	VeiledOne,
+	Neris,
+	Oren,
 	Generic1,
 	Generic2,
 	Generic3,
@@ -60,7 +62,6 @@ public:
 	bool canWander() const;
 	bool canBattle() const;
 	bool isComplete() const;
-	std::string statusText() const;
 	std::string deckForBattle(int battleIndex) const;
 	std::string battleDeck() const;
 	NpcReward nextReward() const;
@@ -80,6 +81,7 @@ public:
 	float visualY;
 	unsigned int nextMoveAt;
 	std::string id;
+	std::string crestId;
 	std::string mapId;
 	std::string name;
 	std::vector<std::string> decks;

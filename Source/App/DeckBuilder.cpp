@@ -324,8 +324,7 @@ void Application::awardNpcVictory(int npcIndex)
 
 	mNotice = "Victory over " + npc.name + "! ";
 	if (awardedCard) mNotice += "+1 " + reward.card + " and ";
-	mNotice += "+" + std::to_string(reward.gold) + " gold. Reward " +
-		std::to_string(npc.wins) + "/" + std::to_string(npc.maxWins) + ".";
+	mNotice += "+" + std::to_string(reward.gold) + " gold.";
 	mNoticeUntil = SDL_GetTicks() + 6500;
 }
 

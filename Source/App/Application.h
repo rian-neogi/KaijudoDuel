@@ -2,6 +2,7 @@
 
 #include "App/MercerStock.h"
 #include "App/Npc.h"
+#include "App/WorldTile.h"
 #include "Game/Duel.h"
 
 #include <SDL.h>
@@ -108,6 +109,16 @@ private:
 		bool indoor;
 		std::vector<std::string> tiles;
 	};
+	struct WorldRegion
+	{
+		std::string id;
+		std::string name;
+		std::string mapId;
+		int x;
+		int y;
+		int width;
+		int height;
+	};
 	struct WorldPortal
 	{
 		std::string fromMap;
@@ -130,6 +141,9 @@ private:
 	void renderOverworld();
 	void handlePauseMenuEvent(const SDL_Event& event);
 	void renderPauseMenu();
+	bool hasCrest(const std::string& crestId) const;
+	SDL_Texture* crestTexture(const std::string& crestId);
+	void destroyCrestTextures();
 	void handleSettingsEvent(const SDL_Event& event);
 	void renderSettings();
 	bool exerciseMenuScreensSmoke();
@@ -160,12 +174,17 @@ private:
 	const std::vector<std::string>& currentMap() const;
 	const std::string& currentMapId() const;
 	int worldAreaIndex(const std::string& id) const;
+	const WorldRegion* worldRegionAt(const std::string& mapId, int x, int y) const;
+	const WorldRegion* currentWorldRegion() const;
 	bool beginPortalAt(int x, int y);
 	bool activatePortalAt(int x, int y);
 	bool isPortalAt(const std::string& mapId, int x, int y) const;
 	bool loadWorldMap(const std::string& path, std::string& error, bool allowMissingPositions = false);
 	void handleWorldBuilderEvent(const SDL_Event& event);
+	void updateWorldBuilder(Uint32 deltaTime);
 	void renderWorldBuilder();
+	void panWorldBuilder(int dx, int dy);
+	void drawWorldBuilderTileIcon(WorldTileId type, const SDL_Rect& rect);
 	void paintWorldBuilderTile(int x, int y);
 	void placeWorldBuilderSelection(int x, int y);
 	bool worldBuilderCanPlace(int x, int y, int ignoredNpc, int ignoredShard) const;
@@ -272,6 +291,7 @@ private:
 	SDL_Texture* mCardBackTexture;
 	SoundManager* mSoundManager;
 	std::map<int, SDL_Texture*> mCardTextures;
+	std::map<std::string, SDL_Texture*> mCrestTextures;
 	std::map<int, TTF_Font*> mFonts;
 	bool mRunning;
 	Screen mScreen;
@@ -279,6 +299,7 @@ private:
 	int mPauseMenuSelection;
 
 	std::vector<WorldArea> mWorldAreas;
+	std::vector<WorldRegion> mWorldRegions;
 	std::vector<WorldPortal> mWorldPortals;
 	int mCurrentWorldArea;
 	int mOpeningPortal;
@@ -313,12 +334,17 @@ private:
 	StoryScene mStoryScene;
 	int mStoryScenePage;
 	WorldBuilderTab mWorldBuilderTab;
-	char mWorldBuilderTile;
+	WorldTileId mWorldBuilderTile;
 	int mWorldBuilderSelectedNpc;
 	int mWorldBuilderSelectedShard;
 	int mWorldBuilderListScroll;
 	int mWorldBuilderCameraX;
 	int mWorldBuilderCameraY;
+	bool mWorldBuilderMoveUp;
+	bool mWorldBuilderMoveDown;
+	bool mWorldBuilderMoveLeft;
+	bool mWorldBuilderMoveRight;
+	Uint32 mWorldBuilderPanAccumulator;
 	bool mWorldBuilderPainting;
 	bool mWorldBuilderDragging;
 	bool mWorldBuilderDirty;

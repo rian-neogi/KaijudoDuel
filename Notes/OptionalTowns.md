@@ -71,13 +71,13 @@ A cosmetic workshop can recolor deck boxes, card backs, and future player-room d
 
 ## Second-tier towns
 
-### Cloudrest
+### Cloudrest Peak
 
 **Side road:** Above Stormbreak Plateau  
 **Visual identity:** Sheltered hot springs, white stone windbreaks, blue canvas roofs, and bells that warn of changing weather  
 **Common decks:** Water/Fire tempo, shield triggers, bounce, and sudden counterattacks
 
-Cloudrest began as a courier shelter and gradually became a small resort. Travelers come for the mineral baths, then stay because the locals treat every weather delay as an excuse to organize another duel bracket.
+Cloudrest began as a courier shelter and gradually became a small resort. Travelers come for the mineral baths, then stay because the locals treat every weather delay as an excuse to organize another duel bracket. It snows often at the peak.
 
 The town's side story is deliberately lighthearted: its brass weather vane has vanished before the annual forecast contest. The culprit is a group of mountain birds decorating their nest, not a Hollow agent. The player follows scattered metal ribbons, duels the embarrassed contest entrants, and returns the vane after the nesting season ends.
 
@@ -93,7 +93,7 @@ Cloudrest provides free resting, a compact rematch gauntlet, and a rotating shop
 
 **Side road:** South of Gloam Quarry  
 **Visual identity:** A misty wetland lit by cultivated glowing fungi, with plank paths and flat-bottomed pole boats  
-**Common decks:** Darkness/Nature graveyard setup, mana recovery, sacrifice, and recursion
+**Common decks:** Darkness/Nature/Water graveyard setup, mana recovery, sacrifice, and recursion
 
 Lanternfen is spooky only from a distance. Its residents are practical mushroom farmers who enjoy frightening visitors, then offering them soup. The settlement treats Darkness cards as part of ordinary life rather than evidence of tragedy or corruption.
 

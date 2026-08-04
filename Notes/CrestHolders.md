@@ -15,7 +15,7 @@ The intended campaign order is:
 ## 1. Aurelia — Holder of the Dawn Crest
 
 **Area:** Emberglen Festival Arena  
-**Civilization:** Light  
+**Civilization:** Mono Light
 **Signature card:** Hanusa, Radiance Elemental  
 **Advanced threat:** Urth, Purifying Elemental  
 **Circuit lesson:** Protecting resources and choosing the correct moment to attack
@@ -52,9 +52,9 @@ Aurelia saw Rowan pursue the blank cards toward the bridge and becomes one of th
 ## 2. Neris Quill — Holder of the Tidal Crest
 
 **Area:** Glasswater Port  
-**Civilizations:** Water and Darkness  
-**Signature card:** Crystal Paladin  
-**Secondary threat:** Marinomancer  
+**Civilizations:** Water and Nature  
+**Signature card:** Crystal Lancer  
+**Secondary threat:** Crystal Paladin
 **Circuit lesson:** Information matters only when it changes a decision
 
 ### Public profile
@@ -87,9 +87,9 @@ Glasswater's supposedly perfect prediction engine is built from stolen duel memo
 ## 3. Brassa Vale — Holder of the Forge Crest
 
 **Area:** Cinderrail Foundry  
-**Civilizations:** Fire and Light  
-**Signature card:** Armored Blaster Valdios  
-**Secondary threat:** Scarlet Skyterror  
+**Civilizations:** Fire, Nature, Darkness. A Survivor deck.
+**Signature card:** Q-Tronic Gargantua 
+**Secondary threat:** Grave Worm Q  
 **Circuit lesson:** Aggression is strongest when supported by preparation
 
 ### Public profile
@@ -124,9 +124,9 @@ The Curator's collectors secretly modified Cinderrail's furnaces to harvest reso
 ## 4. Oren Canopy — Holder of the Verdant Crest
 
 **Area:** Rootmaze Commons  
-**Civilizations:** Nature and Water  
-**Signature card:** Fighter Dual Fang  
-**Secondary threat:** Crystal Lancer  
+**Civilizations:** Nature, Light, Dark. He has a Totem midrange deck.
+**Signature card:** Cryptic Totem
+**Secondary threat:** Pretrova, Channeler of Suns  
 **Circuit lesson:** Growth creates options, not an obligation to play the largest card
 
 ### Public profile
@@ -151,7 +151,7 @@ Rootmaze proves that an echo can briefly survive outside its physical card. Bria
 
 ### Reward and rematches
 
-- **First victory:** Verdant Crest and Fighter Dual Fang
+- **First victory:** Verdant Crest and Cryptic Totem
 - **Master rematch:** Nature/Water/Light evolution deck supported by defensive Guardians
 - **Championship role:** Maintains the living paths used by competitors traveling to the capital
 
@@ -159,9 +159,9 @@ Rootmaze proves that an echo can briefly survive outside its physical card. Bria
 ## 5. Kestrel Vane — Holder of the Confluence Crest
 
 **Area:** Confluence Arena at the Archive Gate  
-**Civilizations:** Fire, Nature, and Water  
-**Signature card:** Bolmeteus Steel Dragon  
-**Secondary threat:** Uberdragon Bajula  
+**Civilizations:** Fire. A full dragon deck with Uberdragon Bajula.
+**Signature card:** Uberdragon Bajula 
+**Secondary threat:** Bolmeteus Steel Dragon
 **Circuit lesson:** A mixed deck needs a coherent purpose, not merely powerful cards
 
 ### Public profile
@@ -195,9 +195,9 @@ Confluence Arena is the central relay of the Circuit's resonance broadcasts. Kes
 ## 6. Natasha Gale — Holder of the Tempest Crest
 
 **Area:** Stormbreak Plateau  
-**Civilizations:** Fire, Light, Nature, and Darkness  
+**Civilizations:** Fire, Light, Nature  
 **Signature card:** Sapian Tark, Flame Dervish  
-**Secondary threat:** Jagila, the Hidden Pillager  
+**Secondary threat:** Pyrofighter Magnus
 **Circuit lesson:** The value of a creature changes with the formation around it
 
 ### Public profile
@@ -234,9 +234,9 @@ Her route can be completed before or after the Ashvault and Mirror Arena. Each c
 ## 7. Sister Vey — Holder of the Ashen Crest
 
 **Area:** Ashvault Memorial Arena, Gloam Quarry  
-**Civilizations:** Darkness and Fire  
+**Civilizations:** Darkness, Fire, Water
 **Signature card:** Death Phoenix, Avatar of Doom  
-**Secondary threat:** Necrodragon Giland  
+**Secondary threat:** Apocalypse Vise
 **Circuit lesson:** A sacrifice is meaningful only when the player understands its cost
 
 ### Public profile
@@ -268,9 +268,9 @@ Vey initially supports part of the Curator's message. She has watched people bec
 ## 8. Sable Meridian — Holder of the Mirror Crest
 
 **Area:** Mirror Arena  
-**Civilizations:** Variable; primarily Water, Light, and Darkness  
-**Signature card:** Miraculous Plague  
-**Secondary threat:** Alcadeias, Lord of Spirits  
+**Civilizations:** Light/Water or Light/Nature. Deck flips between an Aura Pegasus deck or a Wise Starnoid deck depending on the player's deck.
+**Signature card:** Wise Starnoid/Aura Pegasus
+**Secondary threat:** Craze Valkyrie, the Drastic/Valkyer, Starstorm Elemental
 **Circuit lesson:** Adaptation requires understanding an opponent, not merely countering them
 
 ### Public profile
@@ -285,16 +285,6 @@ The player faces three duelists representing aggression, defense, and resource c
 
 The selection should be a soft matchup test, never a perfect hard counter. The player must feel challenged to adapt, not punished for choosing a favorite deck.
 
-### Deck profile
-
-Sable has three official variants:
-
-- **Still Water:** Water/Light defense, draw, tapping, and blockers
-- **Black Reflection:** Water/Darkness discard, bounce, and graveyard pressure
-- **Prismatic Mirror:** Water/Light/Darkness control built around Miraculous Plague
-
-Alcadeias appears in the advanced Light-focused version. Sable's AI profile should change with the selected deck instead of applying one generic priority list.
-
 ### Hollow-story role
 
 The Curator steals Mirror Arena's match archive to create hollow replicas of past rivals. Sable chooses to destroy their life's most complete collection of match records rather than let non-consenting memories become weapons. They retain handwritten lessons, preserving understanding without preserving every private detail.
@@ -308,9 +298,9 @@ The Curator steals Mirror Arena's match archive to create hollow replicas of pas
 ## 9. Caelum Rhos — Holder of the Unity Crest
 
 **Area:** Crown Gate Arena  
-**Civilizations:** All five, using the Survivor archetype  
-**Signature card:** Q-tronic Omnistrain  
-**Secondary threat:** Bombazar, Dragon of Destiny  
+**Civilizations:** Fire and Nature. Bombazar deck.
+**Signature card:** Bombazar, Dragon of Destiny   
+**Secondary threat:** Uberdragon Bajula
 **Circuit lesson:** Five civilizations become strong through shared structure, not unrestricted power
 
 ### Public profile
@@ -349,7 +339,7 @@ The holders should teach increasingly demanding skills:
 
 1. **Aurelia:** Combat fundamentals and patience
 2. **Neris:** Hand management and incomplete information
-3. **Brassa:** Sequencing and evolution preparation
+3. **Brassa:** Deck harmony
 4. **Oren:** Mana planning and choosing between win conditions
 5. **Kestrel:** Mixed-civilization consistency
 6. **Natasha:** Formation thresholds and changing card value

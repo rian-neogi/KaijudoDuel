@@ -161,9 +161,7 @@ bool Application::isWalkable(int x, int y) const
 {
 	const std::vector<std::string>& map = currentMap();
 	if (y < 0 || y >= (int)map.size() || x < 0 || x >= (int)map[y].size()) return false;
-	char tile = map[y][x];
-	return tile == '.' || tile == '=' || tile == 'F' || tile == 'D' || tile == 'S' ||
-		tile == 'X' || tile == 'G' || tile == 'U';
+	return WorldTiles::isWalkable(WorldTiles::fromGlyph(map[y][x]));
 }
 
 int Application::npcAt(int x, int y, int ignoredNpc) const
@@ -180,6 +178,16 @@ void Application::tryMove(int dx, int dy)
 	mFacingY = dy;
 	int x = mPlayerX + dx;
 	int y = mPlayerY + dy;
+	const WorldRegion* fromRegion = worldRegionAt(currentMapId(), mPlayerX, mPlayerY);
+	const WorldRegion* toRegion = worldRegionAt(currentMapId(), x, y);
+	if (mStoryStage < 4 && fromRegion != NULL && toRegion != NULL &&
+		fromRegion->id == "emberglen" &&
+		(toRegion->id == "old_road" || toRegion->id == "watershed_crossroads"))
+	{
+		mNotice = "The roads beyond Emberglen are unsafe. Finish the investigation first.";
+		mNoticeUntil = SDL_GetTicks() + 4500;
+		return;
+	}
 	bool occupiedByMovingNpc = false;
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 		if (npcVisible((int)i) && mNpcs[i].mapId == currentMapId() &&
@@ -288,9 +296,9 @@ void Application::updateDialogue(Uint32 deltaTime)
 float Application::overworldCameraX() const
 {
 	const std::vector<std::string>& map = currentMap();
-	float maximum = (float)std::max(0, (int)map[0].size() - MAP_VIEW_COLUMNS);
+	float maximum = (float)std::max(0, (int)map[0].size() - OVERWORLD_VIEW_COLUMNS);
 	return std::max(0.f, std::min(maximum,
-		mVisualX - (MAP_VIEW_COLUMNS - 1) * 0.5f));
+		mVisualX - (OVERWORLD_VIEW_COLUMNS - 1) * 0.5f));
 }
 
 float Application::overworldCameraY() const
@@ -306,83 +314,116 @@ void Application::renderOverworld()
 	ensurePlayerDataLoaded();
 	fillRect({ 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT }, 13, 21, 34);
 	const std::vector<std::string>& map = currentMap();
-	const bool cinderrail = currentMapId() == "cinderrail";
-	const bool oldRoad = currentMapId() == "old_road";
-	int mapX = mapOriginX((int)map[0].size()) -
-		(int)std::round(overworldCameraX() * TILE);
-	int mapY = mapOriginY((int)map.size()) -
-		(int)std::round(overworldCameraY() * TILE);
-	SDL_Rect mapViewport = { MAP_X, MAP_Y, MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT };
-	SDL_RenderSetClipRect(mRenderer, &mapViewport);
-	for (size_t y = 0; y < map.size(); ++y)
+	const WorldRegion* cinderrailRegion = NULL;
+	const WorldRegion* watershedRegion = NULL;
+	const WorldRegion* glasswaterRegion = NULL;
+	const WorldRegion* rootmazeRegion = NULL;
+	for (size_t region = 0; region < mWorldRegions.size(); ++region)
 	{
-		for (size_t x = 0; x < map[y].size(); ++x)
+		if (mWorldRegions[region].mapId != currentMapId()) continue;
+		if (mWorldRegions[region].id == "cinderrail") cinderrailRegion = &mWorldRegions[region];
+		else if (mWorldRegions[region].id == "watershed_crossroads")
+			watershedRegion = &mWorldRegions[region];
+		else if (mWorldRegions[region].id == "glasswater")
+			glasswaterRegion = &mWorldRegions[region];
+		else if (mWorldRegions[region].id == "rootmaze")
+			rootmazeRegion = &mWorldRegions[region];
+	}
+	float cameraX = overworldCameraX();
+	float cameraY = overworldCameraY();
+	int mapX = mapOriginX((int)map[0].size(), OVERWORLD_VIEW_COLUMNS) -
+		(int)std::round(cameraX * TILE);
+	int mapY = mapOriginY((int)map.size()) - (int)std::round(cameraY * TILE);
+	TileBounds visibleTiles = visibleTileBounds(cameraX, cameraY,
+		(int)map[0].size(), (int)map.size(), OVERWORLD_VIEW_COLUMNS, MAP_VIEW_ROWS);
+	SDL_Rect mapViewport = { MAP_X, MAP_Y, OVERWORLD_VIEW_WIDTH, MAP_VIEW_HEIGHT };
+	SDL_RenderSetClipRect(mRenderer, &mapViewport);
+	for (int y = visibleTiles.top; y < visibleTiles.bottom; ++y)
+	{
+		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
 		{
 			SDL_Rect tileRect = { mapX + (int)x * TILE, mapY + (int)y * TILE, TILE, TILE };
-			char tile = map[y][x];
-			if (tile == '=') fillRect(tileRect, oldRoad ? 124 : (cinderrail ? 116 : 162),
-				oldRoad ? 112 : (cinderrail ? 91 : 132), oldRoad ? 88 : (cinderrail ? 58 : 76));
-			else if (tile == '~') fillRect(tileRect, 25, 111, 157);
-			else if (tile == 'H') fillRect(tileRect, cinderrail ? 111 : 126,
-				cinderrail ? 55 : 65, cinderrail ? 39 : 43);
-			else if (tile == '#' || tile == 'T') fillRect(tileRect,
-				cinderrail && tile == '#' ? 55 : 26,
-				cinderrail && tile == '#' ? 45 : 75,
-				cinderrail && tile == '#' ? 43 : 33);
-			else if (tile == 'S') fillRect(tileRect, cinderrail ? 118 : 188,
-				cinderrail ? 72 : 151, cinderrail ? 48 : 87);
-			else if (tile == 'M') fillRect(tileRect, oldRoad ? 79 : 198,
-				oldRoad ? 72 : 204, oldRoad ? 65 : 207);
-			else if (tile == 'Q') fillRect(tileRect, 201, 196, 177);
-			else if (tile == 'B') fillRect(tileRect, 83, 64, 42);
-			else if (tile == 'A') fillRect(tileRect, 61, 139, 61);
-			else if (tile == 'E') fillRect(tileRect, 137, 91, 49);
-			else if (tile == 'R' || tile == 'X') fillRect(tileRect,
-				tile == 'X' ? 104 : 47, tile == 'X' ? 83 : 45, tile == 'X' ? 57 : 43);
-			else if (tile == 'G') fillRect(tileRect, 73, 80, 86);
-			else if (tile == 'I') fillRect(tileRect, 112, 49, 38);
-			else if (tile == 'P') fillRect(tileRect, 63, 66, 67);
-			else if (tile == 'V') fillRect(tileRect, 64, 47, 43);
-			else if (tile == 'K') fillRect(tileRect, 91, 48, 37);
-			else if (tile == 'J') fillRect(tileRect, 67, 68, 70);
-			else if (tile == 'U') fillRect(tileRect, 31, 99, 132);
-			else if (tile == 'O') fillRect(tileRect, 73, 65, 59);
-			else if (tile == 'W' || tile == 'D' || tile == 'F' || tile == 'C')
-				fillRect(tileRect, tile == 'F' ? 137 : 91, tile == 'F' ? 91 : 53, tile == 'F' ? 49 : 31);
-			else fillRect(tileRect, cinderrail ? 82 : 61, cinderrail ? 76 : 139,
-				cinderrail ? 59 : 61);
+			WorldTileId tile = WorldTiles::fromGlyph(map[y][x]);
+			if (tile == WorldTiles::Path) fillRect(tileRect, 162, 132, 76);
+			else if (tile == WorldTiles::OldRoadPath) fillRect(tileRect, 124, 112, 88);
+			else if (tile == WorldTiles::CinderrailPath) fillRect(tileRect, 116, 91, 58);
+			else if (tile == WorldTiles::WatershedPath) fillRect(tileRect, 148, 139, 105);
+			else if (tile == WorldTiles::GlasswaterPaving) fillRect(tileRect, 165, 199, 202);
+			else if (tile == WorldTiles::RootmazePath) fillRect(tileRect, 119, 134, 75);
+			else if (tile == WorldTiles::Water) fillRect(tileRect, 25, 111, 157);
+			else if (tile == WorldTiles::House) fillRect(tileRect, 126, 65, 43);
+			else if (tile == WorldTiles::Forest || tile == WorldTiles::Tree)
+				fillRect(tileRect, 26, 75, 33);
+			else if (tile == WorldTiles::CinderrailRubble) fillRect(tileRect, 55, 45, 43);
+			else if (tile == WorldTiles::DuelSand) fillRect(tileRect, 188, 151, 87);
+			else if (tile == WorldTiles::CinderrailDuelSand) fillRect(tileRect, 118, 72, 48);
+			else if (tile == WorldTiles::Marble) fillRect(tileRect, 198, 204, 207);
+			else if (tile == WorldTiles::OldRoadWaystone) fillRect(tileRect, 79, 72, 65);
+			else if (tile == WorldTiles::MarbleRoof) fillRect(tileRect, 201, 196, 177);
+			else if (tile == WorldTiles::Bonfire) fillRect(tileRect, 83, 64, 42);
+			else if (tile == WorldTiles::FeastTable) fillRect(tileRect, 61, 139, 61);
+			else if (tile == WorldTiles::WorkshopTools) fillRect(tileRect, 137, 91, 49);
+			else if (tile == WorldTiles::Rail || tile == WorldTiles::RailCrossing)
+				fillRect(tileRect, tile == WorldTiles::RailCrossing ? 104 : 47,
+					tile == WorldTiles::RailCrossing ? 83 : 45,
+					tile == WorldTiles::RailCrossing ? 57 : 43);
+			else if (tile == WorldTiles::MetalGrate) fillRect(tileRect, 73, 80, 86);
+			else if (tile == WorldTiles::IndustrialBrick) fillRect(tileRect, 112, 49, 38);
+			else if (tile == WorldTiles::Machinery) fillRect(tileRect, 63, 66, 67);
+			else if (tile == WorldTiles::Furnace) fillRect(tileRect, 64, 47, 43);
+			else if (tile == WorldTiles::TimberRoof) fillRect(tileRect, 91, 48, 37);
+			else if (tile == WorldTiles::IndustrialRoof) fillRect(tileRect, 67, 68, 70);
+			else if (tile == WorldTiles::TimberBridge) fillRect(tileRect, 31, 99, 132);
+			else if (tile == WorldTiles::RockyCliff) fillRect(tileRect, 73, 65, 59);
+			else if (tile == WorldTiles::WoodWall || tile == WorldTiles::Door ||
+				tile == WorldTiles::CinderrailDoor || tile == WorldTiles::WoodFloor ||
+				tile == WorldTiles::Counter)
+				fillRect(tileRect, tile == WorldTiles::WoodFloor ? 137 : 91,
+					tile == WorldTiles::WoodFloor ? 91 : 53,
+					tile == WorldTiles::WoodFloor ? 49 : 31);
+			else if (tile == WorldTiles::CinderrailGround) fillRect(tileRect, 82, 76, 59);
+			else if (tile == WorldTiles::WatershedGround ||
+				tile == WorldTiles::WatershedMarker) fillRect(tileRect, 56, 124, 74);
+			else if (tile == WorldTiles::GlasswaterGround ||
+				tile == WorldTiles::GlasswaterMarker) fillRect(tileRect, 91, 151, 153);
+			else if (tile == WorldTiles::GlasswaterRoof) fillRect(tileRect, 42, 91, 134);
+			else if (tile == WorldTiles::GlasswaterDock) fillRect(tileRect, 106, 76, 48);
+			else if (tile == WorldTiles::GlasswaterWall) fillRect(tileRect, 157, 190, 191);
+			else if (tile == WorldTiles::GlasswaterDoor) fillRect(tileRect, 57, 111, 137);
+			else if (tile == WorldTiles::GlasswaterArena) fillRect(tileRect, 104, 164, 188);
+			else if (tile == WorldTiles::RootmazeGround ||
+				tile == WorldTiles::RootmazeMarker) fillRect(tileRect, 72, 126, 63);
+			else if (tile == WorldTiles::RootmazeRoot) fillRect(tileRect, 76, 55, 35);
+			else if (tile == WorldTiles::RootmazeBridge) fillRect(tileRect, 130, 92, 53);
+			else if (tile == WorldTiles::RootmazeRoof) fillRect(tileRect, 74, 116, 51);
+			else if (tile == WorldTiles::RootmazeWall) fillRect(tileRect, 109, 78, 47);
+			else if (tile == WorldTiles::RootmazeDoor) fillRect(tileRect, 126, 89, 50);
+			else if (tile == WorldTiles::RootmazeArena) fillRect(tileRect, 105, 154, 76);
+			else fillRect(tileRect, 61, 139, 61);
 
-			if (tile == '~')
+			if (tile == WorldTiles::Water)
 			{
 				int wave = (int)((SDL_GetTicks() / 180 + x * 5 + y * 3) % 24);
 				fillRect({ tileRect.x + 7, tileRect.y + 10 + wave / 3, 28, 3 }, 92, 189, 210, 190);
 			}
-			else if (tile == '#' && cinderrail)
+			else if (tile == WorldTiles::CinderrailRubble)
 			{
 				fillRect({ tileRect.x + 3, tileRect.y + 5, 42, 38 }, 72, 58, 54);
 				fillRect({ tileRect.x + 7, tileRect.y + 11, 17, 4 }, 91, 70, 61);
 				fillRect({ tileRect.x + 27, tileRect.y + 25, 14, 4 }, 39, 35, 37);
 				fillRect({ tileRect.x + 18, tileRect.y + 15, 4, 13 }, 45, 39, 40);
 			}
-			else if (tile == '#' || tile == 'T')
+			else if (tile == WorldTiles::Forest || tile == WorldTiles::Tree)
 			{
 				fillRect({ tileRect.x + 19, tileRect.y + 27, 10, 18 }, 85, 48, 26);
 				fillRect({ tileRect.x + 6, tileRect.y + 5, 36, 30 }, 41, 116, 49);
 			}
-			else if (tile == 'H' && cinderrail)
-			{
-				fillRect({ tileRect.x + 3, tileRect.y + 8, 42, 35 }, 139, 60, 43);
-				fillRect({ tileRect.x, tileRect.y + 5, 48, 8 }, 63, 56, 55);
-				fillRect({ tileRect.x + 7, tileRect.y + 17, 12, 10 }, 231, 177, 72);
-				fillRect({ tileRect.x + 27, tileRect.y + 18, 12, 25 }, 66, 55, 51);
-				fillRect({ tileRect.x + 30, tileRect.y + 22, 5, 8 }, 222, 143, 56);
-			}
-			else if (tile == 'H')
+			else if (tile == WorldTiles::House)
 			{
 				fillRect({ tileRect.x + 3, tileRect.y + 4, 42, 16 }, 186, 76, 46);
 				fillRect({ tileRect.x + 18, tileRect.y + 23, 13, 25 }, 54, 31, 24);
 			}
-			else if (tile == 'U')
+			else if (tile == WorldTiles::TimberBridge)
 			{
 				fillRect({ tileRect.x, tileRect.y + 6, 48, 36 }, 31, 99, 132);
 				int current = (int)((SDL_GetTicks() / 190 + x * 2 + y) % 13);
@@ -396,7 +437,7 @@ void Application::renderOverworld()
 				fillRect({ tileRect.x, tileRect.y + 39, 48, 5 }, 66, 45, 32);
 				fillRect({ tileRect.x, tileRect.y + 7, 48, 2 }, 218, 169, 83);
 			}
-			else if (tile == 'O')
+			else if (tile == WorldTiles::RockyCliff)
 			{
 				fillRect({ tileRect.x + 2, tileRect.y + 3, 44, 42 }, 91, 80, 69);
 				fillRect({ tileRect.x + 5, tileRect.y + 8, 19, 8 }, 116, 99, 78);
@@ -405,7 +446,7 @@ void Application::renderOverworld()
 				fillRect({ tileRect.x + 20, tileRect.y + 14, 3, 14 }, 54, 51, 50);
 				fillRect({ tileRect.x + 33, tileRect.y + 7, 7, 3 }, 143, 118, 84);
 			}
-			else if (tile == 'K')
+			else if (tile == WorldTiles::TimberRoof)
 			{
 				fillRect({ tileRect.x, tileRect.y + 3, 48, 42 }, 111, 56, 40);
 				fillRect({ tileRect.x, tileRect.y + 2, 48, 7 }, 63, 39, 34);
@@ -418,12 +459,13 @@ void Application::renderOverworld()
 						fillRect({ tileRect.x + seam, shingleY - 6, 2, 6 }, 79, 42, 34);
 				}
 				fillRect({ tileRect.x, tileRect.y + 42, 48, 5 }, 50, 34, 31);
-				if (x == 0 || map[y][x - 1] != 'K')
+				if (x == 0 || WorldTiles::fromGlyph(map[y][x - 1]) != WorldTiles::TimberRoof)
 					fillRect({ tileRect.x, tileRect.y + 4, 4, 41 }, 48, 33, 30);
-				if (x + 1 >= map[y].size() || map[y][x + 1] != 'K')
+				if (x + 1 >= (int)map[y].size() ||
+					WorldTiles::fromGlyph(map[y][x + 1]) != WorldTiles::TimberRoof)
 					fillRect({ tileRect.x + 44, tileRect.y + 4, 4, 41 }, 48, 33, 30);
 			}
-			else if (tile == 'Q')
+			else if (tile == WorldTiles::MarbleRoof)
 			{
 				fillRect({ tileRect.x + 1, tileRect.y + 3, 46, 42 }, 216, 213, 199);
 				fillRect({ tileRect.x + 1, tileRect.y + 3, 46, 6 }, 244, 241, 222);
@@ -437,12 +479,13 @@ void Application::renderOverworld()
 				}
 				fillRect({ tileRect.x, tileRect.y + 42, 48, 5 }, 174, 139, 67);
 				fillRect({ tileRect.x, tileRect.y + 42, 48, 2 }, 238, 207, 117);
-				if (x == 0 || map[y][x - 1] != 'Q')
+				if (x == 0 || WorldTiles::fromGlyph(map[y][x - 1]) != WorldTiles::MarbleRoof)
 					fillRect({ tileRect.x, tileRect.y + 4, 4, 41 }, 139, 142, 139);
-				if (x + 1 >= map[y].size() || map[y][x + 1] != 'Q')
+				if (x + 1 >= (int)map[y].size() ||
+					WorldTiles::fromGlyph(map[y][x + 1]) != WorldTiles::MarbleRoof)
 					fillRect({ tileRect.x + 44, tileRect.y + 4, 4, 41 }, 139, 142, 139);
 			}
-			else if (tile == 'W')
+			else if (tile == WorldTiles::WoodWall)
 			{
 				fillRect({ tileRect.x + 2, tileRect.y + 3, 44, 42 }, 124, 72, 38);
 				for (int plank = 0; plank < 4; ++plank)
@@ -450,8 +493,9 @@ void Application::renderOverworld()
 				fillRect({ tileRect.x + 5, tileRect.y + 2, 5, 46 }, 67, 38, 26);
 				fillRect({ tileRect.x + 38, tileRect.y + 2, 5, 46 }, 67, 38, 26);
 			}
-			else if (tile == 'D')
+			else if (tile == WorldTiles::Door || tile == WorldTiles::CinderrailDoor)
 			{
+				bool cinderDoor = tile == WorldTiles::CinderrailDoor;
 				float open = 0.f;
 				bool mercerDoor = false;
 				for (size_t portalIndex = 0; portalIndex < mWorldPortals.size(); ++portalIndex)
@@ -468,12 +512,12 @@ void Application::renderOverworld()
 							(float)DOOR_OPEN_DURATION);
 				}
 				fillRect({ tileRect.x + 7, tileRect.y + 2, 34, 46 },
-					cinderrail ? 75 : 104, cinderrail ? 71 : 57, cinderrail ? 68 : 31);
+					cinderDoor ? 75 : 104, cinderDoor ? 71 : 57, cinderDoor ? 68 : 31);
 				fillRect({ tileRect.x + 11, tileRect.y + 6, 26, 38 }, 24, 20, 19);
 				int doorWidth = std::max(2, (int)std::round(26.f * (1.f - open)));
 				fillRect({ tileRect.x + 11, tileRect.y + 6, doorWidth, 38 },
-					cinderrail ? 107 : 139, cinderrail ? 111 : 78, cinderrail ? 112 : 39);
-				if (cinderrail && doorWidth > 6)
+					cinderDoor ? 107 : 139, cinderDoor ? 111 : 78, cinderDoor ? 112 : 39);
+				if (cinderDoor && doorWidth > 6)
 				{
 					fillRect({ tileRect.x + 13, tileRect.y + 10, doorWidth - 4, 4 }, 164, 65, 42);
 					fillRect({ tileRect.x + 13, tileRect.y + 34, doorWidth - 4, 3 }, 224, 169, 61);
@@ -489,21 +533,21 @@ void Application::renderOverworld()
 					drawText("M", signX + 2, tileRect.y + 9, color(72, 43, 28), 9);
 				}
 			}
-			else if (tile == 'F')
+			else if (tile == WorldTiles::WoodFloor)
 			{
 				for (int plank = 0; plank < 4; ++plank)
 					fillRect({ tileRect.x, tileRect.y + plank * 12, 48, 2 }, 96, 58, 36);
 				fillRect({ tileRect.x + 23, tileRect.y + 2, 2, 10 }, 109, 67, 39);
 				fillRect({ tileRect.x + 10, tileRect.y + 26, 2, 10 }, 109, 67, 39);
 			}
-			else if (tile == 'C')
+			else if (tile == WorldTiles::Counter)
 			{
 				fillRect({ tileRect.x + 2, tileRect.y + 10, 44, 32 }, 112, 62, 34);
 				fillRect({ tileRect.x, tileRect.y + 7, 48, 7 }, 166, 105, 53);
 				fillRect({ tileRect.x + 8, tileRect.y + 18, 4, 22 }, 71, 40, 27);
 				fillRect({ tileRect.x + 36, tileRect.y + 18, 4, 22 }, 71, 40, 27);
 			}
-			else if (tile == 'B')
+			else if (tile == WorldTiles::Bonfire)
 			{
 				fillRect({ tileRect.x + 5, tileRect.y + 32, 38, 8 }, 74, 70, 65);
 				fillRect({ tileRect.x + 10, tileRect.y + 29, 28, 10 }, 111, 100, 83);
@@ -513,7 +557,7 @@ void Application::renderOverworld()
 				fillRect({ tileRect.x + 20, tileRect.y + 8 - flicker, 10, 23 }, 249, 137, 36);
 				fillRect({ tileRect.x + 23, tileRect.y + 16, 6, 15 }, 255, 222, 89);
 			}
-			else if (tile == 'A')
+			else if (tile == WorldTiles::FeastTable)
 			{
 				fillRect({ tileRect.x + 6, tileRect.y + 6, 36, 5 }, 93, 52, 29);
 				fillRect({ tileRect.x + 6, tileRect.y + 37, 36, 5 }, 93, 52, 29);
@@ -522,9 +566,9 @@ void Application::renderOverworld()
 				fillRect({ tileRect.x + 12, tileRect.y + 23, 7, 6 }, 232, 208, 151);
 				fillRect({ tileRect.x + 29, tileRect.y + 22, 8, 7 }, 175, 49, 37);
 			}
-			else if (tile == 'S')
+			else if (tile == WorldTiles::DuelSand || tile == WorldTiles::CinderrailDuelSand)
 			{
-				if (cinderrail)
+				if (tile == WorldTiles::CinderrailDuelSand)
 				{
 					fillRect({ tileRect.x + 3, tileRect.y + 3, 42, 42 }, 132, 76, 48);
 					fillRect({ tileRect.x + 3, tileRect.y + 5, 42, 3 }, 225, 178, 71);
@@ -536,9 +580,9 @@ void Application::renderOverworld()
 					fillRect({ tileRect.x + 34, tileRect.y + 31, 6, 3 }, 211, 177, 109);
 				}
 			}
-			else if (tile == 'M')
+			else if (tile == WorldTiles::Marble || tile == WorldTiles::OldRoadWaystone)
 			{
-				if (oldRoad)
+				if (tile == WorldTiles::OldRoadWaystone)
 				{
 					fillRect({ tileRect.x + 11, tileRect.y + 5, 27, 39 }, 102, 91, 76);
 					fillRect({ tileRect.x + 14, tileRect.y + 8, 21, 31 }, 127, 110, 84);
@@ -554,7 +598,7 @@ void Application::renderOverworld()
 					fillRect({ tileRect.x + 31, tileRect.y + 24, 2, 21 }, 177, 186, 190);
 				}
 			}
-			else if (tile == 'E')
+			else if (tile == WorldTiles::WorkshopTools)
 			{
 				fillRect({ tileRect.x + 3, tileRect.y + 24, 42, 17 }, 104, 58, 32);
 				fillRect({ tileRect.x + 5, tileRect.y + 20, 38, 6 }, 171, 108, 51);
@@ -562,21 +606,22 @@ void Application::renderOverworld()
 				fillRect({ tileRect.x + 20, tileRect.y + 7, 6, 14 }, 151, 71, 183);
 				fillRect({ tileRect.x + 31, tileRect.y + 12, 8, 9 }, 217, 158, 48);
 			}
-			else if (tile == 'R' || tile == 'X')
+			else if (tile == WorldTiles::Rail || tile == WorldTiles::RailCrossing)
 			{
 				for (int tie = 2; tie < 48; tie += 10)
 					fillRect({ tileRect.x + tie, tileRect.y + 5, 5, 38 },
-						tile == 'X' ? 155 : 100, tile == 'X' ? 112 : 73,
-						tile == 'X' ? 55 : 48);
+						tile == WorldTiles::RailCrossing ? 155 : 100,
+						tile == WorldTiles::RailCrossing ? 112 : 73,
+						tile == WorldTiles::RailCrossing ? 55 : 48);
 				fillRect({ tileRect.x, tileRect.y + 9, 48, 5 }, 151, 158, 158);
 				fillRect({ tileRect.x, tileRect.y + 34, 48, 5 }, 151, 158, 158);
 				fillRect({ tileRect.x, tileRect.y + 11, 48, 2 }, 221, 225, 220);
 				fillRect({ tileRect.x, tileRect.y + 36, 48, 2 }, 221, 225, 220);
-				if (tile == 'X')
+				if (tile == WorldTiles::RailCrossing)
 					for (int plate = 3; plate < 48; plate += 9)
 						fillRect({ tileRect.x + plate, tileRect.y + 16, 6, 15 }, 186, 151, 72);
 			}
-			else if (tile == 'G')
+			else if (tile == WorldTiles::MetalGrate)
 			{
 				fillRect({ tileRect.x + 2, tileRect.y + 2, 44, 44 }, 88, 96, 101);
 				for (int grate = 7; grate < 44; grate += 9)
@@ -585,7 +630,7 @@ void Application::renderOverworld()
 				fillRect({ tileRect.x + 5, tileRect.y + 8, 4, 4 }, 196, 204, 202);
 				fillRect({ tileRect.x + 39, tileRect.y + 36, 4, 4 }, 196, 204, 202);
 			}
-			else if (tile == 'J')
+			else if (tile == WorldTiles::IndustrialRoof)
 			{
 				fillRect({ tileRect.x + 1, tileRect.y + 3, 46, 42 }, 75, 76, 77);
 				fillRect({ tileRect.x, tileRect.y + 40, 48, 7 }, 43, 45, 47);
@@ -598,12 +643,13 @@ void Application::renderOverworld()
 				}
 				fillRect({ tileRect.x + 4, tileRect.y + 24, 40, 7 }, 155, 170, 171);
 				fillRect({ tileRect.x + 7, tileRect.y + 26, 34, 3 }, 104, 189, 202);
-				if (x == 0 || map[y][x - 1] != 'J')
+				if (x == 0 || WorldTiles::fromGlyph(map[y][x - 1]) != WorldTiles::IndustrialRoof)
 					fillRect({ tileRect.x, tileRect.y + 2, 4, 43 }, 38, 42, 44);
-				if (x + 1 >= map[y].size() || map[y][x + 1] != 'J')
+				if (x + 1 >= (int)map[y].size() ||
+					WorldTiles::fromGlyph(map[y][x + 1]) != WorldTiles::IndustrialRoof)
 					fillRect({ tileRect.x + 44, tileRect.y + 2, 4, 43 }, 38, 42, 44);
 			}
-			else if (tile == 'I')
+			else if (tile == WorldTiles::IndustrialBrick)
 			{
 				fillRect({ tileRect.x + 2, tileRect.y + 3, 44, 42 }, 135, 55, 40);
 				for (int brick = 10; brick < 43; brick += 11)
@@ -614,7 +660,7 @@ void Application::renderOverworld()
 				if ((x + y) % 3 == 0)
 					fillRect({ tileRect.x + 8, tileRect.y + 18, 13, 11 }, 225, 173, 69);
 			}
-			else if (tile == 'P')
+			else if (tile == WorldTiles::Machinery)
 			{
 				fillRect({ tileRect.x + 5, tileRect.y + 6, 38, 37 }, 82, 88, 89);
 				fillRect({ tileRect.x + 8, tileRect.y + 10, 32, 6 }, 176, 75, 43);
@@ -624,7 +670,7 @@ void Application::renderOverworld()
 				fillRect({ tileRect.x + 12 + pulse, tileRect.y + 34, 7, 5 }, 235, 174, 54);
 				fillRect({ tileRect.x + 32 - pulse, tileRect.y + 20, 5, 5 }, 97, 213, 182);
 			}
-			else if (tile == 'V')
+			else if (tile == WorldTiles::Furnace)
 			{
 				fillRect({ tileRect.x + 5, tileRect.y + 3, 38, 43 }, 69, 55, 52);
 				fillRect({ tileRect.x + 9, tileRect.y, 30, 8 }, 105, 89, 81);
@@ -636,16 +682,16 @@ void Application::renderOverworld()
 					255, 177, 48);
 				fillRect({ tileRect.x + 8, tileRect.y + 12, 32, 4 }, 203, 175, 106);
 			}
-			else if (tile == '.')
+			else if (tile == WorldTiles::Grass || tile == WorldTiles::CinderrailGround)
 			{
-				if (cinderrail)
+				if (tile == WorldTiles::CinderrailGround)
 				{
 					fillRect({ tileRect.x + 7, tileRect.y + 35, 5, 3 }, 117, 94, 61);
 					fillRect({ tileRect.x + 32, tileRect.y + 13, 3, 3 }, 58, 57, 52);
 				}
 				else fillRect({ tileRect.x + 7, tileRect.y + 34, 3, 8 }, 111, 180, 64);
 			}
-			if (oldRoad && tile == '=')
+			if (tile == WorldTiles::OldRoadPath)
 			{
 				fillRect({ tileRect.x + 2, tileRect.y + 5, 18, 15 }, 143, 130, 101);
 				fillRect({ tileRect.x + 24, tileRect.y + 7, 21, 13 }, 105, 98, 82);
@@ -654,45 +700,295 @@ void Application::renderOverworld()
 				fillRect({ tileRect.x + 19, tileRect.y + 8, 3, 8 }, 62, 82, 60);
 				fillRect({ tileRect.x + 31, tileRect.y + 34, 5, 3 }, 67, 91, 62);
 			}
-			else if (cinderrail && tile == '=')
+			else if (tile == WorldTiles::CinderrailPath)
 			{
 				SDL_Color route = color(190, 145, 55);
-				if ((y == 25 || y == 26) && x <= 25) route = color(88, 170, 93);
-				else if (y >= 32 && x >= 15 && x <= 33) route = color(141, 91, 177);
-				else if (x >= 45 && y >= 15 && y <= 21) route = color(222, 225, 216);
-				bool verticalRoute = (x == 25 || x == 26) && y != 10 && y != 11 &&
-					y != 16 && y != 17 && y != 25 && y != 26 && y != 34;
+				int localX = cinderrailRegion == NULL ? x : x - cinderrailRegion->x;
+				int localY = cinderrailRegion == NULL ? y : y - cinderrailRegion->y;
+				if ((localY == 25 || localY == 26) && localX <= 25) route = color(88, 170, 93);
+				else if (localY >= 32 && localX >= 15 && localX <= 33) route = color(141, 91, 177);
+				else if (localX >= 45 && localY >= 15 && localY <= 21) route = color(222, 225, 216);
+				bool verticalRoute = (localX == 25 || localX == 26) && localY != 10 &&
+					localY != 11 && localY != 16 && localY != 17 && localY != 25 &&
+					localY != 26 && localY != 34;
 				if (verticalRoute)
 					fillRect({ tileRect.x + 4, tileRect.y, 3, 48 }, route.r, route.g, route.b);
 				else fillRect({ tileRect.x, tileRect.y + 4, 48, 3 }, route.r, route.g, route.b);
 				fillRect({ tileRect.x + 8, tileRect.y + 26, 5, 5 }, 74, 66, 57);
 				fillRect({ tileRect.x + 36, tileRect.y + 14, 4, 4 }, 205, 174, 104);
 			}
+			else if (tile == WorldTiles::WatershedGround)
+			{
+				fillRect({ tileRect.x + 7, tileRect.y + 34, 3, 8 }, 99, 181, 96);
+				fillRect({ tileRect.x + 31, tileRect.y + 16, 3, 10 }, 77, 158, 88);
+				fillRect({ tileRect.x + 18, tileRect.y + 39, 12, 3 }, 74, 143, 91);
+			}
+			else if (tile == WorldTiles::WatershedPath)
+			{
+				fillRect({ tileRect.x + 4, tileRect.y + 7, 18, 12 }, 174, 163, 122);
+				fillRect({ tileRect.x + 27, tileRect.y + 28, 15, 10 }, 118, 111, 88);
+			}
+			else if (tile == WorldTiles::WatershedMarker)
+			{
+				fillRect({ tileRect.x + 21, tileRect.y + 13, 6, 31 }, 82, 54, 32);
+				fillRect({ tileRect.x + 7, tileRect.y + 8, 34, 12 }, 203, 171, 69);
+				fillRect({ tileRect.x + 10, tileRect.y + 12, 8, 4 }, 58, 133, 193);
+				fillRect({ tileRect.x + 20, tileRect.y + 12, 8, 4 }, 66, 157, 79);
+				fillRect({ tileRect.x + 30, tileRect.y + 12, 7, 4 }, 215, 169, 57);
+			}
+			else if (tile == WorldTiles::GlasswaterGround)
+			{
+				fillRect({ tileRect.x + 3, tileRect.y + 22, 42, 2 }, 128, 181, 181);
+				fillRect({ tileRect.x + 17, tileRect.y + 3, 2, 19 }, 116, 174, 176);
+				fillRect({ tileRect.x + 32, tileRect.y + 25, 2, 20 }, 105, 164, 168);
+			}
+			else if (tile == WorldTiles::GlasswaterPaving)
+			{
+				fillRect({ tileRect.x + 2, tileRect.y + 2, 44, 44 }, 184, 211, 211);
+				fillRect({ tileRect.x + 3, tileRect.y + 22, 42, 2 }, 102, 164, 177);
+				fillRect({ tileRect.x + 22, tileRect.y + 3, 2, 42 }, 112, 174, 184);
+				fillRect({ tileRect.x + 7, tileRect.y + 7, 9, 3 }, 222, 232, 220);
+			}
+			else if (tile == WorldTiles::GlasswaterRoof)
+			{
+				for (int wave = 0; wave < 4; ++wave)
+				{
+					int waveY = tileRect.y + 7 + wave * 10;
+					fillRect({ tileRect.x + (wave % 2 == 0 ? 0 : 7), waveY, 41, 5 },
+						49, 117, 159);
+					fillRect({ tileRect.x + (wave % 2 == 0 ? 8 : 0), waveY + 4, 40, 3 },
+						27, 70, 116);
+				}
+				fillRect({ tileRect.x, tileRect.y + 43, 48, 4 }, 111, 75, 143);
+			}
+			else if (tile == WorldTiles::GlasswaterDock)
+			{
+				for (int plank = 3; plank < 48; plank += 9)
+					fillRect({ tileRect.x + plank, tileRect.y + 3, 3, 42 }, 68, 49, 38);
+				fillRect({ tileRect.x, tileRect.y + 5, 48, 4 }, 73, 156, 180);
+				fillRect({ tileRect.x, tileRect.y + 39, 48, 4 }, 73, 156, 180);
+			}
+			else if (tile == WorldTiles::GlasswaterWall)
+			{
+				fillRect({ tileRect.x + 2, tileRect.y + 3, 44, 42 }, 174, 207, 207);
+				for (int course = 10; course < 43; course += 11)
+					fillRect({ tileRect.x + 3, tileRect.y + course, 42, 2 }, 98, 151, 163);
+				fillRect({ tileRect.x + 7, tileRect.y + 14, 12, 13 }, 47, 118, 157);
+				fillRect({ tileRect.x + 29, tileRect.y + 14, 12, 13 }, 47, 118, 157);
+			}
+			else if (tile == WorldTiles::GlasswaterDoor)
+			{
+				fillRect({ tileRect.x + 5, tileRect.y + 2, 38, 46 }, 177, 207, 205);
+				fillRect({ tileRect.x + 10, tileRect.y + 8, 28, 40 }, 39, 98, 133);
+				fillRect({ tileRect.x + 14, tileRect.y + 12, 20, 32 }, 49, 129, 158);
+				fillRect({ tileRect.x + 29, tileRect.y + 27, 4, 4 }, 230, 199, 87);
+			}
+			else if (tile == WorldTiles::GlasswaterArena)
+			{
+				outlineRect({ tileRect.x + 4, tileRect.y + 4, 40, 40 }, 220, 231, 222, 255, 3);
+				fillRect({ tileRect.x + 22, tileRect.y + 6, 4, 36 }, 69, 119, 166);
+				fillRect({ tileRect.x + 6, tileRect.y + 22, 36, 4 }, 111, 75, 143);
+			}
+			else if (tile == WorldTiles::GlasswaterMarker)
+			{
+				fillRect({ tileRect.x + 21, tileRect.y + 9, 6, 34 }, 49, 74, 91);
+				fillRect({ tileRect.x + 10, tileRect.y + 7, 28, 9 }, 211, 222, 205);
+				fillRect({ tileRect.x + 13, tileRect.y + 10, 9, 3 }, 52, 142, 184);
+				fillRect({ tileRect.x + 26, tileRect.y + 10, 8, 3 }, 82, 171, 132);
+			}
+			else if (tile == WorldTiles::RootmazeGround)
+			{
+				fillRect({ tileRect.x + 7, tileRect.y + 33, 4, 10 }, 111, 174, 73);
+				fillRect({ tileRect.x + 29, tileRect.y + 19, 3, 13 }, 91, 157, 66);
+				fillRect({ tileRect.x + 18, tileRect.y + 39, 12, 3 }, 52, 105, 52);
+			}
+			else if (tile == WorldTiles::RootmazePath)
+			{
+				fillRect({ tileRect.x + 3, tileRect.y + 7, 19, 12 }, 151, 146, 91);
+				fillRect({ tileRect.x + 26, tileRect.y + 27, 18, 11 }, 89, 103, 66);
+				fillRect({ tileRect.x + 16, tileRect.y + 20, 4, 4 }, 190, 167, 83);
+			}
+			else if (tile == WorldTiles::RootmazeRoot)
+			{
+				fillRect({ tileRect.x + 2, tileRect.y + 3, 44, 42 }, 87, 62, 38);
+				fillRect({ tileRect.x + 6, tileRect.y + 7, 9, 36 }, 112, 76, 43);
+				fillRect({ tileRect.x + 24, tileRect.y + 2, 7, 43 }, 63, 48, 34);
+				fillRect({ tileRect.x + 35, tileRect.y + 12, 7, 31 }, 101, 72, 42);
+				fillRect({ tileRect.x + 9, tileRect.y + 8, 5, 8 }, 80, 143, 55);
+			}
+			else if (tile == WorldTiles::RootmazeBridge)
+			{
+				for (int slat = 2; slat < 48; slat += 8)
+					fillRect({ tileRect.x + slat, tileRect.y + 5, 6, 38 }, 151, 108, 61);
+				fillRect({ tileRect.x, tileRect.y + 4, 48, 5 }, 61, 95, 47);
+				fillRect({ tileRect.x, tileRect.y + 39, 48, 5 }, 61, 95, 47);
+				fillRect({ tileRect.x + 4, tileRect.y + 7, 3, 35 }, 112, 169, 70);
+			}
+			else if (tile == WorldTiles::RootmazeRoof)
+			{
+				fillRect({ tileRect.x + 1, tileRect.y + 3, 46, 42 }, 78, 124, 54);
+				for (int row = 8; row < 42; row += 9)
+					fillRect({ tileRect.x + 2, tileRect.y + row, 44, 3 }, 45, 86, 42);
+				fillRect({ tileRect.x + 7, tileRect.y + 5, 9, 6 }, 121, 170, 73);
+				fillRect({ tileRect.x + 30, tileRect.y + 17, 11, 7 }, 97, 153, 66);
+				fillRect({ tileRect.x, tileRect.y + 42, 48, 5 }, 91, 58, 37);
+			}
+			else if (tile == WorldTiles::RootmazeWall)
+			{
+				fillRect({ tileRect.x + 2, tileRect.y + 3, 44, 42 }, 122, 87, 52);
+				for (int beam = 7; beam < 45; beam += 12)
+					fillRect({ tileRect.x + beam, tileRect.y + 3, 5, 42 }, 70, 50, 35);
+				fillRect({ tileRect.x + 10, tileRect.y + 13, 12, 13 }, 79, 139, 106);
+				fillRect({ tileRect.x + 29, tileRect.y + 13, 10, 13 }, 79, 139, 106);
+			}
+			else if (tile == WorldTiles::RootmazeDoor)
+			{
+				fillRect({ tileRect.x + 5, tileRect.y + 2, 38, 46 }, 82, 58, 39);
+				fillRect({ tileRect.x + 10, tileRect.y + 8, 28, 40 }, 138, 99, 55);
+				fillRect({ tileRect.x + 14, tileRect.y + 13, 20, 31 }, 101, 142, 67);
+				fillRect({ tileRect.x + 29, tileRect.y + 27, 4, 4 }, 229, 187, 76);
+			}
+			else if (tile == WorldTiles::RootmazeArena)
+			{
+				outlineRect({ tileRect.x + 4, tileRect.y + 4, 40, 40 }, 213, 210, 136, 255, 3);
+				fillRect({ tileRect.x + 7, tileRect.y + 22, 34, 4 }, 53, 111, 67);
+				fillRect({ tileRect.x + 22, tileRect.y + 7, 4, 34 }, 78, 127, 60);
+			}
+			else if (tile == WorldTiles::RootmazeMarker)
+			{
+				fillRect({ tileRect.x + 21, tileRect.y + 8, 6, 35 }, 91, 61, 37);
+				fillRect({ tileRect.x + 7, tileRect.y + 7, 34, 11 }, 147, 126, 65);
+				fillRect({ tileRect.x + 10, tileRect.y + 10, 7, 4 }, 62, 146, 77);
+				fillRect({ tileRect.x + 20, tileRect.y + 10, 7, 4 }, 52, 124, 181);
+				fillRect({ tileRect.x + 30, tileRect.y + 10, 7, 4 }, 202, 151, 63);
+			}
 		}
 	}
-	if (cinderrail)
+	if (glasswaterRegion != NULL)
 	{
-		int stationX = mapX + 8 * TILE;
-		int stationY = mapY + TILE;
-		fillRect({ stationX + 8, stationY, 80, 102 }, 116, 50, 39);
-		fillRect({ stationX + 3, stationY, 90, 9 }, 55, 54, 56);
-		fillRect({ stationX + 28, stationY + 17, 39, 39 }, 44, 42, 43);
-		fillRect({ stationX + 33, stationY + 22, 29, 29 }, 223, 207, 159);
-		fillRect({ stationX + 46, stationY + 25, 3, 13 }, 61, 56, 52);
-		fillRect({ stationX + 47, stationY + 36, 10, 3 }, 61, 56, 52);
-		drawText("CENTRAL STATION", mapX + 4 * TILE, mapY + 4 * TILE + 14,
-			color(250, 211, 104), 12, 9 * TILE);
-		drawText("FORGE SQUARE", mapX + 21 * TILE, mapY + 13 * TILE + 12,
-			color(244, 207, 92), 12, 9 * TILE);
-		drawText("FOUNDRY HALL", mapX + 42 * TILE, mapY + 13 * TILE + 12,
-			color(248, 205, 102), 12, 8 * TILE);
-		drawText("FORGE ARENA", mapX + 42 * TILE, mapY + 23 * TILE + 12,
-			color(255, 219, 137), 12, 8 * TILE);
+		if (visibleTiles.intersects(glasswaterRegion->x + 36, glasswaterRegion->y + 18,
+			glasswaterRegion->x + 51, glasswaterRegion->y + 20))
+			drawText("TIDEGLASS SQUARE", mapX + (glasswaterRegion->x + 36) * TILE,
+				mapY + (glasswaterRegion->y + 18) * TILE + 10,
+				color(226, 239, 230), 12, 15 * TILE);
+		if (visibleTiles.intersects(glasswaterRegion->x + 8, glasswaterRegion->y + 17,
+			glasswaterRegion->x + 26, glasswaterRegion->y + 18))
+			drawText("LONG QUAY / FERRY", mapX + (glasswaterRegion->x + 8) * TILE,
+				mapY + (glasswaterRegion->y + 17) * TILE + 11,
+				color(130, 211, 226), 12, 18 * TILE);
+		if (visibleTiles.intersects(glasswaterRegion->x + 54, glasswaterRegion->y + 18,
+			glasswaterRegion->x + 69, glasswaterRegion->y + 19))
+			drawText("LEDGER WARD", mapX + (glasswaterRegion->x + 54) * TILE,
+				mapY + (glasswaterRegion->y + 18) * TILE + 10,
+				color(196, 164, 220), 12, 15 * TILE);
+		if (visibleTiles.intersects(glasswaterRegion->x + 79, glasswaterRegion->y + 18,
+			glasswaterRegion->x + 93, glasswaterRegion->y + 19))
+			drawText("TIDAL ARENA", mapX + (glasswaterRegion->x + 79) * TILE,
+				mapY + (glasswaterRegion->y + 18) * TILE + 10,
+				color(218, 228, 235), 12, 14 * TILE);
+		if (visibleTiles.intersects(glasswaterRegion->x + 18, glasswaterRegion->y + 34,
+			glasswaterRegion->x + 33, glasswaterRegion->y + 35))
+			drawText("SOUTH CANALS", mapX + (glasswaterRegion->x + 18) * TILE,
+				mapY + (glasswaterRegion->y + 34) * TILE + 10,
+				color(131, 208, 160), 12, 15 * TILE);
+		if (visibleTiles.intersects(glasswaterRegion->x + 84, glasswaterRegion->y + 35,
+			glasswaterRegion->x + 95, glasswaterRegion->y + 36))
+			drawText("WATERSHED GATE", mapX + (glasswaterRegion->x + 84) * TILE,
+				mapY + (glasswaterRegion->y + 35) * TILE + 10,
+				color(219, 211, 159), 11, 12 * TILE);
+	}
+	if (rootmazeRegion != NULL)
+	{
+		if (visibleTiles.intersects(rootmazeRegion->x + 40, rootmazeRegion->y + 17,
+			rootmazeRegion->x + 59, rootmazeRegion->y + 19))
+			drawText("GREATROOT COMMON", mapX + (rootmazeRegion->x + 40) * TILE,
+				mapY + (rootmazeRegion->y + 17) * TILE + 10,
+				color(224, 221, 150), 12, 19 * TILE);
+		if (visibleTiles.intersects(rootmazeRegion->x + 55, rootmazeRegion->y + 11,
+			rootmazeRegion->x + 73, rootmazeRegion->y + 12))
+			drawText("WATERSTEP MARKET", mapX + (rootmazeRegion->x + 55) * TILE,
+				mapY + (rootmazeRegion->y + 11) * TILE + 10,
+				color(126, 201, 205), 11, 18 * TILE);
+		if (visibleTiles.intersects(rootmazeRegion->x + 7, rootmazeRegion->y + 19,
+			rootmazeRegion->x + 23, rootmazeRegion->y + 20))
+			drawText("HEARTROOT", mapX + (rootmazeRegion->x + 7) * TILE,
+				mapY + (rootmazeRegion->y + 19) * TILE + 10,
+				color(151, 211, 117), 12, 16 * TILE);
+		if (visibleTiles.intersects(rootmazeRegion->x + 6, rootmazeRegion->y + 36,
+			rootmazeRegion->x + 23, rootmazeRegion->y + 37))
+			drawText("VERDANT ARENA", mapX + (rootmazeRegion->x + 6) * TILE,
+				mapY + (rootmazeRegion->y + 36) * TILE + 10,
+				color(221, 218, 139), 12, 17 * TILE);
+		if (visibleTiles.intersects(rootmazeRegion->x + 39, rootmazeRegion->y + 38,
+			rootmazeRegion->x + 63, rootmazeRegion->y + 39))
+			drawText("SOUTHROOT GREEN", mapX + (rootmazeRegion->x + 39) * TILE,
+				mapY + (rootmazeRegion->y + 38) * TILE + 10,
+				color(159, 218, 116), 12, 20 * TILE);
+		if (visibleTiles.intersects(rootmazeRegion->x + 84, rootmazeRegion->y + 6,
+			rootmazeRegion->x + 95, rootmazeRegion->y + 7))
+			drawText("NORTHWATER", mapX + (rootmazeRegion->x + 84) * TILE,
+				mapY + (rootmazeRegion->y + 6) * TILE + 10,
+				color(128, 193, 213), 11, 12 * TILE);
+	}
+	if (watershedRegion != NULL)
+	{
+		if (visibleTiles.intersects(watershedRegion->x + 25, watershedRegion->y + 18,
+			watershedRegion->x + 43, watershedRegion->y + 19))
+			drawText("WATERSHED CROSSROADS", mapX + (watershedRegion->x + 25) * TILE,
+				mapY + (watershedRegion->y + 18) * TILE + 12,
+				color(237, 220, 157), 12, 18 * TILE);
+		if (visibleTiles.intersects(watershedRegion->x + 1, watershedRegion->y + 6,
+			watershedRegion->x + 9, watershedRegion->y + 7))
+			drawText("GLASSWATER", mapX + (watershedRegion->x + 1) * TILE,
+				mapY + (watershedRegion->y + 6) * TILE + 12,
+				color(112, 192, 229), 12, 8 * TILE);
+		if (visibleTiles.intersects(watershedRegion->x + 1, watershedRegion->y + 30,
+			watershedRegion->x + 9, watershedRegion->y + 31))
+			drawText("ROOTMAZE", mapX + (watershedRegion->x + 1) * TILE,
+				mapY + (watershedRegion->y + 30) * TILE + 12,
+				color(122, 206, 115), 12, 8 * TILE);
+	}
+	if (cinderrailRegion != NULL)
+	{
+		if (visibleTiles.intersects(cinderrailRegion->x + 8, cinderrailRegion->y + 1,
+			cinderrailRegion->x + 11, cinderrailRegion->y + 4))
+		{
+			int stationX = mapX + (cinderrailRegion->x + 8) * TILE;
+			int stationY = mapY + (cinderrailRegion->y + 1) * TILE;
+			fillRect({ stationX + 8, stationY, 80, 102 }, 116, 50, 39);
+			fillRect({ stationX + 3, stationY, 90, 9 }, 55, 54, 56);
+			fillRect({ stationX + 28, stationY + 17, 39, 39 }, 44, 42, 43);
+			fillRect({ stationX + 33, stationY + 22, 29, 29 }, 223, 207, 159);
+			fillRect({ stationX + 46, stationY + 25, 3, 13 }, 61, 56, 52);
+			fillRect({ stationX + 47, stationY + 36, 10, 3 }, 61, 56, 52);
+		}
+		if (visibleTiles.intersects(cinderrailRegion->x + 4, cinderrailRegion->y + 4,
+			cinderrailRegion->x + 13, cinderrailRegion->y + 5))
+			drawText("CENTRAL STATION", mapX + (cinderrailRegion->x + 4) * TILE,
+				mapY + (cinderrailRegion->y + 4) * TILE + 14,
+				color(250, 211, 104), 12, 9 * TILE);
+		if (visibleTiles.intersects(cinderrailRegion->x + 21, cinderrailRegion->y + 13,
+			cinderrailRegion->x + 30, cinderrailRegion->y + 14))
+			drawText("FORGE SQUARE", mapX + (cinderrailRegion->x + 21) * TILE,
+				mapY + (cinderrailRegion->y + 13) * TILE + 12,
+				color(244, 207, 92), 12, 9 * TILE);
+		if (visibleTiles.intersects(cinderrailRegion->x + 42, cinderrailRegion->y + 13,
+			cinderrailRegion->x + 50, cinderrailRegion->y + 14))
+			drawText("FOUNDRY HALL", mapX + (cinderrailRegion->x + 42) * TILE,
+				mapY + (cinderrailRegion->y + 13) * TILE + 12,
+				color(248, 205, 102), 12, 8 * TILE);
+		if (visibleTiles.intersects(cinderrailRegion->x + 42, cinderrailRegion->y + 23,
+			cinderrailRegion->x + 50, cinderrailRegion->y + 24))
+			drawText("FORGE ARENA", mapX + (cinderrailRegion->x + 42) * TILE,
+				mapY + (cinderrailRegion->y + 23) * TILE + 12,
+				color(255, 219, 137), 12, 8 * TILE);
 	}
 
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 	{
 		if (!npcVisible((int)i) || mNpcs[i].mapId != currentMapId()) continue;
+		if (!visibleTiles.contains((int)std::floor(mNpcs[i].visualX),
+			(int)std::floor(mNpcs[i].visualY))) continue;
 		drawCharacter(mNpcs[i].visualX, mNpcs[i].visualY, mNpcs[i].appearance,
 			mNpcs[i].isComplete(), mNpcs[i].isMoving());
 		if (npcHasStoryMarker((int)i))
@@ -708,6 +1004,7 @@ void Application::renderOverworld()
 	{
 		const MercerShard& shard = mMercerStock.shards[i];
 		if (shard.mapId != currentMapId() || mCollectedShards.count(shard.id)) continue;
+		if (!visibleTiles.contains(shard.x, shard.y)) continue;
 		int x = mapX + shard.x * TILE;
 		int y = mapY + shard.y * TILE;
 		int shimmer = (int)((SDL_GetTicks() / 180 + i * 3) % 5);
@@ -720,36 +1017,12 @@ void Application::renderOverworld()
 	drawCharacter(mVisualX, mVisualY, CharacterAppearance::Player, false, playerWalking);
 	SDL_RenderSetClipRect(mRenderer, NULL);
 
-	fillRect({ 1012, 28, 238, 670 }, 21, 28, 45, 245);
-	outlineRect({ 1012, 28, 238, 670 }, 190, 146, 61, 255, 2);
-	drawText(mWorldAreas[mCurrentWorldArea].name, 1034, 48, color(242, 205, 99), 24, 205);
-	drawText("GOLD " + std::to_string(mMoney), 1034, 91, color(245, 205, 88), 16);
-	int heldShards = (int)mCollectedShards.size() - (int)mMercerShards.size();
-	drawText("SHARDS " + std::to_string(std::max(0, heldShards)) +
-		"  •  MERCER " + std::to_string(mMercerShards.size()),
-		1034, 113, color(190, 150, 225), 12);
-	drawText("DUELISTS", 1034, 134, color(135, 162, 199), 16);
-	int duelistRow = 0;
-	for (size_t i = 0; i < mNpcs.size(); ++i)
-	{
-		if (mNpcs[i].kind != NpcKind::Duelist) continue;
-		const int rowY = 159 + duelistRow++ * 44;
-		drawText(mNpcs[i].name, 1034, rowY, color(235, 238, 245), 17);
-		drawText(mNpcs[i].statusText(), 1034, rowY + 21,
-			mNpcs[i].isComplete() ? color(92, 208, 121) : color(235, 151, 65), 12);
-	}
-	drawText("CARD SHOP", 1034, 535, color(135, 162, 199), 14);
-	for (size_t i = 0; i < mNpcs.size(); ++i)
-		if (mNpcs[i].isShopkeeper()) drawText(mNpcs[i].name, 1034, 557, color(235, 238, 245), 17);
-	drawText("WASD / Arrows: move", 1034, 613, color(187, 200, 221), 14);
-	drawText("E / Space: talk", 1034, 636, color(187, 200, 221), 14);
-	drawText("Esc: menu", 1034, 659, color(187, 200, 221), 14);
 	renderStoryTracker();
 
 	if (!mNotice.empty() && SDL_GetTicks() < mNoticeUntil)
 	{
-		fillRect({ 36, 10, 930, 42 }, 17, 28, 43, 230);
-		drawText(mNotice, 48, 19, color(113, 232, 143), 16, 900);
+		fillRect({ 36, 10, 1208, 42 }, 17, 28, 43, 230);
+		drawText(mNotice, 48, 19, color(113, 232, 143), 16, 1178);
 	}
 
 	if (mDialogueNpc >= 0)
@@ -789,7 +1062,9 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 		overworldCameraX();
 	float cameraY = mScreen == Screen::WorldBuilder ? (float)mWorldBuilderCameraY :
 		overworldCameraY();
-	int x = mapOriginX((int)map[0].size()) +
+	int viewportColumns = mScreen == Screen::WorldBuilder ? MAP_VIEW_COLUMNS :
+		OVERWORLD_VIEW_COLUMNS;
+	int x = mapOriginX((int)map[0].size(), viewportColumns) +
 		(int)std::round((gridX - cameraX) * TILE);
 	int y = mapOriginY((int)map.size()) +
 		(int)std::round((gridY - cameraY) * TILE);
@@ -820,6 +1095,10 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 		trousers = color(184, 167, 112);
 	else if (appearance == CharacterAppearance::Mercer)
 		trousers = color(75, 48, 30);
+	else if (appearance == CharacterAppearance::Neris)
+		trousers = color(28, 47, 78);
+	else if (appearance == CharacterAppearance::Oren)
+		trousers = color(38, 71, 61);
 	else if (appearance == CharacterAppearance::VeiledOne || appearance == CharacterAppearance::Nyx)
 		trousers = color(25, 20, 36);
 	fillRect({ x + 16 + stride, y + 34, 7, 9 }, trousers.r, trousers.g, trousers.b);
@@ -955,6 +1234,38 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 		block(35, 3, 7, 5, color(70, 137, 51));
 		block(29, 13, 2, 2, color(44, 40, 25));
 		block(23, 28, 5, 6, color(157, 110, 48));
+		break;
+
+	case CharacterAppearance::Neris:
+		block(10, 18, 30, 22, outline);
+		block(12, 20, 26, 20, color(30, 64, 112));
+		block(9, 20, 8, 8, color(66, 42, 91));
+		block(35, 20, 7, 8, color(66, 42, 91));
+		block(18, 7, 15, 15, skin);
+		block(14, 4, 23, 7, color(33, 45, 71));
+		block(14, 9, 5, 12, color(33, 45, 71));
+		block(16, 29, 21, 4, color(111, 75, 143));
+		block(34, 1, 3, 13, color(235, 231, 207));
+		block(37, 0, 3, 8, color(204, 222, 223));
+		block(29, 13, 2, 2, color(29, 42, 55));
+		block(8, 28, 5, 11, color(210, 216, 208));
+		break;
+
+	case CharacterAppearance::Oren:
+		block(9, 18, 32, 22, outline);
+		block(11, 20, 28, 20, color(49, 112, 73));
+		block(9, 19, 9, 18, color(74, 145, 68));
+		block(34, 19, 8, 18, color(54, 128, 61));
+		block(18, 7, 15, 15, skin);
+		block(14, 4, 23, 7, color(68, 86, 45));
+		block(14, 9, 5, 14, color(68, 86, 45));
+		block(33, 8, 5, 14, color(68, 86, 45));
+		block(12, 16, 7, 6, color(119, 171, 68));
+		block(33, 17, 8, 6, color(102, 161, 62));
+		block(14, 29, 24, 4, color(37, 91, 132));
+		block(41, 6, 4, 35, color(104, 72, 41));
+		block(38, 3, 10, 8, color(91, 154, 66));
+		block(29, 13, 2, 2, color(39, 48, 33));
 		break;
 
 	case CharacterAppearance::Generic1:

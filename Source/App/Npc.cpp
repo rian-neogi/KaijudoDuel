@@ -38,6 +38,15 @@ namespace
 		return true;
 	}
 
+	bool validCrestId(const std::string& value)
+	{
+		static const char* ids[] = { "dawn", "tidal", "forge", "verdant",
+			"confluence", "tempest", "ashen", "mirror", "unity" };
+		for (size_t i = 0; i < sizeof(ids) / sizeof(ids[0]); ++i)
+			if (value == ids[i]) return true;
+		return false;
+	}
+
 	bool parseAppearance(const std::string& value, CharacterAppearance& result)
 	{
 		if (value == "mira") result = CharacterAppearance::Mira;
@@ -50,6 +59,8 @@ namespace
 		else if (value == "briar") result = CharacterAppearance::Briar;
 		else if (value == "mercer") result = CharacterAppearance::Mercer;
 		else if (value == "veiled_one") result = CharacterAppearance::VeiledOne;
+		else if (value == "neris") result = CharacterAppearance::Neris;
+		else if (value == "oren") result = CharacterAppearance::Oren;
 		else if (value.compare(0, 7, "generic") == 0)
 		{
 			const std::string suffix = value.substr(7);
@@ -146,14 +157,6 @@ bool Npc::canBattle() const
 bool Npc::isComplete() const
 {
 	return isDuelist() && wins >= maxWins;
-}
-
-std::string Npc::statusText() const
-{
-	if (isShopkeeper()) return "CARD SHOP";
-	if (isComplete()) return "COMPLETE";
-	return isBoss() ? (isComplete() ? "DEFEATED" : "ACT I BOSS") :
-		"WINS " + std::to_string(std::max(0, wins)) + "/" + std::to_string(maxWins);
 }
 
 std::string Npc::deckForBattle(int battleIndex) const
@@ -265,6 +268,7 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 
 	std::set<std::string> ids;
 	std::set<std::string> names;
+	std::set<std::string> crests;
 	const size_t count = lua_rawlen(state, -1);
 	for (size_t index = 1; index <= count; ++index)
 	{
@@ -277,6 +281,7 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 		}
 		const int entry = lua_gettop(state);
 		const std::string id = luaStringField(state, entry, "id");
+		const std::string crestId = luaStringField(state, entry, "crest");
 		const std::string name = luaStringField(state, entry, "name");
 		const std::string kindName = luaStringField(state, entry, "kind");
 		const std::string appearanceName = luaStringField(state, entry, "appearance");
@@ -293,6 +298,13 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 		if (!ids.insert(id).second || !names.insert(name).second)
 		{
 			error = "duplicate NPC id or name at entry " + std::to_string(index);
+			lua_close(state);
+			return false;
+		}
+		if (!crestId.empty() && (kind == NpcKind::Shopkeeper ||
+			!validCrestId(crestId) || !crests.insert(crestId).second))
+		{
+			error = "NPC '" + id + "' has an invalid or duplicate crest";
 			lua_close(state);
 			return false;
 		}
@@ -376,6 +388,7 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 				Npc::boss(x, y, name, decks, greeting, rewards, appearance) :
 				Npc::duelist(x, y, name, decks, greeting, rewards, appearance));
 		npc.id = id;
+		npc.crestId = crestId;
 		npc.aiPersonality = aiPersonality;
 		npc.dialogue = dialogue;
 		npcs.push_back(npc);

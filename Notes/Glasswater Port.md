@@ -6,6 +6,13 @@ Glasswater should feel like a major port city rather than a compact regional tow
 
 The city is a required first-tier region containing the Tidal Crest and Water Resonance Seal. Its Watershed Gate enters the shared crossroads for Emberglen and Rootmaze Commons, while its western ferry route reaches the optional village of Reedwake.
 
+**Implementation status:** The 96-by-48 surface city is implemented as the
+`glasswater` region of the seamless `overworld` map. Its Grand Harbor, Long
+Quay, Tideglass Square, Ledger Ward, Arena Isle, South Canals, lighthouse,
+Reedwake ferry quay, and Watershed Gate are playable. Major building and
+Underglass interiors, regional shops, and the Water Seal investigation remain
+future layers of this layout.
+
 ## Navigation principles
 
 - **Tideglass Square** is the central landmark and primary arrival point. The card shop, inn, city map, and routes to every ward are nearby.

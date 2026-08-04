@@ -2,14 +2,16 @@
 -- NPC positions are owned by Lua/World.lua and maintained by the World Builder.
 --
 -- Add one table to the returned array for each NPC. Required fields are:
---   id, name, kind, appearance
+--   id, name, kind, appearance. Crest Holders also set crest to one of:
+--   dawn, tidal, forge, verdant, confluence, tempest, ashen, mirror, unity.
 -- Duelists and bosses also require max_battles, deck1, and one reward table
 -- for every enabled battle. deck2 through deck4 are optional: a missing deck
 -- reuses the most recently defined deck.
 --
 -- Supported kinds: duelist, shopkeeper, boss
 -- Supported appearances: mira, marin, rook, aurelia, flint, nyx, tidal,
---                        briar, mercer, veiled_one, generic1 through generic10
+--                        briar, mercer, veiled_one, neris, oren,
+--                        generic1 through generic10
 --
 -- Dialogue is a flat, extensible string table. The current application uses:
 --   greeting, defeat, victory, complete, clue, investigation,
@@ -25,6 +27,7 @@
 --     name = "Display Name",
 --     kind = "duelist",
 --     appearance = "mira",
+--     crest = "dawn", -- optional; awarded by the first victory
 --     max_battles = 4,
 --     deck1 = "Example.txt",
 --     deck2 = "ExampleAdvanced.txt", -- optional; reused for battles 3-4
@@ -123,6 +126,7 @@ return {
         name = "Aurelia",
         kind = "duelist",
         appearance = "aurelia",
+        crest = "dawn",
         max_battles = 4,
         deck1 = "Hanusa.txt",
         deck2 = "Urth.txt",
@@ -452,6 +456,166 @@ return {
             defeat = "The grave remembers that turn. I will not make the same mistake twice.",
             victory = "Listen more closely. Your discarded cards were warning you.",
 			talk = ""
-        }
-    },
+		}
+	},
+	{
+		id = "neris",
+		name = "Neris Quill",
+		kind = "duelist",
+		appearance = "neris",
+		crest = "tidal",
+		max_battles = 4,
+		deck1 = "NPC/Neris Quill.txt",
+		deck2 = "NPC/Neris Quill 2.txt",
+		deck3 = "NPC/Neris Quill 3.txt",
+		reward1 = { card = "Crystal Paladin", gold = 150 },
+		reward2 = { card = "Crystal Paladin", gold = 150 },
+		reward3 = { card = "Hydrooze, the Mutant Emperor", gold = 150 },
+		reward4 = { card = "Hydrooze, the Mutant Emperor", gold = 150 },
+		ai = { personality = "control" },
+		dialogue = {
+			greeting = "Glasswater rewards the plan that changes when the current does. Show me yours.",
+			defeat = "You used the information without becoming trapped by it. A precise victory.",
+			victory = "You saw the route I offered and never asked who chose it for you.",
+			complete = "Four trials are enough. Keep questioning every perfect prediction.",
+			investigation = "The engine knows private decisions no manifest could contain. That knowledge was taken, not inferred."
+		}
+	},
+	{
+		id = "pell",
+		name = "Pell",
+		kind = "duelist",
+		appearance = "generic5",
+		max_battles = 4,
+		deck1 = "NPC/Neris Quill 3.txt",
+		reward1 = { card = "Emeral", gold = 85 },
+		reward2 = { card = "Emeral", gold = 85 },
+		reward3 = { card = "Emeral", gold = 85 },
+		reward4 = { card = "Emeral", gold = 85 },
+		ai = { personality = "tempo" },
+		dialogue = {
+			greeting = "Cargo shifts. Tides shift. A good deck shifts before either one.",
+			defeat = "You changed balance before the load moved. Clean work.",
+			victory = "The quay teaches quickly: brace before the cargo starts sliding.",
+			complete = "You know this dock's rhythm now. I have no new surprise to unload."
+		}
+	},
+	{
+		id = "iri",
+		name = "Iri",
+		kind = "duelist",
+		appearance = "generic4",
+		max_battles = 4,
+		deck1 = "More2/WD Dark Tide v3.txt",
+		deck2 = "NPC/Neris Quill 2.txt",
+		reward1 = { card = "Corile", gold = 90 },
+		reward2 = { card = "Corile", gold = 90 },
+		reward3 = { card = "Corile", gold = 90 },
+		reward4 = { card = "Corile", gold = 90 },
+		ai = { personality = "control" },
+		dialogue = {
+			greeting = "Cards in hand are assets. I intend to audit yours.",
+			defeat = "Your position reconciles. Mine very much does not.",
+			victory = "Unrecorded risks still appear in the final balance.",
+			complete = "Your account is settled, with four victories in your favor."
+		}
+	},
+	{
+		id = "sol",
+		name = "Sol",
+		kind = "duelist",
+		appearance = "generic10",
+		max_battles = 4,
+		deck1 = "KingDepthcon.txt",
+		reward1 = { card = "Crystal Memory", gold = 90 },
+		reward2 = { card = "Crystal Memory", gold = 90 },
+		reward3 = { card = "Crystal Memory", gold = 90 },
+		reward4 = { card = "Crystal Memory", gold = 90 },
+		ai = { personality = "adaptive" },
+		dialogue = {
+			greeting = "I have mapped every route through the port except the one your deck will take.",
+			defeat = "A useful correction. No chart survives without revisions.",
+			victory = "Your route ended exactly where the current said it would.",
+			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+		}
+	},
+	{
+		id = "oren",
+		name = "Oren Canopy",
+		kind = "duelist",
+		appearance = "oren",
+		crest = "verdant",
+		max_battles = 4,
+		deck1 = "NPC/Oren.txt",
+		reward1 = { card = "Cryptic Totem", gold = 160 },
+		reward2 = { card = "Cryptic Totem", gold = 160 },
+		reward3 = { card = "Cryptic Totem", gold = 160 },
+		reward4 = { card = "Cryptic Totem", gold = 160 },
+		ai = { personality = "adaptive" },
+		dialogue = {
+			greeting = "Growth gives us another path, not an order to take it. Which path will your deck choose?",
+			defeat = "You let the board tell you what to grow. Rootmaze recognizes that patience.",
+			victory = "The largest branch is not always the one holding the nest.",
+			complete = "The paths know you now. Four more duels would only lead us in circles.",
+			investigation = "These creatures remember bonds their cards have forgotten. We must reunite them before the false roots harden."
+		}
+	},
+	{
+		id = "fern",
+		name = "Fern",
+		kind = "duelist",
+		appearance = "generic2",
+		max_battles = 4,
+		deck1 = "AnristVhal.txt",
+		deck2 = "StormWrangler.txt",
+		reward1 = { card = "Barkwhip, the Smasher", gold = 95 },
+		reward2 = { card = "Barkwhip, the Smasher", gold = 95 },
+		reward3 = { card = "Barkwhip, the Smasher", gold = 95 },
+		reward4 = { card = "Barkwhip, the Smasher", gold = 95 },
+		ai = { personality = "ramp" },
+		dialogue = {
+			greeting = "I was looking for moonberries, but a good duel is nearly as rare.",
+			defeat = "You found the opening before I found the next trail.",
+			victory = "A little preparation keeps even the tallest growth from toppling.",
+			complete = "Four excellent specimens. I should probably return to the berries now."
+		}
+	},
+	{
+		id = "toma",
+		name = "Toma",
+		kind = "duelist",
+		appearance = "generic6",
+		max_battles = 4,
+		deck1 = "AnristVhal.txt",
+		reward1 = { card = "Essence Elf", gold = 95 },
+		reward2 = { card = "Essence Elf", gold = 95 },
+		reward3 = { card = "Essence Elf", gold = 95 },
+		reward4 = { card = "Essence Elf", gold = 95 },
+		ai = { personality = "sacrifice" },
+		dialogue = {
+			greeting = "Do not worry. The beetles only become agitated when they sense hesitation.",
+			defeat = "They liked that duel. Even the ones in the graveyard are buzzing.",
+			victory = "Every loss fed the colony. You should have ended the cycle sooner.",
+			complete = "The beetles insist four trials are conclusive. I have learned not to argue."
+		}
+	},
+	{
+		id = "moss",
+		name = "Moss",
+		kind = "duelist",
+		appearance = "generic5",
+		max_battles = 4,
+		deck1 = "StormWrangler.txt",
+		reward1 = { card = "Dimension Gate", gold = 100 },
+		reward2 = { card = "Dimension Gate", gold = 100 },
+		reward3 = { card = "Dimension Gate", gold = 100 },
+		reward4 = { card = "Dimension Gate", gold = 100 },
+		ai = { personality = "adaptive" },
+		dialogue = {
+			greeting = "Wrong turn. The way back is free; the way forward costs one duel.",
+			defeat = "That route works. I will have to repaint the sign.",
+			victory = "The marked path was safer, but I respect the experiment.",
+			complete = "No more tolls. You have paid for every path Rootmaze can offer."
+		}
+	},
 }

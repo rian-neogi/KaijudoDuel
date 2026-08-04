@@ -6,6 +6,13 @@ Rootmaze Commons should feel like a settlement that grew with a living forest ra
 
 The town is a required first-tier region containing the Verdant Crest and Nature Resonance Seal. Its Northwater Gate enters the shared crossroads for Glasswater Port and Emberglen; separate routes lead to Cinderrail Foundry and the optional town of Honeyreach.
 
+**Implementation status:** The 96-by-56 surface town is implemented as the
+`rootmaze` region of the seamless `overworld` map. Northwater Gate, Waterstep,
+Greatroot Common, Heartroot, Verdant Arena, the service and residential
+clearings, Southroot Green, and the future Honeyreach and Cinderrail exits are
+playable. Major interiors, shifting optional shortcuts, and the Nature Seal
+investigation remain future layers of this layout.
+
 ## Navigation principles
 
 - The **Greatroot Common** is the central landmark. All major districts loop back to it.

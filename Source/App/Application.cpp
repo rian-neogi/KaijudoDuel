@@ -23,9 +23,11 @@ Application::Application(bool worldBuilder)
 	  mVisualX(2.f), mVisualY(10.f), mDialogueNpc(-1), mDialogueVisibleBytes(0),
 	  mDialogueCharacterAccumulator(0), mDialogueAction(DialogueAction::None), mNoticeUntil(0),
 	  mStoryStage(0), mStoryClues(0), mStoryScene(StoryScene::None), mStoryScenePage(0),
-	  mWorldBuilderTab(WorldBuilderTab::Tiles), mWorldBuilderTile('.'), mWorldBuilderSelectedNpc(-1),
+	  mWorldBuilderTab(WorldBuilderTab::Tiles), mWorldBuilderTile(WorldTiles::Grass), mWorldBuilderSelectedNpc(-1),
 	  mWorldBuilderSelectedShard(-1), mWorldBuilderListScroll(0), mWorldBuilderCameraX(0),
-	  mWorldBuilderCameraY(0), mWorldBuilderPainting(false),
+	  mWorldBuilderCameraY(0), mWorldBuilderMoveUp(false), mWorldBuilderMoveDown(false),
+	  mWorldBuilderMoveLeft(false), mWorldBuilderMoveRight(false),
+	  mWorldBuilderPanAccumulator(0), mWorldBuilderPainting(false),
 	  mWorldBuilderDragging(false), mWorldBuilderDirty(false), mWorldBuilderNoticeError(false),
 	  mWorldBuilderNoticeUntil(0),
 	  mDuel(NULL), mActiveNpc(-1), mDirectDuelMode(false), mSelectedCard(-1), mActionScroll(0),
@@ -128,6 +130,7 @@ void Application::shutdown()
 {
 	stopDuel();
 	destroyCardTextures();
+	destroyCrestTextures();
 	for (std::map<int, TTF_Font*>::iterator item = mFonts.begin(); item != mFonts.end(); ++item)
 		TTF_CloseFont(item->second);
 	mFonts.clear();
@@ -208,7 +211,9 @@ void Application::update(Uint32 deltaTime)
 	if (mSoundManager != NULL)
 	{
 		const std::string& mapId = currentMapId();
-		bool inEmberglen = mapId == "emberglen" || mapId == "mercers_house" ||
+		const WorldRegion* region = currentWorldRegion();
+		bool inEmberglen = (region != NULL && region->id == "emberglen") ||
+			mapId == "mercers_house" ||
 			mapId == "rook_mira_home";
 		bool townScreen = mScreen == Screen::Overworld || mScreen == Screen::DeckBuilder ||
 			mScreen == Screen::Settings || mScreen == Screen::Shop;
@@ -218,6 +223,7 @@ void Application::update(Uint32 deltaTime)
 	if (mRewardCardId >= 0) return;
 	if (mScreen == Screen::Overworld) updateOverworld(deltaTime);
 	else if (mScreen == Screen::Duel) updateDuel(deltaTime);
+	else if (mScreen == Screen::WorldBuilder) updateWorldBuilder(deltaTime);
 }
 
 void Application::render()
