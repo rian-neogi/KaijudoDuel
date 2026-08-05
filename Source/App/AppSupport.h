@@ -27,7 +27,7 @@ namespace AppSupport
 	constexpr int MAP_VIEW_WIDTH = MAP_VIEW_COLUMNS * TILE;
 	constexpr int MAP_VIEW_HEIGHT = MAP_VIEW_ROWS * TILE;
 	constexpr int OVERWORLD_VIEW_WIDTH = OVERWORLD_VIEW_COLUMNS * TILE;
-	constexpr const char* STARTER_DECK_PATH = "Decks/My Decks/7 - L Tappy Tappy.txt";
+	constexpr const char* STARTER_DECK_PATH = "Decks/Starter/Fire.txt";
 
 	struct TileBounds
 	{

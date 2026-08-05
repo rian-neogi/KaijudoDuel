@@ -213,15 +213,28 @@ void Application::ensurePlayerDataLoaded()
 
 	if (!collectionLoaded)
 	{
-		std::ifstream starter(STARTER_DECK_PATH);
-		std::string starterLine;
-		while (std::getline(starter, starterLine))
+		if (!mPlayerDecks.empty())
 		{
-			int count = 0;
-			std::string name;
-			if (!parseDeckLine(starterLine, count, name)) continue;
-			int cardId = getCardIdFromName(name);
-			if (cardId >= 0 && cardId < (int)mCollectionCounts.size()) mCollectionCounts[cardId] += count;
+			for (size_t deck = 0; deck < mPlayerDecks.size(); ++deck)
+				for (std::map<int, int>::const_iterator card = mPlayerDecks[deck].cards.begin();
+					card != mPlayerDecks[deck].cards.end(); ++card)
+					if (card->first >= 0 && card->first < (int)mCollectionCounts.size())
+						mCollectionCounts[card->first] = std::max(
+							mCollectionCounts[card->first], card->second);
+		}
+		else
+		{
+			std::ifstream starter(STARTER_DECK_PATH);
+			std::string starterLine;
+			while (std::getline(starter, starterLine))
+			{
+				int count = 0;
+				std::string name;
+				if (!parseDeckLine(starterLine, count, name)) continue;
+				int cardId = getCardIdFromName(name);
+				if (cardId >= 0 && cardId < (int)mCollectionCounts.size())
+					mCollectionCounts[cardId] += count;
+			}
 		}
 	}
 
@@ -490,10 +503,13 @@ bool Application::saveDeck(int deckIndex)
 		else
 		{
 			revertedToStarter = true;
-			mActiveDeckPath = STARTER_DECK_PATH;
 			mActiveDeckIndex = -1;
 			for (size_t i = 0; i < mPlayerDecks.size(); ++i)
-				if (mPlayerDecks[i].path == mActiveDeckPath) mActiveDeckIndex = (int)i;
+				if ((int)i != deckIndex && deckHasMinimumCards(mPlayerDecks[i]) &&
+					(mActiveDeckIndex < 0 || mPlayerDecks[i].name == "Fire"))
+					mActiveDeckIndex = (int)i;
+			mActiveDeckPath = mActiveDeckIndex >= 0 ?
+				mPlayerDecks[mActiveDeckIndex].path : STARTER_DECK_PATH;
 			std::ofstream profile(playerDataPath("profile.txt").c_str(), std::ios::trunc);
 			profile << "active=" << mActiveDeckPath << "\n";
 			showDeckNotice("Deck saved; the starter deck is active until this deck has at least 40 cards.");
@@ -860,6 +876,34 @@ void Application::renderDeckBuilder()
 	if (mEditingDeckIndex >= 0 && mEditingDeckIndex < (int)mPlayerDecks.size())
 	{
 		PlayerDeck& deck = mPlayerDecks[mEditingDeckIndex];
+		auto drawCivilizationRow = [this](const SDL_Rect& row, const CardData& card,
+			bool alternate)
+		{
+			int civilizations = card.Civilizations;
+			if (civilizations == 0 && card.Civilization >= CIV_LIGHT &&
+				card.Civilization <= CIV_DARKNESS)
+				civilizations = 1 << card.Civilization;
+			std::vector<int> colors;
+			for (int civilization = CIV_LIGHT; civilization <= CIV_DARKNESS; ++civilization)
+				if ((civilizations & (1 << civilization)) != 0)
+					colors.push_back(civilization);
+			if (colors.empty()) colors.push_back(card.Civilization);
+			int consumed = 0;
+			for (size_t colorIndex = 0; colorIndex < colors.size(); ++colorIndex)
+			{
+				int remaining = row.w - consumed;
+				int width = colorIndex + 1 == colors.size() ? remaining :
+					row.w / (int)colors.size();
+				SDL_Color civ = civilizationColor(colors[colorIndex]);
+				int shade = alternate ? 43 : 49;
+				fillRect({ row.x + consumed, row.y, width, row.h },
+					(Uint8)(civ.r * shade / 100), (Uint8)(civ.g * shade / 100),
+					(Uint8)(civ.b * shade / 100), 250);
+				fillRect({ row.x + consumed, row.y, width, 4 }, civ.r, civ.g, civ.b, 255);
+				consumed += width;
+			}
+			outlineRect(row, 106, 121, 142, 255, 1);
+		};
 		std::string title = mDeckRenameFocused ? mDeckNameInput + "_" : deck.name;
 		drawText(title, 975, 136, color(231, 236, 244), 18, 265);
 		int total = deckCardCount(deck);
@@ -874,10 +918,9 @@ void Application::renderDeckBuilder()
 			if (i < mDeckContentsScroll || i >= mDeckContentsScroll + visibleRows) continue;
 			int visible = i - mDeckContentsScroll;
 			SDL_Rect row = { 970, 205 + visible * 33, 274, 29 };
-			fillRect(row, visible % 2 == 0 ? 29 : 24, visible % 2 == 0 ? 41 : 35,
-				visible % 2 == 0 ? 61 : 53, 245);
+			drawCivilizationRow(row, gCardDatabase[card->first], visible % 2 != 0);
 			drawText(gCardDatabase[card->first].Name, row.x + 6, row.y + 6,
-				color(220, 227, 238), 12, 225);
+				color(242, 245, 249), 12, 225);
 			drawText("x" + std::to_string(card->second), row.x + 242, row.y + 6,
 				color(245, 208, 119), 12);
 			mDeckCardHitboxes.push_back({ row, card->first });

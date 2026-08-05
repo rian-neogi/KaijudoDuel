@@ -91,6 +91,9 @@ Player-authored decks are stored exclusively in `PlayerData/<save>/Decks`.
 Collection, profile, and progress files live beside that save's `Decks`
 directory. Global settings remain at `PlayerData/settings.txt`. The Deck Builder
 must not enumerate the bundled gameplay and NPC decks under `Decks`.
+New saves copy all five `Decks/Starter` decks into their own `Decks` directory;
+their initial collection uses the maximum copy count of each card across those
+five decks.
 
 ## World data conventions
 

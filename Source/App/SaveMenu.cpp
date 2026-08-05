@@ -21,6 +21,10 @@ namespace
 	const int LOAD_ROW_Y = 184;
 	const int LOAD_ROW_HEIGHT = 62;
 	const int LOAD_VISIBLE_ROWS = 7;
+	const char* STARTER_DECKS[] = {
+		"Darkness.txt", "Fire.txt", "Light.txt", "Nature.txt", "Water.txt"
+	};
+	const int STARTER_DECK_COUNT = sizeof(STARTER_DECKS) / sizeof(STARTER_DECKS[0]);
 
 	bool pathExists(const std::string& path)
 	{
@@ -190,9 +194,23 @@ void Application::startNewGame()
 		mActiveSaveDirectory.clear();
 		return;
 	}
+	for (int starter = 0; starter < STARTER_DECK_COUNT; ++starter)
+	{
+		std::string source = std::string("Decks/Starter/") + STARTER_DECKS[starter];
+		std::string destination = playerDeckDirectory() + "/" + STARTER_DECKS[starter];
+		if (copyFileIfMissing(source, destination)) continue;
+		mMainMenuNotice = "Unable to copy the bundled starter decks.";
+		mActiveSaveName.clear();
+		mActiveSaveDirectory.clear();
+		return;
+	}
+	resetPlayerDataState();
+	std::ofstream profile(playerDataPath("profile.txt").c_str(), std::ios::trunc);
+	if (profile.good()) profile << "active=" << playerDeckDirectory() << "/Fire.txt\n";
+	profile.close();
 	std::ofstream info(playerDataPath("save.info").c_str(), std::ios::trunc);
 	if (info.good()) info << "name=" << name << "\n";
-	resetPlayerDataState();
+	info.close();
 	ensurePlayerDataLoaded();
 	saveCurrentGame();
 	mScreen = Screen::Overworld;
