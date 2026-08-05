@@ -4,6 +4,7 @@
 #include "App/Npc.h"
 #include "App/WorldObject.h"
 #include "App/WorldTile.h"
+#include "App/RtpTilesetRenderer.h"
 #include "Game/Duel.h"
 
 #include <SDL.h>
@@ -14,6 +15,7 @@
 #include <set>
 #include <string>
 #include <thread>
+#include <tuple>
 #include <vector>
 
 class SoundManager;
@@ -124,6 +126,7 @@ private:
 		std::string name;
 		bool indoor;
 		std::vector<std::string> tiles;
+		std::map<std::tuple<int, int, int>, RtpTileReference> tileLayers;
 	};
 	struct WorldRegion
 	{
@@ -226,12 +229,17 @@ private:
 	void renderWorldBuilder();
 	void panWorldBuilder(int dx, int dy);
 	void zoomWorldBuilder(int direction, int anchorX, int anchorY);
-	void drawWorldBuilderTileIcon(WorldTileId type, const SDL_Rect& rect);
-	void drawWorldBuilderScaledTileDetail(WorldTileId type, const SDL_Rect& rect);
 	void drawWorldBuilderNpcPortrait(const Npc& npc, const SDL_Rect& rect);
 	int worldBuilderHoveredNpc() const;
 	SDL_Rect worldBuilderTileRect(const SDL_Rect& rect) const;
 	void paintWorldBuilderTile(int x, int y);
+	void eraseWorldBuilderTile(int x, int y);
+	const RtpTileReference* worldTileLayer(const WorldArea& area, int x, int y,
+		RtpRenderLayer layer) const;
+	unsigned int worldTileConnections(const WorldArea& area, int x, int y,
+		RtpRenderLayer layer) const;
+	bool drawWorldTileLayer(const WorldArea& area, int x, int y,
+		RtpRenderLayer layer, const SDL_Rect& destination);
 	void placeWorldBuilderSelection(int x, int y);
 	bool worldBuilderCanPlace(int x, int y, int ignoredNpc, int ignoredObject) const;
 	bool saveWorldBuilder(std::string& error);
@@ -405,8 +413,10 @@ private:
 	StoryScene mStoryScene;
 	int mStoryScenePage;
 	WorldBuilderTab mWorldBuilderTab;
-	WorldTileId mWorldBuilderTile;
 	int mWorldBuilderTileCategory;
+	int mWorldBuilderTileSheet;
+	int mWorldBuilderCatalogTile;
+	RtpRenderLayer mWorldBuilderTileLayer;
 	std::string mWorldBuilderHoveredTileName;
 	int mWorldBuilderSelectedNpc;
 	int mWorldBuilderSelectedObject;
@@ -422,6 +432,7 @@ private:
 	bool mWorldBuilderMoveRight;
 	Uint32 mWorldBuilderPanAccumulator;
 	bool mWorldBuilderPainting;
+	bool mWorldBuilderErasing;
 	bool mWorldBuilderDragging;
 	bool mWorldBuilderDirty;
 	bool mWorldBuilderNoticeError;

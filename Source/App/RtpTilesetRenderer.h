@@ -80,6 +80,7 @@ public:
 		RtpTileSheet sheet);
 	static bool loadTileNames(RtpTilesetFamily family, RtpTileSheet sheet,
 		std::vector<std::string>& names, std::string& error);
+	static bool isWallOpening(const RtpTileReference& tile);
 	static RtpRenderLayer defaultLayer(RtpTileSheet sheet);
 	static bool regularTileSource(RtpTileSheet sheet, int tileIndex,
 		int textureWidth, int textureHeight, SDL_Rect& source);

@@ -29,8 +29,12 @@ The World Builder is available only through `--world-builder`. It edits map
 tiles and NPC/object locations. Single-click an NPC or object side-list row to
 select it; double-click it to center its map location. Select entities from the
 Lua-populated side lists or directly on the map, then click or drag them to a
-free walkable tile. The tile palette groups icons into Ground, Buildings,
-Nature, and Special categories; hover an icon to see its tile name. Switch maps
+free walkable tile. The tile palette exposes the complete Dungeon, Inside,
+Outside, and World tilesets. Use the sheet arrows to browse A1-A5/B/C, choose
+the ground, decoration, or foreground layer, and hover an icon to see its
+metadata name. Left-click/drag paints the selected visual layer;
+right-click/drag erases it. The original one-byte grid remains the collision
+layer. Switch maps
 with the on-screen arrows or `PageUp`/`PageDown`; hold the arrow or WASD keys
 to pan large maps. Use the
 mouse wheel over the map or `+`/`-` to zoom; the wheel continues to scroll when
@@ -74,9 +78,9 @@ rendering, and repeated duel teardown.
   migration, and selected-save lifecycle.
 - `Source/App/CardRenderer.cpp`: card textures, zones, hands, animation,
   tapping, dragging, and hover enlargement.
-- `Lua/World.lua`: authoritative seamless exterior, interior maps, named exterior
-  regions, player start, interior portals, and ID-keyed NPC/object positions. This
-  file is entirely maintained by the World Builder.
+- `Lua/World.lua`: authoritative seamless exterior, interior maps, sparse visual
+  tile layers, named exterior regions, player start, interior portals, and
+  ID-keyed NPC/object positions. This file is entirely maintained by the World Builder.
 - `Source/App/WorldTile.h`: stable semantic tile IDs and their compact one-byte
   serialization glyphs. Rendering and collision must use these IDs rather than
   assigning different meanings based on the current map.

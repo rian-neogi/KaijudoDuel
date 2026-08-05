@@ -1,6 +1,7 @@
 #pragma once
 
 #include "WorldTile.h"
+#include "RtpTilesetRenderer.h"
 
 #include <SDL.h>
 
@@ -26,6 +27,8 @@ public:
 	bool drawDecoration(WorldTileId tile, const SDL_Rect& destination);
 	bool drawForeground(WorldTileId tile, const SDL_Rect& destination);
 	bool drawPreview(WorldTileId tile, const SDL_Rect& destination);
+	bool drawCatalog(const RtpTileReference& tile, unsigned int connections,
+		const SDL_Rect& destination, unsigned int animationFrame = 0);
 	bool drawSignpost(const SDL_Rect& destination);
 	bool drawChest(const SDL_Rect& destination, bool opened);
 	bool drawShard(const SDL_Rect& destination);

@@ -1387,16 +1387,26 @@ void Application::renderOverworld()
 			}
 		}
 	}
+	const WorldArea& worldArea = mWorldAreas[mCurrentWorldArea];
+	for (int y = visibleTiles.top; y < visibleTiles.bottom; ++y)
+		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
+			drawWorldTileLayer(worldArea, x, y, RtpRenderLayer::Ground,
+				{ mapX + x * TILE, mapY + y * TILE, TILE, TILE });
 	for (int y = visibleTiles.top; y < visibleTiles.bottom; ++y)
 	{
 		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
 		{
+			if (worldTileLayer(worldArea, x, y, RtpRenderLayer::Ground) != NULL) continue;
 			WorldTileId tile = WorldTiles::fromGlyph(map[y][x]);
 			if (!WorldTileRenderer::hasDecoration(tile)) continue;
 			SDL_Rect tileRect = { mapX + x * TILE, mapY + y * TILE, TILE, TILE };
 			mWorldTileRenderer->drawDecoration(tile, tileRect);
 		}
 	}
+	for (int y = visibleTiles.top; y < visibleTiles.bottom; ++y)
+		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
+			drawWorldTileLayer(worldArea, x, y, RtpRenderLayer::Decoration,
+				{ mapX + x * TILE, mapY + y * TILE, TILE, TILE });
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 	{
 		if (!npcVisible((int)i) || mNpcs[i].mapId != currentMapId()) continue;
@@ -1479,12 +1489,17 @@ void Application::renderOverworld()
 	{
 		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
 		{
+			if (worldTileLayer(worldArea, x, y, RtpRenderLayer::Ground) != NULL) continue;
 			WorldTileId tile = WorldTiles::fromGlyph(map[y][x]);
 			if (!WorldTileRenderer::hasForeground(tile)) continue;
 			SDL_Rect tileRect = { mapX + x * TILE, mapY + y * TILE, TILE, TILE };
 			mWorldTileRenderer->drawForeground(tile, tileRect);
 		}
 	}
+	for (int y = visibleTiles.top; y < visibleTiles.bottom; ++y)
+		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
+			drawWorldTileLayer(worldArea, x, y, RtpRenderLayer::Foreground,
+				{ mapX + x * TILE, mapY + y * TILE, TILE, TILE });
 	SDL_RenderSetClipRect(mRenderer, NULL);
 
 	renderStoryTracker();

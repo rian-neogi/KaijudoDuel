@@ -1,5 +1,6 @@
 -- World Builder data. This file is entirely maintained by the World Builder.
 -- Tile IDs are stable one-byte serialization codes defined in Source/App/WorldTile.h.
+-- Optional tile_layers entries are sparse visual overrides; tiles remain the collision layer.
 -- Tile legend: . grass, = path, ~ water, H house, T tree, # forest,
 -- W wooden wall, K timber roof, D door, F wooden floor, C counter, B bonfire,
 -- A feast table, S dueling sand, M marble, Q marble roof, E workshop tools,
@@ -11,8 +12,7 @@
 -- Glasswater IDs: a ground, b paving, c roof, d dock, e wall,
 -- f door, g arena floor, h harbor marker.
 -- Rootmaze IDs: i ground, j path, k root, l bridge, m roof, n wall,
--- o door, p arena floor, q leaf marker.
--- Natural objects: r rocks, s bush, t shrub, u cave entrance, v tree stump.
+-- o door, p arena floor, q leaf marker. Natural objects: r-v.
 -- Blackstone IDs: w ground, x road, y retaining wall, z relay gate.
 return {
 	maps = {
@@ -206,6 +206,36 @@ return {
 				"########################################################################################################################################################################################################ywwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwxxxxxwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwy################################################################################################################",
 				"########################################################################################################################################################################################################ywwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwxxxxxwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwy################################################################################################################",
 				"########################################################################################################################################################################################################yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyxxxyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy################################################################################################################"
+			},
+			tile_layers = {
+				{ x = 135, y = 36, tileset = "Dungeon", sheet = "A4", index = 0, layer = "ground" },
+				{ x = 136, y = 36, tileset = "Dungeon", sheet = "A4", index = 0, layer = "ground" },
+				{ x = 137, y = 36, tileset = "Dungeon", sheet = "A4", index = 0, layer = "ground" },
+				{ x = 138, y = 36, tileset = "Dungeon", sheet = "A4", index = 0, layer = "ground" },
+				{ x = 141, y = 36, tileset = "Dungeon", sheet = "A4", index = 1, layer = "ground" },
+				{ x = 142, y = 36, tileset = "Dungeon", sheet = "A4", index = 1, layer = "ground" },
+				{ x = 143, y = 36, tileset = "Dungeon", sheet = "A4", index = 1, layer = "ground" },
+				{ x = 135, y = 37, tileset = "Dungeon", sheet = "A4", index = 0, layer = "ground" },
+				{ x = 136, y = 37, tileset = "Dungeon", sheet = "A4", index = 0, layer = "ground" },
+				{ x = 137, y = 37, tileset = "Dungeon", sheet = "A4", index = 0, layer = "ground" },
+				{ x = 138, y = 37, tileset = "Dungeon", sheet = "A4", index = 0, layer = "ground" },
+				{ x = 141, y = 37, tileset = "Dungeon", sheet = "A4", index = 1, layer = "ground" },
+				{ x = 142, y = 37, tileset = "Dungeon", sheet = "A4", index = 1, layer = "ground" },
+				{ x = 143, y = 37, tileset = "Dungeon", sheet = "A4", index = 1, layer = "ground" },
+				{ x = 135, y = 38, tileset = "Dungeon", sheet = "A4", index = 8, layer = "ground" },
+				{ x = 136, y = 38, tileset = "Dungeon", sheet = "A4", index = 8, layer = "ground" },
+				{ x = 137, y = 38, tileset = "Dungeon", sheet = "A4", index = 8, layer = "ground" },
+				{ x = 138, y = 38, tileset = "Dungeon", sheet = "A4", index = 8, layer = "ground" },
+				{ x = 141, y = 38, tileset = "Dungeon", sheet = "A4", index = 9, layer = "ground" },
+				{ x = 142, y = 38, tileset = "Dungeon", sheet = "A4", index = 9, layer = "ground" },
+				{ x = 143, y = 38, tileset = "Dungeon", sheet = "A4", index = 9, layer = "ground" },
+				{ x = 135, y = 39, tileset = "Dungeon", sheet = "A4", index = 8, layer = "ground" },
+				{ x = 136, y = 39, tileset = "Dungeon", sheet = "A4", index = 8, layer = "ground" },
+				{ x = 137, y = 39, tileset = "Dungeon", sheet = "A4", index = 8, layer = "ground" },
+				{ x = 138, y = 39, tileset = "Dungeon", sheet = "A4", index = 8, layer = "ground" },
+				{ x = 141, y = 39, tileset = "Dungeon", sheet = "A4", index = 9, layer = "ground" },
+				{ x = 142, y = 39, tileset = "Dungeon", sheet = "A4", index = 9, layer = "ground" },
+				{ x = 143, y = 39, tileset = "Dungeon", sheet = "A4", index = 9, layer = "ground" },
 			}
 		},
 		{

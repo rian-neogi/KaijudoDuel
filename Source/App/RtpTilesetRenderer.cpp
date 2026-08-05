@@ -3,6 +3,7 @@
 #include "AssetManager.h"
 
 #include <fstream>
+#include <map>
 
 namespace
 {
@@ -291,6 +292,25 @@ bool RtpTilesetRenderer::loadTileNames(RtpTilesetFamily family, RtpTileSheet she
 	return true;
 }
 
+bool RtpTilesetRenderer::isWallOpening(const RtpTileReference& tile)
+{
+	if (tile.sheet != RtpTileSheet::B && tile.sheet != RtpTileSheet::C) return false;
+	static std::map<std::pair<int, int>, std::vector<std::string> > cache;
+	std::pair<int, int> key((int)tile.family, (int)tile.sheet);
+	if (cache.count(key) == 0)
+	{
+		std::vector<std::string> names;
+		std::string error;
+		if (!loadTileNames(tile.family, tile.sheet, names, error)) return false;
+		cache[key] = names;
+	}
+	const std::vector<std::string>& names = cache[key];
+	if (tile.index < 0 || tile.index >= (int)names.size()) return false;
+	const std::string& name = names[tile.index];
+	return name == "Entrance" || name == "Entrance (Top Half)" ||
+		name == "Gate" || name.find("(Gate)") != std::string::npos;
+}
+
 bool RtpTilesetRenderer::validateAllAssets(std::string& error)
 {
 	if (mAssets == NULL)
@@ -347,7 +367,7 @@ bool RtpTilesetRenderer::floorQuarterSource(int quadrant, unsigned int connectio
 	if (quadrant == 0)
 	{
 		if (north && west)
-			sourceQuarter = (connections & NorthWest) != 0 ? SDL_Point{ 2, 4 } : SDL_Point{ 0, 0 };
+			sourceQuarter = (connections & NorthWest) != 0 ? SDL_Point{ 2, 4 } : SDL_Point{ 2, 0 };
 		else if (north) sourceQuarter = { 0, 4 };
 		else if (west) sourceQuarter = { 2, 2 };
 		else sourceQuarter = { 0, 2 };
@@ -355,7 +375,7 @@ bool RtpTilesetRenderer::floorQuarterSource(int quadrant, unsigned int connectio
 	else if (quadrant == 1)
 	{
 		if (north && east)
-			sourceQuarter = (connections & NorthEast) != 0 ? SDL_Point{ 1, 4 } : SDL_Point{ 1, 0 };
+			sourceQuarter = (connections & NorthEast) != 0 ? SDL_Point{ 1, 4 } : SDL_Point{ 3, 0 };
 		else if (north) sourceQuarter = { 3, 4 };
 		else if (east) sourceQuarter = { 1, 2 };
 		else sourceQuarter = { 3, 2 };
@@ -363,7 +383,7 @@ bool RtpTilesetRenderer::floorQuarterSource(int quadrant, unsigned int connectio
 	else if (quadrant == 2)
 	{
 		if (south && west)
-			sourceQuarter = (connections & SouthWest) != 0 ? SDL_Point{ 2, 3 } : SDL_Point{ 0, 1 };
+			sourceQuarter = (connections & SouthWest) != 0 ? SDL_Point{ 2, 3 } : SDL_Point{ 2, 1 };
 		else if (south) sourceQuarter = { 0, 3 };
 		else if (west) sourceQuarter = { 2, 5 };
 		else sourceQuarter = { 0, 5 };
@@ -371,7 +391,7 @@ bool RtpTilesetRenderer::floorQuarterSource(int quadrant, unsigned int connectio
 	else if (quadrant == 3)
 	{
 		if (south && east)
-			sourceQuarter = (connections & SouthEast) != 0 ? SDL_Point{ 1, 3 } : SDL_Point{ 1, 1 };
+			sourceQuarter = (connections & SouthEast) != 0 ? SDL_Point{ 1, 3 } : SDL_Point{ 3, 1 };
 		else if (south) sourceQuarter = { 3, 3 };
 		else if (east) sourceQuarter = { 1, 5 };
 		else sourceQuarter = { 3, 5 };

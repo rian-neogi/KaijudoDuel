@@ -520,6 +520,14 @@ bool WorldTileRenderer::drawPreview(WorldTileId tile, const SDL_Rect& destinatio
 		tile == WorldTiles::Forest ? 215 : 255);
 }
 
+bool WorldTileRenderer::drawCatalog(const RtpTileReference& tile,
+	unsigned int connections, const SDL_Rect& destination,
+	unsigned int animationFrame)
+{
+	return mRtpTiles != NULL &&
+		mRtpTiles->draw(tile, connections, destination, animationFrame);
+}
+
 bool WorldTileRenderer::drawSignpost(const SDL_Rect& destination)
 {
 	if (mRtpTiles == NULL) return false;

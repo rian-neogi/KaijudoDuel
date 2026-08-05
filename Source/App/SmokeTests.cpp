@@ -1137,7 +1137,7 @@ bool Application::exerciseOverworldMovementSmoke()
 		0, surrounded, autotileQuarter) && autotileQuarter.x == 2 && autotileQuarter.y == 4;
 	spriteSheetsReady = spriteSheetsReady && WorldTileRenderer::autotileQuarterSource(
 		0, surrounded & ~WorldTileRenderer::NorthWest, autotileQuarter) &&
-		autotileQuarter.x == 0 && autotileQuarter.y == 0;
+		autotileQuarter.x == 2 && autotileQuarter.y == 0;
 	spriteSheetsReady = spriteSheetsReady && WorldTileRenderer::autotileQuarterSource(
 		3, 0, autotileQuarter) && autotileQuarter.x == 3 && autotileQuarter.y == 5 &&
 		!WorldTileRenderer::autotileQuarterSource(4, surrounded, autotileQuarter);
@@ -1164,6 +1164,18 @@ bool Application::exerciseOverworldMovementSmoke()
 			rtpTiles.draw(last, surrounded, tilesetTarget, 2);
 	}
 	SDL_Point wallQuarter;
+	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::floorQuarterSource(
+		0, surrounded & ~RtpTilesetRenderer::NorthWest, wallQuarter) &&
+		wallQuarter.x == 2 && wallQuarter.y == 0;
+	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::floorQuarterSource(
+		1, surrounded & ~RtpTilesetRenderer::NorthEast, wallQuarter) &&
+		wallQuarter.x == 3 && wallQuarter.y == 0;
+	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::floorQuarterSource(
+		2, surrounded & ~RtpTilesetRenderer::SouthWest, wallQuarter) &&
+		wallQuarter.x == 2 && wallQuarter.y == 1;
+	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::floorQuarterSource(
+		3, surrounded & ~RtpTilesetRenderer::SouthEast, wallQuarter) &&
+		wallQuarter.x == 3 && wallQuarter.y == 1;
 	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::wallQuarterSource(
 		0, surrounded, wallQuarter) && wallQuarter.x == 2 && wallQuarter.y == 2;
 	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::waterfallQuarterSource(
@@ -1175,6 +1187,12 @@ bool Application::exerciseOverworldMovementSmoke()
 	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::regularTileSource(
 		RtpTileSheet::A5, 16, 256, 512, regularTile) &&
 		regularTile.x == 0 && regularTile.y == 64;
+	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::isWallOpening(
+		RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::B, 67,
+			RtpRenderLayer::Decoration)) &&
+		!RtpTilesetRenderer::isWallOpening(RtpTileReference(
+			RtpTilesetFamily::Outside, RtpTileSheet::B, 225,
+			RtpRenderLayer::Decoration));
 	std::vector<RtpTileReference> layeredTiles;
 	layeredTiles.push_back(RtpTileReference(RtpTilesetFamily::Outside,
 		RtpTileSheet::A5, 16, RtpRenderLayer::Ground));
@@ -1944,9 +1962,12 @@ bool Application::exerciseMenuScreensSmoke()
 	int savedBuilderTileSize = mWorldBuilderTileSize;
 	int savedBuilderListScroll = mWorldBuilderListScroll;
 	int savedBuilderTileCategory = mWorldBuilderTileCategory;
-	WorldTileId savedBuilderTile = mWorldBuilderTile;
+	int savedBuilderTileSheet = mWorldBuilderTileSheet;
+	int savedBuilderCatalogTile = mWorldBuilderCatalogTile;
+	RtpRenderLayer savedBuilderTileLayer = mWorldBuilderTileLayer;
 	int savedBuilderSelectedNpc = mWorldBuilderSelectedNpc;
 	int savedBuilderSelectedObject = mWorldBuilderSelectedObject;
+	bool savedBuilderDirty = mWorldBuilderDirty;
 	int savedMouseX = mMouseX;
 	int savedMouseY = mMouseY;
 	int builderArea = worldAreaIndex("overworld");
@@ -2030,11 +2051,39 @@ bool Application::exerciseMenuScreensSmoke()
 	mMouseY = -100;
 	renderWorldBuilder();
 	mWorldBuilderTileCategory = 0;
+	mWorldBuilderTileSheet = (int)RtpTileSheet::A2;
 	mWorldBuilderListScroll = 0;
 	mMouseX = 1030;
-	mMouseY = 230;
+	mMouseY = 264;
 	renderWorldBuilder();
-	bool tilePaletteReady = mWorldBuilderHoveredTileName == "Grass";
+	bool tilePaletteReady = mWorldBuilderHoveredTileName == "Ground (Dirt Cave)";
+	std::map<std::tuple<int, int, int>, RtpTileReference> savedTileLayers =
+		mWorldAreas[builderArea].tileLayers;
+	mWorldBuilderTileCategory = 2;
+	mWorldBuilderTileSheet = (int)RtpTileSheet::A2;
+	mWorldBuilderCatalogTile = 1;
+	mWorldBuilderTileLayer = RtpRenderLayer::Ground;
+	paintWorldBuilderTile(mWorldStartX, mWorldStartY);
+	const RtpTileReference* paintedLayer = worldTileLayer(mWorldAreas[builderArea],
+		mWorldStartX, mWorldStartY, RtpRenderLayer::Ground);
+	bool catalogPaintingReady = paintedLayer != NULL &&
+		paintedLayer->family == RtpTilesetFamily::Outside &&
+		paintedLayer->sheet == RtpTileSheet::A2 && paintedLayer->index == 1;
+	eraseWorldBuilderTile(mWorldStartX, mWorldStartY);
+	catalogPaintingReady = catalogPaintingReady &&
+		worldTileLayer(mWorldAreas[builderArea], mWorldStartX, mWorldStartY,
+			RtpRenderLayer::Ground) == NULL;
+	mWorldBuilderTileSheet = (int)RtpTileSheet::A3;
+	mWorldBuilderCatalogTile = 8;
+	mWorldBuilderTileLayer = RtpRenderLayer::Ground;
+	paintWorldBuilderTile(mWorldStartX, mWorldStartY);
+	mWorldBuilderTileSheet = (int)RtpTileSheet::B;
+	mWorldBuilderCatalogTile = 67;
+	mWorldBuilderTileLayer = RtpRenderLayer::Decoration;
+	paintWorldBuilderTile(mWorldStartX + 1, mWorldStartY);
+	catalogPaintingReady = catalogPaintingReady &&
+		(worldTileConnections(mWorldAreas[builderArea], mWorldStartX,
+			mWorldStartY, RtpRenderLayer::Ground) & RtpTilesetRenderer::East) != 0;
 	SDL_Event categoryClick = {};
 	categoryClick.type = SDL_MOUSEBUTTONDOWN;
 	categoryClick.button.button = SDL_BUTTON_LEFT;
@@ -2044,11 +2093,14 @@ bool Application::exerciseMenuScreensSmoke()
 	tilePaletteReady = tilePaletteReady && mWorldBuilderTileCategory == 1 &&
 		mWorldBuilderListScroll == 0;
 	categoryClick.button.x = 1030;
-	categoryClick.button.y = 230;
+	categoryClick.button.y = 264;
 	handleWorldBuilderEvent(categoryClick);
-	tilePaletteReady = tilePaletteReady && mWorldBuilderTile == WorldTiles::House;
+	tilePaletteReady = tilePaletteReady &&
+		mWorldBuilderTileSheet == (int)RtpTileSheet::A1 &&
+		mWorldBuilderCatalogTile == 0;
 	mWorldBuilderTileCategory = 0;
-	mWorldBuilderTile = WorldTiles::Grass;
+	mWorldBuilderTileSheet = (int)RtpTileSheet::B;
+	mWorldBuilderCatalogTile = 0;
 	mWorldBuilderListScroll = 0;
 	SDL_Event pan = {};
 	pan.type = SDL_KEYDOWN;
@@ -2112,16 +2164,20 @@ bool Application::exerciseMenuScreensSmoke()
 	mWorldBuilderTileSize = savedBuilderTileSize;
 	mWorldBuilderListScroll = savedBuilderListScroll;
 	mWorldBuilderTileCategory = savedBuilderTileCategory;
-	mWorldBuilderTile = savedBuilderTile;
+	mWorldBuilderTileSheet = savedBuilderTileSheet;
+	mWorldBuilderCatalogTile = savedBuilderCatalogTile;
+	mWorldBuilderTileLayer = savedBuilderTileLayer;
 	mWorldBuilderSelectedNpc = savedBuilderSelectedNpc;
 	mWorldBuilderSelectedObject = savedBuilderSelectedObject;
+	mWorldAreas[builderArea].tileLayers = savedTileLayers;
+	mWorldBuilderDirty = savedBuilderDirty;
 	mMouseX = savedMouseX;
 	mMouseY = savedMouseY;
 	mWorldBuilderTab = savedBuilderTab;
 	mCurrentWorldArea = savedBuilderArea;
 	mScreen = savedScreen;
 	if (!npcDoubleClickReady || !objectDoubleClickReady || !shardListedAsObject ||
-		!npcBuilderViewReady || !tilePaletteReady ||
+		!npcBuilderViewReady || !tilePaletteReady || !catalogPaintingReady ||
 		!arrowHeld || !wasdHeld ||
 		!zoomedIn || !zoomedOut ||
 		!largeZoomRendered ||

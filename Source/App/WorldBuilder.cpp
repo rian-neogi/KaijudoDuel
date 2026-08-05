@@ -29,50 +29,25 @@ namespace
 	const int BUILDER_LIST_ROW = 39;
 	const int BUILDER_LIST_ROWS = 13;
 	const int BUILDER_CATEGORY_Y = 151;
-	const int BUILDER_TILE_Y = 223;
-	const int BUILDER_TILE_ROWS = 10;
+	const int BUILDER_SHEET_Y = 219;
+	const int BUILDER_TILE_Y = 257;
+	const int BUILDER_TILE_ROWS = 9;
 	const int BUILDER_VISIBLE_TILES = BUILDER_TILE_ROWS * 2;
 	const Uint32 BUILDER_PAN_INTERVAL = 80;
 	const int BUILDER_ZOOM_LEVELS[] = { 24, 32, 48, 64, 96 };
 	const int BUILDER_ZOOM_LEVEL_COUNT = sizeof(BUILDER_ZOOM_LEVELS) /
 		sizeof(BUILDER_ZOOM_LEVELS[0]);
-	const WorldTileId TILE_TYPES[] = { WorldTiles::Grass, WorldTiles::Path,
-		WorldTiles::Water, WorldTiles::House, WorldTiles::Tree, WorldTiles::Forest,
-		WorldTiles::WoodWall, WorldTiles::Door, WorldTiles::WoodFloor, WorldTiles::Counter,
-		WorldTiles::Bonfire, WorldTiles::FeastTable, WorldTiles::DuelSand,
-		WorldTiles::Marble, WorldTiles::MarbleRoof, WorldTiles::WorkshopTools,
-		WorldTiles::Rail, WorldTiles::RailCrossing, WorldTiles::MetalGrate,
-		WorldTiles::IndustrialBrick, WorldTiles::Machinery, WorldTiles::Furnace,
-		WorldTiles::TimberRoof, WorldTiles::IndustrialRoof, WorldTiles::TimberBridge,
-		WorldTiles::RockyCliff, WorldTiles::OldRoadPath, WorldTiles::OldRoadWaystone,
-		WorldTiles::CinderrailGround, WorldTiles::CinderrailPath,
-		WorldTiles::CinderrailRubble, WorldTiles::CinderrailDuelSand,
-		WorldTiles::CinderrailDoor, WorldTiles::WatershedGround,
-		WorldTiles::WatershedPath, WorldTiles::WatershedMarker,
-		WorldTiles::GlasswaterGround, WorldTiles::GlasswaterPaving,
-		WorldTiles::GlasswaterRoof, WorldTiles::GlasswaterDock,
-		WorldTiles::GlasswaterWall, WorldTiles::GlasswaterDoor,
-		WorldTiles::GlasswaterArena, WorldTiles::GlasswaterMarker,
-		WorldTiles::RootmazeGround, WorldTiles::RootmazePath,
-		WorldTiles::RootmazeRoot, WorldTiles::RootmazeBridge,
-		WorldTiles::RootmazeRoof, WorldTiles::RootmazeWall,
-		WorldTiles::RootmazeDoor, WorldTiles::RootmazeArena,
-		WorldTiles::RootmazeMarker, WorldTiles::Rocks, WorldTiles::Bush,
-		WorldTiles::Shrub, WorldTiles::CaveEntrance, WorldTiles::TreeStump,
-		WorldTiles::BlackstoneGround, WorldTiles::BlackstonePath,
-		WorldTiles::BlackstoneWall, WorldTiles::BlackstoneGate };
-	const int TILE_TYPE_COUNT = sizeof(TILE_TYPES) / sizeof(TILE_TYPES[0]);
 	const int TILE_CATEGORY_COUNT = 4;
 	const char* TILE_CATEGORY_NAMES[TILE_CATEGORY_COUNT] = {
-		"GROUND", "BUILDINGS", "NATURE", "SPECIAL"
+		"DUNGEON", "INSIDE", "OUTSIDE", "WORLD"
 	};
-
-	enum TileCategory
-	{
-		GroundTiles,
-		BuildingTiles,
-		NatureTiles,
-		SpecialTiles
+	const SDL_Rect BUILDER_PREVIOUS_SHEET = { 1022, BUILDER_SHEET_Y, 28, 29 };
+	const SDL_Rect BUILDER_SHEET_NAME = { 1054, BUILDER_SHEET_Y, 80, 29 };
+	const SDL_Rect BUILDER_NEXT_SHEET = { 1138, BUILDER_SHEET_Y, 28, 29 };
+	const SDL_Rect BUILDER_LAYER_BUTTONS[] = {
+		{ 1172, BUILDER_SHEET_Y, 24, 29 },
+		{ 1199, BUILDER_SHEET_Y, 24, 29 },
+		{ 1226, BUILDER_SHEET_Y, 24, 29 }
 	};
 
 	SDL_Rect tileCategoryRect(int index)
@@ -86,113 +61,94 @@ namespace
 		return { 1022 + (index % 2) * 116, BUILDER_TILE_Y + (index / 2) * 39, 108, 33 };
 	}
 
-	int tileCategory(WorldTileId type)
+	RtpTilesetFamily tilesetFamily(int category)
 	{
-		if (type == WorldTiles::Grass || type == WorldTiles::Path ||
-			type == WorldTiles::Water || type == WorldTiles::DuelSand ||
-			type == WorldTiles::Marble || type == WorldTiles::RailCrossing ||
-			type == WorldTiles::MetalGrate || type == WorldTiles::TimberBridge ||
-			type == WorldTiles::OldRoadPath || type == WorldTiles::CinderrailGround ||
-			type == WorldTiles::CinderrailPath || type == WorldTiles::CinderrailDuelSand ||
-			type == WorldTiles::WatershedGround || type == WorldTiles::WatershedPath ||
-			type == WorldTiles::GlasswaterGround || type == WorldTiles::GlasswaterPaving ||
-			type == WorldTiles::GlasswaterDock || type == WorldTiles::GlasswaterArena ||
-			type == WorldTiles::RootmazeGround || type == WorldTiles::RootmazePath ||
-			type == WorldTiles::RootmazeBridge || type == WorldTiles::RootmazeArena ||
-			type == WorldTiles::BlackstoneGround || type == WorldTiles::BlackstonePath)
-			return GroundTiles;
-		if (type == WorldTiles::House || type == WorldTiles::WoodWall ||
-			type == WorldTiles::Door || type == WorldTiles::WoodFloor ||
-			type == WorldTiles::Counter || type == WorldTiles::MarbleRoof ||
-			type == WorldTiles::IndustrialBrick || type == WorldTiles::TimberRoof ||
-			type == WorldTiles::IndustrialRoof || type == WorldTiles::CinderrailDoor ||
-			type == WorldTiles::GlasswaterRoof || type == WorldTiles::GlasswaterWall ||
-			type == WorldTiles::GlasswaterDoor || type == WorldTiles::RootmazeRoof ||
-			type == WorldTiles::RootmazeWall || type == WorldTiles::RootmazeDoor ||
-			type == WorldTiles::BlackstoneWall)
-			return BuildingTiles;
-		if (type == WorldTiles::Tree || type == WorldTiles::Forest ||
-			type == WorldTiles::RockyCliff || type == WorldTiles::RootmazeRoot ||
-			type == WorldTiles::Rocks || type == WorldTiles::Bush ||
-			type == WorldTiles::Shrub || type == WorldTiles::CaveEntrance ||
-			type == WorldTiles::TreeStump)
-			return NatureTiles;
-		return SpecialTiles;
+		if (category == 0) return RtpTilesetFamily::Dungeon;
+		if (category == 1) return RtpTilesetFamily::Inside;
+		if (category == 3) return RtpTilesetFamily::World;
+		return RtpTilesetFamily::Outside;
 	}
 
-	std::vector<WorldTileId> categoryTiles(int category)
+	const char* familyName(RtpTilesetFamily family)
 	{
-		std::vector<WorldTileId> tiles;
-		for (int i = 0; i < TILE_TYPE_COUNT; ++i)
-			if (tileCategory(TILE_TYPES[i]) == category) tiles.push_back(TILE_TYPES[i]);
-		return tiles;
+		if (family == RtpTilesetFamily::Dungeon) return "Dungeon";
+		if (family == RtpTilesetFamily::Inside) return "Inside";
+		if (family == RtpTilesetFamily::World) return "World";
+		return "Outside";
 	}
 
-	const char* tileName(WorldTileId type)
+	bool parseFamily(const std::string& name, RtpTilesetFamily& family)
 	{
-		if (type == WorldTiles::Grass) return "Grass";
-		if (type == WorldTiles::Path) return "Path";
-		if (type == WorldTiles::Water) return "Water";
-		if (type == WorldTiles::House) return "House";
-		if (type == WorldTiles::Tree) return "Tree";
-		if (type == WorldTiles::Forest) return "Dense Forest";
-		if (type == WorldTiles::WoodWall) return "Wood Wall";
-		if (type == WorldTiles::Door) return "Wooden Door";
-		if (type == WorldTiles::WoodFloor) return "Wood Floor";
-		if (type == WorldTiles::Counter) return "Counter";
-		if (type == WorldTiles::Bonfire) return "Bonfire";
-		if (type == WorldTiles::FeastTable) return "Feast Table";
-		if (type == WorldTiles::DuelSand) return "Dueling Sand";
-		if (type == WorldTiles::Marble) return "Marble Floor";
-		if (type == WorldTiles::MarbleRoof) return "Marble Roof";
-		if (type == WorldTiles::WorkshopTools) return "Workshop Tools";
-		if (type == WorldTiles::Rail) return "Rail";
-		if (type == WorldTiles::RailCrossing) return "Rail Crossing";
-		if (type == WorldTiles::MetalGrate) return "Metal Grate";
-		if (type == WorldTiles::IndustrialBrick) return "Industrial Brick";
-		if (type == WorldTiles::Machinery) return "Machinery";
-		if (type == WorldTiles::Furnace) return "Furnace";
-		if (type == WorldTiles::TimberRoof) return "Timber Roof";
-		if (type == WorldTiles::IndustrialRoof) return "Industrial Roof";
-		if (type == WorldTiles::TimberBridge) return "Timber Bridge";
-		if (type == WorldTiles::RockyCliff) return "Rocky Cliff";
-		if (type == WorldTiles::OldRoadPath) return "Old Road Path";
-		if (type == WorldTiles::OldRoadWaystone) return "Waystone";
-		if (type == WorldTiles::CinderrailGround) return "Cinderrail Ground";
-		if (type == WorldTiles::CinderrailPath) return "Cinderrail Path";
-		if (type == WorldTiles::CinderrailRubble) return "Cinderrail Rubble";
-		if (type == WorldTiles::CinderrailDuelSand) return "Cinderrail Dueling Sand";
-		if (type == WorldTiles::CinderrailDoor) return "Cinderrail Door";
-		if (type == WorldTiles::WatershedGround) return "Watershed Ground";
-		if (type == WorldTiles::WatershedPath) return "Watershed Path";
-		if (type == WorldTiles::WatershedMarker) return "Watershed Route Marker";
-		if (type == WorldTiles::GlasswaterGround) return "Glasswater Ground";
-		if (type == WorldTiles::GlasswaterPaving) return "Tideglass Paving";
-		if (type == WorldTiles::GlasswaterRoof) return "Glasswater Roof";
-		if (type == WorldTiles::GlasswaterDock) return "Dock";
-		if (type == WorldTiles::GlasswaterWall) return "Glasswater Wall";
-		if (type == WorldTiles::GlasswaterDoor) return "Glasswater Door";
-		if (type == WorldTiles::GlasswaterArena) return "Tidal Arena Floor";
-		if (type == WorldTiles::GlasswaterMarker) return "Harbor Marker";
-		if (type == WorldTiles::RootmazeGround) return "Rootmaze Ground";
-		if (type == WorldTiles::RootmazePath) return "Rootmaze Path";
-		if (type == WorldTiles::RootmazeRoot) return "Living Root";
-		if (type == WorldTiles::RootmazeBridge) return "Root Bridge";
-		if (type == WorldTiles::RootmazeRoof) return "Living Roof";
-		if (type == WorldTiles::RootmazeWall) return "Root Wall";
-		if (type == WorldTiles::RootmazeDoor) return "Rootmaze Door";
-		if (type == WorldTiles::RootmazeArena) return "Meadow Arena Floor";
-		if (type == WorldTiles::RootmazeMarker) return "Leaf Marker";
-		if (type == WorldTiles::Rocks) return "Rocks";
-		if (type == WorldTiles::Bush) return "Bush";
-		if (type == WorldTiles::Shrub) return "Shrub";
-		if (type == WorldTiles::CaveEntrance) return "Cave Entrance";
-		if (type == WorldTiles::TreeStump) return "Tree Stump";
-		if (type == WorldTiles::BlackstoneGround) return "Blackstone Ground";
-		if (type == WorldTiles::BlackstonePath) return "Blackstone Road";
-		if (type == WorldTiles::BlackstoneWall) return "Blackstone Retaining Wall";
-		if (type == WorldTiles::BlackstoneGate) return "Blackstone Relay Gate";
-		return "Unknown Tile";
+		for (int i = 0; i < TILE_CATEGORY_COUNT; ++i)
+			if (name == familyName(tilesetFamily(i)))
+			{
+				family = tilesetFamily(i);
+				return true;
+			}
+		return false;
+	}
+
+	const char* sheetName(RtpTileSheet sheet)
+	{
+		if (sheet == RtpTileSheet::A1) return "A1";
+		if (sheet == RtpTileSheet::A2) return "A2";
+		if (sheet == RtpTileSheet::A3) return "A3";
+		if (sheet == RtpTileSheet::A4) return "A4";
+		if (sheet == RtpTileSheet::A5) return "A5";
+		if (sheet == RtpTileSheet::B) return "B";
+		return "C";
+	}
+
+	bool parseSheet(const std::string& name, RtpTileSheet& sheet)
+	{
+		const RtpTileSheet sheets[] = { RtpTileSheet::A1, RtpTileSheet::A2,
+			RtpTileSheet::A3, RtpTileSheet::A4, RtpTileSheet::A5,
+			RtpTileSheet::B, RtpTileSheet::C };
+		for (int i = 0; i < 7; ++i)
+			if (name == sheetName(sheets[i])) { sheet = sheets[i]; return true; }
+		return false;
+	}
+
+	const char* layerName(RtpRenderLayer layer)
+	{
+		if (layer == RtpRenderLayer::Decoration) return "decoration";
+		if (layer == RtpRenderLayer::Foreground) return "foreground";
+		return "ground";
+	}
+
+	bool parseLayer(const std::string& name, RtpRenderLayer& layer)
+	{
+		if (name == "ground") layer = RtpRenderLayer::Ground;
+		else if (name == "decoration") layer = RtpRenderLayer::Decoration;
+		else if (name == "foreground") layer = RtpRenderLayer::Foreground;
+		else return false;
+		return true;
+	}
+
+	std::vector<RtpTileSheet> familySheets(RtpTilesetFamily family)
+	{
+		std::vector<RtpTileSheet> result;
+		std::vector<RtpSheetDescriptor> available = RtpTilesetRenderer::availableSheets();
+		for (size_t i = 0; i < available.size(); ++i)
+			if (available[i].family == family) result.push_back(available[i].sheet);
+		return result;
+	}
+
+	std::string catalogTileName(RtpTilesetFamily family, RtpTileSheet sheet, int index)
+	{
+		static std::map<std::pair<int, int>, std::vector<std::string> > cache;
+		std::pair<int, int> key((int)family, (int)sheet);
+		if (cache.count(key) == 0)
+		{
+			std::vector<std::string> names;
+			std::string error;
+			RtpTilesetRenderer::loadTileNames(family, sheet, names, error);
+			cache[key] = names;
+		}
+		const std::vector<std::string>& names = cache[key];
+		if (index >= 0 && index < (int)names.size() && !names[index].empty())
+			return names[index];
+		return std::string(sheetName(sheet)) + " tile " + std::to_string(index);
 	}
 
 	bool worldBuilderMovementKey(SDL_Keycode key, int& dx, int& dy)
@@ -384,6 +340,48 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 				return false;
 			}
 			area.tiles.push_back(value);
+		}
+		lua_pop(state, 1);
+		lua_getfield(state, mapTable, "tile_layers");
+		if (!lua_isnil(state, -1) && !lua_istable(state, -1))
+		{
+			error = "map '" + area.id + "' tile_layers must be a table";
+			lua_close(state);
+			return false;
+		}
+		if (lua_istable(state, -1))
+		{
+			for (size_t layerIndex = 1; layerIndex <= lua_rawlen(state, -1); ++layerIndex)
+			{
+				lua_rawgeti(state, -1, (lua_Integer)layerIndex);
+				int tileTable = lua_gettop(state);
+				int x = intField(tileTable, "x");
+				int y = intField(tileTable, "y");
+				int tileIndex = intField(tileTable, "index");
+				std::string familyText = stringField(tileTable, "tileset");
+				std::string sheetText = stringField(tileTable, "sheet");
+				std::string layerText = stringField(tileTable, "layer");
+				RtpTilesetFamily family;
+				RtpTileSheet sheet;
+				RtpRenderLayer layer;
+				const RtpSheetDescriptor* descriptor = NULL;
+				bool valid = x >= 0 && y >= 0 && y < (int)area.tiles.size() &&
+					x < (int)area.tiles[y].size() && parseFamily(familyText, family) &&
+					parseSheet(sheetText, sheet) && parseLayer(layerText, layer);
+				if (valid) descriptor = RtpTilesetRenderer::descriptor(family, sheet);
+				std::tuple<int, int, int> key(y, x, (int)layer);
+				if (!valid || descriptor == NULL || tileIndex < 0 ||
+					tileIndex >= descriptor->tileCount || area.tileLayers.count(key) != 0)
+				{
+					error = "map '" + area.id + "' has invalid tile layer " +
+						std::to_string(layerIndex);
+					lua_close(state);
+					return false;
+				}
+				area.tileLayers.insert(std::make_pair(key,
+					RtpTileReference(family, sheet, tileIndex, layer)));
+				lua_pop(state, 1);
+			}
 		}
 		lua_pop(state, 2);
 		areas.push_back(area);
@@ -747,38 +745,90 @@ bool Application::worldBuilderCanPlace(int x, int y, int ignoredNpc, int ignored
 
 void Application::paintWorldBuilderTile(int x, int y)
 {
-	std::vector<std::string>& map = currentMap();
+	const std::vector<std::string>& map = currentMap();
 	if (y < 0 || y >= (int)map.size() || x < 0 || x >= (int)map[y].size()) return;
-	bool walkable = WorldTiles::isWalkable(mWorldBuilderTile);
-	if (!walkable)
-	{
-		bool hasNpc = false;
-		for (size_t i = 0; i < mNpcs.size(); ++i)
-			if (mNpcs[i].mapId == currentMapId() && mNpcs[i].x == x && mNpcs[i].y == y) hasNpc = true;
-		if ((currentMapId() == mWorldStartMap && x == mWorldStartX && y == mWorldStartY) ||
-			hasNpc || isPortalAt(currentMapId(), x, y))
-		{
-			showWorldBuilderNotice("Move the player start or NPC before blocking this tile.", true);
-			return;
-		}
-		for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
-			if (mMercerStock.shards[i].mapId == currentMapId() &&
-				mMercerStock.shards[i].x == x && mMercerStock.shards[i].y == y)
-			{
-				showWorldBuilderNotice("Move the object before blocking this tile.", true);
-				return;
-			}
-		for (size_t i = 0; i < mWorldObjects.size(); ++i)
-			if (mWorldObjects[i].mapId == currentMapId() &&
-				mWorldObjects[i].x == x && mWorldObjects[i].y == y)
-			{
-				showWorldBuilderNotice("Move the object before blocking this tile.", true);
-				return;
-			}
-	}
-	if (WorldTiles::fromGlyph(map[y][x]) == mWorldBuilderTile) return;
-	map[y][x] = WorldTiles::glyph(mWorldBuilderTile);
+	RtpTilesetFamily family = tilesetFamily(mWorldBuilderTileCategory);
+	RtpTileSheet sheet = (RtpTileSheet)mWorldBuilderTileSheet;
+	const RtpSheetDescriptor* descriptor = RtpTilesetRenderer::descriptor(family, sheet);
+	if (descriptor == NULL || mWorldBuilderCatalogTile < 0 ||
+		mWorldBuilderCatalogTile >= descriptor->tileCount) return;
+	std::tuple<int, int, int> key(y, x, (int)mWorldBuilderTileLayer);
+	RtpTileReference tile(family, sheet, mWorldBuilderCatalogTile,
+		mWorldBuilderTileLayer);
+	std::map<std::tuple<int, int, int>, RtpTileReference>& layers =
+		mWorldAreas[mCurrentWorldArea].tileLayers;
+	std::map<std::tuple<int, int, int>, RtpTileReference>::iterator existing =
+		layers.find(key);
+	if (existing != layers.end() && existing->second.family == tile.family &&
+		existing->second.sheet == tile.sheet && existing->second.index == tile.index) return;
+	if (existing != layers.end()) layers.erase(existing);
+	layers.insert(std::make_pair(key, tile));
 	mWorldBuilderDirty = true;
+}
+
+void Application::eraseWorldBuilderTile(int x, int y)
+{
+	const std::vector<std::string>& map = currentMap();
+	if (y < 0 || y >= (int)map.size() || x < 0 || x >= (int)map[y].size()) return;
+	std::map<std::tuple<int, int, int>, RtpTileReference>& layers =
+		mWorldAreas[mCurrentWorldArea].tileLayers;
+	if (layers.erase(std::make_tuple(y, x, (int)mWorldBuilderTileLayer)) != 0)
+		mWorldBuilderDirty = true;
+}
+
+const RtpTileReference* Application::worldTileLayer(const WorldArea& area,
+	int x, int y, RtpRenderLayer layer) const
+{
+	std::map<std::tuple<int, int, int>, RtpTileReference>::const_iterator found =
+		area.tileLayers.find(std::make_tuple(y, x, (int)layer));
+	return found == area.tileLayers.end() ? NULL : &found->second;
+}
+
+unsigned int Application::worldTileConnections(const WorldArea& area, int x, int y,
+	RtpRenderLayer layer) const
+{
+	const RtpTileReference* tile = worldTileLayer(area, x, y, layer);
+	if (tile == NULL) return 0;
+	auto hasWallOpening = [&](int checkX, int checkY) -> bool
+	{
+		const RtpTileReference* decoration = worldTileLayer(area, checkX, checkY,
+			RtpRenderLayer::Decoration);
+		const RtpTileReference* foreground = worldTileLayer(area, checkX, checkY,
+			RtpRenderLayer::Foreground);
+		return (decoration != NULL && RtpTilesetRenderer::isWallOpening(*decoration)) ||
+			(foreground != NULL && RtpTilesetRenderer::isWallOpening(*foreground));
+	};
+	auto matches = [&](int checkX, int checkY, bool allowWallOpening) -> bool
+	{
+		const RtpTileReference* other = worldTileLayer(area, checkX, checkY, layer);
+		if (other != NULL && other->family == tile->family &&
+			other->sheet == tile->sheet && other->index == tile->index) return true;
+		bool wallAutotile = tile->sheet == RtpTileSheet::A3 ||
+			(tile->sheet == RtpTileSheet::A4 && (tile->index / 8) % 2 == 1);
+		bool opening = (other != NULL && RtpTilesetRenderer::isWallOpening(*other)) ||
+			hasWallOpening(checkX, checkY);
+		return allowWallOpening && wallAutotile && opening;
+	};
+	unsigned int connections = 0;
+	if (matches(x, y - 1, true)) connections |= RtpTilesetRenderer::North;
+	if (matches(x + 1, y, true)) connections |= RtpTilesetRenderer::East;
+	if (matches(x, y + 1, true)) connections |= RtpTilesetRenderer::South;
+	if (matches(x - 1, y, true)) connections |= RtpTilesetRenderer::West;
+	if (matches(x - 1, y - 1, false)) connections |= RtpTilesetRenderer::NorthWest;
+	if (matches(x + 1, y - 1, false)) connections |= RtpTilesetRenderer::NorthEast;
+	if (matches(x + 1, y + 1, false)) connections |= RtpTilesetRenderer::SouthEast;
+	if (matches(x - 1, y + 1, false)) connections |= RtpTilesetRenderer::SouthWest;
+	return connections;
+}
+
+bool Application::drawWorldTileLayer(const WorldArea& area, int x, int y,
+	RtpRenderLayer layer, const SDL_Rect& destination)
+{
+	const RtpTileReference* tile = worldTileLayer(area, x, y, layer);
+	if (tile == NULL) return false;
+	return mWorldTileRenderer->drawCatalog(*tile,
+		worldTileConnections(area, x, y, layer), destination,
+		SDL_GetTicks() / 420);
 }
 
 void Application::placeWorldBuilderSelection(int x, int y)
@@ -831,6 +881,7 @@ bool Application::saveWorldBuilder(std::string& error)
 	std::ostringstream world;
 	world << "-- World Builder data. This file is entirely maintained by the World Builder.\n"
 		<< "-- Tile IDs are stable one-byte serialization codes defined in Source/App/WorldTile.h.\n"
+		<< "-- Optional tile_layers entries are sparse visual overrides; tiles remain the collision layer.\n"
 		<< "-- Tile legend: . grass, = path, ~ water, H house, T tree, # forest,\n"
 		<< "-- W wooden wall, K timber roof, D door, F wooden floor, C counter, B bonfire,\n"
 		<< "-- A feast table, S dueling sand, M marble, Q marble roof, E workshop tools,\n"
@@ -854,7 +905,23 @@ bool Application::saveWorldBuilder(std::string& error)
 		for (size_t row = 0; row < mWorldAreas[area].tiles.size(); ++row)
 			world << "\t\t\t\t\"" << mWorldAreas[area].tiles[row] << "\"" <<
 				(row + 1 == mWorldAreas[area].tiles.size() ? "\n" : ",\n");
-		world << "\t\t\t}\n\t\t}" << (area + 1 == mWorldAreas.size() ? "\n" : ",\n");
+		world << "\t\t\t}";
+		if (!mWorldAreas[area].tileLayers.empty())
+		{
+			world << ",\n\t\t\ttile_layers = {\n";
+			for (std::map<std::tuple<int, int, int>, RtpTileReference>::const_iterator tile =
+				mWorldAreas[area].tileLayers.begin();
+				tile != mWorldAreas[area].tileLayers.end(); ++tile)
+			{
+				world << "\t\t\t\t{ x = " << std::get<1>(tile->first) <<
+					", y = " << std::get<0>(tile->first) << ", tileset = \"" <<
+					familyName(tile->second.family) << "\", sheet = \"" <<
+					sheetName(tile->second.sheet) << "\", index = " << tile->second.index <<
+					", layer = \"" << layerName(tile->second.layer) << "\" },\n";
+			}
+			world << "\t\t\t}";
+		}
+		world << "\n\t\t}" << (area + 1 == mWorldAreas.size() ? "\n" : ",\n");
 	}
 	world << "\t},\n\tregions = {\n";
 	for (size_t i = 0; i < mWorldRegions.size(); ++i)
@@ -1031,9 +1098,12 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		if (key >= SDLK_1 && key <= SDLK_9)
 		{
 			mWorldBuilderTab = WorldBuilderTab::Tiles;
-			std::vector<WorldTileId> tiles = categoryTiles(mWorldBuilderTileCategory);
-			int index = key - SDLK_1;
-			if (index < (int)tiles.size()) mWorldBuilderTile = tiles[index];
+			const RtpSheetDescriptor* sheet = RtpTilesetRenderer::descriptor(
+				tilesetFamily(mWorldBuilderTileCategory),
+				(RtpTileSheet)mWorldBuilderTileSheet);
+			int index = mWorldBuilderListScroll + key - SDLK_1;
+			if (sheet != NULL && index < sheet->tileCount)
+				mWorldBuilderCatalogTile = index;
 			return;
 		}
 		if (key == SDLK_t) mWorldBuilderTab = WorldBuilderTab::Tiles;
@@ -1064,8 +1134,11 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		}
 		if (mWorldBuilderTab == WorldBuilderTab::Tiles)
 		{
-			int maximum = std::max(0,
-				(int)categoryTiles(mWorldBuilderTileCategory).size() - BUILDER_VISIBLE_TILES);
+			const RtpSheetDescriptor* sheet = RtpTilesetRenderer::descriptor(
+				tilesetFamily(mWorldBuilderTileCategory),
+				(RtpTileSheet)mWorldBuilderTileSheet);
+			int maximum = std::max(0, (sheet == NULL ? 0 : sheet->tileCount) -
+				BUILDER_VISIBLE_TILES);
 			mWorldBuilderListScroll = std::max(0,
 				std::min(maximum, mWorldBuilderListScroll - event.wheel.y * 2));
 			return;
@@ -1077,9 +1150,11 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 			std::min(maximum, mWorldBuilderListScroll - event.wheel.y));
 		return;
 	}
-	if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT)
+	if (event.type == SDL_MOUSEBUTTONUP &&
+		(event.button.button == SDL_BUTTON_LEFT || event.button.button == SDL_BUTTON_RIGHT))
 	{
 		mWorldBuilderPainting = false;
+		mWorldBuilderErasing = false;
 		mWorldBuilderDragging = false;
 		return;
 	}
@@ -1094,11 +1169,14 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 			mWorldBuilderCameraY, mWorldBuilderTileSize, cellX, cellY))
 		{
 			if (mWorldBuilderPainting) paintWorldBuilderTile(cellX, cellY);
+			else if (mWorldBuilderErasing) eraseWorldBuilderTile(cellX, cellY);
 			else if (mWorldBuilderDragging) placeWorldBuilderSelection(cellX, cellY);
 		}
 		return;
 	}
-	if (event.type != SDL_MOUSEBUTTONDOWN || event.button.button != SDL_BUTTON_LEFT) return;
+	if (event.type != SDL_MOUSEBUTTONDOWN ||
+		(event.button.button != SDL_BUTTON_LEFT &&
+		event.button.button != SDL_BUTTON_RIGHT)) return;
 	int x, y;
 	logicalMouse(event.button.x, event.button.y, x, y);
 	mMouseX = x;
@@ -1145,16 +1223,45 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 			{
 				if (!contains(tileCategoryRect(category), x, y)) continue;
 				mWorldBuilderTileCategory = category;
+				std::vector<RtpTileSheet> sheets = familySheets(tilesetFamily(category));
+				if (!sheets.empty()) mWorldBuilderTileSheet = (int)sheets[0];
+				mWorldBuilderCatalogTile = 0;
+				mWorldBuilderTileLayer = sheets.empty() ? RtpRenderLayer::Ground :
+					RtpTilesetRenderer::defaultLayer(sheets[0]);
 				mWorldBuilderListScroll = 0;
 				return;
 			}
-			std::vector<WorldTileId> tiles = categoryTiles(mWorldBuilderTileCategory);
+			std::vector<RtpTileSheet> sheets = familySheets(
+				tilesetFamily(mWorldBuilderTileCategory));
+			int sheetIndex = 0;
+			for (size_t i = 0; i < sheets.size(); ++i)
+				if ((int)sheets[i] == mWorldBuilderTileSheet) sheetIndex = (int)i;
+			if (!sheets.empty() && (contains(BUILDER_PREVIOUS_SHEET, x, y) ||
+				contains(BUILDER_NEXT_SHEET, x, y)))
+			{
+				int direction = contains(BUILDER_PREVIOUS_SHEET, x, y) ? -1 : 1;
+				sheetIndex = (sheetIndex + direction + (int)sheets.size()) % (int)sheets.size();
+				mWorldBuilderTileSheet = (int)sheets[sheetIndex];
+				mWorldBuilderCatalogTile = 0;
+				mWorldBuilderTileLayer = RtpTilesetRenderer::defaultLayer(sheets[sheetIndex]);
+				mWorldBuilderListScroll = 0;
+				return;
+			}
+			for (int layer = 0; layer < 3; ++layer)
+				if (contains(BUILDER_LAYER_BUTTONS[layer], x, y))
+				{
+					mWorldBuilderTileLayer = (RtpRenderLayer)layer;
+					return;
+				}
+			const RtpSheetDescriptor* sheet = RtpTilesetRenderer::descriptor(
+				tilesetFamily(mWorldBuilderTileCategory),
+				(RtpTileSheet)mWorldBuilderTileSheet);
 			for (int slot = 0; slot < BUILDER_VISIBLE_TILES; ++slot)
 			{
 				int i = mWorldBuilderListScroll + slot;
-				if (i < (int)tiles.size() && contains(paletteRect(slot), x, y))
+				if (sheet != NULL && i < sheet->tileCount && contains(paletteRect(slot), x, y))
 				{
-					mWorldBuilderTile = tiles[i];
+					mWorldBuilderCatalogTile = i;
 					return;
 				}
 			}
@@ -1207,8 +1314,16 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 			mWorldBuilderCameraY, mWorldBuilderTileSize, cellX, cellY)) return;
 		if (mWorldBuilderTab == WorldBuilderTab::Tiles)
 		{
-			mWorldBuilderPainting = true;
-			paintWorldBuilderTile(cellX, cellY);
+			if (event.button.button == SDL_BUTTON_RIGHT)
+			{
+				mWorldBuilderErasing = true;
+				eraseWorldBuilderTile(cellX, cellY);
+			}
+			else
+			{
+				mWorldBuilderPainting = true;
+				paintWorldBuilderTile(cellX, cellY);
+			}
 			return;
 		}
 		if (mWorldBuilderTab == WorldBuilderTab::Npcs)
@@ -1237,553 +1352,6 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		return;
 	}
 	mWorldBuilderListScroll = 0;
-}
-
-void Application::drawWorldBuilderTileIcon(WorldTileId type, const SDL_Rect& rect)
-{
-	if (type == WorldTiles::Path) fillRect(rect, 162, 132, 76);
-	else if (type == WorldTiles::OldRoadPath) fillRect(rect, 124, 112, 88);
-	else if (type == WorldTiles::CinderrailPath) fillRect(rect, 116, 91, 58);
-	else if (type == WorldTiles::WatershedPath) fillRect(rect, 148, 139, 105);
-	else if (type == WorldTiles::GlasswaterPaving) fillRect(rect, 165, 199, 202);
-	else if (type == WorldTiles::RootmazePath) fillRect(rect, 119, 134, 75);
-	else if (type == WorldTiles::BlackstonePath) fillRect(rect, 111, 106, 96);
-	else if (type == WorldTiles::Water || type == WorldTiles::TimberBridge)
-		fillRect(rect, 25, 111, 157);
-	else if (type == WorldTiles::House) fillRect(rect, 126, 65, 43);
-	else if (type == WorldTiles::Forest || type == WorldTiles::Tree)
-		fillRect(rect, 26, 75, 33);
-	else if (type == WorldTiles::CinderrailRubble) fillRect(rect, 55, 45, 43);
-	else if (type == WorldTiles::DuelSand) fillRect(rect, 188, 151, 87);
-	else if (type == WorldTiles::CinderrailDuelSand) fillRect(rect, 118, 72, 48);
-	else if (type == WorldTiles::Marble) fillRect(rect, 198, 204, 207);
-	else if (type == WorldTiles::OldRoadWaystone) fillRect(rect, 79, 72, 65);
-	else if (type == WorldTiles::MarbleRoof) fillRect(rect, 201, 196, 177);
-	else if (type == WorldTiles::Bonfire) fillRect(rect, 83, 64, 42);
-	else if (type == WorldTiles::FeastTable || type == WorldTiles::Grass)
-		fillRect(rect, 61, 139, 61);
-	else if (type == WorldTiles::WorkshopTools) fillRect(rect, 137, 91, 49);
-	else if (type == WorldTiles::Rail || type == WorldTiles::RailCrossing)
-		fillRect(rect, type == WorldTiles::RailCrossing ? 104 : 47,
-			type == WorldTiles::RailCrossing ? 83 : 45,
-			type == WorldTiles::RailCrossing ? 57 : 43);
-	else if (type == WorldTiles::MetalGrate) fillRect(rect, 73, 80, 86);
-	else if (type == WorldTiles::IndustrialBrick) fillRect(rect, 112, 49, 38);
-	else if (type == WorldTiles::Machinery) fillRect(rect, 63, 66, 67);
-	else if (type == WorldTiles::Furnace) fillRect(rect, 64, 47, 43);
-	else if (type == WorldTiles::TimberRoof) fillRect(rect, 91, 48, 37);
-	else if (type == WorldTiles::IndustrialRoof) fillRect(rect, 67, 68, 70);
-	else if (type == WorldTiles::RockyCliff) fillRect(rect, 73, 65, 59);
-	else if (type == WorldTiles::CinderrailGround) fillRect(rect, 82, 76, 59);
-	else if (type == WorldTiles::WatershedGround || type == WorldTiles::WatershedMarker)
-		fillRect(rect, 56, 124, 74);
-	else if (type == WorldTiles::GlasswaterGround || type == WorldTiles::GlasswaterMarker)
-		fillRect(rect, 91, 151, 153);
-	else if (type == WorldTiles::GlasswaterRoof) fillRect(rect, 42, 91, 134);
-	else if (type == WorldTiles::GlasswaterDock) fillRect(rect, 106, 76, 48);
-	else if (type == WorldTiles::GlasswaterWall) fillRect(rect, 157, 190, 191);
-	else if (type == WorldTiles::GlasswaterDoor) fillRect(rect, 57, 111, 137);
-	else if (type == WorldTiles::GlasswaterArena) fillRect(rect, 104, 164, 188);
-	else if (type == WorldTiles::RootmazeGround || type == WorldTiles::RootmazeMarker)
-		fillRect(rect, 72, 126, 63);
-	else if (type == WorldTiles::RootmazeRoot) fillRect(rect, 76, 55, 35);
-	else if (type == WorldTiles::RootmazeBridge) fillRect(rect, 130, 92, 53);
-	else if (type == WorldTiles::RootmazeRoof) fillRect(rect, 74, 116, 51);
-	else if (type == WorldTiles::RootmazeWall) fillRect(rect, 109, 78, 47);
-	else if (type == WorldTiles::RootmazeDoor) fillRect(rect, 126, 89, 50);
-	else if (type == WorldTiles::RootmazeArena) fillRect(rect, 105, 154, 76);
-	else if (type == WorldTiles::BlackstoneGround) fillRect(rect, 61, 59, 55);
-	else if (type == WorldTiles::BlackstoneWall) fillRect(rect, 38, 37, 40);
-	else if (type == WorldTiles::BlackstoneGate) fillRect(rect, 72, 67, 58);
-	else if (type == WorldTiles::Rocks) fillRect(rect, 61, 139, 61);
-	else if (type == WorldTiles::Bush) fillRect(rect, 49, 126, 54);
-	else if (type == WorldTiles::Shrub) fillRect(rect, 61, 139, 61);
-	else if (type == WorldTiles::CaveEntrance) fillRect(rect, 78, 70, 62);
-	else if (type == WorldTiles::TreeStump) fillRect(rect, 61, 139, 61);
-	else if (type == WorldTiles::WoodWall || type == WorldTiles::Door ||
-		type == WorldTiles::CinderrailDoor || type == WorldTiles::WoodFloor ||
-		type == WorldTiles::Counter)
-		fillRect(rect, type == WorldTiles::WoodFloor ? 137 : 91,
-			type == WorldTiles::WoodFloor ? 91 : 53,
-			type == WorldTiles::WoodFloor ? 49 : 31);
-	else fillRect(rect, 61, 139, 61);
-	mWorldTileRenderer->drawTerrain(type, rect);
-
-	const int x = rect.x;
-	const int y = rect.y;
-	const int w = rect.w;
-	const int h = rect.h;
-	if (type == WorldTiles::Grass)
-	{
-		fillRect({ x + 6, y + 18, 2, 8 }, 108, 184, 65);
-		fillRect({ x + 14, y + 13, 2, 12 }, 119, 194, 70);
-		fillRect({ x + 23, y + 19, 2, 7 }, 92, 172, 57);
-	}
-	else if (type == WorldTiles::Path || type == WorldTiles::OldRoadPath ||
-		type == WorldTiles::BlackstonePath)
-	{
-		fillRect({ x + 3, y + 5, 11, 7 }, type == WorldTiles::Path ? 190 : 151,
-			type == WorldTiles::Path ? 158 : 136, type == WorldTiles::Path ? 93 : 104);
-		fillRect({ x + 16, y + 16, 11, 8 }, type == WorldTiles::Path ? 133 : 100,
-			type == WorldTiles::Path ? 106 : 94, type == WorldTiles::Path ? 63 : 80);
-	}
-	else if (type == WorldTiles::Water)
-	{
-		fillRect({ x + 3, y + 8, w - 8, 3 }, 91, 188, 210);
-		fillRect({ x + 8, y + 19, w - 11, 3 }, 63, 161, 194);
-	}
-	else if (type == WorldTiles::House)
-	{
-		fillRect({ x + 3, y + 4, w - 6, 8 }, 190, 78, 47);
-		fillRect({ x + 7, y + 12, w - 14, h - 14 }, 150, 92, 53);
-		fillRect({ x + 12, y + 17, 7, h - 19 }, 55, 32, 24);
-	}
-	else if (type == WorldTiles::Tree || type == WorldTiles::Forest)
-	{
-		fillRect({ x + 13, y + 14, 5, 13 }, 91, 51, 27);
-		fillRect({ x + 5, y + 3, 20, 17 }, 43, 123, 51);
-		if (type == WorldTiles::Forest)
-		{
-			fillRect({ x + 4, y + 13, 4, 12 }, 78, 44, 25);
-			fillRect({ x + 1, y + 8, 13, 11 }, 30, 99, 40);
-		}
-	}
-	else if (type == WorldTiles::WoodWall || type == WorldTiles::WoodFloor)
-	{
-		for (int line = 5; line < h; line += 7)
-			fillRect({ x + 2, y + line, w - 4, 2 }, 75, 43, 28);
-		if (type == WorldTiles::WoodWall)
-		{
-			fillRect({ x + 5, y + 1, 3, h - 2 }, 62, 37, 26);
-			fillRect({ x + w - 8, y + 1, 3, h - 2 }, 62, 37, 26);
-		}
-	}
-	else if (type == WorldTiles::Door || type == WorldTiles::CinderrailDoor)
-	{
-		fillRect({ x + 6, y + 2, w - 12, h - 2 }, type == WorldTiles::Door ? 138 : 107,
-			type == WorldTiles::Door ? 78 : 111, type == WorldTiles::Door ? 39 : 112);
-		fillRect({ x + w - 10, y + h / 2, 3, 3 }, 231, 184, 73);
-	}
-	else if (type == WorldTiles::Counter || type == WorldTiles::FeastTable)
-	{
-		fillRect({ x + 3, y + (type == WorldTiles::Counter ? 8 : 11), w - 6,
-			type == WorldTiles::Counter ? 6 : 9 }, 166, 105, 53);
-		fillRect({ x + 6, y + 20, 4, 7 }, 85, 48, 28);
-		fillRect({ x + w - 10, y + 20, 4, 7 }, 85, 48, 28);
-	}
-	else if (type == WorldTiles::Bonfire || type == WorldTiles::Furnace)
-	{
-		if (type == WorldTiles::Furnace)
-			fillRect({ x + 4, y + 3, w - 8, h - 5 }, 39, 32, 31);
-		fillRect({ x + 9, y + 18, w - 18, 8 }, 225, 70, 28);
-		fillRect({ x + 12, y + 9, w - 24, 15 }, 250, 142, 38);
-		fillRect({ x + 14, y + 15, w - 28, 8 }, 255, 222, 89);
-	}
-	else if (type == WorldTiles::DuelSand || type == WorldTiles::CinderrailDuelSand)
-	{
-		fillRect({ x + 5, y + 7, 4, 3 }, 148, 107, 65);
-		fillRect({ x + 20, y + 19, 5, 3 }, 220, 174, 103);
-		if (type == WorldTiles::CinderrailDuelSand)
-			outlineRect({ x + 2, y + 2, w - 4, h - 4 }, 225, 178, 71, 255, 2);
-	}
-	else if (type == WorldTiles::Marble)
-	{
-		fillRect({ x + w / 2, y + 1, 2, h - 2 }, 158, 171, 178);
-		fillRect({ x + 1, y + h / 2, w - 2, 2 }, 158, 171, 178);
-	}
-	else if (type == WorldTiles::MarbleRoof || type == WorldTiles::TimberRoof ||
-		type == WorldTiles::IndustrialRoof)
-	{
-		for (int course = 5; course < h; course += 7)
-			fillRect({ x + 1, y + course, w - 2, 2 },
-				type == WorldTiles::MarbleRoof ? 157 : 53,
-				type == WorldTiles::MarbleRoof ? 164 : 39,
-				type == WorldTiles::MarbleRoof ? 164 : 34);
-		fillRect({ x, y + h - 5, w, 5 }, type == WorldTiles::MarbleRoof ? 174 : 44,
-			type == WorldTiles::MarbleRoof ? 139 : 35,
-			type == WorldTiles::MarbleRoof ? 67 : 33);
-	}
-	else if (type == WorldTiles::WorkshopTools || type == WorldTiles::Machinery)
-	{
-		fillRect({ x + 4, y + 18, w - 8, 7 }, 104, 59, 33);
-		fillRect({ x + 7, y + 7, 5, 11 }, 54, 151, 193);
-		fillRect({ x + 16, y + 4, 5, 14 }, 169, 178, 175);
-		fillRect({ x + 21, y + 10, 5, 8 }, 214, 111, 48);
-	}
-	else if (type == WorldTiles::Rail || type == WorldTiles::RailCrossing)
-	{
-		for (int tie = 2; tie < w; tie += 7)
-			fillRect({ x + tie, y + 3, 3, h - 6 }, 106, 75, 49);
-		fillRect({ x, y + 6, w, 3 }, 165, 172, 173);
-		fillRect({ x, y + h - 9, w, 3 }, 165, 172, 173);
-		if (type == WorldTiles::RailCrossing)
-		{
-			fillRect({ x + 6, y, 3, h }, 190, 194, 191);
-			fillRect({ x + w - 9, y, 3, h }, 190, 194, 191);
-		}
-	}
-	else if (type == WorldTiles::MetalGrate)
-	{
-		for (int line = 5; line < w; line += 6)
-		{
-			fillRect({ x + line, y + 2, 2, h - 4 }, 42, 49, 53);
-			fillRect({ x + 2, y + line, w - 4, 2 }, 42, 49, 53);
-		}
-	}
-	else if (type == WorldTiles::IndustrialBrick)
-	{
-		for (int row = 6; row < h; row += 7)
-			fillRect({ x + 1, y + row, w - 2, 2 }, 68, 38, 36);
-		fillRect({ x + w / 2, y + 1, 2, 6 }, 71, 40, 37);
-	}
-	else if (type == WorldTiles::TimberBridge)
-	{
-		for (int plank = 3; plank < w; plank += 6)
-			fillRect({ x + plank, y + 4, 5, h - 8 }, 132, 83, 45);
-		fillRect({ x, y + 3, w, 3 }, 65, 45, 32);
-		fillRect({ x, y + h - 6, w, 3 }, 65, 45, 32);
-	}
-	else if (type == WorldTiles::RockyCliff || type == WorldTiles::CinderrailRubble)
-	{
-		fillRect({ x + 3, y + 4, 12, 9 }, 112, 94, 75);
-		fillRect({ x + 15, y + 12, 11, 10 }, 64, 58, 55);
-		fillRect({ x + 5, y + 20, 14, 6 }, 88, 75, 65);
-	}
-	else if (type == WorldTiles::Rocks)
-	{
-		fillRect({ x + 4, y + 15, 12, 10 }, 96, 91, 82);
-		fillRect({ x + 12, y + 8, 13, 15 }, 125, 117, 103);
-		fillRect({ x + 15, y + 9, 7, 3 }, 163, 153, 134);
-	}
-	else if (type == WorldTiles::Bush || type == WorldTiles::Shrub)
-	{
-		int top = type == WorldTiles::Bush ? 6 : 14;
-		int height = type == WorldTiles::Bush ? 19 : 11;
-		fillRect({ x + 4, y + top + 5, 21, height - 5 },
-			type == WorldTiles::Bush ? 34 : 52, type == WorldTiles::Bush ? 105 : 137, 48);
-		fillRect({ x + 8, y + top, 10, 9 }, 71, 153, 65);
-		fillRect({ x + 17, y + top + 3, 8, 8 }, 45, 124, 53);
-	}
-	else if (type == WorldTiles::CaveEntrance)
-	{
-		fillRect({ x + 3, y + 5, w - 6, h - 7 }, 112, 99, 82);
-		fillRect({ x + 8, y + 10, w - 16, h - 10 }, 30, 31, 33);
-		fillRect({ x + 5, y + 5, 7, 6 }, 151, 135, 108);
-	}
-	else if (type == WorldTiles::TreeStump)
-	{
-		fillRect({ x + 9, y + 13, 13, 13 }, 105, 65, 36);
-		fillRect({ x + 7, y + 10, 17, 7 }, 155, 103, 53);
-		fillRect({ x + 11, y + 12, 9, 3 }, 91, 57, 34);
-		fillRect({ x + 4, y + 23, 8, 3 }, 75, 52, 31);
-		fillRect({ x + 20, y + 22, 6, 3 }, 75, 52, 31);
-	}
-	else if (type == WorldTiles::OldRoadWaystone)
-	{
-		fillRect({ x + 8, y + 3, w - 16, h - 5 }, 127, 110, 84);
-		fillRect({ x + 11, y + 9, w - 22, 3 }, 58, 83, 69);
-		fillRect({ x + 13, y + 15, w - 26, 8 }, 62, 91, 75);
-	}
-	else if (type == WorldTiles::CinderrailGround)
-	{
-		fillRect({ x + 5, y + 20, 5, 3 }, 117, 94, 61);
-		fillRect({ x + 20, y + 8, 3, 3 }, 54, 54, 51);
-	}
-	else if (type == WorldTiles::CinderrailPath)
-		fillRect({ x, y + 4, w, 3 }, 190, 145, 55);
-	else if (type == WorldTiles::WatershedGround)
-	{
-		fillRect({ x + 5, y + 19, 3, 7 }, 92, 170, 92);
-		fillRect({ x + 19, y + 10, 3, 9 }, 72, 151, 86);
-		fillRect({ x + 12, y + 23, 8, 2 }, 76, 142, 91);
-	}
-	else if (type == WorldTiles::WatershedPath)
-	{
-		fillRect({ x + 3, y + 5, 10, 6 }, 174, 163, 122);
-		fillRect({ x + 17, y + 17, 9, 6 }, 118, 111, 88);
-	}
-	else if (type == WorldTiles::WatershedMarker)
-	{
-		fillRect({ x + 13, y + 7, 4, 19 }, 82, 54, 32);
-		fillRect({ x + 5, y + 4, 20, 7 }, 203, 171, 69);
-		fillRect({ x + 7, y + 6, 5, 3 }, 58, 133, 193);
-		fillRect({ x + 13, y + 6, 5, 3 }, 66, 157, 79);
-		fillRect({ x + 19, y + 6, 4, 3 }, 215, 169, 57);
-	}
-	else if (type == WorldTiles::GlasswaterGround)
-	{
-		fillRect({ x + 3, y + 13, w - 6, 2 }, 128, 181, 181);
-		fillRect({ x + 10, y + 3, 2, 10 }, 116, 174, 176);
-	}
-	else if (type == WorldTiles::GlasswaterPaving)
-	{
-		fillRect({ x + 2, y + 2, w - 4, h - 4 }, 184, 211, 211);
-		fillRect({ x + 2, y + h / 2, w - 4, 2 }, 102, 164, 177);
-		fillRect({ x + w / 2, y + 2, 2, h - 4 }, 112, 174, 184);
-	}
-	else if (type == WorldTiles::GlasswaterRoof)
-	{
-		for (int wave = 5; wave < h; wave += 8)
-			fillRect({ x + ((wave / 8) % 2) * 4, y + wave, w - 4, 4 }, 49, 117, 159);
-		fillRect({ x, y + h - 4, w, 4 }, 111, 75, 143);
-	}
-	else if (type == WorldTiles::GlasswaterDock)
-	{
-		for (int plank = 3; plank < w; plank += 7)
-			fillRect({ x + plank, y + 3, 2, h - 6 }, 68, 49, 38);
-		fillRect({ x, y + 4, w, 3 }, 73, 156, 180);
-		fillRect({ x, y + h - 7, w, 3 }, 73, 156, 180);
-	}
-	else if (type == WorldTiles::GlasswaterWall)
-	{
-		for (int course = 7; course < h; course += 8)
-			fillRect({ x + 2, y + course, w - 4, 2 }, 98, 151, 163);
-		fillRect({ x + 5, y + 10, 7, 8 }, 47, 118, 157);
-		fillRect({ x + w - 12, y + 10, 7, 8 }, 47, 118, 157);
-	}
-	else if (type == WorldTiles::GlasswaterDoor)
-	{
-		fillRect({ x + 5, y + 2, w - 10, h - 2 }, 177, 207, 205);
-		fillRect({ x + 9, y + 7, w - 18, h - 7 }, 49, 129, 158);
-		fillRect({ x + w - 13, y + h / 2, 3, 3 }, 230, 199, 87);
-	}
-	else if (type == WorldTiles::GlasswaterArena)
-	{
-		outlineRect({ x + 3, y + 3, w - 6, h - 6 }, 220, 231, 222, 255, 2);
-		fillRect({ x + w / 2 - 1, y + 5, 3, h - 10 }, 69, 119, 166);
-		fillRect({ x + 5, y + h / 2 - 1, w - 10, 3 }, 111, 75, 143);
-	}
-	else if (type == WorldTiles::GlasswaterMarker)
-	{
-		fillRect({ x + w / 2 - 2, y + 7, 4, h - 9 }, 49, 74, 91);
-		fillRect({ x + 6, y + 5, w - 12, 7 }, 211, 222, 205);
-		fillRect({ x + 9, y + 7, 6, 3 }, 52, 142, 184);
-		fillRect({ x + w - 15, y + 7, 6, 3 }, 82, 171, 132);
-	}
-	else if (type == WorldTiles::RootmazeGround)
-	{
-		fillRect({ x + 5, y + 18, 3, 8 }, 111, 174, 73);
-		fillRect({ x + 19, y + 10, 3, 10 }, 91, 157, 66);
-	}
-	else if (type == WorldTiles::RootmazePath)
-	{
-		fillRect({ x + 3, y + 5, 11, 8 }, 151, 146, 91);
-		fillRect({ x + 17, y + 17, 10, 7 }, 89, 103, 66);
-	}
-	else if (type == WorldTiles::RootmazeRoot)
-	{
-		fillRect({ x + 4, y + 2, 7, h - 4 }, 112, 76, 43);
-		fillRect({ x + 16, y + 1, 5, h - 2 }, 63, 48, 34);
-		fillRect({ x + 23, y + 8, 4, h - 10 }, 101, 72, 42);
-	}
-	else if (type == WorldTiles::RootmazeBridge)
-	{
-		for (int slat = 2; slat < w; slat += 7)
-			fillRect({ x + slat, y + 4, 5, h - 8 }, 151, 108, 61);
-		fillRect({ x, y + 3, w, 3 }, 61, 95, 47);
-		fillRect({ x, y + h - 6, w, 3 }, 61, 95, 47);
-	}
-	else if (type == WorldTiles::RootmazeRoof)
-	{
-		for (int row = 6; row < h; row += 8)
-			fillRect({ x + 1, y + row, w - 2, 2 }, 45, 86, 42);
-		fillRect({ x + 5, y + 4, 8, 5 }, 121, 170, 73);
-		fillRect({ x, y + h - 4, w, 4 }, 91, 58, 37);
-	}
-	else if (type == WorldTiles::RootmazeWall)
-	{
-		for (int beam = 5; beam < w; beam += 9)
-			fillRect({ x + beam, y + 2, 4, h - 4 }, 70, 50, 35);
-		fillRect({ x + 7, y + 10, 7, 8 }, 79, 139, 106);
-		fillRect({ x + w - 14, y + 10, 7, 8 }, 79, 139, 106);
-	}
-	else if (type == WorldTiles::RootmazeDoor)
-	{
-		fillRect({ x + 5, y + 2, w - 10, h - 2 }, 82, 58, 39);
-		fillRect({ x + 9, y + 7, w - 18, h - 7 }, 101, 142, 67);
-		fillRect({ x + w - 13, y + h / 2, 3, 3 }, 229, 187, 76);
-	}
-	else if (type == WorldTiles::RootmazeArena)
-	{
-		outlineRect({ x + 3, y + 3, w - 6, h - 6 }, 213, 210, 136, 255, 2);
-		fillRect({ x + 5, y + h / 2 - 1, w - 10, 3 }, 53, 111, 67);
-		fillRect({ x + w / 2 - 1, y + 5, 3, h - 10 }, 78, 127, 60);
-	}
-	else if (type == WorldTiles::RootmazeMarker)
-	{
-		fillRect({ x + w / 2 - 2, y + 7, 4, h - 9 }, 91, 61, 37);
-		fillRect({ x + 6, y + 5, w - 12, 8 }, 147, 126, 65);
-		fillRect({ x + 9, y + 7, 5, 3 }, 62, 146, 77);
-		fillRect({ x + w - 14, y + 7, 5, 3 }, 202, 151, 63);
-	}
-	else if (type == WorldTiles::BlackstoneGround)
-	{
-		fillRect({ x + 5, y + 8, 4, 3 }, 133, 126, 107);
-		fillRect({ x + 19, y + 21, 6, 3 }, 42, 41, 39);
-	}
-	else if (type == WorldTiles::BlackstoneWall)
-	{
-		for (int course = 6; course < h; course += 8)
-			fillRect({ x + 2, y + course, w - 4, 2 }, 20, 20, 22);
-		fillRect({ x + w - 9, y + 5, 4, 4 }, 192, 149, 52);
-	}
-	else if (type == WorldTiles::BlackstoneGate)
-	{
-		fillRect({ x + 3, y + 2, 5, h - 4 }, 27, 27, 29);
-		fillRect({ x + w - 8, y + 2, 5, h - 4 }, 27, 27, 29);
-		for (int bar = 10; bar < w - 7; bar += 7)
-			fillRect({ x + bar, y + 3, 3, h - 6 }, 202, 158, 57);
-	}
-
-	mWorldTileRenderer->drawPreview(type, rect);
-	outlineRect(rect, 8, 14, 22, 255, 1);
-}
-
-void Application::drawWorldBuilderScaledTileDetail(WorldTileId type, const SDL_Rect& rect)
-{
-	const int unit = std::max(1, rect.w / 12);
-	const int inset = std::max(2, rect.w / 10);
-	const int centerX = rect.x + rect.w / 2;
-	const int centerY = rect.y + rect.h / 2;
-	if (type == WorldTiles::Water)
-	{
-		fillRect({ rect.x + inset, rect.y + rect.h / 3, rect.w - inset * 2,
-			unit }, 92, 189, 210, 210);
-		fillRect({ rect.x + inset * 2, rect.y + rect.h * 2 / 3,
-			std::max(unit, rect.w - inset * 3), unit }, 63, 161, 194, 210);
-	}
-	else if (type == WorldTiles::Path || type == WorldTiles::OldRoadPath ||
-		type == WorldTiles::CinderrailPath || type == WorldTiles::WatershedPath ||
-		type == WorldTiles::GlasswaterPaving || type == WorldTiles::RootmazePath ||
-		type == WorldTiles::BlackstonePath)
-	{
-		fillRect({ rect.x + inset, rect.y + inset, rect.w / 3, rect.h / 4 },
-			190, 165, 110, 170);
-		fillRect({ centerX, centerY, rect.w / 3, rect.h / 4 }, 89, 94, 76, 130);
-	}
-	else if (type == WorldTiles::Tree || type == WorldTiles::Forest)
-	{
-		fillRect({ centerX - unit, centerY, unit * 2, rect.h / 2 - inset }, 85, 48, 26);
-		fillRect({ rect.x + inset, rect.y + inset / 2, rect.w - inset * 2,
-			rect.h * 2 / 3 }, 41, 116, 49);
-	}
-	else if (type == WorldTiles::Rocks)
-	{
-		fillRect({ rect.x + inset, centerY, rect.w / 2, rect.h / 3 }, 96, 91, 82);
-		fillRect({ centerX - unit, rect.y + inset, rect.w / 2,
-			rect.h / 2 }, 125, 117, 103);
-	}
-	else if (type == WorldTiles::Bush || type == WorldTiles::Shrub)
-	{
-		int top = type == WorldTiles::Bush ? rect.y + inset : centerY;
-		fillRect({ rect.x + inset, top, rect.w - inset * 2,
-			rect.y + rect.h - top - inset }, type == WorldTiles::Bush ? 34 : 52,
-			type == WorldTiles::Bush ? 105 : 137, 48);
-		fillRect({ centerX - unit * 2, top - unit, unit * 4, unit * 3 }, 71, 153, 65);
-	}
-	else if (type == WorldTiles::CaveEntrance)
-	{
-		fillRect({ rect.x + inset / 2, rect.y + inset, rect.w - inset,
-			rect.h - inset }, 112, 99, 82);
-		fillRect({ rect.x + inset * 2, rect.y + inset * 2,
-			rect.w - inset * 4, rect.h - inset * 2 }, 30, 31, 33);
-	}
-	else if (type == WorldTiles::TreeStump)
-	{
-		fillRect({ centerX - unit * 2, centerY - unit,
-			unit * 4, rect.h / 2 }, 105, 65, 36);
-		fillRect({ centerX - unit * 3, centerY - unit * 2,
-			unit * 6, unit * 2 }, 155, 103, 53);
-	}
-	else if (type == WorldTiles::TimberBridge || type == WorldTiles::GlasswaterDock ||
-		type == WorldTiles::RootmazeBridge)
-	{
-		for (int slat = rect.x + unit; slat < rect.x + rect.w; slat += unit * 3)
-			fillRect({ slat, rect.y + inset, unit * 2, rect.h - inset * 2 }, 132, 83, 45);
-		fillRect({ rect.x, rect.y + inset, rect.w, unit }, 65, 70, 43);
-		fillRect({ rect.x, rect.y + rect.h - inset - unit, rect.w, unit }, 65, 70, 43);
-	}
-	else if (type == WorldTiles::Rail || type == WorldTiles::RailCrossing)
-	{
-		for (int tie = rect.x + unit; tie < rect.x + rect.w; tie += unit * 3)
-			fillRect({ tie, rect.y + inset, unit, rect.h - inset * 2 }, 106, 75, 49);
-		fillRect({ rect.x, rect.y + rect.h / 4, rect.w, unit }, 165, 172, 173);
-		fillRect({ rect.x, rect.y + rect.h * 3 / 4, rect.w, unit }, 165, 172, 173);
-	}
-	else if (type == WorldTiles::TimberRoof || type == WorldTiles::IndustrialRoof ||
-		type == WorldTiles::MarbleRoof || type == WorldTiles::GlasswaterRoof ||
-		type == WorldTiles::RootmazeRoof)
-	{
-		for (int course = rect.y + inset; course < rect.y + rect.h; course += unit * 3)
-			fillRect({ rect.x + unit, course, rect.w - unit * 2, unit }, 50, 48, 42, 180);
-		fillRect({ rect.x, rect.y + rect.h - unit * 2, rect.w, unit * 2 }, 55, 44, 38);
-	}
-	else if (type == WorldTiles::WoodWall || type == WorldTiles::IndustrialBrick ||
-		type == WorldTiles::GlasswaterWall || type == WorldTiles::RootmazeWall ||
-		type == WorldTiles::BlackstoneWall || type == WorldTiles::House)
-	{
-		outlineRect({ rect.x + inset, rect.y + inset, rect.w - inset * 2,
-			rect.h - inset * 2 }, 66, 48, 39, 220, unit);
-		fillRect({ rect.x + rect.w / 4, centerY - unit, rect.w / 6, unit * 3 },
-			72, 132, 151);
-		fillRect({ rect.x + rect.w * 3 / 5, centerY - unit, rect.w / 6, unit * 3 },
-			72, 132, 151);
-	}
-	else if (type == WorldTiles::Door || type == WorldTiles::CinderrailDoor ||
-		type == WorldTiles::GlasswaterDoor || type == WorldTiles::RootmazeDoor)
-	{
-		fillRect({ rect.x + rect.w / 4, rect.y + inset, rect.w / 2,
-			rect.h - inset }, 74, 61, 43);
-		fillRect({ rect.x + rect.w * 2 / 3, centerY, unit, unit }, 231, 184, 73);
-	}
-	else if (type == WorldTiles::BlackstoneGate)
-	{
-		fillRect({ rect.x + inset / 2, rect.y + inset / 2, unit * 2,
-			rect.h - inset }, 27, 27, 29);
-		fillRect({ rect.x + rect.w - inset / 2 - unit * 2, rect.y + inset / 2,
-			unit * 2, rect.h - inset }, 27, 27, 29);
-		for (int bar = rect.x + inset * 2; bar < rect.x + rect.w - inset; bar += unit * 3)
-			fillRect({ bar, rect.y + inset, unit, rect.h - inset * 2 }, 202, 158, 57);
-	}
-	else if (type == WorldTiles::DuelSand || type == WorldTiles::CinderrailDuelSand ||
-		type == WorldTiles::GlasswaterArena || type == WorldTiles::RootmazeArena)
-	{
-		outlineRect({ rect.x + inset, rect.y + inset, rect.w - inset * 2,
-			rect.h - inset * 2 }, 225, 210, 132, 230, unit);
-		fillRect({ centerX - unit / 2, rect.y + inset * 2, unit,
-			rect.h - inset * 4 }, 93, 112, 95, 180);
-	}
-	else if (type == WorldTiles::RootmazeRoot)
-	{
-		fillRect({ rect.x + inset, rect.y + unit, unit * 2, rect.h - unit * 2 }, 112, 76, 43);
-		fillRect({ centerX, rect.y, unit * 2, rect.h }, 63, 48, 34);
-		fillRect({ rect.x + rect.w - inset - unit, rect.y + inset, unit,
-			rect.h - inset }, 101, 72, 42);
-	}
-	else if (type == WorldTiles::OldRoadWaystone || type == WorldTiles::WatershedMarker ||
-		type == WorldTiles::GlasswaterMarker || type == WorldTiles::RootmazeMarker)
-	{
-		fillRect({ centerX - unit, rect.y + inset, unit * 2, rect.h - inset * 2 }, 73, 61, 48);
-		fillRect({ rect.x + inset, rect.y + inset, rect.w - inset * 2, unit * 3 },
-			203, 171, 69);
-	}
-	else if (type == WorldTiles::Bonfire || type == WorldTiles::Furnace)
-	{
-		fillRect({ centerX - unit * 2, centerY, unit * 4, rect.h / 3 }, 225, 70, 28);
-		fillRect({ centerX - unit, centerY - unit * 2, unit * 2, unit * 4 }, 255, 177, 48);
-	}
-	else if (type == WorldTiles::MetalGrate || type == WorldTiles::Marble)
-	{
-		fillRect({ centerX - unit / 2, rect.y + inset, unit, rect.h - inset * 2 }, 70, 81, 85, 160);
-		fillRect({ rect.x + inset, centerY - unit / 2, rect.w - inset * 2, unit }, 70, 81, 85, 160);
-	}
-	else
-	{
-		fillRect({ rect.x + rect.w / 4, rect.y + rect.h * 2 / 3, unit, unit * 2 },
-			105, 174, 72, 180);
-		fillRect({ rect.x + rect.w * 2 / 3, rect.y + rect.h / 3, unit, unit * 2 },
-			88, 155, 69, 180);
-	}
 }
 
 void Application::drawWorldBuilderNpcPortrait(const Npc& npc, const SDL_Rect& rect)
@@ -2320,10 +1888,20 @@ void Application::renderWorldBuilder()
 			outlineRect(displayedTile, 10, 20, 27, 100, 1);
 		}
 	}
+	const WorldArea& builderArea = mWorldAreas[mCurrentWorldArea];
+	for (int y = visibleTiles.top; y < visibleTiles.bottom; ++y)
+		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
+		{
+			SDL_Rect tileRect = { mapX + x * tileSize, mapY + y * tileSize,
+				tileSize, tileSize };
+			if (drawWorldTileLayer(builderArea, x, y, RtpRenderLayer::Ground, tileRect))
+				outlineRect(tileRect, 10, 20, 27, 100, 1);
+		}
 	for (int y = visibleTiles.top; y < visibleTiles.bottom; ++y)
 	{
 		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
 		{
+			if (worldTileLayer(builderArea, x, y, RtpRenderLayer::Ground) != NULL) continue;
 			WorldTileId tile = WorldTiles::fromGlyph(map[y][x]);
 			if (!WorldTileRenderer::hasDecoration(tile)) continue;
 			SDL_Rect tileRect = { mapX + x * tileSize, mapY + y * tileSize,
@@ -2332,6 +1910,15 @@ void Application::renderWorldBuilder()
 			outlineRect(tileRect, 10, 20, 27, 100, 1);
 		}
 	}
+	for (int y = visibleTiles.top; y < visibleTiles.bottom; ++y)
+		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
+		{
+			SDL_Rect tileRect = { mapX + x * tileSize, mapY + y * tileSize,
+				tileSize, tileSize };
+			if (drawWorldTileLayer(builderArea, x, y,
+				RtpRenderLayer::Decoration, tileRect))
+				outlineRect(tileRect, 10, 20, 27, 100, 1);
+		}
 
 	if (currentMapId() == mWorldStartMap &&
 		visibleTiles.contains(mWorldStartX, mWorldStartY))
@@ -2443,6 +2030,7 @@ void Application::renderWorldBuilder()
 	{
 		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
 		{
+			if (worldTileLayer(builderArea, x, y, RtpRenderLayer::Ground) != NULL) continue;
 			WorldTileId tile = WorldTiles::fromGlyph(map[y][x]);
 			if (!WorldTileRenderer::hasForeground(tile)) continue;
 			SDL_Rect tileRect = { mapX + x * tileSize, mapY + y * tileSize,
@@ -2450,6 +2038,13 @@ void Application::renderWorldBuilder()
 			mWorldTileRenderer->drawForeground(tile, tileRect);
 		}
 	}
+	for (int y = visibleTiles.top; y < visibleTiles.bottom; ++y)
+		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
+		{
+			SDL_Rect tileRect = { mapX + x * tileSize, mapY + y * tileSize,
+				tileSize, tileSize };
+			drawWorldTileLayer(builderArea, x, y, RtpRenderLayer::Foreground, tileRect);
+		}
 	int hoveredNpc = worldBuilderHoveredNpc();
 	if (hoveredNpc >= 0)
 	{
@@ -2499,35 +2094,70 @@ void Application::renderWorldBuilder()
 			outlineRect(button, active ? 226 : 94, active ? 183 : 113,
 				active ? 84 : 137, 255, 2);
 			drawText(TILE_CATEGORY_NAMES[category], button.x + 7, button.y + 8,
-				color(232, 236, 244), category == BuildingTiles ? 9 : 10, button.w - 12);
+				color(232, 236, 244), 10, button.w - 12);
 		}
 
-		std::vector<WorldTileId> tiles = categoryTiles(mWorldBuilderTileCategory);
+		RtpTilesetFamily family = tilesetFamily(mWorldBuilderTileCategory);
+		RtpTileSheet selectedSheet = (RtpTileSheet)mWorldBuilderTileSheet;
+		const RtpSheetDescriptor* sheet = RtpTilesetRenderer::descriptor(family,
+			selectedSheet);
+		fillRect(BUILDER_PREVIOUS_SHEET, 34, 45, 63, 245);
+		fillRect(BUILDER_SHEET_NAME, 28, 39, 57, 245);
+		fillRect(BUILDER_NEXT_SHEET, 34, 45, 63, 245);
+		outlineRect(BUILDER_PREVIOUS_SHEET, 100, 123, 151, 255, 1);
+		outlineRect(BUILDER_SHEET_NAME, 100, 123, 151, 255, 1);
+		outlineRect(BUILDER_NEXT_SHEET, 100, 123, 151, 255, 1);
+		drawText("<", 1031, BUILDER_SHEET_Y + 7, color(224, 231, 242), 12);
+		drawText(sheetName(selectedSheet), 1085, BUILDER_SHEET_Y + 7,
+			color(235, 205, 112), 12, 38);
+		drawText(">", 1147, BUILDER_SHEET_Y + 7, color(224, 231, 242), 12);
+		const char* layerLabels[] = { "G", "D", "F" };
+		for (int layer = 0; layer < 3; ++layer)
+		{
+			bool active = (int)mWorldBuilderTileLayer == layer;
+			fillRect(BUILDER_LAYER_BUTTONS[layer], active ? 76 : 34,
+				active ? 67 : 45, active ? 42 : 63, 245);
+			outlineRect(BUILDER_LAYER_BUTTONS[layer], active ? 233 : 100,
+				active ? 185 : 123, active ? 81 : 151, 255, 1);
+			drawText(layerLabels[layer], BUILDER_LAYER_BUTTONS[layer].x + 8,
+				BUILDER_LAYER_BUTTONS[layer].y + 7, color(232, 236, 244), 11);
+		}
 		mWorldBuilderHoveredTileName.clear();
 		for (int slot = 0; slot < BUILDER_VISIBLE_TILES; ++slot)
 		{
 			int i = mWorldBuilderListScroll + slot;
-			if (i >= (int)tiles.size()) break;
+			if (sheet == NULL || i >= sheet->tileCount) break;
 			SDL_Rect button = paletteRect(slot);
-			bool selected = mWorldBuilderTile == tiles[i];
+			bool selected = mWorldBuilderCatalogTile == i;
 			bool hovered = contains(button, mMouseX, mMouseY);
 			fillRect(button, selected ? 79 : 38, selected ? 68 : 47, selected ? 43 : 64, 245);
 			outlineRect(button, selected ? 241 : (hovered ? 174 : 110),
 				selected ? 190 : (hovered ? 188 : 125),
 				selected ? 87 : (hovered ? 206 : 147), 255, 2);
-			drawWorldBuilderTileIcon(tiles[i],
-				{ button.x + (button.w - 29) / 2, button.y + 2, 29, 29 });
-			if (hovered) mWorldBuilderHoveredTileName = tileName(tiles[i]);
+			RtpTileReference preview(family, selectedSheet, i, mWorldBuilderTileLayer);
+			mWorldTileRenderer->drawCatalog(preview, RtpTilesetRenderer::North |
+				RtpTilesetRenderer::East | RtpTilesetRenderer::South |
+				RtpTilesetRenderer::West | RtpTilesetRenderer::NorthWest |
+				RtpTilesetRenderer::NorthEast | RtpTilesetRenderer::SouthEast |
+				RtpTilesetRenderer::SouthWest,
+				{ button.x + (button.w - 29) / 2, button.y + 2, 29, 29 },
+				SDL_GetTicks() / 420);
+			if (hovered) mWorldBuilderHoveredTileName = catalogTileName(family,
+				selectedSheet, i);
 		}
-		fillRect({ 1022, 623, 228, 34 }, 27, 37, 53, 245);
-		outlineRect({ 1022, 623, 228, 34 }, 88, 112, 143, 255, 1);
+		fillRect({ 1022, 617, 228, 40 }, 27, 37, 53, 245);
+		outlineRect({ 1022, 617, 228, 40 }, 88, 112, 143, 255, 1);
 		std::string tileLabel = mWorldBuilderHoveredTileName.empty() ?
-			"Selected: " + std::string(tileName(mWorldBuilderTile)) :
+			catalogTileName(family, selectedSheet, mWorldBuilderCatalogTile) :
 			mWorldBuilderHoveredTileName;
-		drawText(tileLabel, 1032, 632, color(224, 232, 243), 12, 208);
-		drawText("Hover: name  •  Wheel: tiles", 1022, 673,
+		drawText(tileLabel, 1032, 625, color(224, 232, 243), 11, 208);
+		drawText(std::string(familyName(family)) + " " + sheetName(selectedSheet) +
+			" #" + std::to_string(mWorldBuilderCatalogTile) + "  " +
+			layerName(mWorldBuilderTileLayer), 1032, 641,
+			color(151, 181, 215), 9, 208);
+		drawText("Wheel: tiles  •  G/D/F: layer", 1022, 669,
 			color(179, 195, 218), 12, 220);
-		drawText("Click/drag map to paint", 1022, 699,
+		drawText("Left paint  •  Right erase layer", 1022, 695,
 			color(153, 174, 205), 11, 220);
 	}
 	else
