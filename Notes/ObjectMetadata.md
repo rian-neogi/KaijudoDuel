@@ -1,7 +1,7 @@
 # Overworld Object Metadata
 
 Interactive overworld objects are defined in `Lua/Objects.lua`. Their positions
-belong exclusively to the `objects` table in `Lua/World.lua`, so the World
+belong exclusively to the `objects` array in `World/World.json`, so the World
 Builder can move them without rewriting hand-authored interaction text.
 
 ## Signpost template
@@ -42,4 +42,4 @@ The World Builder's Objects tab combines interactive objects from
 `Lua/Objects.lua` with collectible shards from `Lua/MercerStock.lua`. Selecting
 an entry allows it to be placed on an empty walkable tile; double-clicking an
 entry pans the camera to its current position. Saving modifies only positions
-in `Lua/World.lua`.
+in `World/World.json`.

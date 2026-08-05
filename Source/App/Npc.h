@@ -109,6 +109,8 @@ public:
 	int maxWins;
 	NpcKind kind;
 	CharacterAppearance appearance;
+	std::string spriteSheet;
+	int spriteIndex;
 	bool duelEnabled;
 	bool tradeEnabled;
 	bool wanders;

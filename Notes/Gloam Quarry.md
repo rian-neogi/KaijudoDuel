@@ -561,4 +561,4 @@ Trainer NPCs should occupy plazas, practice yards, or wide landings. They must n
 - The Ashvault can use several connected interior maps, but returning to town should never require retracing a long dungeon after every duel.
 - Graveyard-oriented choice prompts must use the existing graveyard browser and must never allow an AI player to skip a mandatory sacrifice.
 - Story-state changes should swap lanterns, blank inscriptions, barriers, and NPC positions rather than replace the entire exterior map.
-- Regional portals remain permanently bidirectional once unlocked. Player starts, portal destinations, NPCs, and shards require distinct walkable tiles in `Lua/World.lua`.
+- Regional portals remain permanently bidirectional once unlocked. Player starts, portal destinations, NPCs, and shards require distinct walkable tiles in `World/World.json`.

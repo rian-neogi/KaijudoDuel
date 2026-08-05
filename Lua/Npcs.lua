@@ -1,5 +1,5 @@
 -- Overworld NPC metadata
--- NPC positions are owned by Lua/World.lua and maintained by the World Builder.
+-- NPC positions are owned by World/World.json and maintained by the World Builder.
 --
 -- Add one table to the returned array for each NPC. Required fields are:
 --   id, name, kind, appearance. Crest Holders also set crest to one of:
@@ -11,13 +11,13 @@
 -- array, that array's final entry is reused for the remaining battles.
 -- Route duelists also require sight = { range = 1..12 }. This is a taxicab
 -- radius and is not limited by the trainer's facing direction. They wander
--- automatically within the 3x3 area centered on their World.lua position.
+-- automatically within the 3x3 area centered on their native world position.
 --
 -- Supported kinds: town_npc, route_duelist, boss
--- Supported appearances: mira, marin, rook, aurelia, flint, nyx, tidal,
---                        briar, mercer, veiled_one, neris, oren,
---                        generic-male-1 through generic-male-10,
---                        generic-female-1 through generic-female-10
+-- Appearances reference a file in Resources/Graphics/Characters followed by
+-- the one-based character number in that sheet. For example, "Actor2-3" uses
+-- the third character in Actor2.png. Normal sheets contain characters 1..8;
+-- files whose names contain '$' are single-character sheets and use number 1.
 --
 -- Dialogue is a flat, extensible string table. The current application uses:
 --   greeting, talk, defeat, victory, complete, clue, investigation,
@@ -35,7 +35,7 @@
 --     options = { duel = true, trade = false, wander = true },
 --     -- Route duelists use kind = "route_duelist" and:
 --     -- sight = { range = 6 },
---     appearance = "mira",
+--     appearance = "Actor2-3",
 --     crest = "dawn", -- optional; awarded by the first victory
 --     max_battles = 4,
 --     decks = { "Example.txt", "ExampleAdvanced.txt" },
@@ -59,7 +59,7 @@ return {
         name = "Mira",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "mira",
+        appearance = "Actor1-6",
         max_battles = 4,
         decks = { "Zagaan.txt", "Deathliger.txt" },
         rewards = {
@@ -84,7 +84,7 @@ return {
         name = "Marin",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "marin",
+        appearance = "Actor1-3",
         max_battles = 4,
         decks = { "NPC/Marin.txt", "NPC/Marin 2.txt", "NPC/Marin 3.txt", "NPC/Marin 4.txt" },
         rewards = {
@@ -108,7 +108,7 @@ return {
         name = "Rook",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "rook",
+        appearance = "Actor5-3",
         max_battles = 1,
         decks = { "RoaringGreathorn.txt"},
         rewards = {
@@ -132,7 +132,7 @@ return {
         name = "Aurelia",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "aurelia",
+        appearance = "Actor4-3",
         crest = "dawn",
         max_battles = 4,
         decks = { "NPC/Aurelia.txt", "NPC/Aurelia 2.txt", "NPC/Aurelia 3.txt", "NPC/Aurelia 4.txt" },
@@ -158,7 +158,7 @@ return {
         name = "Flint",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "flint",
+        appearance = "Actor5-4",
         max_battles = 4,
         decks = { "NPC/Flint.txt", "NPC/Flint 2.txt", "NPC/Flint 3.txt", "NPC/Flint 4.txt" },
         rewards = {
@@ -186,7 +186,7 @@ return {
         name = "Nyx",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "nyx",
+        appearance = "Actor3-3",
         max_battles = 4,
         decks = { "NPC/Nyx.txt", "NPC/Nyx 2.txt", "NPC/Nyx 3.txt", "NPC/Nyx 4.txt" },
         rewards = {
@@ -213,7 +213,7 @@ return {
         name = "Garran",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "tidal",
+        appearance = "Actor1-7",
         max_battles = 1,
         decks = { "KingDepthcon.txt" },
         rewards = {
@@ -237,7 +237,7 @@ return {
         name = "Briar",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "briar",
+        appearance = "Actor2-3",
         max_battles = 1,
         decks = { "DeathbladeBeetle.txt" },
         rewards = {
@@ -261,7 +261,7 @@ return {
         name = "Mercer",
         kind = "town_npc",
         options = { trade = true, wander = false },
-        appearance = "mercer",
+        appearance = "People1-5",
         ai = { personality = "none" },
         dialogue = {
             greeting = "Welcome! I trade hard-earned gold for cards.",
@@ -274,7 +274,7 @@ return {
         id = "veiled_one",
         name = "The Veiled One",
         kind = "boss",
-        appearance = "veiled_one",
+        appearance = "Evil-6",
         max_battles = 1,
         decks = { "NPC/VeiledOne.txt" },
         rewards = {
@@ -295,7 +295,7 @@ return {
         name = "Pip",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "generic-male-1",
+        appearance = "People1-3",
         max_battles = 1,
         decks = { "DeathbladeBeetle.txt", "Deathliger.txt" },
         rewards = {
@@ -314,7 +314,7 @@ return {
         name = "Noma",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "generic-female-2",
+        appearance = "People4-2",
         max_battles = 1,
         decks = { "AstrocometDragon.txt", "Deathliger.txt" },
         rewards = {
@@ -333,7 +333,7 @@ return {
         name = "Bram",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "generic-male-3",
+        appearance = "People4-3",
         max_battles = 1,
         decks = { "Fire Generic 1.txt", "Deathliger.txt" },
         rewards = {
@@ -352,7 +352,7 @@ return {
         name = "Elia",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "generic-female-3",
+        appearance = "People4-4",
         max_battles = 1,
         decks = { "Urth.txt" },
         rewards = {
@@ -371,7 +371,7 @@ return {
         name = "Tomas",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "generic-male-5",
+        appearance = "People2-1",
         max_battles = 1,
         decks = { "Hanusa.txt" },
         rewards = {
@@ -390,7 +390,7 @@ return {
         name = "Senn",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "generic-male-4",
+        appearance = "People2-3",
         max_battles = 1,
         decks = { "TrenchdiveShark.txt" },
         rewards = {
@@ -409,7 +409,7 @@ return {
         name = "Kipp",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "generic-male-6",
+        appearance = "People7-6",
         max_battles = 1,
         decks = { "Fire Generic 2.txt" },
         rewards = {
@@ -428,7 +428,7 @@ return {
         name = "Ansa",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "generic-female-7",
+        appearance = "People3-1",
         max_battles = 1,
         decks = { "Zagaan.txt" },
         rewards = {
@@ -447,7 +447,7 @@ return {
         name = "Holt",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "generic-male-7",
+        appearance = "People4-5",
         max_battles = 1,
         decks = { "RoaringGreathorn.txt" },
         rewards = {
@@ -468,7 +468,7 @@ return {
 		name = "Neris Quill",
 		kind = "town_npc",
 		options = { duel = true },
-		appearance = "neris",
+		appearance = "Actor2-5",
 		crest = "tidal",
 		max_battles = 3,
 		decks = { "NPC/Neris Quill.txt", "NPC/Neris Quill 2.txt", "NPC/Neris Quill 3.txt" },
@@ -491,7 +491,7 @@ return {
 		name = "Pell",
 		kind = "town_npc",
 		options = { duel = true },
-		appearance = "generic-male-5",
+		appearance = "People3-5",
 		max_battles = 1,
 		decks = { "KingTsunami.txt" },
 		rewards = {
@@ -510,7 +510,7 @@ return {
 		name = "Iri",
 		kind = "town_npc",
 		options = { duel = true },
-		appearance = "generic-female-4",
+		appearance = "People4-4",
 		max_battles = 1,
 		decks = { "More2/WD Dark Tide v3.txt" },
 		rewards = {
@@ -529,7 +529,7 @@ return {
 		name = "Sol",
 		kind = "town_npc",
 		options = { duel = true },
-		appearance = "generic-male-10",
+		appearance = "People5-2",
 		max_battles = 1,
 		decks = { "KingDepthcon.txt" },
 		rewards = {
@@ -550,7 +550,7 @@ return {
 		name = "Oren Canopy",
 		kind = "town_npc",
 		options = { duel = true },
-		appearance = "oren",
+		appearance = "Actor1-3",
 		crest = "verdant",
 		max_battles = 1,
 		decks = { "NPC/Oren.txt" },
@@ -571,7 +571,7 @@ return {
 		name = "Fern",
 		kind = "town_npc",
 		options = { duel = true },
-		appearance = "generic-female-2",
+		appearance = "People4-2",
 		max_battles = 1,
 		decks = { "Barkwhip.txt" },
 		rewards = {
@@ -590,7 +590,7 @@ return {
 		name = "Toma",
 		kind = "town_npc",
 		options = { duel = true },
-		appearance = "generic-male-6",
+		appearance = "People3-6",
 		max_battles = 1,
 		decks = { "AnristVhal.txt" },
 		rewards = {
@@ -609,7 +609,7 @@ return {
 		name = "Moss",
 		kind = "town_npc",
 		options = { duel = true },
-		appearance = "generic-male-5",
+		appearance = "People3-5",
 		max_battles = 1,
 		decks = { "StormWrangler.txt" },
 		rewards = {
@@ -630,7 +630,7 @@ return {
 		name = "Ford",
 		kind = "route_duelist",
 		sight = { range = 4 },
-		appearance = "generic-male-7",
+		appearance = "Actor3-1",
 		max_battles = 1,
 		decks = { "Nature Generic 1.txt" },
 		rewards = {
@@ -649,7 +649,7 @@ return {
 		name = "Tony",
 		kind = "route_duelist",
 		sight = { range = 4 },
-		appearance = "generic-male-8",
+		appearance = "Actor3-3",
 		max_battles = 1,
 		decks = { "Water Generic 1.txt" },
 		rewards = {
@@ -668,7 +668,7 @@ return {
 		name = "Cairn",
 		kind = "route_duelist",
 		sight = { range = 4 },
-		appearance = "generic-male-1",
+		appearance = "Actor4-1",
 		max_battles = 1,
 		decks = { "AstrocometDragon.txt" },
 		rewards = {
@@ -687,7 +687,7 @@ return {
 		name = "Shobu",
 		kind = "route_duelist",
 		sight = { range = 4 },
-		appearance = "generic-male-2",
+		appearance = "People3-2",
 		max_battles = 1,
 		decks = { "Official/2 - F Shobu Fire.txt" },
 		rewards = {
@@ -706,7 +706,7 @@ return {
 		name = "Anixa",
 		kind = "route_duelist",
 		sight = { range = 4 },
-		appearance = "generic-female-1",
+		appearance = "Actor2-8",
 		max_battles = 1,
 		decks = { "Dark Generic 2.txt" },
 		rewards = {
@@ -725,7 +725,7 @@ return {
 		name = "Caroline",
 		kind = "route_duelist",
 		sight = { range = 4 },
-		appearance = "generic-female-2",
+		appearance = "Actor1-2",
 		max_battles = 1,
 		decks = { "Light Generic 1.txt" },
 		rewards = {
@@ -744,7 +744,7 @@ return {
 		name = "Musaffir",
 		kind = "route_duelist",
 		sight = { range = 4 },
-		appearance = "generic-male-6",
+		appearance = "Actor1-5",
 		max_battles = 1,
 		decks = { "Nature Generic 1.txt" },
 		rewards = {
@@ -763,7 +763,7 @@ return {
 		name = "Onix",
 		kind = "route_duelist",
 		sight = { range = 4 },
-		appearance = "generic-male-5",
+		appearance = "Actor1-7",
 		max_battles = 1,
 		decks = { "Nature Generic 2.txt" },
 		rewards = {
@@ -782,7 +782,7 @@ return {
 		name = "Kokujo",
 		kind = "route_duelist",
 		sight = { range = 4 },
-		appearance = "generic-male-3",
+		appearance = "Actor1-8",
 		max_battles = 1,
 		decks = { "Official/2 - D Kokujo Darkness.txt" },
 		rewards = {
@@ -801,7 +801,7 @@ return {
 		name = "Asim",
 		kind = "route_duelist",
 		sight = { range = 4 },
-		appearance = "generic-male-4",
+		appearance = "People4-7",
 		max_battles = 1,
 		decks = { "Fire Generic 2.txt" },
 		rewards = {
@@ -820,7 +820,7 @@ return {
 		name = "Mara Flintway",
 		kind = "route_duelist",
 		sight = { range = 4 },
-		appearance = "generic-female-4",
+		appearance = "Actor3-6",
 		max_battles = 1,
 		decks = { "RoaringGreathorn.txt" },
 		rewards = {
@@ -839,7 +839,7 @@ return {
 		name = "Shi Li",
 		kind = "route_duelist",
 		sight = { range = 4 },
-		appearance = "generic-male-4",
+		appearance = "Actor3-4",
 		max_battles = 1,
 		decks = { "Dark Generic 1.txt" },
 		rewards = {
@@ -858,7 +858,7 @@ return {
 		name = "Amber",
 		kind = "route_duelist",
 		sight = { range = 4 },
-		appearance = "generic-female-2",
+		appearance = "Actor3-8",
 		max_battles = 1,
 		decks = { "TrenchdiveShark.txt" },
 		rewards = {
@@ -877,7 +877,7 @@ return {
 		name = "Pol",
 		kind = "route_duelist",
 		sight = { range = 4 },
-		appearance = "generic-male-9",
+		appearance = "Actor4-1",
 		max_battles = 1,
 		decks = { "Fire Generic 1.txt" },
 		rewards = {
@@ -896,7 +896,7 @@ return {
 		name = "Ponna",
 		kind = "route_duelist",
 		sight = { range = 4 },
-		appearance = "generic-female-4",
+		appearance = "Actor3-2",
 		max_battles = 1,
 		decks = { "Fire Generic 2.txt" },
 		rewards = {
@@ -915,7 +915,7 @@ return {
 		name = "Clara",
 		kind = "route_duelist",
 		sight = { range = 4 },
-		appearance = "generic-female-3",
+		appearance = "Actor4-4",
 		max_battles = 1,
 		decks = { "AquaSniper.txt" },
 		rewards = {
@@ -934,7 +934,7 @@ return {
 		name = "Olmec",
 		kind = "route_duelist",
 		sight = { range = 4 },
-		appearance = "generic-male-2",
+		appearance = "People3-2",
 		max_battles = 1,
 		decks = { "Zagaan.txt" },
 		rewards = {
@@ -953,7 +953,7 @@ return {
 		name = "Totiana",
 		kind = "route_duelist",
 		sight = { range = 4 },
-		appearance = "generic-female-7",
+		appearance = "People5-4",
 		max_battles = 1,
 		decks = { "Dark Generic 2.txt" },
 		rewards = {
@@ -972,7 +972,7 @@ return {
 		name = "Flora",
 		kind = "route_duelist",
 		sight = { range = 4 },
-		appearance = "generic-female-8",
+		appearance = "People4-4",
 		max_battles = 1,
 		decks = { "Nature Generic 2.txt" },
 		rewards = {
@@ -991,7 +991,7 @@ return {
 		name = "Berry",
 		kind = "route_duelist",
 		sight = { range = 4 },
-		appearance = "generic-female-1",
+		appearance = "People5-1",
 		max_battles = 1,
 		decks = { "WorldTree.txt" },
 		rewards = {

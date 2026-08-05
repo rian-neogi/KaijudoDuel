@@ -1,6 +1,7 @@
 #include "Application.h"
 
 #include "AppSupport.h"
+#include "AssetManager.h"
 #include "Landmarks.h"
 #include "SpriteSheetRenderer.h"
 #include "WorldTileRenderer.h"
@@ -16,6 +17,7 @@ namespace
 	constexpr Uint32 DIALOGUE_CHARACTER_DELAY = 18;
 	constexpr Uint32 REGION_BANNER_DURATION = 3400;
 	constexpr Uint32 REGION_BANNER_SLIDE = 260;
+	const char* CHARACTER_SHADOW = "Resources/Graphics/System/Shadow.png";
 
 	CharacterSpriteDefinition characterSprite(CharacterAppearance appearance)
 	{
@@ -391,9 +393,11 @@ bool Application::isWalkable(int x, int y) const
 {
 	const std::vector<std::string>& map = currentMap();
 	if (y < 0 || y >= (int)map.size() || x < 0 || x >= (int)map[y].size()) return false;
-	WorldTileId tile = WorldTiles::fromGlyph(map[y][x]);
-	if (tile == WorldTiles::BlackstoneGate && !hasCrest("confluence")) return false;
-	return worldTileWalkable(mWorldAreas[mCurrentWorldArea], x, y);
+	const WorldMap& area = mWorld.maps[mCurrentWorldArea];
+	if (area.hasTag(x, y, "blackstone_gate") && !hasCrest("confluence")) return false;
+	if (!area.catalogOnly && WorldTiles::fromGlyph(map[y][x]) ==
+		WorldTiles::BlackstoneGate && !hasCrest("confluence")) return false;
+	return worldTileWalkable(area, x, y);
 }
 
 int Application::npcAt(int x, int y, int ignoredNpc) const
@@ -420,7 +424,9 @@ void Application::tryMove(int dx, int dy)
 	int y = mPlayerY + dy;
 	const std::vector<std::string>& map = currentMap();
 	if (y >= 0 && y < (int)map.size() && x >= 0 && x < (int)map[y].size() &&
-		WorldTiles::fromGlyph(map[y][x]) == WorldTiles::BlackstoneGate &&
+		(mWorld.maps[mCurrentWorldArea].hasTag(x, y, "blackstone_gate") ||
+		(!mWorld.maps[mCurrentWorldArea].catalogOnly &&
+			WorldTiles::fromGlyph(map[y][x]) == WorldTiles::BlackstoneGate)) &&
 		!hasCrest("confluence"))
 	{
 		mNotice = "The Blackstone gate is sealed. Dragon Keep's Confluence relay must be restored.";
@@ -479,11 +485,11 @@ void Application::discoverLandmarkAt(int x, int y)
 		const Landmarks::Definition& definition = Landmarks::DEFINITIONS[landmark];
 		if (mPlayerDataLoaded && mDiscoveredLandmarks.count(definition.id)) continue;
 		const WorldRegion* region = NULL;
-		for (size_t candidate = 0; candidate < mWorldRegions.size(); ++candidate)
-			if (mWorldRegions[candidate].mapId == currentMapId() &&
-				mWorldRegions[candidate].id == definition.regionId)
+		for (size_t candidate = 0; candidate < mWorld.regions.size(); ++candidate)
+			if (mWorld.regions[candidate].mapId == currentMapId() &&
+				mWorld.regions[candidate].id == definition.regionId)
 			{
-				region = &mWorldRegions[candidate];
+				region = &mWorld.regions[candidate];
 				break;
 			}
 		if (region == NULL) continue;
@@ -772,9 +778,9 @@ void Application::renderOverworld()
 	fillRect({ 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT }, 13, 21, 34);
 	const std::vector<std::string>& map = currentMap();
 	const WorldRegion* cinderrailRegion = NULL;
-	for (size_t region = 0; region < mWorldRegions.size(); ++region)
-		if (mWorldRegions[region].mapId == currentMapId() &&
-			mWorldRegions[region].id == "cinderrail") cinderrailRegion = &mWorldRegions[region];
+	for (size_t region = 0; region < mWorld.regions.size(); ++region)
+		if (mWorld.regions[region].mapId == currentMapId() &&
+			mWorld.regions[region].id == "cinderrail") cinderrailRegion = &mWorld.regions[region];
 	float cameraX = overworldCameraX();
 	float cameraY = overworldCameraY();
 	int mapX = mapOriginX((int)map[0].size(), OVERWORLD_VIEW_COLUMNS) -
@@ -789,6 +795,7 @@ void Application::renderOverworld()
 		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
 		{
 			SDL_Rect tileRect = { mapX + (int)x * TILE, mapY + (int)y * TILE, TILE, TILE };
+			if (mWorld.maps[mCurrentWorldArea].catalogOnly) continue;
 			WorldTileId tile = WorldTiles::fromGlyph(map[y][x]);
 			if (tile == WorldTiles::Path) fillRect(tileRect, 162, 132, 76);
 			else if (tile == WorldTiles::OldRoadPath) fillRect(tileRect, 124, 112, 88);
@@ -994,14 +1001,14 @@ void Application::renderOverworld()
 				bool cinderDoor = tile == WorldTiles::CinderrailDoor;
 				float open = 0.f;
 				bool mercerDoor = false;
-				for (size_t portalIndex = 0; portalIndex < mWorldPortals.size(); ++portalIndex)
-					if (mWorldPortals[portalIndex].fromMap == currentMapId() &&
-						mWorldPortals[portalIndex].fromX == (int)x &&
-						mWorldPortals[portalIndex].fromY == (int)y &&
-						mWorldPortals[portalIndex].toMap == "mercers_house") mercerDoor = true;
-				if (mOpeningPortal >= 0 && mOpeningPortal < (int)mWorldPortals.size())
+				for (size_t portalIndex = 0; portalIndex < mWorld.portals.size(); ++portalIndex)
+					if (mWorld.portals[portalIndex].fromMap == currentMapId() &&
+						mWorld.portals[portalIndex].fromX == (int)x &&
+						mWorld.portals[portalIndex].fromY == (int)y &&
+						mWorld.portals[portalIndex].toMap == "mercers_house") mercerDoor = true;
+				if (mOpeningPortal >= 0 && mOpeningPortal < (int)mWorld.portals.size())
 				{
-					const WorldPortal& portal = mWorldPortals[mOpeningPortal];
+					const WorldPortal& portal = mWorld.portals[mOpeningPortal];
 					if (portal.fromMap == currentMapId() && portal.fromX == (int)x &&
 						portal.fromY == (int)y)
 						open = std::min(1.f, (SDL_GetTicks() - mPortalAnimationStarted) /
@@ -1387,7 +1394,7 @@ void Application::renderOverworld()
 			}
 		}
 	}
-	const WorldArea& worldArea = mWorldAreas[mCurrentWorldArea];
+	const WorldMap& worldArea = mWorld.maps[mCurrentWorldArea];
 	for (int y = visibleTiles.top; y < visibleTiles.bottom; ++y)
 		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
 			drawWorldTileLayer(worldArea, x, y, RtpRenderLayer::Ground,
@@ -1396,6 +1403,7 @@ void Application::renderOverworld()
 	{
 		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
 		{
+			if (worldArea.catalogOnly) continue;
 			if (worldTileLayer(worldArea, x, y, RtpRenderLayer::Ground) != NULL) continue;
 			WorldTileId tile = WorldTiles::fromGlyph(map[y][x]);
 			if (!WorldTileRenderer::hasDecoration(tile)) continue;
@@ -1414,7 +1422,8 @@ void Application::renderOverworld()
 			(int)std::floor(mNpcs[i].visualY))) continue;
 		drawCharacter(mNpcs[i].visualX, mNpcs[i].visualY, mNpcs[i].appearance,
 			mNpcs[i].isComplete(), mNpcs[i].isMoving(),
-			mNpcs[i].facingX, mNpcs[i].facingY);
+			mNpcs[i].facingX, mNpcs[i].facingY,
+			mNpcs[i].spriteSheet, mNpcs[i].spriteIndex);
 		bool trainerChallenge = mRouteChallengeNpc == (int)i;
 		if (npcHasStoryMarker((int)i) || trainerChallenge)
 		{
@@ -1489,6 +1498,7 @@ void Application::renderOverworld()
 	{
 		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
 		{
+			if (worldArea.catalogOnly) continue;
 			if (worldTileLayer(worldArea, x, y, RtpRenderLayer::Ground) != NULL) continue;
 			WorldTileId tile = WorldTiles::fromGlyph(map[y][x]);
 			if (!WorldTileRenderer::hasForeground(tile)) continue;
@@ -1551,7 +1561,8 @@ void Application::renderOverworld()
 }
 
 void Application::drawCharacter(float gridX, float gridY, CharacterAppearance appearance,
-	bool completed, bool walking, int facingX, int facingY)
+	bool completed, bool walking, int facingX, int facingY,
+	const std::string& spriteSheet, int spriteIndex)
 {
 	const std::vector<std::string>& map = currentMap();
 	const bool worldBuilder = mScreen == Screen::WorldBuilder;
@@ -1577,17 +1588,24 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 		y = mapOriginY((int)map.size()) +
 			(int)std::round((gridY - cameraY) * TILE);
 	}
-	drawCharacterSprite(x, y, appearance, completed, walking, facingX, facingY);
+	drawCharacterSprite(x, y, appearance, completed, walking, facingX, facingY,
+		spriteSheet, spriteIndex);
 }
 
 void Application::drawCharacterSprite(int x, int y, CharacterAppearance appearance,
-	bool completed, bool walking, int facingX, int facingY)
+	bool completed, bool walking, int facingX, int facingY,
+	const std::string& spriteSheet, int spriteIndex)
 {
 	int stride = walking && (SDL_GetTicks() / 110) % 2 == 0 ? 2 : (walking ? -2 : 0);
 	int bob = walking && (SDL_GetTicks() / 110) % 2 == 0 ? -1 : 0;
-	fillRect({ x + 9, y + 39, 31, 6 }, 8, 14, 18, 100);
-	CharacterSpriteDefinition sprite = characterSprite(appearance);
+	CharacterSpriteDefinition sprite = spriteSheet.empty() || spriteIndex < 0 ?
+		characterSprite(appearance) : CharacterSpriteDefinition{ spriteSheet, spriteIndex };
 	SDL_Rect spriteDestination = worldBuilderTileRect({ x, y, TILE, TILE });
+	SDL_Rect shadowDestination = spriteDestination;
+	shadowDestination.y += std::max(1,
+		(int)std::round(6.f * spriteDestination.h / (float)TILE));
+	SDL_Texture* shadow = mAssets == NULL ? NULL : mAssets->texture(CHARACTER_SHADOW, true);
+	if (shadow != NULL) SDL_RenderCopy(mRenderer, shadow, NULL, &shadowDestination);
 	if (mSpriteSheets != NULL && mSpriteSheets->drawCharacter(sprite, facingX, facingY,
 		walking, SDL_GetTicks(), spriteDestination))
 	{

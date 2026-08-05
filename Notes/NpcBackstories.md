@@ -114,13 +114,13 @@ At Glasswater Port, Garran clashes with Marin over whether the stolen prediction
 **Signature card:** Deathblade Beetle  
 **Gameplay identity:** Mana acceleration, resilient creatures, and natural traps
 
-Briar tends the groves and creature paths west of Emberglen. She treats summoned creatures as visitors with their own needs rather than tools that disappear when a duel ends. Many of the town's younger duelists first learn creature care from her.
+Briar tends the groves and creature paths west of Emberglen. He treats summoned creatures as visitors with their own needs rather than tools that disappear when a duel ends. Many of the town's younger duelists first learn creature care from him.
 
-She found several forest creatures wandering without recognition after their card echoes faded. The sight makes her unusually angry, and she channels that anger into relentless training. Her friendliness returns once the player proves willing to build a deck around cooperation rather than raw ownership.
+He found several forest creatures wandering without recognition after their card echoes faded. The sight makes his unusually angry, and she channels that anger into relentless training. His friendliness returns once the player proves willing to build a deck around cooperation rather than raw ownership.
 
 Briar and Rook share a Nature philosophy but express it differently. Rook cultivates strength through structure; Briar trusts adaptation and the messy intelligence of living systems. Their arguments are affectionate and constant.
 
-In Rootmaze, Briar becomes the first person able to communicate with creatures severed from their cards. Her bond with Deathblade Beetle helps establish that an echo can survive outside its original physical card for a short time.
+In Rootmaze, Briar becomes the first person able to communicate with creatures severed from their cards. His bond with Deathblade Beetle helps establish that an echo can survive outside its original physical card for a short time.
 
 ## Mercer — Keeper of the Practical Things
 

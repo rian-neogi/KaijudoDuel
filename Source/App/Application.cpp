@@ -25,7 +25,7 @@ Application::Application(bool worldBuilder)
 	  mScreen(Screen::MainMenu), mMainMenuSelection(0), mLoadGameSelection(0),
 	  mLoadGameScroll(0), mPauseMenuOpen(false), mPauseMenuSelection(0), mCurrentWorldArea(0),
 	  mOpeningPortal(-1), mPortalAnimationStarted(0),
-	  mWorldStartX(2), mWorldStartY(10), mPlayerX(2), mPlayerY(10), mFacingX(0), mFacingY(1),
+	  mPlayerX(2), mPlayerY(10), mFacingX(0), mFacingY(1),
 	  mMoveUp(false), mMoveDown(false), mMoveLeft(false), mMoveRight(false), mMoveIntentX(0), mMoveIntentY(0),
 	  mVisualX(2.f), mVisualY(10.f), mDialogueNpc(-1), mDialogueObject(-1),
 	  mDialogueVisibleBytes(0),
@@ -35,7 +35,7 @@ Application::Application(bool worldBuilder)
 	  mStoryStage(0), mStoryClues(0), mStoryScene(StoryScene::None), mStoryScenePage(0),
 	  mWorldBuilderTab(WorldBuilderTab::Tiles), mWorldBuilderTileCategory(2),
 	  mWorldBuilderTileSheet((int)RtpTileSheet::A2),
-	  mWorldBuilderCatalogTile(0), mWorldBuilderTileLayer(RtpRenderLayer::Ground),
+	  mWorldBuilderCatalogTile(0),
 	  mWorldBuilderSelectedNpc(-1),
 	  mWorldBuilderSelectedObject(-1), mWorldBuilderListScroll(0), mWorldBuilderCameraX(0),
 	  mWorldBuilderCameraY(0), mWorldBuilderTileSize(TILE),
@@ -60,6 +60,8 @@ Application::Application(bool worldBuilder)
 	  mDeckNoticeUntil(0), mDeckHoveredCard(-1), mShopHoveredCard(-1), mShopPage(0),
 	  mShopNoticeUntil(0)
 {
+	mWorld.start.x = 2;
+	mWorld.start.y = 10;
 	std::string npcError;
 	if (!loadNpcsFromLua("Lua/Npcs.lua", mNpcs, npcError))
 	{
@@ -82,7 +84,7 @@ Application::Application(bool worldBuilder)
 		std::cerr << "Unable to load overworld objects: " << objectError << std::endl;
 	}
 	std::string worldError;
-	if (!loadWorldMap("Lua/World.lua", worldError, worldBuilder))
+	if (!loadWorldMap("World/World.json", worldError, worldBuilder))
 	{
 		if (!mNpcMetadataError.empty()) mNpcMetadataError += "\n";
 		mNpcMetadataError += "Unable to load world map: " + worldError;

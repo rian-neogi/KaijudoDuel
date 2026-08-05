@@ -337,7 +337,8 @@ RtpTileCollision RtpTilesetRenderer::collision(const RtpTileReference& tile)
 			return RtpTileCollision::Blocked;
 		return RtpTileCollision::Walkable;
 	}
-	bool passage = name == "Entrance" || name == "Exit" ||
+	bool passage = name == "Entrance" || name == "Exit" || name == "Gate" ||
+		name.find("(Gate)") != std::string::npos ||
 		name.find("Cave Entrance") == 0 || name.find("Mine Entrance") == 0 ||
 		(name.find("Bridge") != std::string::npos &&
 			name.find("Bridge Spar") == std::string::npos &&
@@ -371,10 +372,16 @@ bool RtpTilesetRenderer::validateAllAssets(std::string& error)
 	return true;
 }
 
-RtpRenderLayer RtpTilesetRenderer::defaultLayer(RtpTileSheet sheet)
+RtpRenderLayer RtpTilesetRenderer::inferredLayer(const RtpTileReference& tile)
 {
-	return sheet == RtpTileSheet::B || sheet == RtpTileSheet::C ?
-		RtpRenderLayer::Decoration : RtpRenderLayer::Ground;
+	if (tile.sheet != RtpTileSheet::B && tile.sheet != RtpTileSheet::C)
+		return RtpRenderLayer::Ground;
+	std::string name;
+	if (metadataName(tile, name) &&
+		(name.find("(Front") != std::string::npos ||
+		name.find("Foreground") != std::string::npos))
+		return RtpRenderLayer::Foreground;
+	return RtpRenderLayer::Decoration;
 }
 
 bool RtpTilesetRenderer::regularTileSource(RtpTileSheet sheet, int tileIndex,

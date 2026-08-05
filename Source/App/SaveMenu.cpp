@@ -155,10 +155,10 @@ void Application::resetPlayerDataState()
 		mNpcs[i].wins = 0;
 		mNpcs[i].setPosition(mNpcs[i].homeX, mNpcs[i].homeY);
 	}
-	int startArea = worldAreaIndex(mWorldStartMap);
+	int startArea = worldAreaIndex(mWorld.start.mapId);
 	if (startArea >= 0) mCurrentWorldArea = startArea;
-	mPlayerX = mWorldStartX;
-	mPlayerY = mWorldStartY;
+	mPlayerX = mWorld.start.x;
+	mPlayerY = mWorld.start.y;
 	mVisualX = (float)mPlayerX;
 	mVisualY = (float)mPlayerY;
 	mFacingX = 0;

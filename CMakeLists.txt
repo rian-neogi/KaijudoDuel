@@ -28,9 +28,11 @@ set(GAME_SOURCES
 	Source/AI/HeuristicBot.cpp
     Source/App/Application.cpp
 	Source/App/AssetManager.cpp
-    Source/App/CardRenderer.cpp
+	Source/App/CardRenderer.cpp
+	Source/App/CatalogMapStorage.cpp
     Source/App/DuelWindow.cpp
 	Source/App/DeckBuilder.cpp
+	Source/App/DeprecatedWorldTileRenderer.cpp
 	Source/App/Menus.cpp
 	Source/App/MercerStock.cpp
 	Source/App/Npc.cpp
@@ -42,6 +44,8 @@ set(GAME_SOURCES
 	Source/App/SpriteSheetRenderer.cpp
 	Source/App/Story.cpp
 	Source/App/WorldBuilder.cpp
+	Source/App/WorldData.cpp
+	Source/App/WorldStorage.cpp
 	Source/App/WorldObject.cpp
 	Source/App/WorldTileRenderer.cpp
     Source/CRandom.cpp
@@ -89,6 +93,7 @@ set_target_properties(KaijudoDuel PROPERTIES
 )
 
 if(BUILD_TESTING)
+	find_package(Python3 QUIET COMPONENTS Interpreter)
     add_test(NAME cli_help
         COMMAND KaijudoDuel --help
     )
@@ -100,4 +105,10 @@ if(BUILD_TESTING)
         ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy"
 		TIMEOUT 60
     )
+	if(Python3_Interpreter_FOUND)
+		add_test(NAME legacy_world_converter
+			COMMAND ${Python3_EXECUTABLE}
+				"${CMAKE_SOURCE_DIR}/Tools/test_convert_legacy_world.py"
+		)
+	endif()
 endif()

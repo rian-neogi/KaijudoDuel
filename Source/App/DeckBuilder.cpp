@@ -351,10 +351,10 @@ void Application::ensurePlayerDataLoaded()
 	int savedArea = worldAreaIndex(savedMap);
 	if (savedArea >= 0 && hasSavedX && hasSavedY)
 	{
-		const std::vector<std::string>& tiles = mWorldAreas[savedArea].tiles;
+		const std::vector<std::string>& tiles = mWorld.maps[savedArea].tiles;
 		bool validPosition = savedY >= 0 && savedY < (int)tiles.size() && savedX >= 0 &&
 			savedX < (int)tiles[savedY].size() &&
-			worldTileWalkable(mWorldAreas[savedArea], savedX, savedY);
+			worldTileWalkable(mWorld.maps[savedArea], savedX, savedY);
 		if (validPosition)
 		{
 			mCurrentWorldArea = savedArea;

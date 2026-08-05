@@ -16,7 +16,7 @@ namespace Landmarks
 		int goldReward;
 	};
 
-	// Positions are relative to their named World.lua regions, so expanding or
+	// Positions are relative to their named native world regions, so expanding or
 	// moving a region does not invalidate exploration progress.
 	constexpr Definition DEFINITIONS[] = {
 		{ "northwater_pools", "Northwater Pools", "watershed_crossroads", 24, 11, 3, 25 },

@@ -1,4 +1,4 @@
--- Shard positions are owned by Lua/World.lua and maintained by the World Builder.
+-- Shard positions are owned by World/World.json and maintained by the World Builder.
 return {
 	prices = { 100, 500, 1500, 5000, 25000 },
 

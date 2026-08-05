@@ -8,8 +8,8 @@ contains a top-down overworld and a Hearthstone-style duel screen.
 
 ## Build and run
 
-Run all commands from the repository root so relative `Lua`, `Decks`, and
-`Resources` paths resolve correctly.
+Run all commands from the repository root so relative `Lua`, `Decks`,
+`Resources`, and `World` paths resolve correctly.
 
 ```bash
 cmake -S . -B Build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/g++
@@ -26,21 +26,20 @@ Additional launch modes:
 ```
 
 The World Builder is available only through `--world-builder`. It edits map
-tiles and NPC/object locations. Single-click an NPC or object side-list row to
+tiles and NPC/object/shard locations. Single-click an entity side-list row to
 select it; double-click it to center its map location. Select entities from the
 Lua-populated side lists or directly on the map, then click or drag them to a
 free walkable tile. The tile palette exposes the complete Dungeon, Inside,
-Outside, and World tilesets. Use the sheet arrows to browse A1-A5/B/C, choose
-the ground, decoration, or foreground layer, and hover a source-sheet region
-to see its metadata name. The palette preserves each PNG's native rows,
+Outside, and World tilesets. Use the sheet arrows to browse A1-A5/B/C and hover
+a source-sheet region to see its metadata name. The render layer is inferred
+from the selected tile. The palette preserves each PNG's native rows,
 columns, and aspect ratio. Left-click/drag paints the selected visual layer;
 right-click/drag erases it. Collision is inferred from the uppermost catalog
-tile with collision behavior; the one-byte grid is only a legacy visual and
-collision fallback for cells not yet painted with catalog tiles. Switch maps
-with the on-screen arrows or `PageUp`/`PageDown`; hold the arrow or WASD keys
-to pan large maps. Use the
-mouse wheel over the map or `+`/`-` to zoom; the wheel continues to scroll when
-the pointer is over a side list. Save with the on-screen button or `Ctrl+S`.
+tile with collision behavior; cells without a collision-bearing catalog tile
+are blocked. Switch maps with the on-screen arrows or `PageUp`/`PageDown`; hold
+the arrow or WASD keys to pan large maps. Use the mouse wheel over the map or
+`+`/`-` to zoom; the wheel continues to scroll when the pointer is over a side
+list. Save with the on-screen button or `Ctrl+S`.
 
 When adding a C++ source file, add it to `GAME_SOURCES` in `CMakeLists.txt`.
 Do not restore the legacy Windows/OpenGL interface to the Linux target.
@@ -54,9 +53,10 @@ or input handling, run:
 ctest --test-dir Build --output-on-failure
 ```
 
-The smoke test is headless and covers card loading, all NPC decks, binary and
+The test suite is headless. It covers card loading, all NPC decks, binary and
 card-targeted suspended Lua choices, UI action clicking, hovering, an AI turn,
-rendering, and repeated duel teardown.
+rendering, native world loading and map round-tripping, the deprecated-world
+converter, and repeated duel teardown.
 
 ## Application structure
 
@@ -67,8 +67,24 @@ rendering, and repeated duel teardown.
   selection and nearest-neighbor sprite rendering.
 - `Source/App/Overworld.cpp`: map movement, NPC interaction, and overworld
   rendering.
-- `Source/App/WorldBuilder.cpp`: Lua world loading, map painting, NPC/object
-  placement, validation, and atomic `World.lua` saving.
+- `Source/App/WorldBuilder.cpp`: native world loading, map painting,
+  NPC/object/shard placement, validation, and native world saving.
+- `Source/App/WorldData.h/.cpp`: renderer-independent ownership and lookup for
+  maps, regions, portals, the player start, and entity positions. World
+  serializers populate this model rather than exposing their file format to
+  gameplay code.
+- `Source/App/RtpTile.h`: renderer-independent RTP tile references, layers,
+  families, sheets, and collision values shared by world data and rendering.
+- `Source/App/CatalogMapStorage.h/.cpp`: validated native JSON loading and
+  atomic saving for catalog-only map files.
+- `Source/App/WorldStorage.h/.cpp`: validated loading and atomic saving for the
+  native world manifest, including regions, portals, start, and entity positions.
+- `Source/App/DeprecatedWorldTileRenderer.h/.cpp`: frozen compatibility
+  renderer for the legacy one-byte semantic maps. Do not add new behavior or
+  remove it without an explicit legacy-cleanup request.
+- `Tools/convert_legacy_world.py`: one-way migration tool from `Lua/World.lua`
+  to `World/World.json` and catalog-only `World/Maps/*.json`. It intentionally
+  ignores the old visual `tile_layers` data.
 - `Source/App/WorldObject.h/.cpp`: overworld-object metadata loading and stable
   object kinds.
 - `Source/App/DuelWindow.cpp`: duel lifecycle, actions, input, drag/drop,
@@ -80,17 +96,21 @@ rendering, and repeated duel teardown.
   migration, and selected-save lifecycle.
 - `Source/App/CardRenderer.cpp`: card textures, zones, hands, animation,
   tapping, dragging, and hover enlargement.
-- `Lua/World.lua`: authoritative seamless exterior, interior maps, sparse visual
-  tile layers, named exterior regions, player start, interior portals, and
-  ID-keyed NPC/object positions. This file is entirely maintained by the World Builder.
-- `Source/App/WorldTile.h`: stable semantic tile IDs and their compact one-byte
-  serialization glyphs. Rendering and collision must use these IDs rather than
-  assigning different meanings based on the current map.
+- `World/Maps/*.json`: authoritative catalog tile layers, map dimensions, and
+  map-local gameplay tags. The World Builder saves tile edits here.
+- `World/World.json`: authoritative map list, named exterior regions, player
+  start, portals, and ID-keyed NPC/object/shard positions.
+- `Lua/World.lua`: deprecated migration input. Normal gameplay and the World
+  Builder do not read or write it.
+- `Source/App/WorldTile.h`: deprecated semantic tile IDs and their compact
+  one-byte serialization glyphs. They exist only for compatibility and the
+  migration source; new world behavior must use catalog tiles or map tags.
 - `Source/App/Landmarks.h`: one-time route discoveries, defined in region-local
   coordinates so seamless-map regions may move without invalidating them.
 - `Lua/Npcs.lua`: authoritative NPC identities, kinds, appearances, decks,
   rewards, Crest Holder awards, AI personalities, and dialogue. It does not own
-  positions.
+  positions. Appearance values use `<character-sheet>-<one-based index>` (for
+  example, `Actor2-3` selects the third character in `Actor2.png`).
 - `Lua/Objects.lua`: authoritative interactive-object identities, kinds, names,
   interaction text, and deck-chest rewards. It does not own positions.
 - `Lua/MercerStock.lua`: Mercer prices, initial stock, shard identities, and
@@ -112,23 +132,30 @@ five decks.
 
 ## World data conventions
 
-- Keep all maps, portals, and entity coordinates in `Lua/World.lua`; never add
-  `position` fields back to metadata files.
-- NPC, object, and shard position keys must match their metadata `id` fields and include
-  a valid `map` ID. Normal gameplay requires every current entity ID to have a
-  valid `World.lua` map position.
+- `World/World.json` is the sole runtime/editor manifest. It owns the ordered
+  map-file list, regions, player start, directed portals, and NPC/object/shard
+  positions. Never add positions back to the Lua metadata files.
+- `World/Maps/*.json` is the sole runtime/editor source for map dimensions,
+  catalog tile layers, and map-local gameplay tags. Each manifest map path must
+  be relative and remain beneath `World`; map IDs may contain only letters,
+  digits, `_`, and `-` so they are safe as filenames.
+- NPC, object, and shard position IDs must match their Lua metadata `id` fields
+  and include a valid map ID. Normal gameplay requires every current entity to
+  have a native manifest position. Player start, portal endpoints, NPCs,
+  objects, and shards must occupy distinct walkable cells.
 - Duel-enabled NPCs use ordered, non-empty `decks` and `rewards` arrays. When
   `max_battles` exceeds either array's size, the last entry in that array is
   reused for the remaining battles.
 - Exterior regions require an explicit `kind` of `town` or `connector` for
   geographic organization. NPC kinds may be placed in either region kind. The
   World Builder must preserve region kinds when saving.
-- The World Builder scans the NPC, object, and shard metadata. New IDs without world
-  entries are placed automatically on free walkable tiles when the builder is
-  launched, mark the world dirty, and are persisted on the next save. Stale
-  world IDs disappear on the next save.
-- World Builder saves must modify only `Lua/World.lua`, leaving NPC dialogue,
-  object text, decks, rewards, Mercer stock, and other hand-authored metadata untouched.
+- The World Builder scans the NPC, object, and shard metadata. New IDs without
+  world entries are placed automatically on free walkable tiles when the
+  builder is launched, mark the world dirty, and are persisted on the next
+  save. Stale world IDs disappear on the next save.
+- World Builder saves may modify only `World/Maps/*.json` and `World/World.json`,
+  leaving NPC dialogue, object text, decks, rewards, Mercer stock, and other
+  hand-authored metadata untouched.
 - Opened deck chests are persisted per save as `object.opened.<id>=1`. Their
   rewarded deck files are copied into the save's Decks folder and their cards
   are added to that save's collection exactly once.
@@ -136,32 +163,23 @@ five decks.
   follows the player through maps larger than its 25-by-12-tile viewport; the
   World Builder keeps a 960-by-576-pixel viewport beside its editor controls
   (20-by-12 tiles at 100% zoom).
-  Outdoor tile characters are `.` (grass), `=` (path), `~` (water), `H`
-  (house), `T` (tree), `#` (dense forest), `B` (bonfire), `A` (feast table),
-  `S` (walkable dueling sand), `M` (marble), `Q` (marble roof), `R` (rail),
-  `X` (walkable rail
-  crossing), `G` (walkable metal grate), `I` (industrial brick), `P`
-  (machinery), `V` (furnace), `K` (timber roof), `J` (industrial roof), `U`
-  (walkable timber bridge), and `O` (rocky cliff). Stable regional tile IDs are
-  `1` (Old Road path), `2` (waystone), `3` (Cinderrail ground), `4`
-  (Cinderrail path), `5` (Cinderrail rubble), `6` (Cinderrail dueling sand),
-  `7` (Cinderrail door), `8` (Watershed ground), `9` (Watershed path), and
-  `0` (Watershed route marker). Glasswater uses `a` (canal-stone ground), `b`
-  (tideglass paving), `c` (wave roof), `d` (walkable dock), `e` (glass wall),
-  `f` (walkable blue door), `g` (walkable arena floor), and `h` (harbor marker).
-  Rootmaze uses `i` (clearing ground), `j` (stable path), `k` (living root),
-  `l` (walkable root bridge), `m` (living roof), `n` (root wall), `o`
-  (walkable door), `p` (walkable meadow arena), and `q` (leaf marker).
-  Natural landmark tiles are `r` (rocks), `s` (bush), `t` (walkable shrub),
-  `u` (walkable cave entrance), and `v` (tree stump). Blackstone Road uses
-  `w` (ground), `x` (road), `y` (retaining wall), and `z` (relay gate). The
-  relay gate is walkable only after the Confluence Crest has been earned.
-  Indoor/wooden-building tiles are `W` (wood wall), `D` (door), `F` (wood
-  floor), `C` (counter), and `E` (workshop tools). Outdoor buildings must use
-  explicit `K`, `J`, or `Q` roof tiles rather than relying on wall tiles to draw a
-  roof automatically. NPCs, signposts, and shards require distinct walkable tiles.
-  Player starts, portal entrances, and portal destinations must remain
-  walkable and unoccupied.
+- The `overworld` map is allocated at 1024-by-1024. The migrated 408-by-185
+  world occupies offset `(288,665)`, placing the Emberglen region origin at
+  `(512,700)`. Unassigned cells use empty palette index `0` on every layer and
+  are therefore blocked until painted.
+- Every native map contains a map-local palette and exactly three row-major,
+  run-length encoded layers: `ground`, `decoration`, and `foreground`. Palette
+  index `0` is empty. Every non-empty palette entry identifies its tileset
+  family, source sheet, tile index, render layer, and RGB tint. Each layer's
+  runs must total exactly `width * height` cells.
+- Collision is inferred from the uppermost collision-bearing catalog tile in
+  foreground, decoration, ground order. If no layer supplies collision, the
+  cell is blocked. Do not add a separate collision grid or rely on deprecated
+  glyph collision.
+- Use map `tags` for gameplay semantics that cannot be inferred from artwork.
+  Keep tag IDs stable once saves or story logic reference them. The current
+  `blackstone_gate` tag marks the relay gate, which stays blocked until the
+  Confluence Crest has been earned.
 - Portals are directed transitions. Define both directions explicitly when a
   doorway must support entering and leaving an interior. Exterior regions share
   the `overworld` map and must connect through adjacent walkable tiles, not
@@ -177,9 +195,26 @@ five decks.
   Talk is always present; Duel and Trade must not appear unless enabled. Route
   duelist taxicab-distance encounter radii also come from Lua. Their first
   undefeated radius encounter is forced, while rematches are voluntary.
-- Generic NPC appearance IDs are `generic-male-1` through `generic-male-10`
-  and `generic-female-1` through `generic-female-10`; do not restore the old
-  unqualified `generic1` through `generic10` names.
+- New NPC appearances should use `<character-sheet>-<one-based index>`. Legacy
+  named and `generic-male-*`/`generic-female-*` appearances remain accepted for
+  compatibility but should not be used for new metadata.
+
+## Legacy world migration
+
+- `Lua/World.lua` is migration input only. Normal gameplay and the World
+  Builder must never fall back to it or write it.
+- Run `python3 Tools/convert_legacy_world.py` only when deliberately rebuilding
+  the native world from the legacy byte maps. It overwrites `World/World.json`
+  and `World/Maps/*.json`, discarding later World Builder edits.
+- The converter translates only each legacy map's base `tiles` byte grid for
+  visuals and intentionally ignores legacy `tile_layers`. It copies regions,
+  start, portals, and entity positions into the native manifest. For the
+  exterior it applies the common `(288,665)` offset, expands the canvas to
+  1024-by-1024, and emits one neutral palette entry per unique
+  tileset/sheet/tile/layer reference. Native tint support remains available for
+  deliberate post-migration authoring.
+- Keep the deprecated loader and renderer isolated from new world features.
+  New maps and editor saves must remain fully native.
 
 ## Rules-engine safety
 

@@ -2,14 +2,17 @@
 
 #include "AI/HeuristicBot.h"
 #include "AppSupport.h"
+#include "CatalogMapStorage.h"
 #include "Game/Card.h"
 #include "Landmarks.h"
 #include "RtpTilesetRenderer.h"
 #include "SpriteSheetRenderer.h"
+#include "WorldStorage.h"
 #include "WorldTileRenderer.h"
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <iostream>
 #include <set>
 
@@ -1106,6 +1109,24 @@ bool Application::exerciseHoverTimingSmoke()
 bool Application::exerciseOverworldMovementSmoke()
 {
 	if (mNpcs.empty()) return false;
+	std::string worldDataError;
+	bool worldDataReady = mWorld.validateStructure(worldDataError) &&
+		mWorld.map(mWorld.start.mapId) != NULL &&
+		mWorld.mapIndex(mWorld.start.mapId) == worldAreaIndex(mWorld.start.mapId) &&
+		mWorld.regionAt("overworld", 331, 690) != NULL;
+	WorldData emptyWorld;
+	std::string emptyWorldError;
+	worldDataReady = worldDataReady && !emptyWorld.validateStructure(emptyWorldError) &&
+		!emptyWorldError.empty();
+	bool npcAppearancesReady = true;
+	for (size_t i = 0; i < mNpcs.size(); ++i)
+	{
+		const bool singleCharacter = mNpcs[i].spriteSheet.find('$') != std::string::npos;
+		npcAppearancesReady = npcAppearancesReady &&
+			mNpcs[i].spriteSheet.find("Resources/Graphics/Characters/") == 0 &&
+			mNpcs[i].spriteIndex >= 0 &&
+			mNpcs[i].spriteIndex < (singleCharacter ? 1 : 8);
+	}
 	SDL_Rect spriteFrame;
 	bool spriteSheetsReady = SpriteSheetRenderer::characterSourceRect(
 		"Resources/Graphics/Characters/Actor1.png", 5, 0, 1, false, 0,
@@ -1145,18 +1166,27 @@ bool Application::exerciseOverworldMovementSmoke()
 		WorldTileRenderer::hasDecoration(WorldTiles::Rocks) &&
 		WorldTileRenderer::hasForeground(WorldTiles::Tree) &&
 		!WorldTileRenderer::hasForeground(WorldTiles::Rocks);
+	spriteSheetsReady = spriteSheetsReady && npcAppearancesReady;
 	RtpTilesetRenderer rtpTiles(mRenderer, mAssets);
 	std::string tilesetError;
 	std::vector<RtpSheetDescriptor> sheets = RtpTilesetRenderer::availableSheets();
 	bool fullTilesetReady = sheets.size() == 22 && rtpTiles.validateAllAssets(tilesetError) &&
 		RtpTilesetRenderer::descriptor(RtpTilesetFamily::Outside, RtpTileSheet::A3) != NULL &&
 		RtpTilesetRenderer::descriptor(RtpTilesetFamily::World, RtpTileSheet::C) == NULL &&
-		RtpTilesetRenderer::defaultLayer(RtpTileSheet::A2) == RtpRenderLayer::Ground &&
-		RtpTilesetRenderer::defaultLayer(RtpTileSheet::B) == RtpRenderLayer::Decoration;
+		RtpTilesetRenderer::inferredLayer(RtpTileReference(
+			RtpTilesetFamily::Outside, RtpTileSheet::A2, 0)) ==
+			RtpRenderLayer::Ground &&
+		RtpTilesetRenderer::inferredLayer(RtpTileReference(
+			RtpTilesetFamily::Outside, RtpTileSheet::B, 0)) ==
+			RtpRenderLayer::Decoration &&
+		RtpTilesetRenderer::inferredLayer(RtpTileReference(
+			RtpTilesetFamily::Dungeon, RtpTileSheet::C, 31)) ==
+			RtpRenderLayer::Foreground;
 	SDL_Rect tilesetTarget = { 0, 0, 32, 32 };
 	for (size_t sheet = 0; sheet < sheets.size() && fullTilesetReady; ++sheet)
 	{
-		RtpRenderLayer layer = RtpTilesetRenderer::defaultLayer(sheets[sheet].sheet);
+		RtpTileReference layerProbe(sheets[sheet].family, sheets[sheet].sheet, 0);
+		RtpRenderLayer layer = RtpTilesetRenderer::inferredLayer(layerProbe);
 		RtpTileReference first(sheets[sheet].family, sheets[sheet].sheet, 0, layer);
 		RtpTileReference last(sheets[sheet].family, sheets[sheet].sheet,
 			sheets[sheet].tileCount - 1, layer);
@@ -1317,31 +1347,31 @@ bool Application::exerciseOverworldMovementSmoke()
 	Uint32 savedNoticeUntil = mNoticeUntil;
 	bool enteredIndoor = false;
 	bool returnedOutside = false;
-	for (size_t i = 0; i < mWorldPortals.size() && !enteredIndoor; ++i)
+	for (size_t i = 0; i < mWorld.portals.size() && !enteredIndoor; ++i)
 	{
-		int destination = worldAreaIndex(mWorldPortals[i].toMap);
-		if (destination < 0 || !mWorldAreas[destination].indoor) continue;
-		mCurrentWorldArea = worldAreaIndex(mWorldPortals[i].fromMap);
-		mPlayerX = mWorldPortals[i].fromX;
-		mPlayerY = mWorldPortals[i].fromY;
+		int destination = worldAreaIndex(mWorld.portals[i].toMap);
+		if (destination < 0 || !mWorld.maps[destination].indoor) continue;
+		mCurrentWorldArea = worldAreaIndex(mWorld.portals[i].fromMap);
+		mPlayerX = mWorld.portals[i].fromX;
+		mPlayerY = mWorld.portals[i].fromY;
 		mVisualX = (float)mPlayerX;
 		mVisualY = (float)mPlayerY;
 		enteredIndoor = beginPortalAt(mPlayerX, mPlayerY);
 		mPortalAnimationStarted = SDL_GetTicks() - DOOR_OPEN_DURATION;
 		updateOverworld(0);
 		enteredIndoor = enteredIndoor && mCurrentWorldArea == destination && mOpeningPortal < 0;
-		for (size_t reverse = 0; reverse < mWorldPortals.size() && enteredIndoor; ++reverse)
+		for (size_t reverse = 0; reverse < mWorld.portals.size() && enteredIndoor; ++reverse)
 		{
-			if (mWorldPortals[reverse].fromMap != mWorldPortals[i].toMap ||
-				mWorldPortals[reverse].toMap != mWorldPortals[i].fromMap) continue;
-			mPlayerX = mWorldPortals[reverse].fromX;
-			mPlayerY = mWorldPortals[reverse].fromY;
+			if (mWorld.portals[reverse].fromMap != mWorld.portals[i].toMap ||
+				mWorld.portals[reverse].toMap != mWorld.portals[i].fromMap) continue;
+			mPlayerX = mWorld.portals[reverse].fromX;
+			mPlayerY = mWorld.portals[reverse].fromY;
 			mVisualX = (float)mPlayerX;
 			mVisualY = (float)mPlayerY;
 			returnedOutside = beginPortalAt(mPlayerX, mPlayerY);
 			mPortalAnimationStarted = SDL_GetTicks() - DOOR_OPEN_DURATION;
 			updateOverworld(0);
-			returnedOutside = returnedOutside && currentMapId() == mWorldPortals[i].fromMap &&
+			returnedOutside = returnedOutside && currentMapId() == mWorld.portals[i].fromMap &&
 				mOpeningPortal < 0;
 			break;
 		}
@@ -1366,7 +1396,7 @@ bool Application::exerciseOverworldMovementSmoke()
 		if (mNpcs[i].id == "mercer")
 		{
 			int area = worldAreaIndex(mNpcs[i].mapId);
-			mercerIsIndoors = area >= 0 && mWorldAreas[area].indoor;
+			mercerIsIndoors = area >= 0 && mWorld.maps[area].indoor;
 		}
 	TileBounds largeWorldBounds = visibleTileBounds(500.25f, 500.5f, 1024, 1024);
 	TileBounds overworldBounds = visibleTileBounds(500.25f, 500.5f, 1024, 1024,
@@ -1387,7 +1417,9 @@ bool Application::exerciseOverworldMovementSmoke()
 		smallMapBounds.right == 10 && smallMapBounds.bottom == 8 &&
 		smallMapBounds.tileCount() == 80;
 	int overworldArea = worldAreaIndex("overworld");
-	bool seamlessWorldReady = overworldArea >= 0 && !mWorldAreas[overworldArea].indoor;
+	const int overworldOffsetX = 288;
+	const int overworldOffsetY = 665;
+	bool seamlessWorldReady = overworldArea >= 0 && !mWorld.maps[overworldArea].indoor;
 	bool naturalTilesReady = WorldTiles::isValid(WorldTiles::Rocks) &&
 		WorldTiles::isValid(WorldTiles::Bush) && WorldTiles::isValid(WorldTiles::Shrub) &&
 		WorldTiles::isValid(WorldTiles::CaveEntrance) &&
@@ -1397,34 +1429,62 @@ bool Application::exerciseOverworldMovementSmoke()
 		WorldTiles::isWalkable(WorldTiles::Shrub) &&
 		WorldTiles::isWalkable(WorldTiles::CaveEntrance) &&
 		!WorldTiles::isWalkable(WorldTiles::TreeStump);
-	int outdoorAreas = 0;
-	for (size_t area = 0; area < mWorldAreas.size(); ++area)
-		if (!mWorldAreas[area].indoor) ++outdoorAreas;
-	seamlessWorldReady = seamlessWorldReady && outdoorAreas == 1 &&
-		mWorldAreas[overworldArea].tiles.size() == 185 &&
-		mWorldAreas[overworldArea].tiles[0].size() == 408;
-	std::set<char> worldTiles;
-	if (seamlessWorldReady)
-		for (size_t row = 0; row < mWorldAreas[overworldArea].tiles.size(); ++row)
-			for (size_t column = 0; column < mWorldAreas[overworldArea].tiles[row].size(); ++column)
+	int playableOutdoorAreas = 0;
+	for (size_t area = 0; area < mWorld.maps.size(); ++area)
+	{
+		if (mWorld.maps[area].indoor) continue;
+		for (size_t region = 0; region < mWorld.regions.size(); ++region)
+			if (mWorld.regions[region].mapId == mWorld.maps[area].id)
 			{
-				char glyph = mWorldAreas[overworldArea].tiles[row][column];
-				worldTiles.insert(glyph);
-				seamlessWorldReady = seamlessWorldReady &&
-					WorldTiles::isValid(WorldTiles::fromGlyph(glyph));
+				++playableOutdoorAreas;
+				break;
 			}
-	const std::string requiredWorldTiles = "0123456789abcdefghijklmnopqwxyzRXGIPVJKWQMOU";
-	for (size_t i = 0; i < requiredWorldTiles.size(); ++i)
-		seamlessWorldReady = seamlessWorldReady &&
-			worldTiles.count(requiredWorldTiles[i]) != 0;
-
-	const WorldRegion* glasswaterRegion = worldRegionAt("overworld", 43, 25);
-	const WorldRegion* rootmazeRegion = worldRegionAt("overworld", 50, 78);
-	const WorldRegion* watershedRegion = worldRegionAt("overworld", 130, 50);
-	const WorldRegion* emberglenRegion = worldRegionAt("overworld", 241, 50);
-	const WorldRegion* oldRoadRegion = worldRegionAt("overworld", 310, 44);
-	const WorldRegion* cinderrailRegion = worldRegionAt("overworld", 367, 57);
-	const WorldRegion* blackstoneRegion = worldRegionAt("overworld", 248, 120);
+	}
+	seamlessWorldReady = seamlessWorldReady && playableOutdoorAreas == 1 &&
+		mWorld.maps[overworldArea].catalogOnly &&
+		mWorld.maps[overworldArea].width() == 1024 &&
+		mWorld.maps[overworldArea].height() == 1024 &&
+		mWorld.maps[overworldArea].tiles.size() == 1024 &&
+		mWorld.maps[overworldArea].tiles[0].size() == 1024 &&
+		!mWorld.maps[overworldArea].tileLayers.empty() &&
+		mWorld.maps[overworldArea].hasTag(248 + overworldOffsetX,
+			89 + overworldOffsetY, "blackstone_gate");
+	int storageArea = worldAreaIndex("mercers_house");
+	std::string storageError;
+	const std::string storagePath = "Build/catalog-map-smoke.json";
+	WorldMap storageRoundTrip;
+	bool catalogStorageReady = storageArea >= 0 &&
+		CatalogMapStorage::saveMap(storagePath, mWorld.maps[storageArea], storageError) &&
+		CatalogMapStorage::loadMap(storagePath, storageRoundTrip, storageError) &&
+		storageRoundTrip.id == mWorld.maps[storageArea].id &&
+		storageRoundTrip.width() == mWorld.maps[storageArea].width() &&
+		storageRoundTrip.height() == mWorld.maps[storageArea].height() &&
+		storageRoundTrip.tileLayers.size() == mWorld.maps[storageArea].tileLayers.size();
+	std::remove(storagePath.c_str());
+	WorldData nativeWorld;
+	std::string nativeWorldError;
+	bool nativeWorldReady = WorldStorage::load("World/World.json", nativeWorld,
+		nativeWorldError) && nativeWorld.maps.size() == mWorld.maps.size() &&
+		nativeWorld.regions.size() == mWorld.regions.size() &&
+		nativeWorld.portals.size() == mWorld.portals.size() &&
+		nativeWorld.npcPositions == mWorld.npcPositions &&
+		nativeWorld.objectPositions == mWorld.objectPositions &&
+		nativeWorld.shardPositions == mWorld.shardPositions;
+	seamlessWorldReady = seamlessWorldReady && catalogStorageReady && nativeWorldReady;
+	const WorldRegion* glasswaterRegion = worldRegionAt("overworld",
+		43 + overworldOffsetX, 25 + overworldOffsetY);
+	const WorldRegion* rootmazeRegion = worldRegionAt("overworld",
+		50 + overworldOffsetX, 78 + overworldOffsetY);
+	const WorldRegion* watershedRegion = worldRegionAt("overworld",
+		130 + overworldOffsetX, 50 + overworldOffsetY);
+	const WorldRegion* emberglenRegion = worldRegionAt("overworld",
+		241 + overworldOffsetX, 50 + overworldOffsetY);
+	const WorldRegion* oldRoadRegion = worldRegionAt("overworld",
+		310 + overworldOffsetX, 44 + overworldOffsetY);
+	const WorldRegion* cinderrailRegion = worldRegionAt("overworld",
+		367 + overworldOffsetX, 57 + overworldOffsetY);
+	const WorldRegion* blackstoneRegion = worldRegionAt("overworld",
+		248 + overworldOffsetX, 120 + overworldOffsetY);
 	seamlessWorldReady = seamlessWorldReady && glasswaterRegion != NULL &&
 		rootmazeRegion != NULL &&
 		watershedRegion != NULL &&
@@ -1434,7 +1494,8 @@ bool Application::exerciseOverworldMovementSmoke()
 		rootmazeRegion->id == "rootmaze" &&
 		watershedRegion->id == "watershed_crossroads" &&
 		watershedRegion->width == 128 && watershedRegion->height == 72 &&
-		emberglenRegion->id == "emberglen" && oldRoadRegion->id == "old_road" &&
+		emberglenRegion->id == "emberglen" && emberglenRegion->x == 512 &&
+		emberglenRegion->y == 700 && oldRoadRegion->id == "old_road" &&
 		oldRoadRegion->width == 96 && oldRoadRegion->height == 48 &&
 		cinderrailRegion->id == "cinderrail" &&
 		blackstoneRegion->id == "blackstone_road" &&
@@ -1456,17 +1517,18 @@ bool Application::exerciseOverworldMovementSmoke()
 	}
 	std::string savedFirstCrest = mNpcs[0].crestId;
 	mCurrentWorldArea = overworldArea;
-	mPlayerX = 248;
-	mPlayerY = 88;
-	mVisualX = 248.f;
-	mVisualY = 88.f;
+	mPlayerX = 248 + overworldOffsetX;
+	mPlayerY = 88 + overworldOffsetY;
+	mVisualX = (float)mPlayerX;
+	mVisualY = (float)mPlayerY;
 	tryMove(0, 1);
-	bool blackstoneGateReady = mPlayerY == 88 &&
+	bool blackstoneGateReady = mPlayerY == 88 + overworldOffsetY &&
 		mNotice.find("Blackstone gate") != std::string::npos;
 	mNpcs[0].crestId = "confluence";
 	mNpcs[0].wins = 1;
 	tryMove(0, 1);
-	blackstoneGateReady = blackstoneGateReady && mPlayerX == 248 && mPlayerY == 89;
+	blackstoneGateReady = blackstoneGateReady &&
+		mPlayerX == 248 + overworldOffsetX && mPlayerY == 89 + overworldOffsetY;
 	mNpcs[0].crestId = savedFirstCrest;
 	for (size_t i = 0; i < mNpcs.size(); ++i) mNpcs[i].wins = savedConfluenceWins[i];
 	mCurrentWorldArea = savedGateArea;
@@ -1489,20 +1551,20 @@ bool Application::exerciseOverworldMovementSmoke()
 	Uint32 savedBannerStarted = mRegionBannerStarted;
 	bool savedBannerConnector = mRegionBannerConnector;
 	mCurrentWorldArea = overworldArea;
-	mPlayerX = 43;
-	mPlayerY = 25;
-	mVisualX = 43.f;
-	mVisualY = 25.f;
+	mPlayerX = 43 + overworldOffsetX;
+	mPlayerY = 25 + overworldOffsetY;
+	mVisualX = (float)mPlayerX;
+	mVisualY = (float)mPlayerY;
 	mMoveIntentX = 1;
 	mLastWorldRegionId.clear();
 	updateRegionBanner();
 	bool regionBannerReady = mLastWorldRegionId == "glasswater" &&
 		mRegionBannerName == "Glasswater Port" && !mRegionBannerConnector &&
 		mMoveIntentX == 1;
-	mPlayerX = 130;
-	mPlayerY = 50;
-	mVisualX = 130.f;
-	mVisualY = 50.f;
+	mPlayerX = 130 + overworldOffsetX;
+	mPlayerY = 50 + overworldOffsetY;
+	mVisualX = (float)mPlayerX;
+	mVisualY = (float)mPlayerY;
 	updateRegionBanner();
 	regionBannerReady = regionBannerReady &&
 		mLastWorldRegionId == "watershed_crossroads" &&
@@ -1520,12 +1582,12 @@ bool Application::exerciseOverworldMovementSmoke()
 	mRegionBannerStarted = savedBannerStarted;
 	mRegionBannerConnector = savedBannerConnector;
 	seamlessWorldReady = seamlessWorldReady && regionBannerReady;
-	for (size_t i = 0; i < mWorldPortals.size(); ++i)
+	for (size_t i = 0; i < mWorld.portals.size(); ++i)
 	{
-		int from = worldAreaIndex(mWorldPortals[i].fromMap);
-		int to = worldAreaIndex(mWorldPortals[i].toMap);
+		int from = worldAreaIndex(mWorld.portals[i].fromMap);
+		int to = worldAreaIndex(mWorld.portals[i].toMap);
 		seamlessWorldReady = seamlessWorldReady && from >= 0 && to >= 0 &&
-			(mWorldAreas[from].indoor || mWorldAreas[to].indoor);
+			(mWorld.maps[from].indoor || mWorld.maps[to].indoor);
 	}
 
 	const int dx[] = { 1, 0, -1, 0 };
@@ -1552,30 +1614,43 @@ bool Application::exerciseOverworldMovementSmoke()
 	std::set<std::pair<int, int> > reachable;
 	if (seamlessWorldReady)
 	{
-		reachable = reachableFrom(overworldArea, mWorldStartX, mWorldStartY);
-		seamlessWorldReady = reachable.count(std::make_pair(0, 19)) != 0 &&
-			reachable.count(std::make_pair(95, 39)) != 0 &&
-			reachable.count(std::make_pair(96, 39)) != 0 &&
-			reachable.count(std::make_pair(95, 61)) != 0 &&
-			reachable.count(std::make_pair(96, 61)) != 0 &&
-			reachable.count(std::make_pair(47, 107)) != 0 &&
-			reachable.count(std::make_pair(95, 97)) != 0 &&
-			reachable.count(std::make_pair(223, 53)) != 0 &&
-			reachable.count(std::make_pair(224, 53)) != 0 &&
-			reachable.count(std::make_pair(259, 47)) != 0 &&
-			reachable.count(std::make_pair(260, 47)) != 0 &&
-			reachable.count(std::make_pair(355, 48)) != 0 &&
-			reachable.count(std::make_pair(356, 48)) != 0;
+		reachable = reachableFrom(overworldArea, mWorld.start.x, mWorld.start.y);
+		seamlessWorldReady = reachable.count(std::make_pair(
+			overworldOffsetX, 19 + overworldOffsetY)) != 0 &&
+			reachable.count(std::make_pair(95 + overworldOffsetX,
+				39 + overworldOffsetY)) != 0 &&
+			reachable.count(std::make_pair(96 + overworldOffsetX,
+				39 + overworldOffsetY)) != 0 &&
+			reachable.count(std::make_pair(95 + overworldOffsetX,
+				61 + overworldOffsetY)) != 0 &&
+			reachable.count(std::make_pair(96 + overworldOffsetX,
+				61 + overworldOffsetY)) != 0 &&
+			reachable.count(std::make_pair(47 + overworldOffsetX,
+				107 + overworldOffsetY)) != 0 &&
+			reachable.count(std::make_pair(95 + overworldOffsetX,
+				97 + overworldOffsetY)) != 0 &&
+			reachable.count(std::make_pair(223 + overworldOffsetX,
+				53 + overworldOffsetY)) != 0 &&
+			reachable.count(std::make_pair(224 + overworldOffsetX,
+				53 + overworldOffsetY)) != 0 &&
+			reachable.count(std::make_pair(259 + overworldOffsetX,
+				47 + overworldOffsetY)) != 0 &&
+			reachable.count(std::make_pair(260 + overworldOffsetX,
+				47 + overworldOffsetY)) != 0 &&
+			reachable.count(std::make_pair(355 + overworldOffsetX,
+				48 + overworldOffsetY)) != 0 &&
+			reachable.count(std::make_pair(356 + overworldOffsetX,
+				48 + overworldOffsetY)) != 0;
 	}
 	std::set<std::string> landmarkIds;
 	for (size_t landmark = 0; landmark < Landmarks::COUNT; ++landmark)
 	{
 		const Landmarks::Definition& definition = Landmarks::DEFINITIONS[landmark];
 		const WorldRegion* region = NULL;
-		for (size_t candidate = 0; candidate < mWorldRegions.size(); ++candidate)
-			if (mWorldRegions[candidate].mapId == "overworld" &&
-				mWorldRegions[candidate].id == definition.regionId)
-				region = &mWorldRegions[candidate];
+		for (size_t candidate = 0; candidate < mWorld.regions.size(); ++candidate)
+			if (mWorld.regions[candidate].mapId == "overworld" &&
+				mWorld.regions[candidate].id == definition.regionId)
+				region = &mWorld.regions[candidate];
 		bool discoverable = false;
 		if (region != NULL && definition.localX >= 0 && definition.localY >= 0 &&
 			definition.localX < region->width && definition.localY < region->height &&
@@ -1779,33 +1854,44 @@ bool Application::exerciseOverworldMovementSmoke()
 	}
 	int savedStoryStage = mStoryStage;
 	mCurrentWorldArea = overworldArea;
-	mPlayerX = 259;
-	mPlayerY = 47;
-	mVisualX = 259.f;
-	mVisualY = 47.f;
+	mPlayerX = 259 + overworldOffsetX;
+	mPlayerY = 47 + overworldOffsetY;
+	mVisualX = (float)mPlayerX;
+	mVisualY = (float)mPlayerY;
 	mStoryStage = 0;
 	tryMove(1, 0);
-	bool roadGateReady = mPlayerX == 259;
+	bool roadGateReady = mPlayerX == 259 + overworldOffsetX;
 	mStoryStage = 4;
 	tryMove(1, 0);
-	roadGateReady = roadGateReady && mPlayerX == 260;
-	mPlayerX = 224;
-	mPlayerY = 53;
-	mVisualX = 224.f;
-	mVisualY = 53.f;
+	roadGateReady = roadGateReady && mPlayerX == 260 + overworldOffsetX;
+	mPlayerX = 224 + overworldOffsetX;
+	mPlayerY = 53 + overworldOffsetY;
+	mVisualX = (float)mPlayerX;
+	mVisualY = (float)mPlayerY;
 	mStoryStage = 0;
 	tryMove(-1, 0);
-	bool watershedGateReady = mPlayerX == 224;
+	bool watershedGateReady = mPlayerX == 224 + overworldOffsetX;
 	mStoryStage = 4;
 	tryMove(-1, 0);
-	watershedGateReady = watershedGateReady && mPlayerX == 223;
+	watershedGateReady = watershedGateReady && mPlayerX == 223 + overworldOffsetX;
 	mStoryStage = savedStoryStage;
 	mCurrentWorldArea = savedArea;
 	mPlayerX = savedPortalPlayerX;
 	mPlayerY = savedPortalPlayerY;
 	mVisualX = savedPortalVisualX;
 	mVisualY = savedPortalVisualY;
-	return spriteSheetsReady && playerInterpolated && npcInterpolated && enteredIndoor && returnedOutside &&
+	if (!(worldDataReady && spriteSheetsReady && playerInterpolated && npcInterpolated &&
+		enteredIndoor && returnedOutside && mercerIsIndoors && seamlessWorldReady &&
+		signpostReady && roadGateReady && watershedGateReady && viewportCullingReady &&
+		naturalTilesReady && blackstoneGateReady))
+		std::cerr << "Overworld flags: data=" << worldDataReady << " sprites=" <<
+			spriteSheetsReady << " player=" << playerInterpolated << " npc=" <<
+			npcInterpolated << " portals=" << enteredIndoor << returnedOutside <<
+			" mercer=" << mercerIsIndoors << " seamless=" << seamlessWorldReady <<
+			" sign=" << signpostReady << " gates=" << roadGateReady << watershedGateReady <<
+			" culling=" << viewportCullingReady << " natural=" << naturalTilesReady <<
+			" blackstone=" << blackstoneGateReady << std::endl;
+	return worldDataReady && spriteSheetsReady && playerInterpolated && npcInterpolated && enteredIndoor && returnedOutside &&
 		mercerIsIndoors && seamlessWorldReady && signpostReady && roadGateReady && watershedGateReady &&
 		viewportCullingReady && naturalTilesReady && blackstoneGateReady;
 }
@@ -1997,7 +2083,6 @@ bool Application::exerciseMenuScreensSmoke()
 	int savedBuilderTileCategory = mWorldBuilderTileCategory;
 	int savedBuilderTileSheet = mWorldBuilderTileSheet;
 	int savedBuilderCatalogTile = mWorldBuilderCatalogTile;
-	RtpRenderLayer savedBuilderTileLayer = mWorldBuilderTileLayer;
 	int savedBuilderSelectedNpc = mWorldBuilderSelectedNpc;
 	int savedBuilderSelectedObject = mWorldBuilderSelectedObject;
 	bool savedBuilderDirty = mWorldBuilderDirty;
@@ -2091,7 +2176,7 @@ bool Application::exerciseMenuScreensSmoke()
 	renderWorldBuilder();
 	bool tilePaletteReady = mWorldBuilderHoveredTileName == "Ground (Dirt Cave)";
 	std::map<std::tuple<int, int, int>, RtpTileReference> savedTileLayers =
-		mWorldAreas[builderArea].tileLayers;
+		mWorld.maps[builderArea].tileLayers;
 	int catalogTestX = -1;
 	int catalogTestY = -1;
 	for (int row = 0; row < (int)currentMap().size() && catalogTestX < 0; ++row)
@@ -2107,32 +2192,42 @@ bool Application::exerciseMenuScreensSmoke()
 	mWorldBuilderTileCategory = 2;
 	mWorldBuilderTileSheet = (int)RtpTileSheet::A2;
 	mWorldBuilderCatalogTile = 1;
-	mWorldBuilderTileLayer = RtpRenderLayer::Ground;
 	paintWorldBuilderTile(catalogTestX, catalogTestY);
-	const RtpTileReference* paintedLayer = worldTileLayer(mWorldAreas[builderArea],
+	const RtpTileReference* paintedLayer = worldTileLayer(mWorld.maps[builderArea],
 		catalogTestX, catalogTestY, RtpRenderLayer::Ground);
 	bool catalogPaintingReady = paintedLayer != NULL &&
 		paintedLayer->family == RtpTilesetFamily::Outside &&
 		paintedLayer->sheet == RtpTileSheet::A2 && paintedLayer->index == 1 &&
-		worldTileWalkable(mWorldAreas[builderArea], catalogTestX, catalogTestY);
+		worldTileWalkable(mWorld.maps[builderArea], catalogTestX, catalogTestY);
 	eraseWorldBuilderTile(catalogTestX, catalogTestY);
 	catalogPaintingReady = catalogPaintingReady &&
-		worldTileLayer(mWorldAreas[builderArea], catalogTestX, catalogTestY,
+		worldTileLayer(mWorld.maps[builderArea], catalogTestX, catalogTestY,
 			RtpRenderLayer::Ground) == NULL;
 	mWorldBuilderTileSheet = (int)RtpTileSheet::A3;
 	mWorldBuilderCatalogTile = 8;
-	mWorldBuilderTileLayer = RtpRenderLayer::Ground;
 	paintWorldBuilderTile(catalogTestX, catalogTestY);
 	catalogPaintingReady = catalogPaintingReady &&
-		!worldTileWalkable(mWorldAreas[builderArea], catalogTestX, catalogTestY);
+		!worldTileWalkable(mWorld.maps[builderArea], catalogTestX, catalogTestY);
 	mWorldBuilderTileSheet = (int)RtpTileSheet::B;
 	mWorldBuilderCatalogTile = 67;
-	mWorldBuilderTileLayer = RtpRenderLayer::Decoration;
 	paintWorldBuilderTile(catalogTestX + 1, catalogTestY);
 	catalogPaintingReady = catalogPaintingReady &&
-		(worldTileConnections(mWorldAreas[builderArea], catalogTestX,
+		(worldTileConnections(mWorld.maps[builderArea], catalogTestX,
 			catalogTestY, RtpRenderLayer::Ground) & RtpTilesetRenderer::East) != 0 &&
-		worldTileWalkable(mWorldAreas[builderArea], catalogTestX + 1, catalogTestY);
+		worldTileWalkable(mWorld.maps[builderArea], catalogTestX + 1, catalogTestY);
+	mWorldBuilderTileCategory = 0;
+	mWorldBuilderTileSheet = (int)RtpTileSheet::C;
+	mWorldBuilderCatalogTile = 31;
+	paintWorldBuilderTile(catalogTestX, catalogTestY);
+	catalogPaintingReady = catalogPaintingReady &&
+		worldTileLayer(mWorld.maps[builderArea], catalogTestX, catalogTestY,
+			RtpRenderLayer::Foreground) != NULL;
+	eraseWorldBuilderTile(catalogTestX, catalogTestY);
+	catalogPaintingReady = catalogPaintingReady &&
+		worldTileLayer(mWorld.maps[builderArea], catalogTestX, catalogTestY,
+			RtpRenderLayer::Foreground) == NULL &&
+		worldTileLayer(mWorld.maps[builderArea], catalogTestX, catalogTestY,
+			RtpRenderLayer::Ground) != NULL;
 	SDL_Event categoryClick = {};
 	categoryClick.type = SDL_MOUSEBUTTONDOWN;
 	categoryClick.button.button = SDL_BUTTON_LEFT;
@@ -2215,10 +2310,9 @@ bool Application::exerciseMenuScreensSmoke()
 	mWorldBuilderTileCategory = savedBuilderTileCategory;
 	mWorldBuilderTileSheet = savedBuilderTileSheet;
 	mWorldBuilderCatalogTile = savedBuilderCatalogTile;
-	mWorldBuilderTileLayer = savedBuilderTileLayer;
 	mWorldBuilderSelectedNpc = savedBuilderSelectedNpc;
 	mWorldBuilderSelectedObject = savedBuilderSelectedObject;
-	mWorldAreas[builderArea].tileLayers = savedTileLayers;
+	mWorld.maps[builderArea].tileLayers = savedTileLayers;
 	mWorldBuilderDirty = savedBuilderDirty;
 	mMouseX = savedMouseX;
 	mMouseY = savedMouseY;

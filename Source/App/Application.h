@@ -3,6 +3,7 @@
 #include "App/MercerStock.h"
 #include "App/Npc.h"
 #include "App/WorldObject.h"
+#include "App/WorldData.h"
 #include "App/WorldTile.h"
 #include "App/RtpTilesetRenderer.h"
 #include "Game/Duel.h"
@@ -120,35 +121,6 @@ private:
 		SDL_Rect rect;
 		int cardId;
 	};
-	struct WorldArea
-	{
-		std::string id;
-		std::string name;
-		bool indoor;
-		std::vector<std::string> tiles;
-		std::map<std::tuple<int, int, int>, RtpTileReference> tileLayers;
-	};
-	struct WorldRegion
-	{
-		std::string id;
-		std::string name;
-		std::string mapId;
-		int x;
-		int y;
-		int width;
-		int height;
-		bool connector;
-	};
-	struct WorldPortal
-	{
-		std::string fromMap;
-		int fromX;
-		int fromY;
-		std::string toMap;
-		int toX;
-		int toY;
-	};
-
 	bool initialize();
 	int runSmokeTests();
 	void shutdown();
@@ -224,6 +196,8 @@ private:
 	bool activatePortalAt(int x, int y);
 	bool isPortalAt(const std::string& mapId, int x, int y) const;
 	bool loadWorldMap(const std::string& path, std::string& error, bool allowMissingPositions = false);
+	bool loadDeprecatedLuaWorldMap(const std::string& path, std::string& error,
+		bool allowMissingPositions = false);
 	void handleWorldBuilderEvent(const SDL_Event& event);
 	void updateWorldBuilder(Uint32 deltaTime);
 	void renderWorldBuilder();
@@ -235,12 +209,12 @@ private:
 	void paintWorldBuilderTile(int x, int y);
 	void eraseWorldBuilderTile(int x, int y);
 	bool worldBuilderRequiresWalkable(int x, int y) const;
-	const RtpTileReference* worldTileLayer(const WorldArea& area, int x, int y,
+	const RtpTileReference* worldTileLayer(const WorldMap& area, int x, int y,
 		RtpRenderLayer layer) const;
-	bool worldTileWalkable(const WorldArea& area, int x, int y) const;
-	unsigned int worldTileConnections(const WorldArea& area, int x, int y,
+	bool worldTileWalkable(const WorldMap& area, int x, int y) const;
+	unsigned int worldTileConnections(const WorldMap& area, int x, int y,
 		RtpRenderLayer layer) const;
-	bool drawWorldTileLayer(const WorldArea& area, int x, int y,
+	bool drawWorldTileLayer(const WorldMap& area, int x, int y,
 		RtpRenderLayer layer, const SDL_Rect& destination);
 	void placeWorldBuilderSelection(int x, int y);
 	bool worldBuilderCanPlace(int x, int y, int ignoredNpc, int ignoredObject) const;
@@ -308,9 +282,11 @@ private:
 	void drawZone(const std::vector<Card*>& cards, int x, int y, int width, int cardWidth, int cardHeight, bool faceUp, bool clickable);
 	void drawHand(const std::vector<Card*>& cards, bool opponent);
 	void drawCharacter(float gridX, float gridY, CharacterAppearance appearance,
-		bool completed, bool walking = false, int facingX = 0, int facingY = 1);
+		bool completed, bool walking = false, int facingX = 0, int facingY = 1,
+		const std::string& spriteSheet = "", int spriteIndex = -1);
 	void drawCharacterSprite(int x, int y, CharacterAppearance appearance,
-		bool completed, bool walking = false, int facingX = 0, int facingY = 1);
+		bool completed, bool walking = false, int facingX = 0, int facingY = 1,
+		const std::string& spriteSheet = "", int spriteIndex = -1);
 	SDL_Color civilizationColor(int civilization) const;
 	void logicalMouse(int windowX, int windowY, int& logicalX, int& logicalY) const;
 	bool contains(const SDL_Rect& rect, int x, int y) const;
@@ -369,15 +345,10 @@ private:
 	bool mPauseMenuOpen;
 	int mPauseMenuSelection;
 
-	std::vector<WorldArea> mWorldAreas;
-	std::vector<WorldRegion> mWorldRegions;
-	std::vector<WorldPortal> mWorldPortals;
+	WorldData mWorld;
 	int mCurrentWorldArea;
 	int mOpeningPortal;
 	Uint32 mPortalAnimationStarted;
-	std::string mWorldStartMap;
-	int mWorldStartX;
-	int mWorldStartY;
 	std::vector<Npc> mNpcs;
 	std::vector<WorldObject> mWorldObjects;
 	MercerStockData mMercerStock;
@@ -418,7 +389,6 @@ private:
 	int mWorldBuilderTileCategory;
 	int mWorldBuilderTileSheet;
 	int mWorldBuilderCatalogTile;
-	RtpRenderLayer mWorldBuilderTileLayer;
 	std::string mWorldBuilderHoveredTileName;
 	int mWorldBuilderSelectedNpc;
 	int mWorldBuilderSelectedObject;

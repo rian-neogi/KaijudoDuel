@@ -5,7 +5,9 @@
 #include "LuaInclude.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
+#include <fstream>
 #include <set>
 
 namespace
@@ -65,7 +67,7 @@ namespace
 			suffix[0] - '0' : 0;
 	}
 
-	bool parseAppearance(const std::string& value, CharacterAppearance& result)
+	bool parseLegacyAppearance(const std::string& value, CharacterAppearance& result)
 	{
 		if (value == "mira") result = CharacterAppearance::Mira;
 		else if (value == "marin") result = CharacterAppearance::Marin;
@@ -92,6 +94,47 @@ namespace
 			else return false;
 		}
 		return true;
+	}
+
+	bool parseSpriteSheetAppearance(const std::string& value,
+		std::string& spriteSheet, int& spriteIndex)
+	{
+		const size_t separator = value.find_last_of('-');
+		if (separator == std::string::npos || separator == 0 ||
+			separator + 1 >= value.size()) return false;
+		const std::string sheetName = value.substr(0, separator);
+		for (size_t i = 0; i < sheetName.size(); ++i)
+		{
+			const unsigned char character = (unsigned char)sheetName[i];
+			if (!std::isalnum(character) && character != '_' &&
+				character != '!' && character != '$') return false;
+		}
+		int luaIndex = 0;
+		for (size_t i = separator + 1; i < value.size(); ++i)
+		{
+			const unsigned char character = (unsigned char)value[i];
+			if (!std::isdigit(character)) return false;
+			luaIndex = luaIndex * 10 + (character - '0');
+			if (luaIndex > 8) return false;
+		}
+		const bool singleCharacter = sheetName.find('$') != std::string::npos;
+		if (luaIndex < 1 || luaIndex > (singleCharacter ? 1 : 8)) return false;
+
+		const std::string path = "Resources/Graphics/Characters/" + sheetName + ".png";
+		std::ifstream file(path.c_str(), std::ios::binary);
+		if (!file.good()) return false;
+		spriteSheet = path;
+		spriteIndex = luaIndex - 1;
+		return true;
+	}
+
+	bool parseAppearance(const std::string& value, CharacterAppearance& result,
+		std::string& spriteSheet, int& spriteIndex)
+	{
+		spriteSheet.clear();
+		spriteIndex = -1;
+		if (parseLegacyAppearance(value, result)) return true;
+		return parseSpriteSheetAppearance(value, spriteSheet, spriteIndex);
 	}
 
 	void readDialogue(lua_State* state, int npcTable,
@@ -123,6 +166,7 @@ Npc::Npc(int xValue, int yValue, const std::string& npcName,
 	  visualX((float)xValue), visualY((float)yValue), facingX(0), facingY(1), nextMoveAt(0),
 	  name(npcName), decks(deckPaths), rewards(battleRewards), challenge(greeting), wins(0),
 	  maxWins((int)battleRewards.size()), kind(npcKind), appearance(characterAppearance),
+	  spriteIndex(-1),
 	  duelEnabled(npcKind != NpcKind::Town), tradeEnabled(false), wanders(false),
 	  sightRange(0),
 	  mWanderState((unsigned int)(xValue * 73856093u) ^
@@ -343,11 +387,19 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 		const std::string appearanceName = luaStringField(state, entry, "appearance");
 		NpcKind kind = NpcKind::Town;
 		CharacterAppearance appearance = CharacterAppearance::Mira;
-		if (id.empty() || name.empty() || !parseKind(kindName, kind) ||
-			!parseAppearance(appearanceName, appearance))
+		std::string spriteSheet;
+		int spriteIndex = -1;
+		if (id.empty() || name.empty() || !parseKind(kindName, kind))
 		{
 			error = "entry " + std::to_string(index) +
 				" needs valid id, name, kind, and appearance fields";
+			lua_close(state);
+			return false;
+		}
+		if (!parseAppearance(appearanceName, appearance, spriteSheet, spriteIndex))
+		{
+			error = "NPC '" + id + "' has invalid appearance '" + appearanceName +
+				"'; use <sheet>-<character>, for example Actor2-3";
 			lua_close(state);
 			return false;
 		}
@@ -500,6 +552,8 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 				Npc::routeDuelist(x, y, name, decks, greeting, rewards, appearance,
 					sightRange));
 		npc.id = id;
+		npc.spriteSheet = spriteSheet;
+		npc.spriteIndex = spriteIndex;
 		npc.crestId = crestId;
 		npc.aiPersonality = aiPersonality;
 		npc.dialogue = dialogue;

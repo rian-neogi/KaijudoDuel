@@ -1,63 +1,13 @@
 #pragma once
 
+#include "RtpTile.h"
+
 #include <SDL.h>
 
 #include <string>
 #include <vector>
 
 class AssetManager;
-
-enum class RtpTilesetFamily
-{
-	Dungeon,
-	Inside,
-	Outside,
-	World
-};
-
-enum class RtpTileSheet
-{
-	A1,
-	A2,
-	A3,
-	A4,
-	A5,
-	B,
-	C
-};
-
-enum class RtpRenderLayer
-{
-	Ground,
-	Decoration,
-	Foreground
-};
-
-enum class RtpTileCollision
-{
-	Ignore,
-	Walkable,
-	Blocked
-};
-
-struct RtpTileReference
-{
-	RtpTilesetFamily family;
-	RtpTileSheet sheet;
-	int index;
-	RtpRenderLayer layer;
-	Uint8 red;
-	Uint8 green;
-	Uint8 blue;
-
-	RtpTileReference(RtpTilesetFamily familyValue, RtpTileSheet sheetValue,
-		int indexValue, RtpRenderLayer layerValue = RtpRenderLayer::Ground,
-		Uint8 redValue = 255, Uint8 greenValue = 255, Uint8 blueValue = 255)
-		: family(familyValue), sheet(sheetValue), index(indexValue), layer(layerValue),
-		  red(redValue), green(greenValue), blue(blueValue)
-	{
-	}
-};
 
 struct RtpSheetDescriptor
 {
@@ -89,7 +39,7 @@ public:
 		std::vector<std::string>& names, std::string& error);
 	static bool isWallOpening(const RtpTileReference& tile);
 	static RtpTileCollision collision(const RtpTileReference& tile);
-	static RtpRenderLayer defaultLayer(RtpTileSheet sheet);
+	static RtpRenderLayer inferredLayer(const RtpTileReference& tile);
 	static bool regularTileSource(RtpTileSheet sheet, int tileIndex,
 		int textureWidth, int textureHeight, SDL_Rect& source);
 	static bool paletteTileSource(RtpTileSheet sheet, int tileIndex,

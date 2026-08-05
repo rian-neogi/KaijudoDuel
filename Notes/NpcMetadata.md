@@ -4,7 +4,7 @@ Overworld NPCs are defined in `Lua/Npcs.lua`. The file returns an array with one
 
 The loader rejects invalid metadata with a specific startup error. It validates duplicate IDs and names, kinds, sprite appearances, positions, deck files, reward cards, reward limits, and empty rosters.
 
-NPC positions belong exclusively to `Lua/World.lua`. Each exterior region also declares `kind = "town"` or `kind = "connector"` for geographic organization and editor labels. Region kinds do not restrict which NPC kinds may be placed there.
+NPC positions belong exclusively to `World/World.json`. Each exterior region also declares `kind = "town"` or `kind = "connector"` for geographic organization and editor labels. Region kinds do not restrict which NPC kinds may be placed there.
 
 ## Town NPC template
 
@@ -64,7 +64,7 @@ still be used for a deck elsewhere; if that path exists, it takes priority.
 
 ## Route duelist template
 
-Route duelists wander within the 3-by-3 area centered on their authored `World.lua` position. Before their first defeat, they detect the player anywhere inside their configured taxicab-distance radius. Detection is independent of facing. The trainer stops wandering as soon as the player is detected, displays an exclamation mark, stops player movement, and follows a cardinal path around walkable obstacles until adjacent before delivering `greeting` and starting a forced duel. Losing does not permanently lock the player in another challenge; leaving and re-entering the radius re-arms it. Later battles are voluntary rematches. Route duelists may be positioned in towns or connecting regions.
+Route duelists wander within the 3-by-3 area centered on their authored `World/World.json` position. Before their first defeat, they detect the player anywhere inside their configured taxicab-distance radius. Detection is independent of facing. The trainer stops wandering as soon as the player is detected, displays an exclamation mark, stops player movement, and follows a cardinal path around walkable obstacles until adjacent before delivering `greeting` and starting a forced duel. Losing does not permanently lock the player in another challenge; leaving and re-entering the radius re-arms it. Later battles are voluntary rematches. Route duelists may be positioned in towns or connecting regions.
 
 ```lua
 {

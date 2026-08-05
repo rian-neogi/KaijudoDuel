@@ -6,13 +6,13 @@ Connecting areas are playable routes between settlements, arenas, sanctuaries, a
 
 Each connector in this document states exactly which destinations it joins. Most have two exits, while shared junction regions have three. Unless a profile explicitly says otherwise, travel between every pair of exits is bidirectional after its progression gate opens and remains open for the rest of the game.
 
-`Notes/WorldMap.md` remains authoritative for planned regional adjacency. `Lua/World.lua` remains authoritative for connectors that have actually been implemented.
+`Notes/WorldMap.md` remains authoritative for planned regional adjacency. `World/World.json` and `World/Maps/*.json` remain authoritative for connectors that have actually been implemented.
 
 Names attached to planned connectors are working region names. Their exits and bidirectional topology are more important than preserving a particular road name during implementation.
 
 ## Status terms
 
-- **Implemented:** The connector is a traversable region of the seamless exterior in `Lua/World.lua`.
+- **Implemented:** The connector is a traversable region of the seamless native exterior.
 - **Planned:** The connector belongs to the agreed world topology but does not yet have a playable exterior region.
 - **Locked:** The physical route may be visible, but story progression prevents crossing its outer checkpoint.
 - **Open:** The player may traverse the route in both directions.
@@ -57,7 +57,7 @@ Walking near a named landmark records it permanently in the player's route disco
 
 **Connects:** Emberglen's eastern exit ↔ Cinderrail Foundry's western station road  
 **Availability:** Opens after Act I  
-**Status:** Implemented as the `old_road` region of the seamless `overworld` map in `Lua/World.lua`
+**Status:** Implemented as the `old_road` region of the seamless native `overworld` map
 
 The Old Road is a former primary freight route whose traffic declined as newer links opened. It gradually changes from Emberglen woodland into the rocky ridge surrounding Cinderrail. Its expanded 96-by-48 map includes a winding cobbled path, several stream crossings, timber bridges, an old maintenance checkpoint, waystones, forest banks, exposed stone, and a broken freight cut.
 
@@ -71,7 +71,7 @@ The Emberglen entrance remains locked until the Act I investigation and boss con
 
 **Connects:** Emberglen's western road ↔ Glasswater Port's Watershed Gate ↔ Rootmaze Commons' Northwater Gate  
 **Availability:** Opens after Act I  
-**Status:** Implemented as the `watershed_crossroads` region of the seamless `overworld` map in `Lua/World.lua`
+**Status:** Implemented as the `watershed_crossroads` region of the seamless native `overworld` map
 
 Watershed Crossroads is one continuous three-way region rather than three separate roads. Its central landmark is an old toll shelter beside the point where Emberglen's drainage stream divides between Glasswater's canals and Rootmaze's root-supported wetlands. Gold orchard markers identify Emberglen, blue tide markers identify Glasswater, and green leaf signs identify Rootmaze.
 
@@ -85,7 +85,7 @@ The route discoveries are Northwater Pools, the Old Toll Shelter, and the Drowne
 
 **Connects:** Emberglen's southern road ↔ Gloam Quarry's western caravan yard  
 **Availability:** Opens after the Confluence relay restores the outer tier  
-**Status:** Implemented as the `blackstone_road` region of the seamless `overworld` map in `Lua/World.lua`
+**Status:** Implemented as the `blackstone_road` region of the seamless native `overworld` map
 
 Blackstone Road is the longest direct route back from Gloam to the central hub. Orchard walls and timber bridges give way to dark retaining blocks, carved mileage records, and gold lantern cages maintained jointly by both towns.
 

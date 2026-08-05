@@ -2,17 +2,15 @@
 
 #include "AppSupport.h"
 #include "AssetManager.h"
+#include "CatalogMapStorage.h"
 #include "LuaInclude.h"
+#include "WorldStorage.h"
 #include "WorldTileRenderer.h"
 
 #include <algorithm>
-#include <cerrno>
 #include <cmath>
-#include <cstdio>
-#include <cstring>
 #include <fstream>
 #include <set>
-#include <sstream>
 #include <tuple>
 
 using namespace AppSupport;
@@ -42,13 +40,8 @@ namespace
 		"DUNGEON", "INSIDE", "OUTSIDE", "WORLD"
 	};
 	const SDL_Rect BUILDER_PREVIOUS_SHEET = { 1022, BUILDER_SHEET_Y, 28, 29 };
-	const SDL_Rect BUILDER_SHEET_NAME = { 1054, BUILDER_SHEET_Y, 80, 29 };
-	const SDL_Rect BUILDER_NEXT_SHEET = { 1138, BUILDER_SHEET_Y, 28, 29 };
-	const SDL_Rect BUILDER_LAYER_BUTTONS[] = {
-		{ 1172, BUILDER_SHEET_Y, 24, 29 },
-		{ 1199, BUILDER_SHEET_Y, 24, 29 },
-		{ 1226, BUILDER_SHEET_Y, 24, 29 }
-	};
+	const SDL_Rect BUILDER_SHEET_NAME = { 1054, BUILDER_SHEET_Y, 164, 29 };
+	const SDL_Rect BUILDER_NEXT_SHEET = { 1222, BUILDER_SHEET_Y, 28, 29 };
 
 	SDL_Rect tileCategoryRect(int index)
 	{
@@ -252,25 +245,153 @@ namespace
 			cellX < (int)map[cellY].size();
 	}
 
-	bool writeTemporary(const std::string& path, const std::string& contents, std::string& error)
-	{
-		std::ofstream output(path.c_str(), std::ios::binary | std::ios::trunc);
-		if (!output)
-		{
-			error = "could not write " + path;
-			return false;
-		}
-		output << contents;
-		if (!output)
-		{
-			error = "write failed for " + path;
-			return false;
-		}
-		return true;
-	}
 }
 
 bool Application::loadWorldMap(const std::string& path, std::string& error,
+	bool allowMissingPositions)
+{
+	WorldData loadedWorld;
+	if (!WorldStorage::load(path, loadedWorld, error)) return false;
+	auto walkable = [this](const WorldData& world, const WorldPosition& position) -> bool
+	{
+		const WorldMap* map = world.map(position.mapId);
+		return map != NULL && worldTileWalkable(*map, position.x, position.y);
+	};
+	if (!walkable(loadedWorld, loadedWorld.start))
+	{
+		error = "world start must reference a walkable catalog tile";
+		return false;
+	}
+	for (size_t index = 0; index < loadedWorld.portals.size(); ++index)
+	{
+		const WorldPortal& portal = loadedWorld.portals[index];
+		if (!walkable(loadedWorld, { portal.fromMap, portal.fromX, portal.fromY }) ||
+			!walkable(loadedWorld, { portal.toMap, portal.toX, portal.toY }))
+		{
+			error = "portal " + std::to_string(index + 1) +
+				" must use walkable catalog tiles";
+			return false;
+		}
+	}
+	std::set<std::tuple<std::string, int, int> > occupied;
+	occupied.insert(std::make_tuple(loadedWorld.start.mapId,
+		loadedWorld.start.x, loadedWorld.start.y));
+	for (size_t index = 0; index < loadedWorld.portals.size(); ++index)
+	{
+		const WorldPortal& portal = loadedWorld.portals[index];
+		occupied.insert(std::make_tuple(portal.fromMap, portal.fromX, portal.fromY));
+		occupied.insert(std::make_tuple(portal.toMap, portal.toX, portal.toY));
+	}
+	bool placedMissing = false;
+	auto resolvePositions = [&](const char* groupName, const std::vector<std::string>& ids,
+		const std::map<std::string, WorldPosition>& source,
+		std::map<std::string, WorldPosition>& resolved) -> bool
+	{
+		resolved.clear();
+		for (size_t index = 0; index < ids.size(); ++index)
+		{
+			std::map<std::string, WorldPosition>::const_iterator found = source.find(ids[index]);
+			if (found != source.end())
+			{
+				if (!walkable(loadedWorld, found->second) ||
+					!occupied.insert(std::make_tuple(found->second.mapId,
+						found->second.x, found->second.y)).second)
+				{
+					error = std::string("invalid or occupied ") + groupName +
+						" position for '" + ids[index] + "'";
+					return false;
+				}
+				resolved[ids[index]] = found->second;
+				continue;
+			}
+			if (!allowMissingPositions)
+			{
+				error = std::string("missing ") + groupName + " position for '" +
+					ids[index] + "'";
+				return false;
+			}
+			bool placed = false;
+			for (size_t mapIndex = 0; mapIndex < loadedWorld.maps.size() && !placed; ++mapIndex)
+				for (int y = 0; y < loadedWorld.maps[mapIndex].height() && !placed; ++y)
+					for (int x = 0; x < loadedWorld.maps[mapIndex].width() && !placed; ++x)
+					{
+						WorldPosition candidate = { loadedWorld.maps[mapIndex].id, x, y };
+						if (walkable(loadedWorld, candidate) &&
+							occupied.insert(std::make_tuple(candidate.mapId, x, y)).second)
+						{
+							resolved[ids[index]] = candidate;
+							placed = placedMissing = true;
+						}
+					}
+			if (!placed)
+			{
+				error = "no free walkable tile is available for new world entities";
+				return false;
+			}
+		}
+		return true;
+	};
+	std::vector<std::string> npcIds;
+	for (size_t index = 0; index < mNpcs.size(); ++index) npcIds.push_back(mNpcs[index].id);
+	std::vector<std::string> objectIds;
+	for (size_t index = 0; index < mWorldObjects.size(); ++index)
+		objectIds.push_back(mWorldObjects[index].id);
+	std::vector<std::string> shardIds;
+	for (size_t index = 0; index < mMercerStock.shards.size(); ++index)
+		shardIds.push_back(mMercerStock.shards[index].id);
+	std::map<std::string, WorldPosition> npcPositions;
+	std::map<std::string, WorldPosition> objectPositions;
+	std::map<std::string, WorldPosition> shardPositions;
+	if (!resolvePositions("npc", npcIds, loadedWorld.npcPositions, npcPositions) ||
+		!resolvePositions("object", objectIds, loadedWorld.objectPositions, objectPositions) ||
+		!resolvePositions("shard", shardIds, loadedWorld.shardPositions, shardPositions))
+		return false;
+	loadedWorld.npcPositions.swap(npcPositions);
+	loadedWorld.objectPositions.swap(objectPositions);
+	loadedWorld.shardPositions.swap(shardPositions);
+	if (!loadedWorld.validateStructure(error)) return false;
+	loadedWorld.swap(mWorld);
+	mCurrentWorldArea = worldAreaIndex(mWorld.start.mapId);
+	mPlayerX = mWorld.start.x;
+	mPlayerY = mWorld.start.y;
+	mVisualX = (float)mPlayerX;
+	mVisualY = (float)mPlayerY;
+	centerMapCamera(currentMap(), mPlayerX, mPlayerY, mWorldBuilderCameraX,
+		mWorldBuilderCameraY, mWorldBuilderTileSize);
+	for (size_t index = 0; index < mNpcs.size(); ++index)
+	{
+		const WorldPosition& position = mWorld.npcPositions[mNpcs[index].id];
+		mNpcs[index].mapId = position.mapId;
+		mNpcs[index].setPosition(position.x, position.y);
+	}
+	for (size_t index = 0; index < mWorldObjects.size(); ++index)
+	{
+		const WorldPosition& position = mWorld.objectPositions[mWorldObjects[index].id];
+		mWorldObjects[index].mapId = position.mapId;
+		mWorldObjects[index].x = position.x;
+		mWorldObjects[index].y = position.y;
+	}
+	for (size_t index = 0; index < mMercerStock.shards.size(); ++index)
+	{
+		const WorldPosition& position = mWorld.shardPositions[mMercerStock.shards[index].id];
+		mMercerStock.shards[index].mapId = position.mapId;
+		mMercerStock.shards[index].x = position.x;
+		mMercerStock.shards[index].y = position.y;
+	}
+	if (placedMissing)
+	{
+		mWorldBuilderDirty = true;
+		mWorldBuilderNotice = "New metadata entities were placed automatically. Review and save.";
+		mWorldBuilderNoticeError = false;
+		mWorldBuilderNoticeUntil = static_cast<Uint32>(-1);
+	}
+	return true;
+}
+
+// Migration compatibility only. Normal gameplay and the World Builder load
+// World/World.json through WorldStorage; the supported migration entry point is
+// Tools/convert_legacy_world.py.
+bool Application::loadDeprecatedLuaWorldMap(const std::string& path, std::string& error,
 	bool allowMissingPositions)
 {
 	error.clear();
@@ -311,17 +432,16 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 		lua_pop(state, 1);
 		return value;
 	};
-	auto walkable = [this](const WorldArea& area, int x, int y)
+	auto walkable = [this](const WorldMap& area, int x, int y)
 	{
 		return worldTileWalkable(area, x, y);
 	};
-	auto inBounds = [](const WorldArea& area, int x, int y) -> bool
+	auto inBounds = [](const WorldMap& area, int x, int y) -> bool
 	{
-		return y >= 0 && y < (int)area.tiles.size() && x >= 0 &&
-			x < (int)area.tiles[y].size();
+		return area.contains(x, y);
 	};
 
-	std::vector<WorldArea> areas;
+	std::vector<WorldMap> areas;
 	std::set<std::string> areaIds;
 	lua_getfield(state, root, "maps");
 	if (!lua_istable(state, -1) || lua_rawlen(state, -1) == 0)
@@ -335,7 +455,7 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 	{
 		lua_rawgeti(state, -1, (lua_Integer)index);
 		const int mapTable = lua_gettop(state);
-		WorldArea area;
+		WorldMap area;
 		area.id = stringField(mapTable, "id");
 		area.name = stringField(mapTable, "name");
 		lua_getfield(state, mapTable, "indoor");
@@ -378,6 +498,8 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 			}
 			area.tiles.push_back(value);
 		}
+		area.columns = (int)columnCount;
+		area.rows = rowCount;
 		lua_pop(state, 1);
 		lua_getfield(state, mapTable, "tile_layers");
 		if (!lua_isnil(state, -1) && !lua_istable(state, -1))
@@ -424,6 +546,25 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 		areas.push_back(area);
 	}
 	lua_pop(state, 1);
+	bool anyCatalogMap = false;
+	bool allCatalogMaps = true;
+	for (size_t index = 0; index < areas.size(); ++index)
+	{
+		std::ifstream catalogInput(("World/Maps/" + areas[index].id + ".json").c_str());
+		anyCatalogMap = anyCatalogMap || catalogInput.good();
+		allCatalogMaps = allCatalogMaps && catalogInput.good();
+	}
+	if (anyCatalogMap && !allCatalogMaps)
+	{
+		error = "World/Maps is incomplete; every Lua map needs a catalog JSON map";
+		lua_close(state);
+		return false;
+	}
+	if (allCatalogMaps && !CatalogMapStorage::loadMaps("World/Maps", areas, error))
+	{
+		lua_close(state);
+		return false;
+	}
 	auto areaIndex = [&areas](const std::string& id) -> int
 	{
 		for (size_t i = 0; i < areas.size(); ++i) if (areas[i].id == id) return (int)i;
@@ -620,12 +761,13 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 		return false;
 	}
 	lua_close(state);
-	mWorldAreas.swap(areas);
-	mWorldRegions.swap(regions);
-	mWorldPortals.swap(portals);
-	mWorldStartMap = startMap;
-	mWorldStartX = startX;
-	mWorldStartY = startY;
+	WorldData loadedWorld;
+	loadedWorld.maps.swap(areas);
+	loadedWorld.regions.swap(regions);
+	loadedWorld.portals.swap(portals);
+	loadedWorld.start = { startMap, startX, startY };
+	if (!loadedWorld.validateStructure(error)) return false;
+	mWorld.swap(loadedWorld);
 	mCurrentWorldArea = worldAreaIndex(startMap);
 	mPlayerX = startX;
 	mPlayerY = startY;
@@ -662,40 +804,31 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 
 std::vector<std::string>& Application::currentMap()
 {
-	return mWorldAreas[mCurrentWorldArea].tiles;
+	return mWorld.maps[mCurrentWorldArea].tiles;
 }
 
 const std::vector<std::string>& Application::currentMap() const
 {
-	return mWorldAreas[mCurrentWorldArea].tiles;
+	return mWorld.maps[mCurrentWorldArea].tiles;
 }
 
 const std::string& Application::currentMapId() const
 {
-	return mWorldAreas[mCurrentWorldArea].id;
+	return mWorld.maps[mCurrentWorldArea].id;
 }
 
 int Application::worldAreaIndex(const std::string& id) const
 {
-	for (size_t i = 0; i < mWorldAreas.size(); ++i)
-		if (mWorldAreas[i].id == id) return (int)i;
-	return -1;
+	return mWorld.mapIndex(id);
 }
 
-const Application::WorldRegion* Application::worldRegionAt(const std::string& mapId,
+const WorldRegion* Application::worldRegionAt(const std::string& mapId,
 	int x, int y) const
 {
-	for (size_t i = 0; i < mWorldRegions.size(); ++i)
-	{
-		const WorldRegion& region = mWorldRegions[i];
-		if (region.mapId == mapId && x >= region.x && y >= region.y &&
-			x < region.x + region.width && y < region.y + region.height)
-			return &region;
-	}
-	return NULL;
+	return mWorld.regionAt(mapId, x, y);
 }
 
-const Application::WorldRegion* Application::currentWorldRegion() const
+const WorldRegion* Application::currentWorldRegion() const
 {
 	return worldRegionAt(currentMapId(), (int)std::round(mVisualX),
 		(int)std::round(mVisualY));
@@ -703,19 +836,14 @@ const Application::WorldRegion* Application::currentWorldRegion() const
 
 bool Application::isPortalAt(const std::string& mapId, int x, int y) const
 {
-	for (size_t i = 0; i < mWorldPortals.size(); ++i)
-		if ((mWorldPortals[i].fromMap == mapId && mWorldPortals[i].fromX == x &&
-			mWorldPortals[i].fromY == y) ||
-			(mWorldPortals[i].toMap == mapId && mWorldPortals[i].toX == x &&
-			mWorldPortals[i].toY == y)) return true;
-	return false;
+	return mWorld.hasPortalEndpoint(mapId, x, y);
 }
 
 bool Application::beginPortalAt(int x, int y)
 {
-	for (size_t i = 0; i < mWorldPortals.size(); ++i)
+	for (size_t i = 0; i < mWorld.portals.size(); ++i)
 	{
-		const WorldPortal& portal = mWorldPortals[i];
+		const WorldPortal& portal = mWorld.portals[i];
 		if (portal.fromMap != currentMapId() || portal.fromX != x || portal.fromY != y)
 			continue;
 		if (worldAreaIndex(portal.toMap) < 0) return false;
@@ -730,9 +858,9 @@ bool Application::beginPortalAt(int x, int y)
 
 bool Application::activatePortalAt(int x, int y)
 {
-	for (size_t i = 0; i < mWorldPortals.size(); ++i)
+	for (size_t i = 0; i < mWorld.portals.size(); ++i)
 	{
-		const WorldPortal& portal = mWorldPortals[i];
+		const WorldPortal& portal = mWorld.portals[i];
 		if (portal.fromMap != currentMapId() || portal.fromX != x || portal.fromY != y) continue;
 		int destination = worldAreaIndex(portal.toMap);
 		if (destination < 0) return false;
@@ -745,9 +873,9 @@ bool Application::activatePortalAt(int x, int y)
 		mPortalAnimationStarted = 0;
 		mDialogueNpc = -1;
 		mDialogueObject = -1;
-		mNotice = mWorldAreas[destination].indoor ? "Entered " + mWorldAreas[destination].name + "." :
-			(portal.toMap == mWorldStartMap ? "Returned to " : "Arrived at ") +
-			mWorldAreas[destination].name + ".";
+		mNotice = mWorld.maps[destination].indoor ? "Entered " + mWorld.maps[destination].name + "." :
+			(portal.toMap == mWorld.start.mapId ? "Returned to " : "Arrived at ") +
+			mWorld.maps[destination].name + ".";
 		mNoticeUntil = SDL_GetTicks() + 2500;
 		return true;
 	}
@@ -764,7 +892,7 @@ void Application::showWorldBuilderNotice(const std::string& notice, bool error)
 bool Application::worldBuilderCanPlace(int x, int y, int ignoredNpc, int ignoredObject) const
 {
 	if (!isWalkable(x, y) ||
-		(currentMapId() == mWorldStartMap && x == mWorldStartX && y == mWorldStartY) ||
+		(currentMapId() == mWorld.start.mapId && x == mWorld.start.x && y == mWorld.start.y) ||
 		isPortalAt(currentMapId(), x, y)) return false;
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 		if ((int)i != ignoredNpc && mNpcs[i].mapId == currentMapId() &&
@@ -789,11 +917,11 @@ void Application::paintWorldBuilderTile(int x, int y)
 	const RtpSheetDescriptor* descriptor = RtpTilesetRenderer::descriptor(family, sheet);
 	if (descriptor == NULL || mWorldBuilderCatalogTile < 0 ||
 		mWorldBuilderCatalogTile >= descriptor->tileCount) return;
-	std::tuple<int, int, int> key(y, x, (int)mWorldBuilderTileLayer);
-	RtpTileReference tile(family, sheet, mWorldBuilderCatalogTile,
-		mWorldBuilderTileLayer);
+	RtpTileReference tile(family, sheet, mWorldBuilderCatalogTile);
+	tile.layer = RtpTilesetRenderer::inferredLayer(tile);
+	std::tuple<int, int, int> key(y, x, (int)tile.layer);
 	std::map<std::tuple<int, int, int>, RtpTileReference>& layers =
-		mWorldAreas[mCurrentWorldArea].tileLayers;
+		mWorld.maps[mCurrentWorldArea].tileLayers;
 	std::map<std::tuple<int, int, int>, RtpTileReference>::iterator existing =
 		layers.find(key);
 	if (existing != layers.end() && existing->second.family == tile.family &&
@@ -803,7 +931,7 @@ void Application::paintWorldBuilderTile(int x, int y)
 	if (existing != layers.end()) layers.erase(existing);
 	layers.insert(std::make_pair(key, tile));
 	if (worldBuilderRequiresWalkable(x, y) &&
-		!worldTileWalkable(mWorldAreas[mCurrentWorldArea], x, y))
+		!worldTileWalkable(mWorld.maps[mCurrentWorldArea], x, y))
 	{
 		layers.erase(key);
 		if (hadExisting) layers.insert(std::make_pair(key, previous));
@@ -818,15 +946,18 @@ void Application::eraseWorldBuilderTile(int x, int y)
 	const std::vector<std::string>& map = currentMap();
 	if (y < 0 || y >= (int)map.size() || x < 0 || x >= (int)map[y].size()) return;
 	std::map<std::tuple<int, int, int>, RtpTileReference>& layers =
-		mWorldAreas[mCurrentWorldArea].tileLayers;
-	std::tuple<int, int, int> key(y, x, (int)mWorldBuilderTileLayer);
+		mWorld.maps[mCurrentWorldArea].tileLayers;
+	RtpTileReference selected(tilesetFamily(mWorldBuilderTileCategory),
+		(RtpTileSheet)mWorldBuilderTileSheet, mWorldBuilderCatalogTile);
+	selected.layer = RtpTilesetRenderer::inferredLayer(selected);
+	std::tuple<int, int, int> key(y, x, (int)selected.layer);
 	std::map<std::tuple<int, int, int>, RtpTileReference>::iterator existing =
 		layers.find(key);
 	if (existing == layers.end()) return;
 	RtpTileReference previous = existing->second;
 	layers.erase(existing);
 	if (worldBuilderRequiresWalkable(x, y) &&
-		!worldTileWalkable(mWorldAreas[mCurrentWorldArea], x, y))
+		!worldTileWalkable(mWorld.maps[mCurrentWorldArea], x, y))
 	{
 		layers.insert(std::make_pair(key, previous));
 		showWorldBuilderNotice("This layer keeps an entity or portal tile walkable.", true);
@@ -837,7 +968,7 @@ void Application::eraseWorldBuilderTile(int x, int y)
 
 bool Application::worldBuilderRequiresWalkable(int x, int y) const
 {
-	if ((currentMapId() == mWorldStartMap && x == mWorldStartX && y == mWorldStartY) ||
+	if ((currentMapId() == mWorld.start.mapId && x == mWorld.start.x && y == mWorld.start.y) ||
 		isPortalAt(currentMapId(), x, y)) return true;
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 		if (mNpcs[i].mapId == currentMapId() && mNpcs[i].x == x && mNpcs[i].y == y)
@@ -851,7 +982,7 @@ bool Application::worldBuilderRequiresWalkable(int x, int y) const
 	return false;
 }
 
-const RtpTileReference* Application::worldTileLayer(const WorldArea& area,
+const RtpTileReference* Application::worldTileLayer(const WorldMap& area,
 	int x, int y, RtpRenderLayer layer) const
 {
 	std::map<std::tuple<int, int, int>, RtpTileReference>::const_iterator found =
@@ -859,7 +990,7 @@ const RtpTileReference* Application::worldTileLayer(const WorldArea& area,
 	return found == area.tileLayers.end() ? NULL : &found->second;
 }
 
-bool Application::worldTileWalkable(const WorldArea& area, int x, int y) const
+bool Application::worldTileWalkable(const WorldMap& area, int x, int y) const
 {
 	if (y < 0 || y >= (int)area.tiles.size() || x < 0 ||
 		x >= (int)area.tiles[y].size()) return false;
@@ -873,10 +1004,11 @@ bool Application::worldTileWalkable(const WorldArea& area, int x, int y) const
 		if (collision == RtpTileCollision::Walkable) return true;
 		if (collision == RtpTileCollision::Blocked) return false;
 	}
+	if (area.catalogOnly) return false;
 	return WorldTiles::isWalkable(WorldTiles::fromGlyph(area.tiles[y][x]));
 }
 
-unsigned int Application::worldTileConnections(const WorldArea& area, int x, int y,
+unsigned int Application::worldTileConnections(const WorldMap& area, int x, int y,
 	RtpRenderLayer layer) const
 {
 	const RtpTileReference* tile = worldTileLayer(area, x, y, layer);
@@ -894,7 +1026,9 @@ unsigned int Application::worldTileConnections(const WorldArea& area, int x, int
 	{
 		const RtpTileReference* other = worldTileLayer(area, checkX, checkY, layer);
 		if (other != NULL && other->family == tile->family &&
-			other->sheet == tile->sheet && other->index == tile->index) return true;
+			other->sheet == tile->sheet && other->index == tile->index &&
+			other->red == tile->red && other->green == tile->green &&
+			other->blue == tile->blue) return true;
 		bool wallAutotile = tile->sheet == RtpTileSheet::A3 ||
 			(tile->sheet == RtpTileSheet::A4 && (tile->index / 8) % 2 == 1);
 		bool opening = (other != NULL && RtpTilesetRenderer::isWallOpening(*other)) ||
@@ -913,11 +1047,13 @@ unsigned int Application::worldTileConnections(const WorldArea& area, int x, int
 	return connections;
 }
 
-bool Application::drawWorldTileLayer(const WorldArea& area, int x, int y,
+bool Application::drawWorldTileLayer(const WorldMap& area, int x, int y,
 	RtpRenderLayer layer, const SDL_Rect& destination)
 {
 	const RtpTileReference* tile = worldTileLayer(area, x, y, layer);
 	if (tile == NULL) return false;
+	if (mScreen != Screen::WorldBuilder && layer == RtpRenderLayer::Decoration &&
+		area.hasTag(x, y, "blackstone_gate") && hasCrest("confluence")) return false;
 	return mWorldTileRenderer->drawCatalog(*tile,
 		worldTileConnections(area, x, y, layer), destination,
 		SDL_GetTicks() / 420);
@@ -970,100 +1106,23 @@ void Application::placeWorldBuilderSelection(int x, int y)
 
 bool Application::saveWorldBuilder(std::string& error)
 {
-	std::ostringstream world;
-	world << "-- World Builder data. This file is entirely maintained by the World Builder.\n"
-		<< "-- Tile IDs are stable one-byte serialization codes defined in Source/App/WorldTile.h.\n"
-		<< "-- Optional tile_layers entries are sparse visual overrides with tile-derived collision.\n"
-		<< "-- The one-byte tiles grid is the legacy base visual layer for cells without catalog tiles.\n"
-		<< "-- Tile legend: . grass, = path, ~ water, H house, T tree, # forest,\n"
-		<< "-- W wooden wall, K timber roof, D door, F wooden floor, C counter, B bonfire,\n"
-		<< "-- A feast table, S dueling sand, M marble, Q marble roof, E workshop tools,\n"
-		<< "-- R rail, X walkable rail crossing, G metal grate, I industrial brick,\n"
-		<< "-- P machinery, V furnace, J industrial roof, U timber bridge, O rocky cliff.\n"
-		<< "-- Explicit regional IDs: 1 old-road path, 2 waystone, 3 Cinderrail ground,\n"
-		<< "-- 4 Cinderrail path, 5 rubble, 6 Cinderrail sand, 7 Cinderrail door,\n"
-		<< "-- 8 Watershed ground, 9 Watershed path, 0 Watershed route marker.\n"
-		<< "-- Glasswater IDs: a ground, b paving, c roof, d dock, e wall,\n"
-		<< "-- f door, g arena floor, h harbor marker.\n"
-		<< "-- Rootmaze IDs: i ground, j path, k root, l bridge, m roof, n wall,\n"
-		<< "-- o door, p arena floor, q leaf marker. Natural objects: r-v.\n"
-		<< "-- Blackstone IDs: w ground, x road, y retaining wall, z relay gate.\n"
-		<< "return {\n\tmaps = {\n";
-	for (size_t area = 0; area < mWorldAreas.size(); ++area)
-	{
-		world << "\t\t{\n\t\t\tid = \"" << mWorldAreas[area].id << "\",\n"
-			<< "\t\t\tname = \"" << mWorldAreas[area].name << "\",\n"
-			<< "\t\t\tindoor = " << (mWorldAreas[area].indoor ? "true" : "false") << ",\n"
-			<< "\t\t\ttiles = {\n";
-		for (size_t row = 0; row < mWorldAreas[area].tiles.size(); ++row)
-			world << "\t\t\t\t\"" << mWorldAreas[area].tiles[row] << "\"" <<
-				(row + 1 == mWorldAreas[area].tiles.size() ? "\n" : ",\n");
-		world << "\t\t\t}";
-		if (!mWorldAreas[area].tileLayers.empty())
-		{
-			world << ",\n\t\t\ttile_layers = {\n";
-			for (std::map<std::tuple<int, int, int>, RtpTileReference>::const_iterator tile =
-				mWorldAreas[area].tileLayers.begin();
-				tile != mWorldAreas[area].tileLayers.end(); ++tile)
-			{
-				world << "\t\t\t\t{ x = " << std::get<1>(tile->first) <<
-					", y = " << std::get<0>(tile->first) << ", tileset = \"" <<
-					familyName(tile->second.family) << "\", sheet = \"" <<
-					sheetName(tile->second.sheet) << "\", index = " << tile->second.index <<
-					", layer = \"" << layerName(tile->second.layer) << "\" },\n";
-			}
-			world << "\t\t\t}";
-		}
-		world << "\n\t\t}" << (area + 1 == mWorldAreas.size() ? "\n" : ",\n");
-	}
-	world << "\t},\n\tregions = {\n";
-	for (size_t i = 0; i < mWorldRegions.size(); ++i)
-	{
-		const WorldRegion& region = mWorldRegions[i];
-		world << "\t\t{ id = \"" << region.id << "\", name = \"" << region.name <<
-			"\", map = \"" << region.mapId << "\", kind = \"" <<
-			(region.connector ? "connector" : "town") << "\", x = " << region.x << ", y = " <<
-			region.y << ", width = " << region.width << ", height = " << region.height <<
-			" }" << (i + 1 == mWorldRegions.size() ? "\n" : ",\n");
-	}
-	world << "\t},\n\tstart = { map = \"" << mWorldStartMap << "\", x = " << mWorldStartX <<
-		", y = " << mWorldStartY << " },\n\tportals = {\n";
-	for (size_t i = 0; i < mWorldPortals.size(); ++i)
-	{
-		const WorldPortal& portal = mWorldPortals[i];
-		world << "\t\t{ from = { map = \"" << portal.fromMap << "\", x = " << portal.fromX <<
-			", y = " << portal.fromY << " },\n\t\t\tto = { map = \"" << portal.toMap <<
-			"\", x = " << portal.toX << ", y = " << portal.toY << " } }" <<
-			(i + 1 == mWorldPortals.size() ? "\n" : ",\n");
-	}
-	world << "\t},\n\tnpcs = {\n";
-	for (size_t i = 0; i < mNpcs.size(); ++i)
-		world << "\t\t[\"" << mNpcs[i].id << "\"] = { map = \"" << mNpcs[i].mapId <<
-			"\", x = " << mNpcs[i].x << ", y = " << mNpcs[i].y << " },\n";
-	world << "\t},\n\tobjects = {\n";
-	for (size_t i = 0; i < mWorldObjects.size(); ++i)
-		world << "\t\t[\"" << mWorldObjects[i].id << "\"] = { map = \"" <<
-			mWorldObjects[i].mapId << "\", x = " << mWorldObjects[i].x <<
-			", y = " << mWorldObjects[i].y << " },\n";
-	world << "\t},\n\tshards = {\n";
-	for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
-		world << "\t\t[\"" << mMercerStock.shards[i].id << "\"] = { map = \"" <<
-			mMercerStock.shards[i].mapId << "\", x = " << mMercerStock.shards[i].x <<
-			", y = " << mMercerStock.shards[i].y << " },\n";
-	world << "\t}\n}\n";
-
-	const std::string worldTemp = "Lua/World.lua.worldbuilder.tmp";
-	if (!writeTemporary(worldTemp, world.str(), error))
-	{
-		std::remove(worldTemp.c_str());
-		return false;
-	}
-	if (std::rename(worldTemp.c_str(), "Lua/World.lua") != 0)
-	{
-		error = "could not replace Lua/World.lua: " + std::string(std::strerror(errno));
-		std::remove(worldTemp.c_str());
-		return false;
-	}
+	mWorld.npcPositions.clear();
+	for (size_t index = 0; index < mNpcs.size(); ++index)
+		mWorld.npcPositions[mNpcs[index].id] = {
+			mNpcs[index].mapId, mNpcs[index].x, mNpcs[index].y
+		};
+	mWorld.objectPositions.clear();
+	for (size_t index = 0; index < mWorldObjects.size(); ++index)
+		mWorld.objectPositions[mWorldObjects[index].id] = {
+			mWorldObjects[index].mapId, mWorldObjects[index].x, mWorldObjects[index].y
+		};
+	mWorld.shardPositions.clear();
+	for (size_t index = 0; index < mMercerStock.shards.size(); ++index)
+		mWorld.shardPositions[mMercerStock.shards[index].id] = {
+			mMercerStock.shards[index].mapId,
+			mMercerStock.shards[index].x, mMercerStock.shards[index].y
+		};
+	if (!WorldStorage::save("World/World.json", mWorld, error)) return false;
 	mWorldBuilderDirty = false;
 	return true;
 }
@@ -1161,7 +1220,7 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		if (key == SDLK_s && (event.key.keysym.mod & KMOD_CTRL))
 		{
 			std::string error;
-			if (saveWorldBuilder(error)) showWorldBuilderNotice("World saved to Lua.");
+			if (saveWorldBuilder(error)) showWorldBuilderNotice("Catalog maps saved.");
 			else showWorldBuilderNotice("Save failed: " + error, true);
 			return;
 		}
@@ -1204,12 +1263,12 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		else if (key == SDLK_o) mWorldBuilderTab = WorldBuilderTab::Objects;
 		else if (key == SDLK_PAGEUP)
 		{
-			mCurrentWorldArea = (mCurrentWorldArea + (int)mWorldAreas.size() - 1) % (int)mWorldAreas.size();
+			mCurrentWorldArea = (mCurrentWorldArea + (int)mWorld.maps.size() - 1) % (int)mWorld.maps.size();
 			mWorldBuilderCameraX = mWorldBuilderCameraY = 0;
 		}
 		else if (key == SDLK_PAGEDOWN)
 		{
-			mCurrentWorldArea = (mCurrentWorldArea + 1) % (int)mWorldAreas.size();
+			mCurrentWorldArea = (mCurrentWorldArea + 1) % (int)mWorld.maps.size();
 			mWorldBuilderCameraX = mWorldBuilderCameraY = 0;
 		}
 		else return;
@@ -1271,19 +1330,19 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 	if (contains(BUILDER_SAVE, x, y))
 	{
 		std::string error;
-		if (saveWorldBuilder(error)) showWorldBuilderNotice("World saved to Lua.");
+		if (saveWorldBuilder(error)) showWorldBuilderNotice("Catalog maps saved.");
 		else showWorldBuilderNotice("Save failed: " + error, true);
 		return;
 	}
 	if (contains(BUILDER_PREVIOUS_MAP, x, y))
 	{
-		mCurrentWorldArea = (mCurrentWorldArea + (int)mWorldAreas.size() - 1) % (int)mWorldAreas.size();
+		mCurrentWorldArea = (mCurrentWorldArea + (int)mWorld.maps.size() - 1) % (int)mWorld.maps.size();
 		mWorldBuilderCameraX = mWorldBuilderCameraY = 0;
 		return;
 	}
 	if (contains(BUILDER_NEXT_MAP, x, y))
 	{
-		mCurrentWorldArea = (mCurrentWorldArea + 1) % (int)mWorldAreas.size();
+		mCurrentWorldArea = (mCurrentWorldArea + 1) % (int)mWorld.maps.size();
 		mWorldBuilderCameraX = mWorldBuilderCameraY = 0;
 		return;
 	}
@@ -1313,8 +1372,6 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 				std::vector<RtpTileSheet> sheets = familySheets(tilesetFamily(category));
 				if (!sheets.empty()) mWorldBuilderTileSheet = (int)sheets[0];
 				mWorldBuilderCatalogTile = 0;
-				mWorldBuilderTileLayer = sheets.empty() ? RtpRenderLayer::Ground :
-					RtpTilesetRenderer::defaultLayer(sheets[0]);
 				mWorldBuilderListScroll = 0;
 				return;
 			}
@@ -1330,16 +1387,9 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 				sheetIndex = (sheetIndex + direction + (int)sheets.size()) % (int)sheets.size();
 				mWorldBuilderTileSheet = (int)sheets[sheetIndex];
 				mWorldBuilderCatalogTile = 0;
-				mWorldBuilderTileLayer = RtpTilesetRenderer::defaultLayer(sheets[sheetIndex]);
 				mWorldBuilderListScroll = 0;
 				return;
 			}
-			for (int layer = 0; layer < 3; ++layer)
-				if (contains(BUILDER_LAYER_BUTTONS[layer], x, y))
-				{
-					mWorldBuilderTileLayer = (RtpRenderLayer)layer;
-					return;
-				}
 			const RtpSheetDescriptor* sheet = RtpTilesetRenderer::descriptor(
 				tilesetFamily(mWorldBuilderTileCategory),
 				(RtpTileSheet)mWorldBuilderTileSheet);
@@ -1448,7 +1498,7 @@ void Application::drawWorldBuilderNpcPortrait(const Npc& npc, const SDL_Rect& re
 	mWorldBuilderTileScaleActive = true;
 	mWorldBuilderTileScaleDestination = rect;
 	drawCharacterSprite(rect.x, rect.y, npc.appearance, false, false,
-		npc.facingX, npc.facingY);
+		npc.facingX, npc.facingY, npc.spriteSheet, npc.spriteIndex);
 	mWorldBuilderTileScaleActive = savedScaleActive;
 	mWorldBuilderTileScaleDestination = savedScaleDestination;
 	outlineRect(rect, 104, 123, 153, 255, 1);
@@ -1470,7 +1520,7 @@ void Application::renderWorldBuilder()
 {
 	fillRect({ 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT }, 12, 18, 29);
 	drawText("WORLD BUILDER", 32, 13, color(244, 207, 103), 25);
-	drawText(mWorldAreas[mCurrentWorldArea].name, 320, 17, color(189, 207, 232), 18, 360);
+	drawText(mWorld.maps[mCurrentWorldArea].name, 320, 17, color(189, 207, 232), 18, 360);
 	drawText("ZOOM " + std::to_string(mWorldBuilderTileSize * 100 / TILE) + "%",
 		690, 19, color(143, 189, 231), 14);
 	drawText(mWorldBuilderDirty ? "UNSAVED CHANGES" : "SAVED", 810, 19,
@@ -1494,6 +1544,7 @@ void Application::renderWorldBuilder()
 		{
 			SDL_Rect tile = { mapX + (int)column * tileSize,
 				mapY + (int)row * tileSize, tileSize, tileSize };
+			if (mWorld.maps[mCurrentWorldArea].catalogOnly) continue;
 			WorldTileId type = WorldTiles::fromGlyph(map[row][column]);
 			if (type == WorldTiles::Path) fillRect(tile, 162, 132, 76);
 			else if (type == WorldTiles::OldRoadPath) fillRect(tile, 124, 112, 88);
@@ -1975,7 +2026,7 @@ void Application::renderWorldBuilder()
 			outlineRect(displayedTile, 10, 20, 27, 100, 1);
 		}
 	}
-	const WorldArea& builderArea = mWorldAreas[mCurrentWorldArea];
+	const WorldMap& builderArea = mWorld.maps[mCurrentWorldArea];
 	for (int y = visibleTiles.top; y < visibleTiles.bottom; ++y)
 		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
 		{
@@ -1988,6 +2039,7 @@ void Application::renderWorldBuilder()
 	{
 		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
 		{
+			if (builderArea.catalogOnly) continue;
 			if (worldTileLayer(builderArea, x, y, RtpRenderLayer::Ground) != NULL) continue;
 			WorldTileId tile = WorldTiles::fromGlyph(map[y][x]);
 			if (!WorldTileRenderer::hasDecoration(tile)) continue;
@@ -2007,11 +2059,11 @@ void Application::renderWorldBuilder()
 				outlineRect(tileRect, 10, 20, 27, 100, 1);
 		}
 
-	if (currentMapId() == mWorldStartMap &&
-		visibleTiles.contains(mWorldStartX, mWorldStartY))
+	if (currentMapId() == mWorld.start.mapId &&
+		visibleTiles.contains(mWorld.start.x, mWorld.start.y))
 	{
-		int startX = mapX + mWorldStartX * tileSize;
-		int startY = mapY + mWorldStartY * tileSize;
+		int startX = mapX + mWorld.start.x * tileSize;
+		int startY = mapY + mWorld.start.y * tileSize;
 		int inset = std::max(2, tileSize / 4);
 		fillRect({ startX + inset, startY + inset, tileSize - inset * 2,
 			tileSize - inset * 2 }, 24, 66, 137, 235);
@@ -2019,13 +2071,13 @@ void Application::renderWorldBuilder()
 			drawText("P", startX + tileSize / 2 - 5, startY + tileSize / 2 - 9,
 				color(215, 232, 255), std::min(16, tileSize / 3));
 	}
-	for (size_t i = 0; i < mWorldPortals.size(); ++i)
-		if (mWorldPortals[i].fromMap == currentMapId() &&
-			visibleTiles.contains(mWorldPortals[i].fromX, mWorldPortals[i].fromY))
+	for (size_t i = 0; i < mWorld.portals.size(); ++i)
+		if (mWorld.portals[i].fromMap == currentMapId() &&
+			visibleTiles.contains(mWorld.portals[i].fromX, mWorld.portals[i].fromY))
 		{
 			int inset = std::max(2, tileSize / 12);
-			outlineRect({ mapX + mWorldPortals[i].fromX * tileSize + inset,
-				mapY + mWorldPortals[i].fromY * tileSize + inset,
+			outlineRect({ mapX + mWorld.portals[i].fromX * tileSize + inset,
+				mapY + mWorld.portals[i].fromY * tileSize + inset,
 				tileSize - inset * 2, tileSize - inset * 2 },
 				91, 222, 232, 255, std::max(2, tileSize / 24));
 		}
@@ -2100,7 +2152,8 @@ void Application::renderWorldBuilder()
 		int npcY = mapY + mNpcs[i].y * tileSize;
 		if (tileSize >= TILE)
 			drawCharacter((float)mNpcs[i].x, (float)mNpcs[i].y,
-				mNpcs[i].appearance, false, false, mNpcs[i].facingX, mNpcs[i].facingY);
+				mNpcs[i].appearance, false, false, mNpcs[i].facingX, mNpcs[i].facingY,
+				mNpcs[i].spriteSheet, mNpcs[i].spriteIndex);
 		else
 		{
 			int inset = std::max(3, tileSize / 5);
@@ -2117,6 +2170,7 @@ void Application::renderWorldBuilder()
 	{
 		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
 		{
+			if (builderArea.catalogOnly) continue;
 			if (worldTileLayer(builderArea, x, y, RtpRenderLayer::Ground) != NULL) continue;
 			WorldTileId tile = WorldTiles::fromGlyph(map[y][x]);
 			if (!WorldTileRenderer::hasForeground(tile)) continue;
@@ -2159,7 +2213,7 @@ void Application::renderWorldBuilder()
 	outlineRect(BUILDER_NEXT_MAP, 113, 139, 176, 255, 2);
 	drawText("<", 1033, 68, color(229, 235, 245), 14);
 	drawText(">", 1229, 68, color(229, 235, 245), 14);
-	drawText(mWorldAreas[mCurrentWorldArea].name, 1061, 69, color(214, 222, 236), 12, 150);
+	drawText(mWorld.maps[mCurrentWorldArea].name, 1061, 69, color(214, 222, 236), 12, 150);
 	auto tab = [this](const SDL_Rect& rect, const std::string& label, bool active)
 	{
 		fillRect(rect, active ? 82 : 38, active ? 67 : 46, active ? 39 : 65, 245);
@@ -2195,20 +2249,9 @@ void Application::renderWorldBuilder()
 		outlineRect(BUILDER_SHEET_NAME, 100, 123, 151, 255, 1);
 		outlineRect(BUILDER_NEXT_SHEET, 100, 123, 151, 255, 1);
 		drawText("<", 1031, BUILDER_SHEET_Y + 7, color(224, 231, 242), 12);
-		drawText(sheetName(selectedSheet), 1085, BUILDER_SHEET_Y + 7,
+		drawText(sheetName(selectedSheet), 1122, BUILDER_SHEET_Y + 7,
 			color(235, 205, 112), 12, 38);
-		drawText(">", 1147, BUILDER_SHEET_Y + 7, color(224, 231, 242), 12);
-		const char* layerLabels[] = { "G", "D", "F" };
-		for (int layer = 0; layer < 3; ++layer)
-		{
-			bool active = (int)mWorldBuilderTileLayer == layer;
-			fillRect(BUILDER_LAYER_BUTTONS[layer], active ? 76 : 34,
-				active ? 67 : 45, active ? 42 : 63, 245);
-			outlineRect(BUILDER_LAYER_BUTTONS[layer], active ? 233 : 100,
-				active ? 185 : 123, active ? 81 : 151, 255, 1);
-			drawText(layerLabels[layer], BUILDER_LAYER_BUTTONS[layer].x + 8,
-				BUILDER_LAYER_BUTTONS[layer].y + 7, color(232, 236, 244), 11);
-		}
+		drawText(">", 1231, BUILDER_SHEET_Y + 7, color(224, 231, 242), 12);
 		mWorldBuilderHoveredTileName.clear();
 		fillRect(BUILDER_TILESET_VIEW, 13, 18, 27, 255);
 		outlineRect(BUILDER_TILESET_VIEW, 73, 92, 118, 255, 1);
@@ -2243,8 +2286,8 @@ void Application::renderWorldBuilder()
 			catalogTileName(family, selectedSheet, mWorldBuilderCatalogTile) :
 			mWorldBuilderHoveredTileName;
 		int describedTile = hoveredTile >= 0 ? hoveredTile : mWorldBuilderCatalogTile;
-		RtpTileReference described(family, selectedSheet, describedTile,
-			mWorldBuilderTileLayer);
+		RtpTileReference described(family, selectedSheet, describedTile);
+		described.layer = RtpTilesetRenderer::inferredLayer(described);
 		RtpTileCollision collision = RtpTilesetRenderer::collision(described);
 		std::string collisionText = family == RtpTilesetFamily::World ? "MAP ONLY" :
 			(collision == RtpTileCollision::Walkable ? "WALKABLE" :
@@ -2252,7 +2295,7 @@ void Application::renderWorldBuilder()
 		drawText(tileLabel, 1028, 692, color(224, 232, 243), 9, 216);
 		drawText(std::string(familyName(family)) + " " + sheetName(selectedSheet) +
 			" #" + std::to_string(describedTile) + "  " +
-			layerName(mWorldBuilderTileLayer) + "  " + collisionText, 1028, 704,
+			layerName(described.layer) + "  " + collisionText, 1028, 704,
 			color(151, 181, 215), 8, 216);
 	}
 	else

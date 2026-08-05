@@ -1,5 +1,5 @@
 -- Overworld object metadata.
--- Positions are owned by Lua/World.lua and maintained by the World Builder.
+-- Positions are owned by World/World.json and maintained by the World Builder.
 -- Supported kinds: signpost, deck_chest
 -- Deck chests additionally require deck, deck_name, and opened_text. Deck paths
 -- are searched beneath Decks/ automatically.

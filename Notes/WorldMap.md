@@ -1,6 +1,6 @@
 # World Map
 
-This is the planned campaign topology rather than a literal scale map. `Lua/World.lua` remains authoritative for maps that are actually implemented.
+This is the planned campaign topology rather than a literal scale map. `World/World.json` and `World/Maps/*.json` remain authoritative for maps that are actually implemented.
 
 The campaign uses one connected overworld. “First tier” and “second tier” describe progression availability, not separate world maps. Every ordinary road is bidirectional, unlocked roads stay open permanently, and the player may return from the outer regions to Emberglen at any time.
 

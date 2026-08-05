@@ -1,0 +1,188 @@
+{
+  "format": "kaijudo-catalog-map",
+  "version": 1,
+  "id": "world_map",
+  "name": "World Map",
+  "indoor": false,
+  "width": 10,
+  "height": 8,
+  "palette": [
+    null,
+    {
+      "tileset": "Inside",
+      "sheet": "A4",
+      "index": 16,
+      "layer": "ground",
+      "tint": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "tileset": "Inside",
+      "sheet": "A2",
+      "index": 0,
+      "layer": "ground",
+      "tint": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "tileset": "Outside",
+      "sheet": "A2",
+      "index": 0,
+      "layer": "ground",
+      "tint": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "tileset": "Inside",
+      "sheet": "B",
+      "index": 96,
+      "layer": "decoration",
+      "tint": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "tileset": "Inside",
+      "sheet": "B",
+      "index": 195,
+      "layer": "decoration",
+      "tint": [
+        255,
+        255,
+        255
+      ]
+    }
+  ],
+  "layers": {
+    "ground": {
+      "encoding": "rle-row-major",
+      "data": [
+        [
+          1,
+          11
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          1,
+          4
+        ]
+      ]
+    },
+    "decoration": {
+      "encoding": "rle-row-major",
+      "data": [
+        [
+          0,
+          33
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          0,
+          40
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          0,
+          4
+        ]
+      ]
+    },
+    "foreground": {
+      "encoding": "rle-row-major",
+      "data": [
+        [
+          0,
+          80
+        ]
+      ]
+    }
+  },
+  "source": {
+    "kind": "legacy-byte-map",
+    "ignoredLuaFields": [
+      "tile_layers"
+    ],
+    "offset": {
+      "x": 0,
+      "y": 0
+    },
+    "sourceWidth": 10,
+    "sourceHeight": 8
+  }
+}

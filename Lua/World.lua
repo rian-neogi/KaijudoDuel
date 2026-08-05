@@ -842,6 +842,21 @@ return {
 				"WFFFFFFFFW",
 				"WWWWWDWWWW"
 			}
+		},
+		{
+			id = "world_map",
+			name = "World Map",
+			indoor = false,
+			tiles = {
+				"WWWWWWWWWW",
+				"WFFFFFFFFW",
+				"WFFFFFFFFW",
+				"WFFAAFFFFW",
+				"WFFFFFFFFW",
+				"WFFFFFFFFW",
+				"WFFFFFFFFW",
+				"WWWWWDWWWW"
+			}
 		}
 	},
 	regions = {
