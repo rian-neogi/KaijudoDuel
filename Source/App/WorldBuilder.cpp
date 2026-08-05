@@ -1635,7 +1635,7 @@ void Application::drawWorldBuilderTileIcon(WorldTileId type, const SDL_Rect& rec
 			fillRect({ x + bar, y + 3, 3, h - 6 }, 202, 158, 57);
 	}
 
-	mWorldTileRenderer->drawDecorationTile(type, rect);
+	mWorldTileRenderer->drawPreview(type, rect);
 	outlineRect(rect, 8, 14, 22, 255, 1);
 }
 
@@ -1905,7 +1905,9 @@ void Application::renderWorldBuilder()
 			else if (type == WorldTiles::CaveEntrance) fillRect(tile, 78, 70, 62);
 			else if (type == WorldTiles::TreeStump) fillRect(tile, 61, 139, 61);
 			else fillRect(tile, 61, 139, 61);
-			mWorldTileRenderer->drawTerrain(type, tile);
+			bool texturedTerrain = mWorldTileRenderer->drawTerrain(
+				type, map, column, row, tile);
+			if (mWorldTileRenderer->canDrawDecoration(type)) continue;
 			SDL_Rect displayedTile = tile;
 			mWorldBuilderTileScaleActive = tileSize != TILE;
 			mWorldBuilderTileScaleDestination = displayedTile;
@@ -1916,7 +1918,10 @@ void Application::renderWorldBuilder()
 			}
 			{
 			if (type == WorldTiles::Water)
-				fillRect({ tile.x + 7, tile.y + 17, 28, 3 }, 92, 189, 210, 190);
+			{
+				if (!texturedTerrain)
+					fillRect({ tile.x + 7, tile.y + 17, 28, 3 }, 92, 189, 210, 190);
+			}
 			else if (type == WorldTiles::CinderrailRubble)
 			{
 				fillRect({ tile.x + 3, tile.y + 5, 42, 38 }, 72, 58, 54);
@@ -2307,8 +2312,19 @@ void Application::renderWorldBuilder()
 			}
 			}
 			mWorldBuilderTileScaleActive = false;
-			mWorldTileRenderer->drawDecorationTile(type, displayedTile);
 			outlineRect(displayedTile, 10, 20, 27, 100, 1);
+		}
+	}
+	for (int y = visibleTiles.top; y < visibleTiles.bottom; ++y)
+	{
+		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
+		{
+			WorldTileId tile = WorldTiles::fromGlyph(map[y][x]);
+			if (!WorldTileRenderer::hasDecoration(tile)) continue;
+			SDL_Rect tileRect = { mapX + x * tileSize, mapY + y * tileSize,
+				tileSize, tileSize };
+			mWorldTileRenderer->drawDecoration(tile, tileRect);
+			outlineRect(tileRect, 10, 20, 27, 100, 1);
 		}
 	}
 
@@ -2405,8 +2421,19 @@ void Application::renderWorldBuilder()
 				tileSize - inset * 2 }, 62, 35, 31, 255, 1);
 		}
 		if ((int)i == mWorldBuilderSelectedNpc && mWorldBuilderTab == WorldBuilderTab::Npcs)
-			outlineRect({ npcX + 2, npcY + 2, tileSize - 4, tileSize - 4 },
-				246, 211, 99, 255, std::max(2, tileSize / 16));
+				outlineRect({ npcX + 2, npcY + 2, tileSize - 4, tileSize - 4 },
+					246, 211, 99, 255, std::max(2, tileSize / 16));
+	}
+	for (int y = visibleTiles.top; y < visibleTiles.bottom; ++y)
+	{
+		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
+		{
+			WorldTileId tile = WorldTiles::fromGlyph(map[y][x]);
+			if (!WorldTileRenderer::hasForeground(tile)) continue;
+			SDL_Rect tileRect = { mapX + x * tileSize, mapY + y * tileSize,
+				tileSize, tileSize };
+			mWorldTileRenderer->drawForeground(tile, tileRect);
+		}
 	}
 	int hoveredNpc = worldBuilderHoveredNpc();
 	if (hoveredNpc >= 0)

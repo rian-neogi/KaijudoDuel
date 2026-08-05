@@ -857,12 +857,17 @@ void Application::renderOverworld()
 			else if (tile == WorldTiles::CaveEntrance) fillRect(tileRect, 78, 70, 62);
 			else if (tile == WorldTiles::TreeStump) fillRect(tileRect, 61, 139, 61);
 			else fillRect(tileRect, 61, 139, 61);
-			mWorldTileRenderer->drawTerrain(tile, tileRect);
+			bool texturedTerrain = mWorldTileRenderer->drawTerrain(tile, map, x, y, tileRect);
 
+			if (mWorldTileRenderer->canDrawDecoration(tile)) continue;
 			if (tile == WorldTiles::Water)
 			{
-				int wave = (int)((SDL_GetTicks() / 180 + x * 5 + y * 3) % 24);
-				fillRect({ tileRect.x + 7, tileRect.y + 10 + wave / 3, 28, 3 }, 92, 189, 210, 190);
+				if (!texturedTerrain)
+				{
+					int wave = (int)((SDL_GetTicks() / 180 + x * 5 + y * 3) % 24);
+					fillRect({ tileRect.x + 7, tileRect.y + 10 + wave / 3, 28, 3 },
+						92, 189, 210, 190);
+				}
 			}
 			else if (tile == WorldTiles::CinderrailRubble)
 			{
@@ -1381,7 +1386,16 @@ void Application::renderOverworld()
 				else
 					fillRect({ tileRect.x + 13, tileRect.y + 4, 24, 4 }, 202, 158, 57);
 			}
-			mWorldTileRenderer->drawDecorationTile(tile, tileRect);
+		}
+	}
+	for (int y = visibleTiles.top; y < visibleTiles.bottom; ++y)
+	{
+		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
+		{
+			WorldTileId tile = WorldTiles::fromGlyph(map[y][x]);
+			if (!WorldTileRenderer::hasDecoration(tile)) continue;
+			SDL_Rect tileRect = { mapX + x * TILE, mapY + y * TILE, TILE, TILE };
+			mWorldTileRenderer->drawDecoration(tile, tileRect);
 		}
 	}
 	if (cinderrailRegion != NULL)
@@ -1475,6 +1489,16 @@ void Application::renderOverworld()
 		std::fabs(mPlayerY - mVisualY) > 0.001f;
 	drawCharacter(mVisualX, mVisualY, CharacterAppearance::Player, false, playerWalking,
 		mFacingX, mFacingY);
+	for (int y = visibleTiles.top; y < visibleTiles.bottom; ++y)
+	{
+		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
+		{
+			WorldTileId tile = WorldTiles::fromGlyph(map[y][x]);
+			if (!WorldTileRenderer::hasForeground(tile)) continue;
+			SDL_Rect tileRect = { mapX + x * TILE, mapY + y * TILE, TILE, TILE };
+			mWorldTileRenderer->drawForeground(tile, tileRect);
+		}
+	}
 	SDL_RenderSetClipRect(mRenderer, NULL);
 
 	renderStoryTracker();

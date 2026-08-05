@@ -1127,6 +1127,23 @@ bool Application::exerciseOverworldMovementSmoke()
 	spriteSheetsReady = spriteSheetsReady && WorldTileRenderer::atlasSourceRect(
 		199, 16, 32, 512, 512, atlasTile) && atlasTile.x == 224 && atlasTile.y == 384 &&
 		!WorldTileRenderer::atlasSourceRect(256, 16, 32, 512, 512, atlasTile);
+	SDL_Point autotileQuarter;
+	unsigned int surrounded = WorldTileRenderer::North | WorldTileRenderer::East |
+		WorldTileRenderer::South | WorldTileRenderer::West |
+		WorldTileRenderer::NorthWest | WorldTileRenderer::NorthEast |
+		WorldTileRenderer::SouthEast | WorldTileRenderer::SouthWest;
+	spriteSheetsReady = spriteSheetsReady && WorldTileRenderer::autotileQuarterSource(
+		0, surrounded, autotileQuarter) && autotileQuarter.x == 2 && autotileQuarter.y == 4;
+	spriteSheetsReady = spriteSheetsReady && WorldTileRenderer::autotileQuarterSource(
+		0, surrounded & ~WorldTileRenderer::NorthWest, autotileQuarter) &&
+		autotileQuarter.x == 0 && autotileQuarter.y == 0;
+	spriteSheetsReady = spriteSheetsReady && WorldTileRenderer::autotileQuarterSource(
+		3, 0, autotileQuarter) && autotileQuarter.x == 3 && autotileQuarter.y == 5 &&
+		!WorldTileRenderer::autotileQuarterSource(4, surrounded, autotileQuarter);
+	spriteSheetsReady = spriteSheetsReady && WorldTileRenderer::hasDecoration(WorldTiles::Tree) &&
+		WorldTileRenderer::hasDecoration(WorldTiles::Rocks) &&
+		WorldTileRenderer::hasForeground(WorldTiles::Tree) &&
+		!WorldTileRenderer::hasForeground(WorldTiles::Rocks);
 	int savedPlayerX = mPlayerX;
 	int savedPlayerY = mPlayerY;
 	float savedVisualX = mVisualX;
