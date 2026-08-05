@@ -29,6 +29,7 @@ void Application::enterShop()
 {
 	ensurePlayerDataLoaded();
 	mDialogueNpc = -1;
+	mNpcMenuNpc = -1;
 	mPauseMenuOpen = false;
 	mScreen = Screen::Shop;
 	mShopHoveredCard = -1;

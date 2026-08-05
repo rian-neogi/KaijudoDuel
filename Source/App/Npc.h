@@ -6,8 +6,8 @@
 
 enum class NpcKind
 {
-	Duelist,
-	Shopkeeper,
+	Town,
+	RouteDuelist,
 	Boss
 };
 
@@ -47,18 +47,23 @@ struct NpcReward
 class Npc
 {
 public:
-	static Npc duelist(int x, int y, const std::string& name,
+	static Npc town(int x, int y, const std::string& name,
 		const std::vector<std::string>& decks, const std::string& challenge,
-		const std::vector<NpcReward>& rewards, CharacterAppearance appearance);
-	static Npc shopkeeper(int x, int y, const std::string& name, const std::string& greeting,
-		CharacterAppearance appearance);
+		const std::vector<NpcReward>& rewards, CharacterAppearance appearance,
+		bool duelEnabled, bool tradeEnabled, bool wanders);
+	static Npc routeDuelist(int x, int y, const std::string& name,
+		const std::vector<std::string>& decks, const std::string& challenge,
+		const std::vector<NpcReward>& rewards, CharacterAppearance appearance,
+		int sightRange, int facingX, int facingY);
 	static Npc boss(int x, int y, const std::string& name,
 		const std::vector<std::string>& decks, const std::string& challenge,
 		const std::vector<NpcReward>& rewards, CharacterAppearance appearance);
 
 	bool isDuelist() const;
-	bool isShopkeeper() const;
+	bool isTownNpc() const;
+	bool isRouteDuelist() const;
 	bool isBoss() const;
+	bool canTrade() const;
 	bool canWander() const;
 	bool canBattle() const;
 	bool isComplete() const;
@@ -69,7 +74,7 @@ public:
 	std::string dialogueText(const std::string& key, const std::string& fallback = "") const;
 	bool isMoving() const;
 	void setPosition(int x, int y);
-	void updateMovement(unsigned int deltaMilliseconds);
+	void updateMovement(unsigned int deltaMilliseconds, float tilesPerSecond = 2.8f);
 	void scheduleWander(unsigned int now);
 	int nextWanderDirection();
 
@@ -91,6 +96,12 @@ public:
 	int maxWins;
 	NpcKind kind;
 	CharacterAppearance appearance;
+	bool duelEnabled;
+	bool tradeEnabled;
+	bool wanders;
+	int sightRange;
+	int facingX;
+	int facingY;
 	std::string aiPersonality;
 	std::map<std::string, std::string> dialogue;
 

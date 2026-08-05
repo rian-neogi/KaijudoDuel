@@ -161,12 +161,12 @@ return {
 		}
 	},
 	regions = {
-		{ id = "glasswater", name = "Glasswater Port", map = "overworld", x = 0, y = 0, width = 96, height = 48 },
-		{ id = "rootmaze", name = "Rootmaze Commons", map = "overworld", x = 0, y = 52, width = 96, height = 56 },
-		{ id = "watershed_crossroads", name = "Watershed Crossroads", map = "overworld", x = 96, y = 18, width = 128, height = 72 },
-		{ id = "emberglen", name = "Emberglen", map = "overworld", x = 224, y = 35, width = 36, height = 26 },
-		{ id = "old_road", name = "The Old Road", map = "overworld", x = 260, y = 23, width = 96, height = 48 },
-		{ id = "cinderrail", name = "Cinderrail Foundry", map = "overworld", x = 356, y = 32, width = 52, height = 36 }
+		{ id = "glasswater", name = "Glasswater Port", map = "overworld", kind = "town", x = 0, y = 0, width = 96, height = 48 },
+		{ id = "rootmaze", name = "Rootmaze Commons", map = "overworld", kind = "town", x = 0, y = 52, width = 96, height = 56 },
+		{ id = "watershed_crossroads", name = "Watershed Crossroads", map = "overworld", kind = "connector", x = 96, y = 18, width = 128, height = 72 },
+		{ id = "emberglen", name = "Emberglen", map = "overworld", kind = "town", x = 224, y = 35, width = 36, height = 26 },
+		{ id = "old_road", name = "The Old Road", map = "overworld", kind = "connector", x = 260, y = 23, width = 96, height = 48 },
+		{ id = "cinderrail", name = "Cinderrail Foundry", map = "overworld", kind = "town", x = 356, y = 32, width = 52, height = 36 }
 	},
 	start = { map = "overworld", x = 241, y = 50 },
 	portals = {
@@ -210,7 +210,7 @@ return {
 		["tern_ford"] = { map = "overworld", x = 143, y = 38 },
 		["vale_reed"] = { map = "overworld", x = 190, y = 68 },
 		["cairn"] = { map = "overworld", x = 310, y = 36 },
-		["mara_flintway"] = { map = "overworld", x = 329, y = 65 },
+		["mara_flintway"] = { map = "overworld", x = 335, y = 68 },
 	},
 	shards = {
 		["living_dead"] = { map = "overworld", x = 228, y = 36 },

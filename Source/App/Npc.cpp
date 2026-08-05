@@ -29,11 +29,32 @@ namespace
 		return value;
 	}
 
+	bool luaBooleanField(lua_State* state, int table, const char* key, bool fallback)
+	{
+		table = lua_absindex(state, table);
+		lua_getfield(state, table, key);
+		bool value = lua_isboolean(state, -1) ? lua_toboolean(state, -1) != 0 : fallback;
+		lua_pop(state, 1);
+		return value;
+	}
+
 	bool parseKind(const std::string& value, NpcKind& result)
 	{
-		if (value == "duelist") result = NpcKind::Duelist;
-		else if (value == "shopkeeper") result = NpcKind::Shopkeeper;
+		if (value == "town_npc") result = NpcKind::Town;
+		else if (value == "route_duelist") result = NpcKind::RouteDuelist;
 		else if (value == "boss") result = NpcKind::Boss;
+		else return false;
+		return true;
+	}
+
+	bool parseFacing(const std::string& value, int& x, int& y)
+	{
+		x = 0;
+		y = 0;
+		if (value == "up") y = -1;
+		else if (value == "down") y = 1;
+		else if (value == "left") x = -1;
+		else if (value == "right") x = 1;
 		else return false;
 		return true;
 	}
@@ -103,23 +124,36 @@ Npc::Npc(int xValue, int yValue, const std::string& npcName,
 	  visualX((float)xValue), visualY((float)yValue), nextMoveAt(0),
 	  name(npcName), decks(deckPaths), rewards(battleRewards), challenge(greeting), wins(0),
 	  maxWins((int)battleRewards.size()), kind(npcKind), appearance(characterAppearance),
+	  duelEnabled(npcKind != NpcKind::Town), tradeEnabled(false), wanders(false),
+	  sightRange(0), facingX(0), facingY(1),
 	  mWanderState((unsigned int)(xValue * 73856093u) ^
 		(unsigned int)(yValue * 19349663u) ^ (unsigned int)npcName.size() * 83492791u)
 {
 }
 
-Npc Npc::duelist(int x, int y, const std::string& name,
+Npc Npc::town(int x, int y, const std::string& name,
 	const std::vector<std::string>& decks, const std::string& challenge,
-	const std::vector<NpcReward>& rewards, CharacterAppearance appearance)
+	const std::vector<NpcReward>& rewards, CharacterAppearance appearance,
+	bool canDuel, bool canOfferTrade, bool canWander)
 {
-	return Npc(x, y, name, decks, challenge, rewards, NpcKind::Duelist, appearance);
+	Npc npc(x, y, name, decks, challenge, rewards, NpcKind::Town, appearance);
+	npc.duelEnabled = canDuel;
+	npc.tradeEnabled = canOfferTrade;
+	npc.wanders = canWander;
+	return npc;
 }
 
-Npc Npc::shopkeeper(int x, int y, const std::string& name, const std::string& greeting,
-	CharacterAppearance appearance)
+Npc Npc::routeDuelist(int x, int y, const std::string& name,
+	const std::vector<std::string>& decks, const std::string& challenge,
+	const std::vector<NpcReward>& rewards, CharacterAppearance appearance,
+	int trainerSightRange, int trainerFacingX, int trainerFacingY)
 {
-	return Npc(x, y, name, std::vector<std::string>(), greeting,
-		std::vector<NpcReward>(), NpcKind::Shopkeeper, appearance);
+	Npc npc(x, y, name, decks, challenge, rewards, NpcKind::RouteDuelist, appearance);
+	npc.duelEnabled = true;
+	npc.sightRange = trainerSightRange;
+	npc.facingX = trainerFacingX;
+	npc.facingY = trainerFacingY;
+	return npc;
 }
 
 Npc Npc::boss(int x, int y, const std::string& name,
@@ -131,12 +165,17 @@ Npc Npc::boss(int x, int y, const std::string& name,
 
 bool Npc::isDuelist() const
 {
-	return kind == NpcKind::Duelist || kind == NpcKind::Boss;
+	return duelEnabled;
 }
 
-bool Npc::isShopkeeper() const
+bool Npc::isTownNpc() const
 {
-	return kind == NpcKind::Shopkeeper;
+	return kind == NpcKind::Town;
+}
+
+bool Npc::isRouteDuelist() const
+{
+	return kind == NpcKind::RouteDuelist;
 }
 
 bool Npc::isBoss() const
@@ -144,19 +183,24 @@ bool Npc::isBoss() const
 	return kind == NpcKind::Boss;
 }
 
+bool Npc::canTrade() const
+{
+	return tradeEnabled;
+}
+
 bool Npc::canWander() const
 {
-	return kind == NpcKind::Duelist;
+	return wanders;
 }
 
 bool Npc::canBattle() const
 {
-	return isDuelist() && wins < maxWins;
+	return duelEnabled && wins < maxWins;
 }
 
 bool Npc::isComplete() const
 {
-	return isDuelist() && wins >= maxWins;
+	return duelEnabled && wins >= maxWins;
 }
 
 std::string Npc::deckForBattle(int battleIndex) const
@@ -179,6 +223,7 @@ NpcReward Npc::nextReward() const
 std::string Npc::rankName() const
 {
 	if (isBoss()) return "Boss Duel";
+	if (isRouteDuelist()) return wins == 0 ? "Route Challenge" : "Route Rematch";
 	const char* ranks[] = { "First Trial", "Adaptation", "Veteran Duel", "Master Duel" };
 	return ranks[std::max(0, std::min(3, wins))];
 }
@@ -205,7 +250,7 @@ void Npc::setPosition(int xValue, int yValue)
 		(unsigned int)(yValue * 19349663u) ^ (unsigned int)name.size() * 83492791u;
 }
 
-void Npc::updateMovement(unsigned int deltaMilliseconds)
+void Npc::updateMovement(unsigned int deltaMilliseconds, float tilesPerSecond)
 {
 	float dx = x - visualX;
 	float dy = y - visualY;
@@ -216,7 +261,7 @@ void Npc::updateMovement(unsigned int deltaMilliseconds)
 		visualY = (float)y;
 		return;
 	}
-	const float step = 2.8f * deltaMilliseconds / 1000.f;
+	const float step = tilesPerSecond * deltaMilliseconds / 1000.f;
 	if (step >= distance)
 	{
 		visualX = (float)x;
@@ -285,7 +330,7 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 		const std::string name = luaStringField(state, entry, "name");
 		const std::string kindName = luaStringField(state, entry, "kind");
 		const std::string appearanceName = luaStringField(state, entry, "appearance");
-		NpcKind kind = NpcKind::Duelist;
+		NpcKind kind = NpcKind::Town;
 		CharacterAppearance appearance = CharacterAppearance::Mira;
 		if (id.empty() || name.empty() || !parseKind(kindName, kind) ||
 			!parseAppearance(appearanceName, appearance))
@@ -301,8 +346,25 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 			lua_close(state);
 			return false;
 		}
-		if (!crestId.empty() && (kind == NpcKind::Shopkeeper ||
-			!validCrestId(crestId) || !crests.insert(crestId).second))
+		bool duelEnabled = kind != NpcKind::Town;
+		bool tradeEnabled = false;
+		bool wanders = kind == NpcKind::Town;
+		lua_getfield(state, entry, "options");
+		if (lua_istable(state, -1))
+		{
+			duelEnabled = luaBooleanField(state, -1, "duel", duelEnabled);
+			tradeEnabled = luaBooleanField(state, -1, "trade", false);
+			wanders = luaBooleanField(state, -1, "wander", wanders);
+		}
+		lua_pop(state, 1);
+		if (kind != NpcKind::Town && (!duelEnabled || tradeEnabled))
+		{
+			error = "NPC '" + id + "' reserves duel/trade options for town_npc entries";
+			lua_close(state);
+			return false;
+		}
+		if (!crestId.empty() && (!duelEnabled || !validCrestId(crestId) ||
+			!crests.insert(crestId).second))
 		{
 			error = "NPC '" + id + "' has an invalid or duplicate crest";
 			lua_close(state);
@@ -312,13 +374,35 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 		const int x = 0;
 		const int y = 0;
 
-		const int defaultBattles = kind == NpcKind::Boss ? 1 :
-			(kind == NpcKind::Duelist ? 4 : 0);
+		int sightRange = 0;
+		int facingX = 0;
+		int facingY = 1;
+		if (kind == NpcKind::RouteDuelist)
+		{
+			lua_getfield(state, entry, "sight");
+			if (!lua_istable(state, -1))
+			{
+				error = "route duelist '" + id + "' needs a sight table";
+				lua_close(state);
+				return false;
+			}
+			sightRange = luaIntegerField(state, -1, "range", 6);
+			std::string direction = luaStringField(state, -1, "direction");
+			lua_pop(state, 1);
+			if (sightRange < 1 || sightRange > 12 || !parseFacing(direction, facingX, facingY))
+			{
+				error = "route duelist '" + id + "' needs sight range 1-12 and a cardinal direction";
+				lua_close(state);
+				return false;
+			}
+		}
+
+		const int defaultBattles = kind == NpcKind::Boss ? 1 : (duelEnabled ? 4 : 0);
 		const int maxBattles = luaIntegerField(state, entry, "max_battles", defaultBattles);
 		std::vector<std::string> decks;
 		std::vector<NpcReward> rewards;
 		std::string latestDeck;
-		if (kind != NpcKind::Shopkeeper)
+		if (duelEnabled)
 		{
 			if (maxBattles <= 0 || maxBattles > 4)
 			{
@@ -382,11 +466,13 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 		readDialogue(state, entry, dialogue);
 		const std::string greeting = dialogue.count("greeting") ? dialogue["greeting"] : "";
 
-		Npc npc = kind == NpcKind::Shopkeeper ?
-			Npc::shopkeeper(x, y, name, greeting, appearance) :
+		Npc npc = kind == NpcKind::Town ?
+			Npc::town(x, y, name, decks, greeting, rewards, appearance,
+				duelEnabled, tradeEnabled, wanders) :
 			(kind == NpcKind::Boss ?
 				Npc::boss(x, y, name, decks, greeting, rewards, appearance) :
-				Npc::duelist(x, y, name, decks, greeting, rewards, appearance));
+				Npc::routeDuelist(x, y, name, decks, greeting, rewards, appearance,
+					sightRange, facingX, facingY));
 		npc.id = id;
 		npc.crestId = crestId;
 		npc.aiPersonality = aiPersonality;

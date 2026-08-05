@@ -27,6 +27,8 @@ Every connector should provide a legible main route for repeat travel and enough
 
 The unknown comes from exploration and fixed discoveries rather than mandatory random battles. Once a player learns a route, its landmarks and shortcuts should make the return trip quicker and more confident.
 
+Walking near a named landmark records it permanently in the player's route discoveries and grants a small one-time gold reward. The Esc menu shows found landmarks by name and leaves undiscovered sites hidden. These rewards are intentionally modest: they make curiosity worthwhile without requiring players to scour every tile before continuing the story.
+
 ## Route overview
 
 | Connecting area | Connects | Availability | Status |
@@ -61,6 +63,8 @@ The Old Road is a former primary freight route whose traffic declined as newer l
 
 Rook maintains the western bridge and checkpoint. His position gives the connector a familiar character without turning it into another settlement. Beyond him, northern and southern loops leave the maintained road for abandoned works, rockfall country, and Wayfarer Camp. Cairn challenges explorers near the abandoned cut, while Mara Flintway watches the remote camp and eastern loop. Four civilization shards sit well away from the shortest crossing. The road's western gate returns to Emberglen, while its eastern gate enters Cinderrail near the gold-marked arrival road.
 
+The route discoveries are the Abandoned Freight Cut, Rook's Checkpoint, and Wayfarer Camp.
+
 The Emberglen entrance remains locked until the Act I investigation and boss confrontation are complete. Returning from Cinderrail or the Old Road toward Emberglen is never restricted after the route opens.
 
 ### Watershed Crossroads
@@ -74,6 +78,8 @@ Watershed Crossroads is one continuous three-way region rather than three separa
 The expanded 128-by-72 region sits directly west of Emberglen. The Emberglen branch passes through orchards and a caravan pull-off. The Glasswater branch crosses broad canal bridges beneath a lighthouse silhouette and joins the city's Watershed Gate directly, while the Rootmaze branch follows shallow streams beneath living roots into Northwater Gate. Between them lie a northern pool trail, a southern marsh loop, drowned foundations, and a creature shelter around the old toll house.
 
 Tern Ford patrols the unpredictable western crossing and Vale Reed surveys the southern pools. Four civilization shards reward leaving the route markers and exploring the remote corners. The central shelter and colored signs always provide a reliable way to reorient, so the wetland feels unknown on the first journey without becoming tedious on later crossings. This single region replaces Tideglass Road, Homeward Walk, and Northwater Greenway.
+
+The route discoveries are Northwater Pools, the Old Toll Shelter, and the Drowned Foundations.
 
 ### Blackstone Road
 

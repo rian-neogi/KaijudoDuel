@@ -1,6 +1,7 @@
 #include "Application.h"
 
 #include "AppSupport.h"
+#include "Landmarks.h"
 
 #include <algorithm>
 #include <cmath>
@@ -24,8 +25,19 @@ void Application::handleOverworldEvent(const SDL_Event& event)
 			SDL_Keycode key = event.key.keysym.sym;
 			if (key == SDLK_e || key == SDLK_SPACE || key == SDLK_RETURN)
 				advanceDialogue();
-			else if (key == SDLK_ESCAPE && mDialogueAction == DialogueAction::NpcInteraction)
-				clearDialogue();
+			else if (key == SDLK_ESCAPE)
+			{
+				int npcIndex = mDialogueNpc;
+				DialogueAction action = mDialogueAction;
+				if (action == DialogueAction::NpcInteraction) clearDialogue();
+				else if (action == DialogueAction::OpenNpcMenu ||
+					action == DialogueAction::ReturnToNpcMenu)
+				{
+					clearDialogue();
+					mNpcMenuNpc = npcIndex;
+					mNpcMenuSelection = 0;
+				}
+			}
 		}
 		return;
 	}
@@ -35,6 +47,12 @@ void Application::handleOverworldEvent(const SDL_Event& event)
 		handlePauseMenuEvent(event);
 		return;
 	}
+	if (mNpcMenuNpc >= 0)
+	{
+		handleNpcMenuEvent(event);
+		return;
+	}
+	if (mRouteChallengeNpc >= 0) return;
 	if ((event.type == SDL_KEYDOWN && !event.key.repeat) || event.type == SDL_KEYUP)
 	{
 		SDL_Keycode movementKey = event.key.keysym.sym;
@@ -89,6 +107,7 @@ void Application::updateOverworld(Uint32 deltaTime)
 	float playerDy = mPlayerY - mVisualY;
 	float playerDistance = std::sqrt(playerDx * playerDx + playerDy * playerDy);
 	if (playerDistance <= 0.001f && mOpeningPortal < 0 && mDialogueNpc < 0 &&
+		mNpcMenuNpc < 0 && mRouteChallengeNpc < 0 &&
 		(mMoveIntentX != 0 || mMoveIntentY != 0))
 	{
 		mVisualX = (float)mPlayerX;
@@ -126,7 +145,7 @@ void Application::updateOverworld(Uint32 deltaTime)
 	{
 		if (!npcVisible((int)i) || mNpcs[i].mapId != currentMapId()) continue;
 		Npc& npc = mNpcs[i];
-		npc.updateMovement(deltaTime);
+		npc.updateMovement(deltaTime, mRouteChallengeNpc == (int)i ? 7.2f : 2.8f);
 		if (!npc.canWander()) continue;
 		if (npc.nextMoveAt == 0)
 		{
@@ -154,6 +173,90 @@ void Application::updateOverworld(Uint32 deltaTime)
 			break;
 		}
 		npc.scheduleWander(now);
+	}
+	updateRouteDuelistChallenge();
+}
+
+bool Application::routeDuelistCanSeePlayer(int npcIndex) const
+{
+	if (npcIndex < 0 || npcIndex >= (int)mNpcs.size()) return false;
+	const Npc& npc = mNpcs[npcIndex];
+	if (!npc.isRouteDuelist() || !npc.canBattle() || npc.wins > 0 ||
+		npc.mapId != currentMapId() || npc.isMoving()) return false;
+	int dx = mPlayerX - npc.x;
+	int dy = mPlayerY - npc.y;
+	if ((npc.facingX != 0 && (dy != 0 || dx * npc.facingX <= 0)) ||
+		(npc.facingY != 0 && (dx != 0 || dy * npc.facingY <= 0))) return false;
+	int distance = std::abs(dx) + std::abs(dy);
+	if (distance <= 0 || distance > npc.sightRange) return false;
+	for (int step = 1; step < distance; ++step)
+	{
+		int x = npc.x + npc.facingX * step;
+		int y = npc.y + npc.facingY * step;
+		if (!isWalkable(x, y) || npcAt(x, y, npcIndex) >= 0) return false;
+	}
+	return true;
+}
+
+void Application::updateRouteDuelistChallenge()
+{
+	if (mDialogueNpc >= 0 || mNpcMenuNpc >= 0 || mPauseMenuOpen ||
+		mOpeningPortal >= 0 || mStoryScene != StoryScene::None) return;
+	if (std::fabs(mPlayerX - mVisualX) > 0.001f ||
+		std::fabs(mPlayerY - mVisualY) > 0.001f) return;
+
+	if (mRouteChallengeNpc >= 0)
+	{
+		if (mRouteChallengeNpc >= (int)mNpcs.size() ||
+			!npcVisible(mRouteChallengeNpc) ||
+			mNpcs[mRouteChallengeNpc].mapId != currentMapId())
+		{
+			mRouteChallengeNpc = -1;
+			return;
+		}
+		Npc& npc = mNpcs[mRouteChallengeNpc];
+		if (npc.isMoving()) return;
+		int dx = mPlayerX - npc.x;
+		int dy = mPlayerY - npc.y;
+		if (std::abs(dx) + std::abs(dy) <= 1)
+		{
+			int challenger = mRouteChallengeNpc;
+			mRouteChallengeNpc = -1;
+			beginDialogue(challenger, npc.dialogueText("greeting",
+				"I saw you on the road. Prepare to duel!"), DialogueAction::ForcedBattle);
+			return;
+		}
+		int stepX = dx == 0 ? 0 : (dx > 0 ? 1 : -1);
+		int stepY = dy == 0 ? 0 : (dy > 0 ? 1 : -1);
+		int nextX = npc.x + stepX;
+		int nextY = npc.y + stepY;
+		if (!isWalkable(nextX, nextY) || npcAt(nextX, nextY, mRouteChallengeNpc) >= 0 ||
+			(nextX == mPlayerX && nextY == mPlayerY)) return;
+		npc.facingX = stepX;
+		npc.facingY = stepY;
+		npc.x = nextX;
+		npc.y = nextY;
+		return;
+	}
+
+	for (size_t i = 0; i < mNpcs.size(); ++i)
+	{
+		Npc& npc = mNpcs[i];
+		if (!npc.isRouteDuelist() || npc.mapId != currentMapId()) continue;
+		bool seesPlayer = routeDuelistCanSeePlayer((int)i);
+		if (mSuppressedRouteChallenges.count(npc.id))
+		{
+			if (!seesPlayer) mSuppressedRouteChallenges.erase(npc.id);
+			continue;
+		}
+		if (!seesPlayer) continue;
+		mRouteChallengeNpc = (int)i;
+		mSuppressedRouteChallenges.insert(npc.id);
+		mMoveUp = mMoveDown = mMoveLeft = mMoveRight = false;
+		mMoveIntentX = mMoveIntentY = 0;
+		mNotice = npc.name + " spotted you!";
+		mNoticeUntil = SDL_GetTicks() + 2500;
+		return;
 	}
 }
 
@@ -198,7 +301,11 @@ void Application::tryMove(int dx, int dy)
 	{
 		mPlayerX = x;
 		mPlayerY = y;
-		if (!beginPortalAt(x, y)) collectShardAt(x, y);
+		if (!beginPortalAt(x, y))
+		{
+			discoverLandmarkAt(x, y);
+			collectShardAt(x, y);
+		}
 	}
 }
 
@@ -218,14 +325,53 @@ void Application::collectShardAt(int x, int y)
 	}
 }
 
+void Application::discoverLandmarkAt(int x, int y)
+{
+	for (size_t landmark = 0; landmark < Landmarks::COUNT; ++landmark)
+	{
+		const Landmarks::Definition& definition = Landmarks::DEFINITIONS[landmark];
+		if (mPlayerDataLoaded && mDiscoveredLandmarks.count(definition.id)) continue;
+		const WorldRegion* region = NULL;
+		for (size_t candidate = 0; candidate < mWorldRegions.size(); ++candidate)
+			if (mWorldRegions[candidate].mapId == currentMapId() &&
+				mWorldRegions[candidate].id == definition.regionId)
+			{
+				region = &mWorldRegions[candidate];
+				break;
+			}
+		if (region == NULL) continue;
+		int landmarkX = region->x + definition.localX;
+		int landmarkY = region->y + definition.localY;
+		if (std::abs(x - landmarkX) + std::abs(y - landmarkY) >
+			definition.discoveryRadius) continue;
+
+		ensurePlayerDataLoaded();
+		if (mDiscoveredLandmarks.count(definition.id)) return;
+		mDiscoveredLandmarks.insert(definition.id);
+		mMoney += definition.goldReward;
+		savePlayerProgress();
+		mNotice = "Landmark discovered: " + std::string(definition.name) + "  (+" +
+			std::to_string(definition.goldReward) + " gold)";
+		mNoticeUntil = SDL_GetTicks() + 6000;
+		return;
+	}
+}
+
 void Application::interact()
 {
 	if (mOpeningPortal >= 0) return;
 	if (std::fabs(mPlayerX - mVisualX) > 0.001f || std::fabs(mPlayerY - mVisualY) > 0.001f) return;
 	int npcIndex = npcAt(mPlayerX + mFacingX, mPlayerY + mFacingY);
 	if (npcIndex < 0) return;
-	discoverStoryClue(npcIndex);
-	beginDialogue(npcIndex, storyDialogueForNpc(npcIndex), DialogueAction::NpcInteraction);
+	Npc& npc = mNpcs[npcIndex];
+	if (npc.isTownNpc())
+		beginDialogue(npcIndex, npc.dialogueText("greeting", "Hello there."),
+			DialogueAction::OpenNpcMenu);
+	else
+	{
+		discoverStoryClue(npcIndex);
+		beginDialogue(npcIndex, storyDialogueForNpc(npcIndex), DialogueAction::NpcInteraction);
+	}
 }
 
 void Application::beginDialogue(int npcIndex, const std::string& text, DialogueAction action)
@@ -273,8 +419,123 @@ void Application::advanceDialogue()
 		npcIndex >= 0 && npcIndex < (int)mNpcs.size())
 	{
 		Npc& npc = mNpcs[npcIndex];
-		if (npc.isShopkeeper()) enterShop();
-		else if (npc.canBattle()) startDuel(npcIndex);
+		if (npc.canBattle()) startDuel(npcIndex);
+	}
+	else if ((action == DialogueAction::OpenNpcMenu ||
+		action == DialogueAction::ReturnToNpcMenu) &&
+		npcIndex >= 0 && npcIndex < (int)mNpcs.size())
+	{
+		mNpcMenuNpc = npcIndex;
+		mNpcMenuSelection = 0;
+	}
+	else if (action == DialogueAction::ForcedBattle &&
+		npcIndex >= 0 && npcIndex < (int)mNpcs.size() && mNpcs[npcIndex].canBattle())
+		startDuel(npcIndex);
+}
+
+std::vector<Application::NpcMenuAction> Application::npcMenuActions(int npcIndex) const
+{
+	std::vector<NpcMenuAction> actions;
+	if (npcIndex < 0 || npcIndex >= (int)mNpcs.size()) return actions;
+	actions.push_back(NpcMenuAction::Talk);
+	if (mNpcs[npcIndex].isDuelist()) actions.push_back(NpcMenuAction::Duel);
+	if (mNpcs[npcIndex].canTrade()) actions.push_back(NpcMenuAction::Trade);
+	actions.push_back(NpcMenuAction::Leave);
+	return actions;
+}
+
+void Application::activateNpcMenuAction(NpcMenuAction action)
+{
+	if (mNpcMenuNpc < 0 || mNpcMenuNpc >= (int)mNpcs.size()) return;
+	int npcIndex = mNpcMenuNpc;
+	Npc& npc = mNpcs[npcIndex];
+	mNpcMenuNpc = -1;
+	if (action == NpcMenuAction::Talk)
+	{
+		discoverStoryClue(npcIndex);
+		beginDialogue(npcIndex, storyDialogueForNpc(npcIndex),
+			DialogueAction::ReturnToNpcMenu);
+	}
+	else if (action == NpcMenuAction::Duel)
+	{
+		if (npc.canBattle()) startDuel(npcIndex);
+		else
+			beginDialogue(npcIndex, npc.dialogueText("complete",
+				"We have already settled every duel between us."),
+				DialogueAction::ReturnToNpcMenu);
+	}
+	else if (action == NpcMenuAction::Trade && npc.canTrade())
+		enterShop();
+}
+
+void Application::handleNpcMenuEvent(const SDL_Event& event)
+{
+	std::vector<NpcMenuAction> actions = npcMenuActions(mNpcMenuNpc);
+	if (actions.empty())
+	{
+		mNpcMenuNpc = -1;
+		return;
+	}
+	mNpcMenuSelection = std::max(0, std::min((int)actions.size() - 1, mNpcMenuSelection));
+	if (event.type == SDL_KEYDOWN && !event.key.repeat)
+	{
+		SDL_Keycode key = event.key.keysym.sym;
+		if (key == SDLK_ESCAPE)
+		{
+			mNpcMenuNpc = -1;
+			return;
+		}
+		if (key == SDLK_w || key == SDLK_UP)
+			mNpcMenuSelection = (mNpcMenuSelection + (int)actions.size() - 1) % actions.size();
+		else if (key == SDLK_s || key == SDLK_DOWN)
+			mNpcMenuSelection = (mNpcMenuSelection + 1) % actions.size();
+		else if (key == SDLK_RETURN || key == SDLK_SPACE || key == SDLK_e)
+			activateNpcMenuAction(actions[mNpcMenuSelection]);
+		return;
+	}
+	if (event.type != SDL_MOUSEMOTION &&
+		(event.type != SDL_MOUSEBUTTONDOWN || event.button.button != SDL_BUTTON_LEFT)) return;
+	int x, y;
+	if (event.type == SDL_MOUSEMOTION)
+		logicalMouse(event.motion.x, event.motion.y, x, y);
+	else
+		logicalMouse(event.button.x, event.button.y, x, y);
+	for (size_t i = 0; i < actions.size(); ++i)
+	{
+		SDL_Rect button = { 856, 468 + (int)i * 58, 340, 48 };
+		if (!contains(button, x, y)) continue;
+		mNpcMenuSelection = (int)i;
+		if (event.type == SDL_MOUSEBUTTONDOWN) activateNpcMenuAction(actions[i]);
+		return;
+	}
+}
+
+void Application::renderNpcMenu()
+{
+	if (mNpcMenuNpc < 0 || mNpcMenuNpc >= (int)mNpcs.size()) return;
+	const Npc& npc = mNpcs[mNpcMenuNpc];
+	std::vector<NpcMenuAction> actions = npcMenuActions(mNpcMenuNpc);
+	int panelHeight = 82 + (int)actions.size() * 58;
+	SDL_Rect panel = { 830, 410, 390, panelHeight };
+	fillRect(panel, 14, 22, 35, 248);
+	outlineRect(panel, 194, 148, 62, 255, 3);
+	drawText(npc.name, 856, 428, color(244, 206, 103), 23, 330);
+	for (size_t i = 0; i < actions.size(); ++i)
+	{
+		SDL_Rect button = { 856, 468 + (int)i * 58, 340, 48 };
+		bool selected = (int)i == mNpcMenuSelection;
+		fillRect(button, selected ? 48 : 29, selected ? 66 : 43,
+			selected ? 96 : 66, 250);
+		outlineRect(button, selected ? 226 : 102, selected ? 178 : 126,
+			selected ? 86 : 172, 255, selected ? 3 : 2);
+		std::string label;
+		if (actions[i] == NpcMenuAction::Talk) label = "Talk";
+		else if (actions[i] == NpcMenuAction::Duel)
+			label = npc.canBattle() ? "Duel  •  " + npc.rankName() : "Duel  •  Complete";
+		else if (actions[i] == NpcMenuAction::Trade) label = "Trade";
+		else label = "Leave";
+		drawText(label, button.x + 18, button.y + 13,
+			selected ? color(247, 224, 155) : color(224, 231, 241), 17, 304);
 	}
 }
 
@@ -1022,13 +1283,29 @@ void Application::renderOverworld()
 			(int)std::floor(mNpcs[i].visualY))) continue;
 		drawCharacter(mNpcs[i].visualX, mNpcs[i].visualY, mNpcs[i].appearance,
 			mNpcs[i].isComplete(), mNpcs[i].isMoving());
-		if (npcHasStoryMarker((int)i))
+		bool trainerChallenge = mRouteChallengeNpc == (int)i;
+		if (mNpcs[i].isRouteDuelist() && mNpcs[i].wins == 0 && !trainerChallenge)
+		{
+			std::string facing = mNpcs[i].facingX < 0 ? "<" :
+				(mNpcs[i].facingX > 0 ? ">" : (mNpcs[i].facingY < 0 ? "^" : "v"));
+			int facingX = mapX + (int)std::round(mNpcs[i].visualX * TILE) + 19 +
+				mNpcs[i].facingX * 24;
+			int facingY = mapY + (int)std::round(mNpcs[i].visualY * TILE) + 14 +
+				mNpcs[i].facingY * 22;
+			fillRect({ facingX - 4, facingY - 2, 18, 20 }, 22, 17, 10, 205);
+			drawText(facing, facingX, facingY, color(247, 198, 78), 14);
+		}
+		if (npcHasStoryMarker((int)i) || trainerChallenge)
 		{
 			int markerX = mapX + (int)std::round(mNpcs[i].visualX * TILE) + 17;
 			int markerY = mapY + (int)std::round(mNpcs[i].visualY * TILE) - 20;
-			fillRect({ markerX - 4, markerY - 2, 20, 22 }, 31, 24, 14, 235);
-			outlineRect({ markerX - 4, markerY - 2, 20, 22 }, 246, 203, 78, 255, 2);
-			drawText("!", markerX + 2, markerY, color(255, 225, 111), 16);
+			fillRect({ markerX - 4, markerY - 2, 20, 22 },
+				trainerChallenge ? 75 : 31, trainerChallenge ? 18 : 24, 14, 235);
+			outlineRect({ markerX - 4, markerY - 2, 20, 22 },
+				trainerChallenge ? 255 : 246, trainerChallenge ? 88 : 203,
+				trainerChallenge ? 68 : 78, 255, 2);
+			drawText("!", markerX + 2, markerY,
+				trainerChallenge ? color(255, 151, 92) : color(255, 225, 111), 16);
 		}
 	}
 	for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
@@ -1065,8 +1342,12 @@ void Application::renderOverworld()
 		std::string dialogue = mDialogueText.substr(0, mDialogueVisibleBytes);
 		bool fullyRevealed = mDialogueVisibleBytes >= mDialogueText.size();
 		std::string prompt = "E / Click: continue";
-		if (mDialogueAction == DialogueAction::NpcInteraction && npc.isShopkeeper())
-			prompt = "E / Click: browse";
+		if (mDialogueAction == DialogueAction::OpenNpcMenu)
+			prompt = "E / Click: choices";
+		else if (mDialogueAction == DialogueAction::ReturnToNpcMenu)
+			prompt = "E / Click: back to choices";
+		else if (mDialogueAction == DialogueAction::ForcedBattle)
+			prompt = "Trainer challenge  •  E / Click: battle";
 		else if (mDialogueAction == DialogueAction::NpcInteraction && npc.isComplete())
 		{
 			prompt = "E / Click: close";
@@ -1082,6 +1363,7 @@ void Application::renderOverworld()
 		}
 	}
 	if (mDialogueNpc < 0) renderStoryScene();
+	if (mNpcMenuNpc >= 0) renderNpcMenu();
 	if (mPauseMenuOpen) renderPauseMenu();
 }
 

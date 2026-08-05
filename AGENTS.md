@@ -70,6 +70,8 @@ rendering, and repeated duel teardown.
 - `Source/App/WorldTile.h`: stable semantic tile IDs and their compact one-byte
   serialization glyphs. Rendering and collision must use these IDs rather than
   assigning different meanings based on the current map.
+- `Source/App/Landmarks.h`: one-time route discoveries, defined in region-local
+  coordinates so seamless-map regions may move without invalidating them.
 - `Lua/Npcs.lua`: authoritative NPC identities, kinds, appearances, decks,
   rewards, Crest Holder awards, AI personalities, and dialogue. It does not own
   positions.
@@ -92,6 +94,9 @@ Builder must not enumerate the bundled gameplay and NPC decks under `Decks`.
 - NPC and shard position keys must match their metadata `id` fields and include
   a valid `map` ID. Normal gameplay requires every current entity ID to have a
   valid `World.lua` map position.
+- Exterior regions require an explicit `kind` of `town` or `connector`.
+  `route_duelist` NPCs must be in connector regions; `town_npc` NPCs must not
+  be. The World Builder must preserve region kinds when saving.
 - The World Builder scans the NPC and shard metadata. New IDs without world
   entries are placed automatically on free walkable tiles when the builder is
   launched, mark the world dirty, and are persisted on the next save. Stale
@@ -132,6 +137,13 @@ Builder must not enumerate the bundled gameplay and NPC decks under `Decks`.
   corridors. The implemented Watershed Crossroads is 128-by-72 tiles and the
   Old Road is 96-by-48; preserve their readable main routes, optional loops,
   camps, route duelists, and off-road shard discoveries when editing them.
+- Landmark IDs are persistent progress keys. Keep them stable, keep landmark
+  coordinates relative to their named region, and ensure that a walkable tile
+  lies within every discovery radius.
+- Town NPC interaction capabilities come from `Lua/Npcs.lua` `options` fields.
+  Talk is always present; Duel and Trade must not appear unless enabled. Route
+  duelist sight ranges and cardinal facing also come from Lua. Their first
+  undefeated sight-line encounter is forced, while rematches are voluntary.
 
 ## Rules-engine safety
 

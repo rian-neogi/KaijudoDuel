@@ -78,7 +78,8 @@ void Application::updateStoryProgress()
 	{
 		int stabilized = 0;
 		for (size_t i = 0; i < mNpcs.size(); ++i)
-			if (mNpcs[i].kind == NpcKind::Duelist && mNpcs[i].wins > 0) ++stabilized;
+			if (mNpcs[i].isTownNpc() && mNpcs[i].isDuelist() && mNpcs[i].wins > 0)
+				++stabilized;
 		if (stabilized >= 3)
 		{
 			mStoryStage = 3;
@@ -115,7 +116,7 @@ bool Application::npcHasStoryMarker(int npcIndex) const
 		if (npc.id == "flint") return (mStoryClues & CLUE_FLINT) == 0;
 		if (npc.id == "mira") return (mStoryClues & CLUE_MIRA) == 0;
 	}
-	if (mStoryStage == 2) return npc.kind == NpcKind::Duelist && npc.wins == 0;
+	if (mStoryStage == 2) return npc.isTownNpc() && npc.isDuelist() && npc.wins == 0;
 	if (mStoryStage == 3) return npc.isBoss() && !npc.isComplete();
 	return false;
 }
@@ -134,7 +135,8 @@ std::string Application::storyObjective() const
 	{
 		int stabilized = 0;
 		for (size_t i = 0; i < mNpcs.size(); ++i)
-			if (mNpcs[i].kind == NpcKind::Duelist && mNpcs[i].wins > 0) ++stabilized;
+			if (mNpcs[i].isTownNpc() && mNpcs[i].isDuelist() && mNpcs[i].wins > 0)
+				++stabilized;
 		return "Stabilize signature echoes by defeating three duelists (" +
 			std::to_string(std::min(3, stabilized)) + "/3)";
 	}
@@ -146,7 +148,7 @@ std::string Application::storyDialogueForNpc(int npcIndex) const
 {
 	if (npcIndex < 0 || npcIndex >= (int)mNpcs.size()) return "";
 	const Npc& npc = mNpcs[npcIndex];
-	if (npc.isShopkeeper())
+	if (npc.canTrade() && !npc.isDuelist())
 	{
 		if (mStoryStage >= 4) return npc.dialogueText("act_complete", npc.challenge);
 		return mStoryStage < 2 ? npc.dialogueText("shop_early", npc.challenge) :
@@ -155,6 +157,9 @@ std::string Application::storyDialogueForNpc(int npcIndex) const
 	if (npc.isBoss())
 		return npc.isComplete() ?
 			npc.dialogueText("complete", npc.challenge) : npc.dialogueText("greeting", npc.challenge);
+	if (npc.isRouteDuelist())
+		return npc.isComplete() ? npc.dialogueText("complete", npc.challenge) :
+			npc.dialogueText("greeting", npc.challenge);
 	if (npc.isComplete())
 		return npc.dialogueText("complete",
 			"My signature card remembers you now. I have nothing more to wager.");
@@ -173,6 +178,13 @@ std::string Application::storyDialogueForNpc(int npcIndex) const
 	if (mStoryStage == 3)
 		return npc.dialogueText("boss_reveal",
 			"The masked stranger has appeared at the central bridge. We'll hold Emberglen—go!");
+	if (npc.isTownNpc())
+	{
+		std::string everydayTalk = npc.dialogueText("talk",
+			npc.dialogueText("greeting", npc.challenge));
+		return mStoryStage >= 4 ? npc.dialogueText("act_complete", everydayTalk) :
+			everydayTalk;
+	}
 	return npc.dialogueText("act_complete",
 		"You restored our cards and drove off the Curator's agent. The old road is waiting for you.");
 }

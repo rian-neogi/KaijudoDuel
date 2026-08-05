@@ -4,14 +4,20 @@ Overworld NPCs are defined in `Lua/Npcs.lua`. The file returns an array with one
 
 The loader rejects invalid metadata with a specific startup error. It validates duplicate IDs and names, kinds, sprite appearances, positions, deck files, reward cards, reward limits, and empty rosters.
 
-## Duelist template
+NPC positions belong exclusively to `Lua/World.lua`. Each exterior region also declares `kind = "town"` or `kind = "connector"`; the loader rejects NPC kinds placed in the wrong region type.
+
+## Town NPC template
 
 ```lua
 {
     id = "unique_id",
     name = "Display Name",
-    kind = "duelist",
-    position = { x = 1, y = 1 },
+    kind = "town_npc",
+    options = {
+        duel = true,   -- optional, defaults to false
+        trade = false, -- optional, defaults to false
+        wander = true  -- optional, defaults to true
+    },
     appearance = "mira",
 
     max_battles = 4,
@@ -30,7 +36,8 @@ The loader rejects invalid metadata with a specific startup error. It validates 
     },
 
     dialogue = {
-        greeting = "Ready to duel?",
+        greeting = "Hello. What brings you here?",
+        talk = "Optional everyday conversation after choosing Talk.",
         defeat = "The player defeated me.",
         victory = "I defeated the player.",
         complete = "You have earned every reward I can offer.",
@@ -44,6 +51,8 @@ The loader rejects invalid metadata with a specific startup error. It validates 
 }
 ```
 
+Interacting with a town NPC first displays `greeting`, then opens a menu containing Talk, any Lua-enabled Duel or Trade options, and Leave. Talk uses story-specific dialogue when relevant and otherwise uses `talk`, falling back to `greeting`. A disabled capability is absent from the menu rather than shown as an unusable choice.
+
 ### Battle sequence
 
 `max_battles` can be between one and four. `deck1` is required. Later deck
@@ -55,16 +64,45 @@ preventing an omitted reward from silently granting the wrong card.
 Deck names are searched beneath `Decks/` automatically. An explicit path can
 still be used for a deck elsewhere; if that path exists, it takes priority.
 
-## Shopkeeper template
+## Route duelist template
 
-Shopkeepers do not need battle, deck, or reward fields.
+Route duelists may only be positioned in `connector` regions. Before their first defeat, they watch a straight, obstacle-blocked line in their configured direction. Seeing the player displays an exclamation mark, stops player movement, and makes the trainer rush forward before delivering `greeting` and starting a forced duel. Losing does not permanently lock the player in another challenge; leaving and re-entering the sight line re-arms it. Later battles are voluntary rematches.
+
+```lua
+{
+    id = "road_trainer",
+    name = "Road Trainer",
+    kind = "route_duelist",
+    sight = { range = 7, direction = "left" },
+    appearance = "generic1",
+    max_battles = 4,
+    deck1 = "Example.txt",
+    reward1 = { card = "First Reward Card", gold = 100 },
+    reward2 = { card = "Second Reward Card", gold = 100 },
+    reward3 = { card = "Third Reward Card", gold = 100 },
+    reward4 = { card = "Fourth Reward Card", gold = 100 },
+    ai = { personality = "balanced" },
+    dialogue = {
+        greeting = "I saw you. Prepare to duel!",
+        defeat = "You won this time.",
+        victory = "Watch the road more carefully.",
+        complete = "You have passed every test I can offer."
+    }
+}
+```
+
+Sight ranges must be from 1 through 12. Directions are `up`, `down`, `left`, or `right`. Route duelists do not wander, keeping their authored sight line predictable.
+
+## Trade-only town NPC template
+
+Town NPCs without Duel do not need battle, deck, reward, or AI fields.
 
 ```lua
 {
     id = "merchant_id",
     name = "Merchant Name",
-    kind = "shopkeeper",
-    position = { x = 1, y = 1 },
+    kind = "town_npc",
+    options = { trade = true, wander = false },
     appearance = "mercer",
     ai = { personality = "none" },
     dialogue = {
@@ -78,7 +116,7 @@ Shopkeepers do not need battle, deck, or reward fields.
 
 ## Boss template
 
-Bosses use the same numbered deck and reward fields as duelists.
+Bosses use the same numbered deck and reward fields as battle-enabled town NPCs.
 `max_battles` is normally one.
 
 ```lua
@@ -86,7 +124,6 @@ Bosses use the same numbered deck and reward fields as duelists.
     id = "boss_id",
     name = "Boss Name",
     kind = "boss",
-    position = { x = 10, y = 4 },
     appearance = "veiled_one",
     max_battles = 1,
     deck1 = "Boss.txt",
@@ -105,8 +142,8 @@ Bosses use the same numbered deck and reward fields as duelists.
 
 Kinds:
 
-- `duelist`
-- `shopkeeper`
+- `town_npc`
+- `route_duelist`
 - `boss`
 
 Current appearances:

@@ -275,6 +275,8 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 			region.id = stringField(regionTable, "id");
 			region.name = stringField(regionTable, "name");
 			region.mapId = stringField(regionTable, "map");
+			std::string regionKind = stringField(regionTable, "kind");
+			region.connector = regionKind == "connector";
 			region.x = intField(regionTable, "x");
 			region.y = intField(regionTable, "y");
 			region.width = intField(regionTable, "width");
@@ -282,6 +284,7 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 			lua_pop(state, 1);
 			int mapIndex = areaIndex(region.mapId);
 			if (region.id.empty() || region.name.empty() ||
+				(regionKind != "town" && regionKind != "connector") ||
 				!regionIds.insert(region.id).second || mapIndex < 0 ||
 				region.x < 0 || region.y < 0 || region.width <= 0 || region.height <= 0 ||
 				region.x + region.width > (int)areas[mapIndex].tiles[0].size() ||
@@ -419,7 +422,7 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 		return false;
 	}
 	bool placedMissing = false;
-	auto placeMissing = [&](std::vector<LoadedPosition>& positions) -> bool
+	auto placeMissing = [&](std::vector<LoadedPosition>& positions, bool npcEntities) -> bool
 	{
 		for (size_t i = 0; i < positions.size(); ++i)
 		{
@@ -428,20 +431,86 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 			for (size_t map = 0; map < areas.size() && !placed; ++map)
 				for (int y = 0; y < (int)areas[map].tiles.size() && !placed; ++y)
 					for (int x = 0; x < (int)areas[map].tiles[y].size() && !placed; ++x)
-						if (walkable(areas[map].tiles[y][x]) &&
+					{
+						const WorldRegion* candidateRegion = NULL;
+						for (size_t regionIndex = 0; regionIndex < regions.size(); ++regionIndex)
+							if (regions[regionIndex].mapId == areas[map].id &&
+								x >= regions[regionIndex].x && y >= regions[regionIndex].y &&
+								x < regions[regionIndex].x + regions[regionIndex].width &&
+								y < regions[regionIndex].y + regions[regionIndex].height)
+							{
+								candidateRegion = &regions[regionIndex];
+								break;
+							}
+						bool matchesKind = true;
+						if (npcEntities && mNpcs[i].isRouteDuelist())
+						{
+							int sightX = x + mNpcs[i].facingX;
+							int sightY = y + mNpcs[i].facingY;
+							matchesKind = candidateRegion != NULL && candidateRegion->connector &&
+								inBounds(areas[map], sightX, sightY) &&
+								walkable(areas[map].tiles[sightY][sightX]) &&
+								sightX >= candidateRegion->x && sightY >= candidateRegion->y &&
+								sightX < candidateRegion->x + candidateRegion->width &&
+								sightY < candidateRegion->y + candidateRegion->height;
+						}
+						else if (npcEntities && mNpcs[i].isTownNpc())
+							matchesKind = areas[map].indoor ||
+								(candidateRegion != NULL && !candidateRegion->connector);
+						if (matchesKind && walkable(areas[map].tiles[y][x]) &&
 							occupied.insert(std::make_tuple(areas[map].id, x, y)).second)
 						{
 							positions[i] = { areas[map].id, x, y };
 							placed = placedMissing = true;
 						}
+					}
 			if (!placed) { error = "no free walkable tile is available for new world entities"; return false; }
 		}
 		return true;
 	};
-	if (!placeMissing(npcPositions) || !placeMissing(shardPositions))
+	if (!placeMissing(npcPositions, true) || !placeMissing(shardPositions, false))
 	{
 		lua_close(state);
 		return false;
+	}
+	for (size_t npcIndex = 0; npcIndex < mNpcs.size(); ++npcIndex)
+	{
+		const WorldRegion* npcRegion = NULL;
+		for (size_t regionIndex = 0; regionIndex < regions.size(); ++regionIndex)
+		{
+			const WorldRegion& candidate = regions[regionIndex];
+			if (candidate.mapId == npcPositions[npcIndex].map &&
+				npcPositions[npcIndex].x >= candidate.x &&
+				npcPositions[npcIndex].y >= candidate.y &&
+				npcPositions[npcIndex].x < candidate.x + candidate.width &&
+				npcPositions[npcIndex].y < candidate.y + candidate.height)
+			{
+				npcRegion = &candidate;
+				break;
+			}
+		}
+		bool invalidRouteSight = false;
+		if (mNpcs[npcIndex].isRouteDuelist() && npcRegion != NULL)
+		{
+			int mapIndex = areaIndex(npcPositions[npcIndex].map);
+			int sightX = npcPositions[npcIndex].x + mNpcs[npcIndex].facingX;
+			int sightY = npcPositions[npcIndex].y + mNpcs[npcIndex].facingY;
+			invalidRouteSight = mapIndex < 0 || !inBounds(areas[mapIndex], sightX, sightY) ||
+				!walkable(areas[mapIndex].tiles[sightY][sightX]) ||
+				sightX < npcRegion->x || sightY < npcRegion->y ||
+				sightX >= npcRegion->x + npcRegion->width ||
+				sightY >= npcRegion->y + npcRegion->height;
+		}
+		if ((mNpcs[npcIndex].isRouteDuelist() &&
+			(npcRegion == NULL || !npcRegion->connector)) ||
+			(mNpcs[npcIndex].isTownNpc() && npcRegion != NULL && npcRegion->connector) ||
+			invalidRouteSight)
+		{
+			error = "NPC '" + mNpcs[npcIndex].id +
+				" is not placed in a region matching its NPC kind";
+			lua_close(state);
+			return false;
+		}
 	}
 	lua_close(state);
 	mWorldAreas.swap(areas);
@@ -688,7 +757,8 @@ bool Application::saveWorldBuilder(std::string& error)
 	{
 		const WorldRegion& region = mWorldRegions[i];
 		world << "\t\t{ id = \"" << region.id << "\", name = \"" << region.name <<
-			"\", map = \"" << region.mapId << "\", x = " << region.x << ", y = " <<
+			"\", map = \"" << region.mapId << "\", kind = \"" <<
+			(region.connector ? "connector" : "town") << "\", x = " << region.x << ", y = " <<
 			region.y << ", width = " << region.width << ", height = " << region.height <<
 			" }" << (i + 1 == mWorldRegions.size() ? "\n" : ",\n");
 	}

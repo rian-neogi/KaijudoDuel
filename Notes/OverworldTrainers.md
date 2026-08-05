@@ -4,7 +4,7 @@
 
 These are optional, low-story NPCs who populate roads, arenas, shops, and side paths. They provide frequent duels, collection growth, and gold between Crest Holder encounters. They may comment on local events, but they do not carry clues or make decisions that affect the main plot.
 
-When the player enters a trainer's short line of sight, the trainer displays an exclamation mark and walks over to issue a challenge. Losing does not block the route. Afterward, the player may initiate rematches by speaking to the trainer.
+Town trainers use the normal town-NPC interaction: greeting first, followed by Talk, Duel when enabled, Trade when enabled, and Leave. They never force a battle. Route duelists exist only in connecting regions. Before their first defeat, entering the straight sight line shown by their facing marker makes them display an exclamation mark, rush toward the player, deliver their greeting, and force the battle. Losing does not block the route permanently. Afterward, the player may initiate rematches by speaking to the trainer.
 
 Each trainer follows the existing four-win structure:
 

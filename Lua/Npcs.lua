@@ -4,17 +4,21 @@
 -- Add one table to the returned array for each NPC. Required fields are:
 --   id, name, kind, appearance. Crest Holders also set crest to one of:
 --   dawn, tidal, forge, verdant, confluence, tempest, ashen, mirror, unity.
--- Duelists and bosses also require max_battles, deck1, and one reward table
--- for every enabled battle. deck2 through deck4 are optional: a missing deck
--- reuses the most recently defined deck.
+-- Town NPC capabilities are declared in options: Talk is always available,
+-- while duel, trade, and wandering are independently configurable. Town NPCs
+-- with duel enabled, route duelists, and bosses require max_battles, deck1,
+-- and one reward table for every enabled battle. deck2 through deck4 are
+-- optional: a missing deck reuses the most recently defined deck.
+-- Route duelists also require sight = { range = 1..12, direction = "up" |
+-- "down" | "left" | "right" }.
 --
--- Supported kinds: duelist, shopkeeper, boss
+-- Supported kinds: town_npc, route_duelist, boss
 -- Supported appearances: mira, marin, rook, aurelia, flint, nyx, tidal,
 --                        briar, mercer, veiled_one, neris, oren,
 --                        generic1 through generic10
 --
 -- Dialogue is a flat, extensible string table. The current application uses:
---   greeting, defeat, victory, complete, clue, investigation,
+--   greeting, talk, defeat, victory, complete, clue, investigation,
 --   stabilize_before, stabilize_after, boss_reveal, act_complete,
 --   shop_early, shop_late
 --
@@ -25,7 +29,10 @@
 -- {
 --     id = "unique_id",
 --     name = "Display Name",
---     kind = "duelist",
+--     kind = "town_npc",
+--     options = { duel = true, trade = false, wander = true },
+--     -- Route duelists use kind = "route_duelist" and:
+--     -- sight = { range = 6, direction = "left" },
 --     appearance = "mira",
 --     crest = "dawn", -- optional; awarded by the first victory
 --     max_battles = 4,
@@ -48,7 +55,8 @@ return {
     {
         id = "mira",
         name = "Mira",
-        kind = "duelist",
+        kind = "town_npc",
+        options = { duel = true },
         appearance = "mira",
         max_battles = 4,
         deck1 = "Zagaan.txt",
@@ -74,7 +82,8 @@ return {
     {
         id = "marin",
         name = "Marin",
-        kind = "duelist",
+        kind = "town_npc",
+        options = { duel = true },
         appearance = "marin",
         max_battles = 4,
         deck1 = "AquaSniper.txt",
@@ -99,7 +108,8 @@ return {
     {
         id = "rook",
         name = "Rook",
-        kind = "duelist",
+        kind = "route_duelist",
+        sight = { range = 8, direction = "left" },
         appearance = "rook",
         max_battles = 4,
         deck1 = "RoaringGreathorn.txt",
@@ -124,7 +134,8 @@ return {
     {
         id = "aurelia",
         name = "Aurelia",
-        kind = "duelist",
+        kind = "town_npc",
+        options = { duel = true },
         appearance = "aurelia",
         crest = "dawn",
         max_battles = 4,
@@ -151,7 +162,8 @@ return {
     {
         id = "flint",
         name = "Flint",
-        kind = "duelist",
+        kind = "town_npc",
+        options = { duel = true },
         appearance = "flint",
         max_battles = 4,
         deck1 = "AstrocometDragon.txt",
@@ -177,7 +189,8 @@ return {
     {
         id = "nyx",
         name = "Nyx",
-        kind = "duelist",
+        kind = "town_npc",
+        options = { duel = true },
         appearance = "nyx",
         max_battles = 4,
         deck1 = "Deathliger.txt",
@@ -202,7 +215,8 @@ return {
     {
         id = "tidal",
         name = "Tidal",
-        kind = "duelist",
+        kind = "town_npc",
+        options = { duel = true },
         appearance = "tidal",
         max_battles = 4,
         deck1 = "KingDepthcon.txt",
@@ -227,7 +241,8 @@ return {
     {
         id = "briar",
         name = "Briar",
-        kind = "duelist",
+        kind = "town_npc",
+        options = { duel = true },
         appearance = "briar",
         max_battles = 4,
         deck1 = "DeathbladeBeetle.txt",
@@ -252,7 +267,8 @@ return {
     {
         id = "mercer",
         name = "Mercer",
-        kind = "shopkeeper",
+        kind = "town_npc",
+        options = { trade = true, wander = false },
         appearance = "mercer",
         ai = { personality = "none" },
         dialogue = {
@@ -281,7 +297,8 @@ return {
 	{
         id = "pip",
         name = "Pip",
-        kind = "duelist",
+        kind = "town_npc",
+        options = { duel = true },
         appearance = "generic1",
         max_battles = 2,
         deck1 = "Zagaan.txt",
@@ -301,7 +318,8 @@ return {
 	{
         id = "noma",
         name = "Noma",
-        kind = "duelist",
+        kind = "town_npc",
+        options = { duel = true },
         appearance = "generic2",
         max_battles = 2,
         deck1 = "Zagaan.txt",
@@ -321,7 +339,8 @@ return {
 	{
         id = "bram",
         name = "Bram",
-        kind = "duelist",
+        kind = "town_npc",
+        options = { duel = true },
         appearance = "generic3",
         max_battles = 2,
         deck1 = "Zagaan.txt",
@@ -341,7 +360,8 @@ return {
 	{
         id = "elia",
         name = "Elia",
-        kind = "duelist",
+        kind = "town_npc",
+        options = { duel = true },
         appearance = "generic3",
         max_battles = 2,
         deck1 = "Zagaan.txt",
@@ -361,7 +381,8 @@ return {
 	{
         id = "tomas",
         name = "Tomas",
-        kind = "duelist",
+        kind = "town_npc",
+        options = { duel = true },
         appearance = "generic3",
         max_battles = 2,
         deck1 = "Zagaan.txt",
@@ -381,11 +402,11 @@ return {
 	{
         id = "senn",
         name = "Senn",
-        kind = "duelist",
+        kind = "town_npc",
+        options = { duel = true },
         appearance = "generic3",
-        max_battles = 2,
-        deck1 = "Zagaan.txt",
-        deck2 = "Deathliger.txt",
+        max_battles = 1,
+        deck1 = "TrenchdiveShark.txt",
         reward1 = { card = "Zagaan, Knight of Darkness", gold = 100 },
         reward2 = { card = "Zagaan, Knight of Darkness", gold = 100 },
         reward3 = { card = "Zagaan, Knight of Darkness", gold = 100 },
@@ -401,7 +422,8 @@ return {
 	{
         id = "kipp",
         name = "Kipp",
-        kind = "duelist",
+        kind = "town_npc",
+        options = { duel = true },
         appearance = "generic3",
         max_battles = 2,
         deck1 = "Zagaan.txt",
@@ -421,7 +443,8 @@ return {
 	{
         id = "ansa",
         name = "Ansa",
-        kind = "duelist",
+        kind = "town_npc",
+        options = { duel = true },
         appearance = "generic3",
         max_battles = 2,
         deck1 = "Zagaan.txt",
@@ -441,7 +464,8 @@ return {
 	{
         id = "holt",
         name = "Holt",
-        kind = "duelist",
+        kind = "town_npc",
+        options = { duel = true },
         appearance = "generic3",
         max_battles = 2,
         deck1 = "Zagaan.txt",
@@ -461,7 +485,8 @@ return {
 	{
 		id = "neris",
 		name = "Neris Quill",
-		kind = "duelist",
+		kind = "town_npc",
+		options = { duel = true },
 		appearance = "neris",
 		crest = "tidal",
 		max_battles = 4,
@@ -484,7 +509,8 @@ return {
 	{
 		id = "pell",
 		name = "Pell",
-		kind = "duelist",
+		kind = "town_npc",
+		options = { duel = true },
 		appearance = "generic5",
 		max_battles = 4,
 		deck1 = "NPC/Neris Quill 3.txt",
@@ -503,7 +529,8 @@ return {
 	{
 		id = "iri",
 		name = "Iri",
-		kind = "duelist",
+		kind = "town_npc",
+		options = { duel = true },
 		appearance = "generic4",
 		max_battles = 4,
 		deck1 = "More2/WD Dark Tide v3.txt",
@@ -523,7 +550,8 @@ return {
 	{
 		id = "sol",
 		name = "Sol",
-		kind = "duelist",
+		kind = "town_npc",
+		options = { duel = true },
 		appearance = "generic10",
 		max_battles = 4,
 		deck1 = "KingDepthcon.txt",
@@ -542,7 +570,8 @@ return {
 	{
 		id = "oren",
 		name = "Oren Canopy",
-		kind = "duelist",
+		kind = "town_npc",
+		options = { duel = true },
 		appearance = "oren",
 		crest = "verdant",
 		max_battles = 4,
@@ -563,7 +592,8 @@ return {
 	{
 		id = "fern",
 		name = "Fern",
-		kind = "duelist",
+		kind = "town_npc",
+		options = { duel = true },
 		appearance = "generic2",
 		max_battles = 4,
 		deck1 = "AnristVhal.txt",
@@ -583,7 +613,8 @@ return {
 	{
 		id = "toma",
 		name = "Toma",
-		kind = "duelist",
+		kind = "town_npc",
+		options = { duel = true },
 		appearance = "generic6",
 		max_battles = 4,
 		deck1 = "AnristVhal.txt",
@@ -602,7 +633,8 @@ return {
 	{
 		id = "moss",
 		name = "Moss",
-		kind = "duelist",
+		kind = "town_npc",
+		options = { duel = true },
 		appearance = "generic5",
 		max_battles = 4,
 		deck1 = "StormWrangler.txt",
@@ -621,7 +653,8 @@ return {
 	{
 		id = "tern_ford",
 		name = "Tern Ford",
-		kind = "duelist",
+		kind = "route_duelist",
+		sight = { range = 8, direction = "right" },
 		appearance = "generic7",
 		max_battles = 4,
 		deck1 = "More2/NW The Everglades.txt",
@@ -640,7 +673,8 @@ return {
 	{
 		id = "vale_reed",
 		name = "Vale Reed",
-		kind = "duelist",
+		kind = "route_duelist",
+		sight = { range = 8, direction = "right" },
 		appearance = "generic8",
 		max_battles = 4,
 		deck1 = "StormWrangler.txt",
@@ -659,7 +693,8 @@ return {
 	{
 		id = "cairn",
 		name = "Cairn",
-		kind = "duelist",
+		kind = "route_duelist",
+		sight = { range = 8, direction = "down" },
 		appearance = "generic9",
 		max_battles = 4,
 		deck1 = "AstrocometDragon.txt",
@@ -678,7 +713,8 @@ return {
 	{
 		id = "mara_flintway",
 		name = "Mara Flintway",
-		kind = "duelist",
+		kind = "route_duelist",
+		sight = { range = 8, direction = "left" },
 		appearance = "generic4",
 		max_battles = 4,
 		deck1 = "RoaringGreathorn.txt",

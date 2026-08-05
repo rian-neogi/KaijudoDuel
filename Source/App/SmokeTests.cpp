@@ -3,6 +3,7 @@
 #include "AI/HeuristicBot.h"
 #include "AppSupport.h"
 #include "Game/Card.h"
+#include "Landmarks.h"
 
 #include <algorithm>
 #include <cmath>
@@ -1271,6 +1272,38 @@ bool Application::exerciseOverworldMovementSmoke()
 			reachable.count(std::make_pair(355, 48)) != 0 &&
 			reachable.count(std::make_pair(356, 48)) != 0;
 	}
+	std::set<std::string> landmarkIds;
+	for (size_t landmark = 0; landmark < Landmarks::COUNT; ++landmark)
+	{
+		const Landmarks::Definition& definition = Landmarks::DEFINITIONS[landmark];
+		const WorldRegion* region = NULL;
+		for (size_t candidate = 0; candidate < mWorldRegions.size(); ++candidate)
+			if (mWorldRegions[candidate].mapId == "overworld" &&
+				mWorldRegions[candidate].id == definition.regionId)
+				region = &mWorldRegions[candidate];
+		bool discoverable = false;
+		if (region != NULL && definition.localX >= 0 && definition.localY >= 0 &&
+			definition.localX < region->width && definition.localY < region->height &&
+			definition.discoveryRadius > 0 && definition.goldReward > 0)
+		{
+			int centerX = region->x + definition.localX;
+			int centerY = region->y + definition.localY;
+			for (int y = centerY - definition.discoveryRadius;
+				y <= centerY + definition.discoveryRadius && !discoverable; ++y)
+				for (int x = centerX - definition.discoveryRadius;
+					x <= centerX + definition.discoveryRadius; ++x)
+					if (std::abs(x - centerX) + std::abs(y - centerY) <=
+						definition.discoveryRadius &&
+						reachable.count(std::make_pair(x, y)) != 0)
+						discoverable = true;
+		}
+		seamlessWorldReady = seamlessWorldReady && definition.id[0] != '\0' &&
+			definition.name[0] != '\0' && landmarkIds.insert(definition.id).second &&
+			discoverable;
+	}
+	for (std::set<std::string>::const_iterator discovered = mDiscoveredLandmarks.begin();
+		discovered != mDiscoveredLandmarks.end(); ++discovered)
+		seamlessWorldReady = seamlessWorldReady && Landmarks::find(*discovered) != NULL;
 	const char* regionalNpcs[] = { "rook", "kipp", "ansa", "holt",
 		"neris", "pell", "iri", "sol", "oren", "fern", "toma", "moss",
 		"tern_ford", "vale_reed", "cairn", "mara_flintway" };
@@ -1293,6 +1326,98 @@ bool Application::exerciseOverworldMovementSmoke()
 			}
 		seamlessWorldReady = seamlessWorldReady && found;
 	}
+	int routeDuelists = 0;
+	int townNpcs = 0;
+	int traders = 0;
+	int challengeNpc = -1;
+	for (size_t i = 0; i < mNpcs.size(); ++i)
+	{
+		const Npc& npc = mNpcs[i];
+		const WorldRegion* region = worldRegionAt(npc.mapId, npc.x, npc.y);
+		if (npc.isRouteDuelist())
+		{
+			++routeDuelists;
+			if (challengeNpc < 0) challengeNpc = (int)i;
+			bool cardinalFacing = std::abs(npc.facingX) + std::abs(npc.facingY) == 1;
+			bool sightHasWalkableTile = false;
+			if (npc.mapId == "overworld")
+			{
+				mCurrentWorldArea = overworldArea;
+				int sightX = npc.x + npc.facingX;
+				int sightY = npc.y + npc.facingY;
+				sightHasWalkableTile = isWalkable(sightX, sightY) &&
+					npcAt(sightX, sightY, (int)i) < 0;
+			}
+			seamlessWorldReady = seamlessWorldReady && npc.isDuelist() && !npc.canTrade() &&
+				!npc.canWander() && npc.sightRange >= 1 && npc.sightRange <= 12 &&
+				cardinalFacing && sightHasWalkableTile && region != NULL && region->connector;
+		}
+		else if (npc.isTownNpc())
+		{
+			++townNpcs;
+			if (npc.canTrade()) ++traders;
+			seamlessWorldReady = seamlessWorldReady &&
+				(region == NULL || !region->connector) && npc.sightRange == 0;
+		}
+	}
+	seamlessWorldReady = seamlessWorldReady && routeDuelists == 5 && townNpcs > 0 &&
+		traders > 0 && challengeNpc >= 0;
+	int savedChallengeStage = mStoryStage;
+	int savedChallengeArea = mCurrentWorldArea;
+	int savedChallengePlayerX = mPlayerX;
+	int savedChallengePlayerY = mPlayerY;
+	float savedChallengeVisualX = mVisualX;
+	float savedChallengeVisualY = mVisualY;
+	int savedChallengeNpc = mRouteChallengeNpc;
+	int savedMenuNpc = mNpcMenuNpc;
+	std::set<std::string> savedSuppressedChallenges = mSuppressedRouteChallenges;
+	std::string savedChallengeNotice = mNotice;
+	Uint32 savedChallengeNoticeUntil = mNoticeUntil;
+	Npc& challenger = mNpcs[challengeNpc];
+	int savedTrainerX = challenger.x;
+	int savedTrainerY = challenger.y;
+	float savedTrainerVisualX = challenger.visualX;
+	float savedTrainerVisualY = challenger.visualY;
+	int savedTrainerWins = challenger.wins;
+	mStoryStage = 4;
+	mCurrentWorldArea = overworldArea;
+	challenger.wins = 0;
+	challenger.visualX = (float)challenger.x;
+	challenger.visualY = (float)challenger.y;
+	mPlayerX = challenger.x + challenger.facingX * 2;
+	mPlayerY = challenger.y + challenger.facingY * 2;
+	mVisualX = (float)mPlayerX;
+	mVisualY = (float)mPlayerY;
+	mRouteChallengeNpc = -1;
+	mNpcMenuNpc = -1;
+	mDialogueNpc = -1;
+	mSuppressedRouteChallenges.erase(challenger.id);
+	bool routeSightReady = routeDuelistCanSeePlayer(challengeNpc);
+	updateRouteDuelistChallenge();
+	routeSightReady = routeSightReady && mRouteChallengeNpc == challengeNpc;
+	updateRouteDuelistChallenge();
+	challenger.updateMovement(1000, 7.2f);
+	updateRouteDuelistChallenge();
+	routeSightReady = routeSightReady && mDialogueNpc == challengeNpc &&
+		mDialogueAction == DialogueAction::ForcedBattle && mRouteChallengeNpc < 0;
+	clearDialogue();
+	challenger.x = savedTrainerX;
+	challenger.y = savedTrainerY;
+	challenger.visualX = savedTrainerVisualX;
+	challenger.visualY = savedTrainerVisualY;
+	challenger.wins = savedTrainerWins;
+	mStoryStage = savedChallengeStage;
+	mCurrentWorldArea = savedChallengeArea;
+	mPlayerX = savedChallengePlayerX;
+	mPlayerY = savedChallengePlayerY;
+	mVisualX = savedChallengeVisualX;
+	mVisualY = savedChallengeVisualY;
+	mRouteChallengeNpc = savedChallengeNpc;
+	mNpcMenuNpc = savedMenuNpc;
+	mSuppressedRouteChallenges = savedSuppressedChallenges;
+	mNotice = savedChallengeNotice;
+	mNoticeUntil = savedChallengeNoticeUntil;
+	seamlessWorldReady = seamlessWorldReady && routeSightReady;
 	int savedStoryStage = mStoryStage;
 	mCurrentWorldArea = overworldArea;
 	mPlayerX = 259;
@@ -1360,7 +1485,7 @@ bool Application::exerciseStorySmoke()
 	int regularWins = 0;
 	for (size_t i = 0; i < mNpcs.size() && regularWins < 3; ++i)
 	{
-		if (mNpcs[i].kind != NpcKind::Duelist) continue;
+		if (!mNpcs[i].isTownNpc() || !mNpcs[i].isDuelist()) continue;
 		mNpcs[i].wins = 1;
 		++regularWins;
 	}
@@ -1456,7 +1581,32 @@ bool Application::exerciseMenuScreensSmoke()
 	handleSettingsEvent(back);
 	if (mScreen != Screen::Overworld) return false;
 
-	enterShop();
+	int mercerIndex = -1;
+	for (size_t i = 0; i < mNpcs.size(); ++i)
+		if (mNpcs[i].id == "mercer") mercerIndex = (int)i;
+	if (!mNpcs[aureliaIndex].isTownNpc() || !mNpcs[aureliaIndex].isDuelist() ||
+		mNpcs[aureliaIndex].canTrade() || mercerIndex < 0 ||
+		!mNpcs[mercerIndex].isTownNpc() || mNpcs[mercerIndex].isDuelist() ||
+		!mNpcs[mercerIndex].canTrade()) return false;
+	std::vector<NpcMenuAction> aureliaActions = npcMenuActions(aureliaIndex);
+	std::vector<NpcMenuAction> mercerActions = npcMenuActions(mercerIndex);
+	if (aureliaActions.size() != 3 || aureliaActions[0] != NpcMenuAction::Talk ||
+		aureliaActions[1] != NpcMenuAction::Duel ||
+		aureliaActions[2] != NpcMenuAction::Leave || mercerActions.size() != 3 ||
+		mercerActions[0] != NpcMenuAction::Talk ||
+		mercerActions[1] != NpcMenuAction::Trade ||
+		mercerActions[2] != NpcMenuAction::Leave) return false;
+	beginDialogue(aureliaIndex, mNpcs[aureliaIndex].dialogueText("greeting"),
+		DialogueAction::OpenNpcMenu);
+	mDialogueVisibleBytes = mDialogueText.size();
+	advanceDialogue();
+	if (mDialogueNpc >= 0 || mNpcMenuNpc != aureliaIndex) return false;
+	renderNpcMenu();
+	activateNpcMenuAction(NpcMenuAction::Leave);
+	if (mNpcMenuNpc >= 0) return false;
+	mNpcMenuNpc = mercerIndex;
+	mNpcMenuSelection = 1;
+	activateNpcMenuAction(NpcMenuAction::Trade);
 	renderShop();
 	if (mScreen != Screen::Shop || mShopCardHitboxes.size() != 10) return false;
 	SDL_Event shopNavigation = {};

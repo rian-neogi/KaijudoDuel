@@ -53,8 +53,18 @@ private:
 	{
 		None,
 		NpcInteraction,
+		OpenNpcMenu,
+		ReturnToNpcMenu,
+		ForcedBattle,
 		ShowReward,
 		Close
+	};
+	enum class NpcMenuAction
+	{
+		Talk,
+		Duel,
+		Trade,
+		Leave
 	};
 
 	struct CardHitbox
@@ -118,6 +128,7 @@ private:
 		int y;
 		int width;
 		int height;
+		bool connector;
 	};
 	struct WorldPortal
 	{
@@ -163,11 +174,18 @@ private:
 	float overworldCameraY() const;
 	void tryMove(int dx, int dy);
 	void collectShardAt(int x, int y);
+	void discoverLandmarkAt(int x, int y);
 	void interact();
 	void beginDialogue(int npcIndex, const std::string& text, DialogueAction action);
 	void clearDialogue();
 	void advanceDialogue();
 	void updateDialogue(Uint32 deltaTime);
+	void handleNpcMenuEvent(const SDL_Event& event);
+	void renderNpcMenu();
+	std::vector<NpcMenuAction> npcMenuActions(int npcIndex) const;
+	void activateNpcMenuAction(NpcMenuAction action);
+	bool routeDuelistCanSeePlayer(int npcIndex) const;
+	void updateRouteDuelistChallenge();
 	bool isWalkable(int x, int y) const;
 	int npcAt(int x, int y, int ignoredNpc = -1) const;
 	std::vector<std::string>& currentMap();
@@ -329,6 +347,10 @@ private:
 	size_t mDialogueVisibleBytes;
 	Uint32 mDialogueCharacterAccumulator;
 	DialogueAction mDialogueAction;
+	int mNpcMenuNpc;
+	int mNpcMenuSelection;
+	int mRouteChallengeNpc;
+	std::set<std::string> mSuppressedRouteChallenges;
 	std::string mNotice;
 	Uint32 mNoticeUntil;
 	int mStoryStage;
@@ -398,6 +420,7 @@ private:
 	int mMoney;
 	std::set<std::string> mCollectedShards;
 	std::set<std::string> mMercerShards;
+	std::set<std::string> mDiscoveredLandmarks;
 	std::vector<int> mCollectionCounts;
 	std::vector<PlayerDeck> mPlayerDecks;
 	std::string mActiveDeckPath;

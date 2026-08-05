@@ -96,6 +96,8 @@ bool Application::startDuelWithDecks(const std::string& playerDeck,
 	mDuelResult = -1;
 	mDuelResultAt = 0;
 	mDialogueNpc = -1;
+	mNpcMenuNpc = -1;
+	mRouteChallengeNpc = -1;
 	mScreen = Screen::Duel;
 	return true;
 }
