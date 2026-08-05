@@ -294,7 +294,15 @@ bool RtpTilesetRenderer::loadTileNames(RtpTilesetFamily family, RtpTileSheet she
 
 bool RtpTilesetRenderer::isWallOpening(const RtpTileReference& tile)
 {
-	if (tile.sheet != RtpTileSheet::B && tile.sheet != RtpTileSheet::C) return false;
+	std::string name;
+	if (!metadataName(tile, name)) return false;
+	return name == "Entrance" || name == "Entrance (Top Half)" ||
+		name == "Gate" || name.find("(Gate)") != std::string::npos;
+}
+
+bool RtpTilesetRenderer::metadataName(const RtpTileReference& tile,
+	std::string& name)
+{
 	static std::map<std::pair<int, int>, std::vector<std::string> > cache;
 	std::pair<int, int> key((int)tile.family, (int)tile.sheet);
 	if (cache.count(key) == 0)
@@ -306,9 +314,38 @@ bool RtpTilesetRenderer::isWallOpening(const RtpTileReference& tile)
 	}
 	const std::vector<std::string>& names = cache[key];
 	if (tile.index < 0 || tile.index >= (int)names.size()) return false;
-	const std::string& name = names[tile.index];
-	return name == "Entrance" || name == "Entrance (Top Half)" ||
-		name == "Gate" || name.find("(Gate)") != std::string::npos;
+	name = names[tile.index];
+	return true;
+}
+
+RtpTileCollision RtpTilesetRenderer::collision(const RtpTileReference& tile)
+{
+	if (tile.family == RtpTilesetFamily::World) return RtpTileCollision::Ignore;
+	if (tile.sheet == RtpTileSheet::A1) return RtpTileCollision::Blocked;
+	if (tile.sheet == RtpTileSheet::A3 || tile.sheet == RtpTileSheet::A4)
+		return RtpTileCollision::Blocked;
+	std::string name;
+	if (!metadataName(tile, name)) return RtpTileCollision::Blocked;
+	if (name.empty() || name == "Transparent") return RtpTileCollision::Ignore;
+	if (tile.sheet == RtpTileSheet::A2)
+		return name.find("Hole") == 0 || name.find("Pit") == 0 ?
+			RtpTileCollision::Blocked : RtpTileCollision::Walkable;
+	if (tile.sheet == RtpTileSheet::A5)
+	{
+		if (name.find("Broken Bridge") == 0 || name.find("Cliff") == 0 ||
+			name.find("Ledge") == 0 || name == "Darkness")
+			return RtpTileCollision::Blocked;
+		return RtpTileCollision::Walkable;
+	}
+	bool passage = name == "Entrance" || name == "Exit" ||
+		name.find("Cave Entrance") == 0 || name.find("Mine Entrance") == 0 ||
+		(name.find("Bridge") != std::string::npos &&
+			name.find("Bridge Spar") == std::string::npos &&
+			name.find("Broken Bridge") == std::string::npos) ||
+		name.find("Stairs") == 0 || name.find("Ladder") != std::string::npos ||
+		name.find("Rug") == 0 || name.find("Carpet") == 0 ||
+		name.find("Straw Mat") == 0;
+	return passage ? RtpTileCollision::Walkable : RtpTileCollision::Blocked;
 }
 
 bool RtpTilesetRenderer::validateAllAssets(std::string& error)
@@ -355,6 +392,51 @@ bool RtpTilesetRenderer::regularTileSource(RtpTileSheet sheet, int tileIndex,
 	}
 	else return false;
 	return source.x + source.w <= textureWidth && source.y + source.h <= textureHeight;
+}
+
+bool RtpTilesetRenderer::paletteTileSource(RtpTileSheet sheet, int tileIndex,
+	SDL_Rect& source)
+{
+	if (tileIndex < 0) return false;
+	if (sheet == RtpTileSheet::A1)
+	{
+		if (tileIndex >= 16) return false;
+		if (tileIndex < 4)
+		{
+			bool animated = tileIndex < 2;
+			source = { animated ? 0 : 192, (tileIndex % 2) * 96,
+				animated ? 192 : 64, 96 };
+			return true;
+		}
+		int tx = tileIndex % 8;
+		int ty = tileIndex / 8;
+		bool floor = tileIndex % 2 == 0;
+		source = { (tx / 4) * 256 + (floor ? 0 : 192),
+			ty * 192 + ((tx / 2) % 2) * 96, floor ? 192 : 64, 96 };
+		return true;
+	}
+	if (sheet == RtpTileSheet::A2)
+	{
+		if (tileIndex >= 32) return false;
+		source = { (tileIndex % 8) * 64, (tileIndex / 8) * 96, 64, 96 };
+		return true;
+	}
+	if (sheet == RtpTileSheet::A3)
+	{
+		if (tileIndex >= 32) return false;
+		source = { (tileIndex % 8) * 64, (tileIndex / 8) * 64, 64, 64 };
+		return true;
+	}
+	if (sheet == RtpTileSheet::A4)
+	{
+		if (tileIndex >= 48) return false;
+		int row = tileIndex / 8;
+		source = { (tileIndex % 8) * 64,
+			(row / 2) * 160 + (row % 2 == 0 ? 0 : 96), 64,
+			row % 2 == 0 ? 96 : 64 };
+		return true;
+	}
+	return regularTileSource(sheet, tileIndex, 512, 512, source);
 }
 
 bool RtpTilesetRenderer::floorQuarterSource(int quadrant, unsigned int connections,

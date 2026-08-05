@@ -31,10 +31,12 @@ select it; double-click it to center its map location. Select entities from the
 Lua-populated side lists or directly on the map, then click or drag them to a
 free walkable tile. The tile palette exposes the complete Dungeon, Inside,
 Outside, and World tilesets. Use the sheet arrows to browse A1-A5/B/C, choose
-the ground, decoration, or foreground layer, and hover an icon to see its
-metadata name. Left-click/drag paints the selected visual layer;
-right-click/drag erases it. The original one-byte grid remains the collision
-layer. Switch maps
+the ground, decoration, or foreground layer, and hover a source-sheet region
+to see its metadata name. The palette preserves each PNG's native rows,
+columns, and aspect ratio. Left-click/drag paints the selected visual layer;
+right-click/drag erases it. Collision is inferred from the uppermost catalog
+tile with collision behavior; the one-byte grid is only a legacy visual and
+collision fallback for cells not yet painted with catalog tiles. Switch maps
 with the on-screen arrows or `PageUp`/`PageDown`; hold the arrow or WASD keys
 to pan large maps. Use the
 mouse wheel over the map or `+`/`-` to zoom; the wheel continues to scroll when

@@ -393,7 +393,7 @@ bool Application::isWalkable(int x, int y) const
 	if (y < 0 || y >= (int)map.size() || x < 0 || x >= (int)map[y].size()) return false;
 	WorldTileId tile = WorldTiles::fromGlyph(map[y][x]);
 	if (tile == WorldTiles::BlackstoneGate && !hasCrest("confluence")) return false;
-	return WorldTiles::isWalkable(tile);
+	return worldTileWalkable(mWorldAreas[mCurrentWorldArea], x, y);
 }
 
 int Application::npcAt(int x, int y, int ignoredNpc) const

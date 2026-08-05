@@ -1187,12 +1187,45 @@ bool Application::exerciseOverworldMovementSmoke()
 	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::regularTileSource(
 		RtpTileSheet::A5, 16, 256, 512, regularTile) &&
 		regularTile.x == 0 && regularTile.y == 64;
+	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::paletteTileSource(
+		RtpTileSheet::A1, 5, regularTile) && regularTile.x == 448 &&
+		regularTile.y == 0 && regularTile.w == 64 && regularTile.h == 96;
+	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::paletteTileSource(
+		RtpTileSheet::A2, 31, regularTile) && regularTile.x == 448 &&
+		regularTile.y == 288 && regularTile.w == 64 && regularTile.h == 96;
+	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::paletteTileSource(
+		RtpTileSheet::A4, 8, regularTile) && regularTile.x == 0 &&
+		regularTile.y == 96 && regularTile.w == 64 && regularTile.h == 64;
+	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::paletteTileSource(
+		RtpTileSheet::B, 128, regularTile) && regularTile.x == 256 &&
+		regularTile.y == 0 && regularTile.w == 32 && regularTile.h == 32;
 	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::isWallOpening(
 		RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::B, 67,
 			RtpRenderLayer::Decoration)) &&
 		!RtpTilesetRenderer::isWallOpening(RtpTileReference(
 			RtpTilesetFamily::Outside, RtpTileSheet::B, 225,
 			RtpRenderLayer::Decoration));
+	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::collision(
+		RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::A1, 0)) ==
+		RtpTileCollision::Blocked && RtpTilesetRenderer::collision(
+		RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::A2, 0)) ==
+		RtpTileCollision::Walkable && RtpTilesetRenderer::collision(
+		RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::A2, 21)) ==
+		RtpTileCollision::Blocked && RtpTilesetRenderer::collision(
+		RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::A3, 8)) ==
+		RtpTileCollision::Blocked && RtpTilesetRenderer::collision(
+		RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::A4, 0)) ==
+		RtpTileCollision::Blocked && RtpTilesetRenderer::collision(
+		RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::A5, 2)) ==
+		RtpTileCollision::Walkable && RtpTilesetRenderer::collision(
+		RtpTileReference(RtpTilesetFamily::Inside, RtpTileSheet::A5, 7)) ==
+		RtpTileCollision::Blocked && RtpTilesetRenderer::collision(
+		RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::B, 67)) ==
+		RtpTileCollision::Walkable && RtpTilesetRenderer::collision(
+		RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::C, 128)) ==
+		RtpTileCollision::Blocked && RtpTilesetRenderer::collision(
+		RtpTileReference(RtpTilesetFamily::World, RtpTileSheet::A2, 0)) ==
+		RtpTileCollision::Ignore;
 	std::vector<RtpTileReference> layeredTiles;
 	layeredTiles.push_back(RtpTileReference(RtpTilesetFamily::Outside,
 		RtpTileSheet::A5, 16, RtpRenderLayer::Ground));
@@ -2059,31 +2092,47 @@ bool Application::exerciseMenuScreensSmoke()
 	bool tilePaletteReady = mWorldBuilderHoveredTileName == "Ground (Dirt Cave)";
 	std::map<std::tuple<int, int, int>, RtpTileReference> savedTileLayers =
 		mWorldAreas[builderArea].tileLayers;
+	int catalogTestX = -1;
+	int catalogTestY = -1;
+	for (int row = 0; row < (int)currentMap().size() && catalogTestX < 0; ++row)
+		for (int column = 0; column + 1 < (int)currentMap()[row].size(); ++column)
+			if (!worldBuilderRequiresWalkable(column, row) &&
+				!worldBuilderRequiresWalkable(column + 1, row))
+			{
+				catalogTestX = column;
+				catalogTestY = row;
+				break;
+			}
+	if (catalogTestX < 0) return false;
 	mWorldBuilderTileCategory = 2;
 	mWorldBuilderTileSheet = (int)RtpTileSheet::A2;
 	mWorldBuilderCatalogTile = 1;
 	mWorldBuilderTileLayer = RtpRenderLayer::Ground;
-	paintWorldBuilderTile(mWorldStartX, mWorldStartY);
+	paintWorldBuilderTile(catalogTestX, catalogTestY);
 	const RtpTileReference* paintedLayer = worldTileLayer(mWorldAreas[builderArea],
-		mWorldStartX, mWorldStartY, RtpRenderLayer::Ground);
+		catalogTestX, catalogTestY, RtpRenderLayer::Ground);
 	bool catalogPaintingReady = paintedLayer != NULL &&
 		paintedLayer->family == RtpTilesetFamily::Outside &&
-		paintedLayer->sheet == RtpTileSheet::A2 && paintedLayer->index == 1;
-	eraseWorldBuilderTile(mWorldStartX, mWorldStartY);
+		paintedLayer->sheet == RtpTileSheet::A2 && paintedLayer->index == 1 &&
+		worldTileWalkable(mWorldAreas[builderArea], catalogTestX, catalogTestY);
+	eraseWorldBuilderTile(catalogTestX, catalogTestY);
 	catalogPaintingReady = catalogPaintingReady &&
-		worldTileLayer(mWorldAreas[builderArea], mWorldStartX, mWorldStartY,
+		worldTileLayer(mWorldAreas[builderArea], catalogTestX, catalogTestY,
 			RtpRenderLayer::Ground) == NULL;
 	mWorldBuilderTileSheet = (int)RtpTileSheet::A3;
 	mWorldBuilderCatalogTile = 8;
 	mWorldBuilderTileLayer = RtpRenderLayer::Ground;
-	paintWorldBuilderTile(mWorldStartX, mWorldStartY);
+	paintWorldBuilderTile(catalogTestX, catalogTestY);
+	catalogPaintingReady = catalogPaintingReady &&
+		!worldTileWalkable(mWorldAreas[builderArea], catalogTestX, catalogTestY);
 	mWorldBuilderTileSheet = (int)RtpTileSheet::B;
 	mWorldBuilderCatalogTile = 67;
 	mWorldBuilderTileLayer = RtpRenderLayer::Decoration;
-	paintWorldBuilderTile(mWorldStartX + 1, mWorldStartY);
+	paintWorldBuilderTile(catalogTestX + 1, catalogTestY);
 	catalogPaintingReady = catalogPaintingReady &&
-		(worldTileConnections(mWorldAreas[builderArea], mWorldStartX,
-			mWorldStartY, RtpRenderLayer::Ground) & RtpTilesetRenderer::East) != 0;
+		(worldTileConnections(mWorldAreas[builderArea], catalogTestX,
+			catalogTestY, RtpRenderLayer::Ground) & RtpTilesetRenderer::East) != 0 &&
+		worldTileWalkable(mWorldAreas[builderArea], catalogTestX + 1, catalogTestY);
 	SDL_Event categoryClick = {};
 	categoryClick.type = SDL_MOUSEBUTTONDOWN;
 	categoryClick.button.button = SDL_BUTTON_LEFT;
@@ -2154,8 +2203,8 @@ bool Application::exerciseMenuScreensSmoke()
 	mMouseY = 300;
 	zoom.wheel.y = -1;
 	handleWorldBuilderEvent(zoom);
-	bool panelWheelStillScrolls = mWorldBuilderTileSize == TILE &&
-		mWorldBuilderListScroll == 2;
+	bool panelWheelPreservesSheetLayout = mWorldBuilderTileSize == TILE &&
+		mWorldBuilderListScroll == 0;
 	mWorldBuilderMoveUp = mWorldBuilderMoveDown = false;
 	mWorldBuilderMoveLeft = mWorldBuilderMoveRight = false;
 	mWorldBuilderPanAccumulator = 0;
@@ -2181,7 +2230,7 @@ bool Application::exerciseMenuScreensSmoke()
 		!arrowHeld || !wasdHeld ||
 		!zoomedIn || !zoomedOut ||
 		!largeZoomRendered ||
-		!smallZoomRendered || !panelWheelStillScrolls) return false;
+		!smallZoomRendered || !panelWheelPreservesSheetLayout) return false;
 
 	mPendingRewardCardId = getCardIdFromName("Aqua Hulcus");
 	mPendingRewardGold = 100;

@@ -1,6 +1,7 @@
 #include "Application.h"
 
 #include "AppSupport.h"
+#include "AssetManager.h"
 #include "LuaInclude.h"
 #include "WorldTileRenderer.h"
 
@@ -30,9 +31,8 @@ namespace
 	const int BUILDER_LIST_ROWS = 13;
 	const int BUILDER_CATEGORY_Y = 151;
 	const int BUILDER_SHEET_Y = 219;
-	const int BUILDER_TILE_Y = 257;
-	const int BUILDER_TILE_ROWS = 9;
-	const int BUILDER_VISIBLE_TILES = BUILDER_TILE_ROWS * 2;
+	const SDL_Rect BUILDER_TILESET_VIEW = { 1022, 257, 228, 428 };
+	const SDL_Rect BUILDER_TILE_INFO = { 1022, 690, 228, 25 };
 	const Uint32 BUILDER_PAN_INTERVAL = 80;
 	const int BUILDER_ZOOM_LEVELS[] = { 24, 32, 48, 64, 96 };
 	const int BUILDER_ZOOM_LEVEL_COUNT = sizeof(BUILDER_ZOOM_LEVELS) /
@@ -56,9 +56,46 @@ namespace
 			108, 29 };
 	}
 
-	SDL_Rect paletteRect(int index)
+	SDL_Rect catalogSheetRect(const RtpSheetDescriptor& sheet)
 	{
-		return { 1022 + (index % 2) * 116, BUILDER_TILE_Y + (index / 2) * 39, 108, 33 };
+		float scale = std::min((float)BUILDER_TILESET_VIEW.w / sheet.width,
+			(float)BUILDER_TILESET_VIEW.h / sheet.height);
+		int width = std::max(1, (int)std::floor(sheet.width * scale));
+		int height = std::max(1, (int)std::floor(sheet.height * scale));
+		return { BUILDER_TILESET_VIEW.x + (BUILDER_TILESET_VIEW.w - width) / 2,
+			BUILDER_TILESET_VIEW.y, width, height };
+	}
+
+	SDL_Rect scaledCatalogTileRect(const RtpSheetDescriptor& sheet,
+		const SDL_Rect& sheetDestination, const SDL_Rect& source)
+	{
+		int left = sheetDestination.x + source.x * sheetDestination.w / sheet.width;
+		int top = sheetDestination.y + source.y * sheetDestination.h / sheet.height;
+		int right = sheetDestination.x + (source.x + source.w) *
+			sheetDestination.w / sheet.width;
+		int bottom = sheetDestination.y + (source.y + source.h) *
+			sheetDestination.h / sheet.height;
+		return { left, top, std::max(1, right - left), std::max(1, bottom - top) };
+	}
+
+	int catalogTileAt(const RtpSheetDescriptor& sheet,
+		const SDL_Rect& sheetDestination, int x, int y)
+	{
+		auto inside = [](const SDL_Rect& rect, int pointX, int pointY) -> bool
+		{
+			return pointX >= rect.x && pointX < rect.x + rect.w &&
+				pointY >= rect.y && pointY < rect.y + rect.h;
+		};
+		if (!inside(sheetDestination, x, y)) return -1;
+		int sourceX = (x - sheetDestination.x) * sheet.width / sheetDestination.w;
+		int sourceY = (y - sheetDestination.y) * sheet.height / sheetDestination.h;
+		for (int tile = 0; tile < sheet.tileCount; ++tile)
+		{
+			SDL_Rect source;
+			if (RtpTilesetRenderer::paletteTileSource(sheet.sheet, tile, source) &&
+				inside(source, sourceX, sourceY)) return tile;
+		}
+		return -1;
 	}
 
 	RtpTilesetFamily tilesetFamily(int category)
@@ -274,9 +311,9 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 		lua_pop(state, 1);
 		return value;
 	};
-	auto walkable = [](char tile)
+	auto walkable = [this](const WorldArea& area, int x, int y)
 	{
-		return WorldTiles::isWalkable(WorldTiles::fromGlyph(tile));
+		return worldTileWalkable(area, x, y);
 	};
 	auto inBounds = [](const WorldArea& area, int x, int y) -> bool
 	{
@@ -450,7 +487,7 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 	lua_pop(state, 1);
 	int startArea = areaIndex(startMap);
 	if (startArea < 0 || !inBounds(areas[startArea], startX, startY) ||
-		!walkable(areas[startArea].tiles[startY][startX]))
+		!walkable(areas[startArea], startX, startY))
 	{
 		error = "world start must reference a walkable map tile";
 		lua_close(state);
@@ -487,8 +524,8 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 		if (fromArea < 0 || toArea < 0 ||
 			!inBounds(areas[fromArea], portal.fromX, portal.fromY) ||
 			!inBounds(areas[toArea], portal.toX, portal.toY) ||
-			!walkable(areas[fromArea].tiles[portal.fromY][portal.fromX]) ||
-			!walkable(areas[toArea].tiles[portal.toY][portal.toX]) ||
+			!walkable(areas[fromArea], portal.fromX, portal.fromY) ||
+			!walkable(areas[toArea], portal.toX, portal.toY) ||
 			!occupied.insert(std::make_tuple(portal.fromMap, portal.fromX, portal.fromY)).second)
 		{
 			error = "portal " + std::to_string(index) + " has invalid endpoints";
@@ -532,7 +569,7 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 			lua_pop(state, 1);
 			int mapIndex = areaIndex(positions[i].map);
 			if (mapIndex < 0 || !inBounds(areas[mapIndex], positions[i].x, positions[i].y) ||
-				!walkable(areas[mapIndex].tiles[positions[i].y][positions[i].x]) ||
+				!walkable(areas[mapIndex], positions[i].x, positions[i].y) ||
 				!occupied.insert(std::make_tuple(positions[i].map, positions[i].x, positions[i].y)).second)
 			{
 				error = std::string("invalid or occupied ") + field + " position for '" + ids[i] + "'";
@@ -566,7 +603,7 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 			for (size_t map = 0; map < areas.size() && !placed; ++map)
 				for (int y = 0; y < (int)areas[map].tiles.size() && !placed; ++y)
 					for (int x = 0; x < (int)areas[map].tiles[y].size() && !placed; ++x)
-						if (walkable(areas[map].tiles[y][x]) &&
+						if (walkable(areas[map], x, y) &&
 							occupied.insert(std::make_tuple(areas[map].id, x, y)).second)
 						{
 							positions[i] = { areas[map].id, x, y };
@@ -761,8 +798,18 @@ void Application::paintWorldBuilderTile(int x, int y)
 		layers.find(key);
 	if (existing != layers.end() && existing->second.family == tile.family &&
 		existing->second.sheet == tile.sheet && existing->second.index == tile.index) return;
+	bool hadExisting = existing != layers.end();
+	RtpTileReference previous = hadExisting ? existing->second : tile;
 	if (existing != layers.end()) layers.erase(existing);
 	layers.insert(std::make_pair(key, tile));
+	if (worldBuilderRequiresWalkable(x, y) &&
+		!worldTileWalkable(mWorldAreas[mCurrentWorldArea], x, y))
+	{
+		layers.erase(key);
+		if (hadExisting) layers.insert(std::make_pair(key, previous));
+		showWorldBuilderNotice("Move the entity or portal before blocking this tile.", true);
+		return;
+	}
 	mWorldBuilderDirty = true;
 }
 
@@ -772,8 +819,36 @@ void Application::eraseWorldBuilderTile(int x, int y)
 	if (y < 0 || y >= (int)map.size() || x < 0 || x >= (int)map[y].size()) return;
 	std::map<std::tuple<int, int, int>, RtpTileReference>& layers =
 		mWorldAreas[mCurrentWorldArea].tileLayers;
-	if (layers.erase(std::make_tuple(y, x, (int)mWorldBuilderTileLayer)) != 0)
-		mWorldBuilderDirty = true;
+	std::tuple<int, int, int> key(y, x, (int)mWorldBuilderTileLayer);
+	std::map<std::tuple<int, int, int>, RtpTileReference>::iterator existing =
+		layers.find(key);
+	if (existing == layers.end()) return;
+	RtpTileReference previous = existing->second;
+	layers.erase(existing);
+	if (worldBuilderRequiresWalkable(x, y) &&
+		!worldTileWalkable(mWorldAreas[mCurrentWorldArea], x, y))
+	{
+		layers.insert(std::make_pair(key, previous));
+		showWorldBuilderNotice("This layer keeps an entity or portal tile walkable.", true);
+		return;
+	}
+	mWorldBuilderDirty = true;
+}
+
+bool Application::worldBuilderRequiresWalkable(int x, int y) const
+{
+	if ((currentMapId() == mWorldStartMap && x == mWorldStartX && y == mWorldStartY) ||
+		isPortalAt(currentMapId(), x, y)) return true;
+	for (size_t i = 0; i < mNpcs.size(); ++i)
+		if (mNpcs[i].mapId == currentMapId() && mNpcs[i].x == x && mNpcs[i].y == y)
+			return true;
+	for (size_t i = 0; i < mWorldObjects.size(); ++i)
+		if (mWorldObjects[i].mapId == currentMapId() &&
+			mWorldObjects[i].x == x && mWorldObjects[i].y == y) return true;
+	for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
+		if (mMercerStock.shards[i].mapId == currentMapId() &&
+			mMercerStock.shards[i].x == x && mMercerStock.shards[i].y == y) return true;
+	return false;
 }
 
 const RtpTileReference* Application::worldTileLayer(const WorldArea& area,
@@ -782,6 +857,23 @@ const RtpTileReference* Application::worldTileLayer(const WorldArea& area,
 	std::map<std::tuple<int, int, int>, RtpTileReference>::const_iterator found =
 		area.tileLayers.find(std::make_tuple(y, x, (int)layer));
 	return found == area.tileLayers.end() ? NULL : &found->second;
+}
+
+bool Application::worldTileWalkable(const WorldArea& area, int x, int y) const
+{
+	if (y < 0 || y >= (int)area.tiles.size() || x < 0 ||
+		x >= (int)area.tiles[y].size()) return false;
+	const RtpRenderLayer layers[] = { RtpRenderLayer::Foreground,
+		RtpRenderLayer::Decoration, RtpRenderLayer::Ground };
+	for (int layer = 0; layer < 3; ++layer)
+	{
+		const RtpTileReference* tile = worldTileLayer(area, x, y, layers[layer]);
+		if (tile == NULL) continue;
+		RtpTileCollision collision = RtpTilesetRenderer::collision(*tile);
+		if (collision == RtpTileCollision::Walkable) return true;
+		if (collision == RtpTileCollision::Blocked) return false;
+	}
+	return WorldTiles::isWalkable(WorldTiles::fromGlyph(area.tiles[y][x]));
 }
 
 unsigned int Application::worldTileConnections(const WorldArea& area, int x, int y,
@@ -881,7 +973,8 @@ bool Application::saveWorldBuilder(std::string& error)
 	std::ostringstream world;
 	world << "-- World Builder data. This file is entirely maintained by the World Builder.\n"
 		<< "-- Tile IDs are stable one-byte serialization codes defined in Source/App/WorldTile.h.\n"
-		<< "-- Optional tile_layers entries are sparse visual overrides; tiles remain the collision layer.\n"
+		<< "-- Optional tile_layers entries are sparse visual overrides with tile-derived collision.\n"
+		<< "-- The one-byte tiles grid is the legacy base visual layer for cells without catalog tiles.\n"
 		<< "-- Tile legend: . grass, = path, ~ water, H house, T tree, # forest,\n"
 		<< "-- W wooden wall, K timber roof, D door, F wooden floor, C counter, B bonfire,\n"
 		<< "-- A feast table, S dueling sand, M marble, Q marble roof, E workshop tools,\n"
@@ -1101,7 +1194,7 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 			const RtpSheetDescriptor* sheet = RtpTilesetRenderer::descriptor(
 				tilesetFamily(mWorldBuilderTileCategory),
 				(RtpTileSheet)mWorldBuilderTileSheet);
-			int index = mWorldBuilderListScroll + key - SDLK_1;
+			int index = key - SDLK_1;
 			if (sheet != NULL && index < sheet->tileCount)
 				mWorldBuilderCatalogTile = index;
 			return;
@@ -1134,13 +1227,7 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		}
 		if (mWorldBuilderTab == WorldBuilderTab::Tiles)
 		{
-			const RtpSheetDescriptor* sheet = RtpTilesetRenderer::descriptor(
-				tilesetFamily(mWorldBuilderTileCategory),
-				(RtpTileSheet)mWorldBuilderTileSheet);
-			int maximum = std::max(0, (sheet == NULL ? 0 : sheet->tileCount) -
-				BUILDER_VISIBLE_TILES);
-			mWorldBuilderListScroll = std::max(0,
-				std::min(maximum, mWorldBuilderListScroll - event.wheel.y * 2));
+			mWorldBuilderListScroll = 0;
 			return;
 		}
 		int count = mWorldBuilderTab == WorldBuilderTab::Npcs ? (int)mNpcs.size() :
@@ -1256,12 +1343,12 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 			const RtpSheetDescriptor* sheet = RtpTilesetRenderer::descriptor(
 				tilesetFamily(mWorldBuilderTileCategory),
 				(RtpTileSheet)mWorldBuilderTileSheet);
-			for (int slot = 0; slot < BUILDER_VISIBLE_TILES; ++slot)
+			if (sheet != NULL)
 			{
-				int i = mWorldBuilderListScroll + slot;
-				if (sheet != NULL && i < sheet->tileCount && contains(paletteRect(slot), x, y))
+				int tile = catalogTileAt(*sheet, catalogSheetRect(*sheet), x, y);
+				if (tile >= 0)
 				{
-					mWorldBuilderCatalogTile = i;
+					mWorldBuilderCatalogTile = tile;
 					return;
 				}
 			}
@@ -2123,42 +2210,50 @@ void Application::renderWorldBuilder()
 				BUILDER_LAYER_BUTTONS[layer].y + 7, color(232, 236, 244), 11);
 		}
 		mWorldBuilderHoveredTileName.clear();
-		for (int slot = 0; slot < BUILDER_VISIBLE_TILES; ++slot)
+		fillRect(BUILDER_TILESET_VIEW, 13, 18, 27, 255);
+		outlineRect(BUILDER_TILESET_VIEW, 73, 92, 118, 255, 1);
+		int hoveredTile = -1;
+		if (sheet != NULL)
 		{
-			int i = mWorldBuilderListScroll + slot;
-			if (sheet == NULL || i >= sheet->tileCount) break;
-			SDL_Rect button = paletteRect(slot);
-			bool selected = mWorldBuilderCatalogTile == i;
-			bool hovered = contains(button, mMouseX, mMouseY);
-			fillRect(button, selected ? 79 : 38, selected ? 68 : 47, selected ? 43 : 64, 245);
-			outlineRect(button, selected ? 241 : (hovered ? 174 : 110),
-				selected ? 190 : (hovered ? 188 : 125),
-				selected ? 87 : (hovered ? 206 : 147), 255, 2);
-			RtpTileReference preview(family, selectedSheet, i, mWorldBuilderTileLayer);
-			mWorldTileRenderer->drawCatalog(preview, RtpTilesetRenderer::North |
-				RtpTilesetRenderer::East | RtpTilesetRenderer::South |
-				RtpTilesetRenderer::West | RtpTilesetRenderer::NorthWest |
-				RtpTilesetRenderer::NorthEast | RtpTilesetRenderer::SouthEast |
-				RtpTilesetRenderer::SouthWest,
-				{ button.x + (button.w - 29) / 2, button.y + 2, 29, 29 },
-				SDL_GetTicks() / 420);
-			if (hovered) mWorldBuilderHoveredTileName = catalogTileName(family,
-				selectedSheet, i);
+			SDL_Rect sheetRect = catalogSheetRect(*sheet);
+			SDL_Texture* texture = mAssets == NULL ? NULL :
+				mAssets->texture(sheet->imagePath, true);
+			if (texture != NULL) SDL_RenderCopy(mRenderer, texture, NULL, &sheetRect);
+			outlineRect(sheetRect, 109, 127, 151, 255, 1);
+			hoveredTile = catalogTileAt(*sheet, sheetRect, mMouseX, mMouseY);
+			SDL_Rect source;
+			if (RtpTilesetRenderer::paletteTileSource(selectedSheet,
+				mWorldBuilderCatalogTile, source))
+			{
+				SDL_Rect selected = scaledCatalogTileRect(*sheet, sheetRect, source);
+				outlineRect(selected, 247, 194, 72, 255, 2);
+			}
+			if (hoveredTile >= 0 && hoveredTile != mWorldBuilderCatalogTile &&
+				RtpTilesetRenderer::paletteTileSource(selectedSheet, hoveredTile, source))
+			{
+				SDL_Rect hovered = scaledCatalogTileRect(*sheet, sheetRect, source);
+				outlineRect(hovered, 129, 218, 239, 255, 2);
+			}
+			if (hoveredTile >= 0) mWorldBuilderHoveredTileName =
+				catalogTileName(family, selectedSheet, hoveredTile);
 		}
-		fillRect({ 1022, 617, 228, 40 }, 27, 37, 53, 245);
-		outlineRect({ 1022, 617, 228, 40 }, 88, 112, 143, 255, 1);
+		fillRect(BUILDER_TILE_INFO, 27, 37, 53, 245);
+		outlineRect(BUILDER_TILE_INFO, 88, 112, 143, 255, 1);
 		std::string tileLabel = mWorldBuilderHoveredTileName.empty() ?
 			catalogTileName(family, selectedSheet, mWorldBuilderCatalogTile) :
 			mWorldBuilderHoveredTileName;
-		drawText(tileLabel, 1032, 625, color(224, 232, 243), 11, 208);
+		int describedTile = hoveredTile >= 0 ? hoveredTile : mWorldBuilderCatalogTile;
+		RtpTileReference described(family, selectedSheet, describedTile,
+			mWorldBuilderTileLayer);
+		RtpTileCollision collision = RtpTilesetRenderer::collision(described);
+		std::string collisionText = family == RtpTilesetFamily::World ? "MAP ONLY" :
+			(collision == RtpTileCollision::Walkable ? "WALKABLE" :
+				(collision == RtpTileCollision::Blocked ? "BLOCKED" : "INHERITS"));
+		drawText(tileLabel, 1028, 692, color(224, 232, 243), 9, 216);
 		drawText(std::string(familyName(family)) + " " + sheetName(selectedSheet) +
-			" #" + std::to_string(mWorldBuilderCatalogTile) + "  " +
-			layerName(mWorldBuilderTileLayer), 1032, 641,
-			color(151, 181, 215), 9, 208);
-		drawText("Wheel: tiles  •  G/D/F: layer", 1022, 669,
-			color(179, 195, 218), 12, 220);
-		drawText("Left paint  •  Right erase layer", 1022, 695,
-			color(153, 174, 205), 11, 220);
+			" #" + std::to_string(describedTile) + "  " +
+			layerName(mWorldBuilderTileLayer) + "  " + collisionText, 1028, 704,
+			color(151, 181, 215), 8, 216);
 	}
 	else
 	{

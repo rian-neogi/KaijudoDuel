@@ -354,7 +354,7 @@ void Application::ensurePlayerDataLoaded()
 		const std::vector<std::string>& tiles = mWorldAreas[savedArea].tiles;
 		bool validPosition = savedY >= 0 && savedY < (int)tiles.size() && savedX >= 0 &&
 			savedX < (int)tiles[savedY].size() &&
-			WorldTiles::isWalkable(WorldTiles::fromGlyph(tiles[savedY][savedX]));
+			worldTileWalkable(mWorldAreas[savedArea], savedX, savedY);
 		if (validPosition)
 		{
 			mCurrentWorldArea = savedArea;

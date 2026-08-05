@@ -33,6 +33,13 @@ enum class RtpRenderLayer
 	Foreground
 };
 
+enum class RtpTileCollision
+{
+	Ignore,
+	Walkable,
+	Blocked
+};
+
 struct RtpTileReference
 {
 	RtpTilesetFamily family;
@@ -81,9 +88,12 @@ public:
 	static bool loadTileNames(RtpTilesetFamily family, RtpTileSheet sheet,
 		std::vector<std::string>& names, std::string& error);
 	static bool isWallOpening(const RtpTileReference& tile);
+	static RtpTileCollision collision(const RtpTileReference& tile);
 	static RtpRenderLayer defaultLayer(RtpTileSheet sheet);
 	static bool regularTileSource(RtpTileSheet sheet, int tileIndex,
 		int textureWidth, int textureHeight, SDL_Rect& source);
+	static bool paletteTileSource(RtpTileSheet sheet, int tileIndex,
+		SDL_Rect& source);
 
 	static bool floorQuarterSource(int quadrant, unsigned int connections,
 		SDL_Point& sourceQuarter);
@@ -118,6 +128,7 @@ private:
 	static bool autotileOrigin(const RtpTileReference& tile,
 		unsigned int animationFrame, int& sourceX, int& sourceY,
 		AutotileFormat& format);
+	static bool metadataName(const RtpTileReference& tile, std::string& name);
 
 	SDL_Renderer* mRenderer;
 	AssetManager* mAssets;

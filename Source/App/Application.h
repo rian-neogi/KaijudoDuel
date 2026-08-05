@@ -234,8 +234,10 @@ private:
 	SDL_Rect worldBuilderTileRect(const SDL_Rect& rect) const;
 	void paintWorldBuilderTile(int x, int y);
 	void eraseWorldBuilderTile(int x, int y);
+	bool worldBuilderRequiresWalkable(int x, int y) const;
 	const RtpTileReference* worldTileLayer(const WorldArea& area, int x, int y,
 		RtpRenderLayer layer) const;
+	bool worldTileWalkable(const WorldArea& area, int x, int y) const;
 	unsigned int worldTileConnections(const WorldArea& area, int x, int y,
 		RtpRenderLayer layer) const;
 	bool drawWorldTileLayer(const WorldArea& area, int x, int y,
