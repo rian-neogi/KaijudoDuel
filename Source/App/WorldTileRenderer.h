@@ -8,11 +8,13 @@
 #include <vector>
 
 class AssetManager;
+class RtpTilesetRenderer;
 
 class WorldTileRenderer
 {
 public:
 	WorldTileRenderer(SDL_Renderer* renderer, AssetManager* assets);
+	~WorldTileRenderer();
 
 	// Ground pass. Connections are derived from adjacent semantic tile IDs.
 	bool drawTerrain(WorldTileId tile, const std::vector<std::string>& map,
@@ -24,6 +26,9 @@ public:
 	bool drawDecoration(WorldTileId tile, const SDL_Rect& destination);
 	bool drawForeground(WorldTileId tile, const SDL_Rect& destination);
 	bool drawPreview(WorldTileId tile, const SDL_Rect& destination);
+	bool drawSignpost(const SDL_Rect& destination);
+	bool drawChest(const SDL_Rect& destination, bool opened);
+	bool drawShard(const SDL_Rect& destination);
 	bool canDrawDecoration(WorldTileId tile) const;
 	static bool hasDecoration(WorldTileId tile);
 	static bool hasForeground(WorldTileId tile);
@@ -53,4 +58,5 @@ private:
 
 	SDL_Renderer* mRenderer;
 	AssetManager* mAssets;
+	RtpTilesetRenderer* mRtpTiles;
 };

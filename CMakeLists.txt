@@ -35,6 +35,7 @@ set(GAME_SOURCES
 	Source/App/MercerStock.cpp
 	Source/App/Npc.cpp
 	Source/App/Overworld.cpp
+	Source/App/RtpTilesetRenderer.cpp
 	Source/App/SaveMenu.cpp
 	Source/App/SmokeTests.cpp
 	Source/App/Shop.cpp

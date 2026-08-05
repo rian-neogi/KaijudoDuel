@@ -1908,6 +1908,11 @@ void Application::renderWorldBuilder()
 			bool texturedTerrain = mWorldTileRenderer->drawTerrain(
 				type, map, column, row, tile);
 			if (mWorldTileRenderer->canDrawDecoration(type)) continue;
+			if (texturedTerrain)
+			{
+				outlineRect(tile, 10, 20, 27, 100, 1);
+				continue;
+			}
 			SDL_Rect displayedTile = tile;
 			mWorldBuilderTileScaleActive = tileSize != TILE;
 			mWorldBuilderTileScaleDestination = displayedTile;
@@ -2359,6 +2364,8 @@ void Application::renderWorldBuilder()
 		int y = mapY + object.y * tileSize;
 		if (object.kind == WorldObjectKind::Signpost)
 		{
+			if (!mWorldTileRenderer->drawSignpost({ x, y, tileSize, tileSize }))
+			{
 			int postWidth = std::max(2, tileSize / 9);
 			fillRect({ x + tileSize / 2 - postWidth / 2, y + tileSize / 3,
 				postWidth, tileSize * 3 / 5 }, 91, 58, 32, 255);
@@ -2366,9 +2373,12 @@ void Application::renderWorldBuilder()
 				tileSize * 5 / 7, tileSize / 3 }, 178, 125, 59, 255);
 			outlineRect({ x + tileSize / 7, y + tileSize / 6,
 				tileSize * 5 / 7, tileSize / 3 }, 70, 43, 27, 255, 1);
+			}
 		}
 		else
 		{
+			if (!mWorldTileRenderer->drawChest({ x, y, tileSize, tileSize }, false))
+			{
 			int inset = std::max(2, tileSize / 7);
 			fillRect({ x + inset, y + tileSize * 2 / 5,
 				tileSize - inset * 2, tileSize / 2 }, 121, 69, 32, 255);
@@ -2378,6 +2388,7 @@ void Application::renderWorldBuilder()
 				tileSize - inset * 2, tileSize * 13 / 20 }, 58, 35, 23, 255, 1);
 			fillRect({ x + tileSize * 9 / 20, y + tileSize / 2,
 				std::max(2, tileSize / 8), tileSize / 5 }, 224, 174, 65, 255);
+			}
 		}
 		if ((int)i == mWorldBuilderSelectedObject &&
 			mWorldBuilderTab == WorldBuilderTab::Objects)
@@ -2391,6 +2402,9 @@ void Application::renderWorldBuilder()
 		if (!visibleTiles.contains(shard.x, shard.y)) continue;
 		int x = mapX + shard.x * tileSize;
 		int y = mapY + shard.y * tileSize;
+		bool drewShard = mWorldTileRenderer->drawShard({ x, y, tileSize, tileSize });
+		if (!drewShard)
+		{
 		int unit = std::max(1, tileSize / 12);
 		fillRect({ x + tileSize / 2 - unit * 2, y + tileSize / 5,
 			unit * 4, tileSize * 3 / 5 }, 47, 25, 71, 230);
@@ -2398,6 +2412,7 @@ void Application::renderWorldBuilder()
 			tileSize / 2, tileSize / 3 }, 146, 87, 211, 250);
 		fillRect({ x + tileSize * 2 / 5, y + tileSize * 2 / 5,
 			tileSize / 5, tileSize / 5 }, 231, 193, 255, 255);
+		}
 		if ((int)(mWorldObjects.size() + i) == mWorldBuilderSelectedObject &&
 			mWorldBuilderTab == WorldBuilderTab::Objects)
 			outlineRect({ x + 2, y + 2, tileSize - 4, tileSize - 4 },

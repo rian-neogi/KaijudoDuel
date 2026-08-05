@@ -4,6 +4,7 @@
 #include "AppSupport.h"
 #include "Game/Card.h"
 #include "Landmarks.h"
+#include "RtpTilesetRenderer.h"
 #include "SpriteSheetRenderer.h"
 #include "WorldTileRenderer.h"
 
@@ -1144,6 +1145,61 @@ bool Application::exerciseOverworldMovementSmoke()
 		WorldTileRenderer::hasDecoration(WorldTiles::Rocks) &&
 		WorldTileRenderer::hasForeground(WorldTiles::Tree) &&
 		!WorldTileRenderer::hasForeground(WorldTiles::Rocks);
+	RtpTilesetRenderer rtpTiles(mRenderer, mAssets);
+	std::string tilesetError;
+	std::vector<RtpSheetDescriptor> sheets = RtpTilesetRenderer::availableSheets();
+	bool fullTilesetReady = sheets.size() == 22 && rtpTiles.validateAllAssets(tilesetError) &&
+		RtpTilesetRenderer::descriptor(RtpTilesetFamily::Outside, RtpTileSheet::A3) != NULL &&
+		RtpTilesetRenderer::descriptor(RtpTilesetFamily::World, RtpTileSheet::C) == NULL &&
+		RtpTilesetRenderer::defaultLayer(RtpTileSheet::A2) == RtpRenderLayer::Ground &&
+		RtpTilesetRenderer::defaultLayer(RtpTileSheet::B) == RtpRenderLayer::Decoration;
+	SDL_Rect tilesetTarget = { 0, 0, 32, 32 };
+	for (size_t sheet = 0; sheet < sheets.size() && fullTilesetReady; ++sheet)
+	{
+		RtpRenderLayer layer = RtpTilesetRenderer::defaultLayer(sheets[sheet].sheet);
+		RtpTileReference first(sheets[sheet].family, sheets[sheet].sheet, 0, layer);
+		RtpTileReference last(sheets[sheet].family, sheets[sheet].sheet,
+			sheets[sheet].tileCount - 1, layer);
+		fullTilesetReady = rtpTiles.draw(first, surrounded, tilesetTarget, 0) &&
+			rtpTiles.draw(last, surrounded, tilesetTarget, 2);
+	}
+	SDL_Point wallQuarter;
+	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::wallQuarterSource(
+		0, surrounded, wallQuarter) && wallQuarter.x == 2 && wallQuarter.y == 2;
+	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::waterfallQuarterSource(
+		3, 0, wallQuarter) && wallQuarter.x == 3 && wallQuarter.y == 1;
+	SDL_Rect regularTile;
+	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::regularTileSource(
+		RtpTileSheet::B, 83, 512, 512, regularTile) &&
+		regularTile.x == 96 && regularTile.y == 320;
+	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::regularTileSource(
+		RtpTileSheet::A5, 16, 256, 512, regularTile) &&
+		regularTile.x == 0 && regularTile.y == 64;
+	std::vector<RtpTileReference> layeredTiles;
+	layeredTiles.push_back(RtpTileReference(RtpTilesetFamily::Outside,
+		RtpTileSheet::A5, 16, RtpRenderLayer::Ground));
+	layeredTiles.push_back(RtpTileReference(RtpTilesetFamily::Outside,
+		RtpTileSheet::B, 178, RtpRenderLayer::Decoration));
+	layeredTiles.push_back(RtpTileReference(RtpTilesetFamily::Outside,
+		RtpTileSheet::C, 0, RtpRenderLayer::Foreground));
+	fullTilesetReady = fullTilesetReady &&
+		rtpTiles.drawLayer(layeredTiles, RtpRenderLayer::Ground,
+			surrounded, tilesetTarget) &&
+		rtpTiles.drawLayer(layeredTiles, RtpRenderLayer::Decoration,
+			surrounded, tilesetTarget) &&
+		rtpTiles.drawLayer(layeredTiles, RtpRenderLayer::Foreground,
+			surrounded, tilesetTarget);
+	const std::string semanticTiles = ".=~HT#WDFCBASMQERXGIPVKJUO1234567890"
+		"abcdefghijklmnopqrstuvwxyz";
+	for (size_t tile = 0; tile < semanticTiles.size() && fullTilesetReady; ++tile)
+		fullTilesetReady = WorldTiles::isValid(WorldTiles::fromGlyph(semanticTiles[tile])) &&
+			mWorldTileRenderer->drawPreview(WorldTiles::fromGlyph(semanticTiles[tile]),
+				tilesetTarget);
+	fullTilesetReady = fullTilesetReady && mWorldTileRenderer->drawSignpost(tilesetTarget) &&
+		mWorldTileRenderer->drawChest(tilesetTarget, false) &&
+		mWorldTileRenderer->drawChest(tilesetTarget, true) &&
+		mWorldTileRenderer->drawShard(tilesetTarget);
+	spriteSheetsReady = spriteSheetsReady && fullTilesetReady;
 	int savedPlayerX = mPlayerX;
 	int savedPlayerY = mPlayerY;
 	float savedVisualX = mVisualX;

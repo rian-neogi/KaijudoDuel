@@ -773,10 +773,8 @@ void Application::renderOverworld()
 	const std::vector<std::string>& map = currentMap();
 	const WorldRegion* cinderrailRegion = NULL;
 	for (size_t region = 0; region < mWorldRegions.size(); ++region)
-	{
-		if (mWorldRegions[region].mapId != currentMapId()) continue;
-		if (mWorldRegions[region].id == "cinderrail") cinderrailRegion = &mWorldRegions[region];
-	}
+		if (mWorldRegions[region].mapId == currentMapId() &&
+			mWorldRegions[region].id == "cinderrail") cinderrailRegion = &mWorldRegions[region];
 	float cameraX = overworldCameraX();
 	float cameraY = overworldCameraY();
 	int mapX = mapOriginX((int)map[0].size(), OVERWORLD_VIEW_COLUMNS) -
@@ -860,6 +858,7 @@ void Application::renderOverworld()
 			bool texturedTerrain = mWorldTileRenderer->drawTerrain(tile, map, x, y, tileRect);
 
 			if (mWorldTileRenderer->canDrawDecoration(tile)) continue;
+			if (texturedTerrain) continue;
 			if (tile == WorldTiles::Water)
 			{
 				if (!texturedTerrain)
@@ -1398,22 +1397,6 @@ void Application::renderOverworld()
 			mWorldTileRenderer->drawDecoration(tile, tileRect);
 		}
 	}
-	if (cinderrailRegion != NULL)
-	{
-		if (visibleTiles.intersects(cinderrailRegion->x + 8, cinderrailRegion->y + 1,
-			cinderrailRegion->x + 11, cinderrailRegion->y + 4))
-		{
-			int stationX = mapX + (cinderrailRegion->x + 8) * TILE;
-			int stationY = mapY + (cinderrailRegion->y + 1) * TILE;
-			fillRect({ stationX + 8, stationY, 80, 102 }, 116, 50, 39);
-			fillRect({ stationX + 3, stationY, 90, 9 }, 55, 54, 56);
-			fillRect({ stationX + 28, stationY + 17, 39, 39 }, 44, 42, 43);
-			fillRect({ stationX + 33, stationY + 22, 29, 29 }, 223, 207, 159);
-			fillRect({ stationX + 46, stationY + 25, 3, 13 }, 61, 56, 52);
-			fillRect({ stationX + 47, stationY + 36, 10, 3 }, 61, 56, 52);
-		}
-	}
-
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 	{
 		if (!npcVisible((int)i) || mNpcs[i].mapId != currentMapId()) continue;
@@ -1445,6 +1428,7 @@ void Application::renderOverworld()
 		int y = mapY + object.y * TILE;
 		if (object.kind == WorldObjectKind::Signpost)
 		{
+			if (mWorldTileRenderer->drawSignpost({ x, y, TILE, TILE })) continue;
 			fillRect({ x + 21, y + 17, 6, 29 }, 77, 48, 29, 255);
 			fillRect({ x + 6, y + 7, 36, 18 }, 166, 111, 50, 255);
 			fillRect({ x + 9, y + 10, 30, 3 }, 213, 159, 76, 255);
@@ -1454,6 +1438,7 @@ void Application::renderOverworld()
 		else
 		{
 			bool opened = mOpenedWorldObjects.count(object.id) != 0;
+			if (mWorldTileRenderer->drawChest({ x, y, TILE, TILE }, opened)) continue;
 			fillRect({ x + 7, y + 23, 34, 20 }, 111, 65, 31, 255);
 			outlineRect({ x + 7, y + 23, 34, 20 }, 50, 31, 22, 255, 2);
 			fillRect({ x + 10, y + 26, 28, 4 }, opened ? 38 : 151,
@@ -1480,6 +1465,7 @@ void Application::renderOverworld()
 		if (!visibleTiles.contains(shard.x, shard.y)) continue;
 		int x = mapX + shard.x * TILE;
 		int y = mapY + shard.y * TILE;
+		if (mWorldTileRenderer->drawShard({ x, y, TILE, TILE })) continue;
 		int shimmer = (int)((SDL_GetTicks() / 180 + i * 3) % 5);
 		fillRect({ x + 19, y + 10 - shimmer / 2, 12, 28 }, 42, 24, 65, 220);
 		fillRect({ x + 14, y + 15 - shimmer / 2, 22, 18 }, 139, 82, 204, 245);

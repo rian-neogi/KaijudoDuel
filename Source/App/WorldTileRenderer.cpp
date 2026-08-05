@@ -1,6 +1,7 @@
 #include "WorldTileRenderer.h"
 
 #include "AssetManager.h"
+#include "RtpTilesetRenderer.h"
 
 namespace
 {
@@ -49,6 +50,197 @@ namespace
 		AtlasTile decoration;
 		Autotile autotile;
 	};
+
+	bool catalogTerrain(WorldTileId tile, RtpTileReference& reference)
+	{
+		switch (tile)
+		{
+		case WorldTiles::House:
+		case WorldTiles::Bonfire:
+		case WorldTiles::FeastTable:
+		case WorldTiles::WatershedMarker:
+		case WorldTiles::RootmazeMarker:
+			reference = RtpTileReference(RtpTilesetFamily::Outside,
+				RtpTileSheet::A2, 0, RtpRenderLayer::Ground);
+			return true;
+		case WorldTiles::WoodWall:
+			reference = RtpTileReference(RtpTilesetFamily::Inside,
+				RtpTileSheet::A4, 16, RtpRenderLayer::Ground);
+			return true;
+		case WorldTiles::Door:
+		case WorldTiles::Counter:
+		case WorldTiles::WorkshopTools:
+			reference = RtpTileReference(RtpTilesetFamily::Inside,
+				RtpTileSheet::A2, 0, RtpRenderLayer::Ground);
+			return true;
+		case WorldTiles::MarbleRoof:
+			reference = RtpTileReference(RtpTilesetFamily::Outside,
+				RtpTileSheet::A3, 4, RtpRenderLayer::Ground, 238, 238, 230);
+			return true;
+		case WorldTiles::Rail:
+		case WorldTiles::RailCrossing:
+		case WorldTiles::MetalGrate:
+		case WorldTiles::Machinery:
+		case WorldTiles::Furnace:
+		case WorldTiles::CinderrailDoor:
+			reference = RtpTileReference(RtpTilesetFamily::Dungeon,
+				RtpTileSheet::A5, 51, RtpRenderLayer::Ground, 190, 170, 145);
+			return true;
+		case WorldTiles::IndustrialBrick:
+			reference = RtpTileReference(RtpTilesetFamily::Dungeon,
+				RtpTileSheet::A4, 43, RtpRenderLayer::Ground, 205, 150, 135);
+			return true;
+		case WorldTiles::TimberRoof:
+			reference = RtpTileReference(RtpTilesetFamily::Outside,
+				RtpTileSheet::A3, 16, RtpRenderLayer::Ground);
+			return true;
+		case WorldTiles::IndustrialRoof:
+			reference = RtpTileReference(RtpTilesetFamily::Outside,
+				RtpTileSheet::A3, 7, RtpRenderLayer::Ground, 190, 190, 195);
+			return true;
+		case WorldTiles::TimberBridge:
+			reference = RtpTileReference(RtpTilesetFamily::Outside,
+				RtpTileSheet::A5, 5, RtpRenderLayer::Ground);
+			return true;
+		case WorldTiles::RockyCliff:
+			reference = RtpTileReference(RtpTilesetFamily::Outside,
+				RtpTileSheet::A4, 40, RtpRenderLayer::Ground);
+			return true;
+		case WorldTiles::OldRoadWaystone:
+			reference = RtpTileReference(RtpTilesetFamily::Outside,
+				RtpTileSheet::A2, 3, RtpRenderLayer::Ground, 205, 195, 175);
+			return true;
+		case WorldTiles::CinderrailRubble:
+			reference = RtpTileReference(RtpTilesetFamily::Outside,
+				RtpTileSheet::A2, 8, RtpRenderLayer::Ground, 174, 151, 112);
+			return true;
+		case WorldTiles::GlasswaterRoof:
+			reference = RtpTileReference(RtpTilesetFamily::Outside,
+				RtpTileSheet::A3, 2, RtpRenderLayer::Ground, 145, 205, 235);
+			return true;
+		case WorldTiles::GlasswaterDock:
+			reference = RtpTileReference(RtpTilesetFamily::Outside,
+				RtpTileSheet::A5, 5, RtpRenderLayer::Ground, 175, 155, 135);
+			return true;
+		case WorldTiles::GlasswaterWall:
+			reference = RtpTileReference(RtpTilesetFamily::Outside,
+				RtpTileSheet::A4, 13, RtpRenderLayer::Ground, 175, 225, 235);
+			return true;
+		case WorldTiles::GlasswaterDoor:
+		case WorldTiles::GlasswaterMarker:
+			reference = RtpTileReference(RtpTilesetFamily::Outside,
+				RtpTileSheet::A2, 3, RtpRenderLayer::Ground, 165, 220, 230);
+			return true;
+		case WorldTiles::RootmazeRoot:
+			reference = RtpTileReference(RtpTilesetFamily::Outside,
+				RtpTileSheet::A4, 37, RtpRenderLayer::Ground, 175, 220, 145);
+			return true;
+		case WorldTiles::RootmazeBridge:
+			reference = RtpTileReference(RtpTilesetFamily::Outside,
+				RtpTileSheet::A5, 5, RtpRenderLayer::Ground, 190, 180, 135);
+			return true;
+		case WorldTiles::RootmazeRoof:
+			reference = RtpTileReference(RtpTilesetFamily::Outside,
+				RtpTileSheet::A3, 19, RtpRenderLayer::Ground, 185, 225, 145);
+			return true;
+		case WorldTiles::RootmazeWall:
+			reference = RtpTileReference(RtpTilesetFamily::Outside,
+				RtpTileSheet::A4, 25, RtpRenderLayer::Ground, 195, 185, 135);
+			return true;
+		case WorldTiles::RootmazeDoor:
+			reference = RtpTileReference(RtpTilesetFamily::Outside,
+				RtpTileSheet::A2, 0, RtpRenderLayer::Ground, 181, 226, 155);
+			return true;
+		case WorldTiles::BlackstoneWall:
+			reference = RtpTileReference(RtpTilesetFamily::Dungeon,
+				RtpTileSheet::A4, 25, RtpRenderLayer::Ground, 115, 115, 120);
+			return true;
+		case WorldTiles::BlackstoneGate:
+			reference = RtpTileReference(RtpTilesetFamily::Dungeon,
+				RtpTileSheet::A5, 51, RtpRenderLayer::Ground, 130, 125, 115);
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	bool catalogDecoration(WorldTileId tile, RtpTileReference& reference)
+	{
+		switch (tile)
+		{
+		case WorldTiles::House:
+			reference = RtpTileReference(RtpTilesetFamily::World,
+				RtpTileSheet::B, 63, RtpRenderLayer::Decoration);
+			return true;
+		case WorldTiles::Door:
+			reference = RtpTileReference(RtpTilesetFamily::Inside,
+				RtpTileSheet::B, 195, RtpRenderLayer::Decoration);
+			return true;
+		case WorldTiles::Counter:
+			reference = RtpTileReference(RtpTilesetFamily::Inside,
+				RtpTileSheet::B, 114, RtpRenderLayer::Decoration);
+			return true;
+		case WorldTiles::Bonfire:
+			reference = RtpTileReference(RtpTilesetFamily::Outside,
+				RtpTileSheet::B, 83, RtpRenderLayer::Decoration);
+			return true;
+		case WorldTiles::FeastTable:
+			reference = RtpTileReference(RtpTilesetFamily::Inside,
+				RtpTileSheet::B, 96, RtpRenderLayer::Decoration);
+			return true;
+		case WorldTiles::OldRoadWaystone:
+			reference = RtpTileReference(RtpTilesetFamily::Dungeon,
+				RtpTileSheet::B, 145, RtpRenderLayer::Decoration);
+			return true;
+		case WorldTiles::WorkshopTools:
+			reference = RtpTileReference(RtpTilesetFamily::Inside,
+				RtpTileSheet::C, 148, RtpRenderLayer::Decoration);
+			return true;
+		case WorldTiles::Rail:
+		case WorldTiles::RailCrossing:
+			reference = RtpTileReference(RtpTilesetFamily::Dungeon,
+				RtpTileSheet::C, tile == WorldTiles::Rail ? 104 : 112,
+				RtpRenderLayer::Decoration);
+			return true;
+		case WorldTiles::MetalGrate:
+			reference = RtpTileReference(RtpTilesetFamily::Dungeon,
+				RtpTileSheet::C, 113, RtpRenderLayer::Decoration, 190, 195, 195);
+			return true;
+		case WorldTiles::Machinery:
+			reference = RtpTileReference(RtpTilesetFamily::Inside,
+				RtpTileSheet::C, 151, RtpRenderLayer::Decoration);
+			return true;
+		case WorldTiles::Furnace:
+			reference = RtpTileReference(RtpTilesetFamily::Inside,
+				RtpTileSheet::B, 112, RtpRenderLayer::Decoration);
+			return true;
+		case WorldTiles::CinderrailRubble:
+			reference = RtpTileReference(RtpTilesetFamily::Dungeon,
+				RtpTileSheet::B, 104, RtpRenderLayer::Decoration);
+			return true;
+		case WorldTiles::CinderrailDoor:
+			reference = RtpTileReference(RtpTilesetFamily::Dungeon,
+				RtpTileSheet::B, 129, RtpRenderLayer::Decoration);
+			return true;
+		case WorldTiles::WatershedMarker:
+		case WorldTiles::GlasswaterMarker:
+		case WorldTiles::RootmazeMarker:
+			reference = RtpTileReference(RtpTilesetFamily::Outside,
+				RtpTileSheet::B, 73, RtpRenderLayer::Decoration);
+			return true;
+		case WorldTiles::GlasswaterDoor:
+		case WorldTiles::RootmazeDoor:
+			reference = RtpTileReference(RtpTilesetFamily::Outside,
+				RtpTileSheet::B, 67, RtpRenderLayer::Decoration);
+			return true;
+		case WorldTiles::BlackstoneGate:
+			reference = RtpTileReference(RtpTilesetFamily::Dungeon,
+				RtpTileSheet::C, 56, RtpRenderLayer::Decoration, 205, 175, 105);
+			return true;
+		default:
+			return false;
+		}
+	}
 
 	void setAtlas(AtlasTile& atlas, const char* path, int index, int columns,
 		Uint8 red = 255, Uint8 green = 255, Uint8 blue = 255)
@@ -249,16 +441,25 @@ namespace
 }
 
 WorldTileRenderer::WorldTileRenderer(SDL_Renderer* renderer, AssetManager* assets)
-	: mRenderer(renderer), mAssets(assets)
+	: mRenderer(renderer), mAssets(assets), mRtpTiles(new RtpTilesetRenderer(renderer, assets))
 {
+}
+
+WorldTileRenderer::~WorldTileRenderer()
+{
+	delete mRtpTiles;
 }
 
 bool WorldTileRenderer::drawTerrain(WorldTileId tile,
 	const std::vector<std::string>& map, int tileX, int tileY,
 	const SDL_Rect& destination)
 {
-	if (drawAutotile(tile, connectionsFor(tile, map, tileX, tileY), destination))
+	unsigned int connections = connectionsFor(tile, map, tileX, tileY);
+	if (drawAutotile(tile, connections, destination))
 		return true;
+	RtpTileReference catalogTile(RtpTilesetFamily::Outside, RtpTileSheet::A5, 0);
+	if (catalogTerrain(tile, catalogTile) && mRtpTiles != NULL &&
+		mRtpTiles->draw(catalogTile, connections, destination)) return true;
 	return drawTerrain(tile, destination);
 }
 
@@ -266,6 +467,10 @@ bool WorldTileRenderer::drawTerrain(WorldTileId tile, const SDL_Rect& destinatio
 {
 	if (drawAutotile(tile, North | East | South | West | NorthWest |
 		NorthEast | SouthEast | SouthWest, destination)) return true;
+	RtpTileReference catalogTile(RtpTilesetFamily::Outside, RtpTileSheet::A5, 0);
+	if (catalogTerrain(tile, catalogTile) && mRtpTiles != NULL &&
+		mRtpTiles->draw(catalogTile, North | East | South | West | NorthWest |
+			NorthEast | SouthEast | SouthWest, destination)) return true;
 	TileVisual visual;
 	if (!tileVisual(tile, visual) || visual.terrain.path == NULL) return false;
 	SDL_Texture* texture = NULL;
@@ -278,6 +483,10 @@ bool WorldTileRenderer::drawTerrain(WorldTileId tile, const SDL_Rect& destinatio
 bool WorldTileRenderer::drawDecoration(WorldTileId tile, const SDL_Rect& destination)
 {
 	if (isTallTree(tile)) return drawTreeLayer(mRenderer, mAssets, tile, destination, false);
+	RtpTileReference catalogTile(RtpTilesetFamily::Outside, RtpTileSheet::B, 0,
+		RtpRenderLayer::Decoration);
+	if (catalogDecoration(tile, catalogTile) && mRtpTiles != NULL)
+		return mRtpTiles->draw(catalogTile, 0, destination);
 	TileVisual visual;
 	if (!tileVisual(tile, visual) || visual.decoration.path == NULL) return false;
 	SDL_Texture* texture = NULL;
@@ -311,6 +520,29 @@ bool WorldTileRenderer::drawPreview(WorldTileId tile, const SDL_Rect& destinatio
 		tile == WorldTiles::Forest ? 215 : 255);
 }
 
+bool WorldTileRenderer::drawSignpost(const SDL_Rect& destination)
+{
+	if (mRtpTiles == NULL) return false;
+	return mRtpTiles->draw(RtpTileReference(RtpTilesetFamily::Outside,
+		RtpTileSheet::B, 73, RtpRenderLayer::Decoration), 0, destination);
+}
+
+bool WorldTileRenderer::drawChest(const SDL_Rect& destination, bool opened)
+{
+	if (mRtpTiles == NULL) return false;
+	return mRtpTiles->draw(RtpTileReference(RtpTilesetFamily::Inside,
+		RtpTileSheet::B, opened ? 56 : 48, RtpRenderLayer::Decoration),
+		0, destination);
+}
+
+bool WorldTileRenderer::drawShard(const SDL_Rect& destination)
+{
+	if (mRtpTiles == NULL) return false;
+	return mRtpTiles->draw(RtpTileReference(RtpTilesetFamily::Dungeon,
+		RtpTileSheet::B, 61, RtpRenderLayer::Decoration, 225, 190, 255),
+		0, destination);
+}
+
 bool WorldTileRenderer::canDrawDecoration(WorldTileId tile) const
 {
 	if (!hasDecoration(tile) || mAssets == NULL) return false;
@@ -322,6 +554,14 @@ bool WorldTileRenderer::canDrawDecoration(WorldTileId tile) const
 		return texture != NULL && SDL_QueryTexture(texture, NULL, NULL, &width, &height) == 0 &&
 			width >= (tile == WorldTiles::Tree ? 64 : 128) && height >= 512;
 	}
+	RtpTileReference catalogTile(RtpTilesetFamily::Outside, RtpTileSheet::B, 0,
+		RtpRenderLayer::Decoration);
+	if (catalogDecoration(tile, catalogTile))
+	{
+		const RtpSheetDescriptor* info = RtpTilesetRenderer::descriptor(
+			catalogTile.family, catalogTile.sheet);
+		return info != NULL && mAssets->texture(info->imagePath, true) != NULL;
+	}
 	TileVisual visual;
 	SDL_Texture* texture = NULL;
 	SDL_Rect source;
@@ -332,6 +572,9 @@ bool WorldTileRenderer::canDrawDecoration(WorldTileId tile) const
 bool WorldTileRenderer::hasDecoration(WorldTileId tile)
 {
 	if (isTallTree(tile)) return true;
+	RtpTileReference catalogTile(RtpTilesetFamily::Outside, RtpTileSheet::B, 0,
+		RtpRenderLayer::Decoration);
+	if (catalogDecoration(tile, catalogTile)) return true;
 	TileVisual visual;
 	return tileVisual(tile, visual) && visual.decoration.path != NULL;
 }
@@ -345,7 +588,12 @@ unsigned int WorldTileRenderer::connectionsFor(WorldTileId tile,
 	const std::vector<std::string>& map, int tileX, int tileY) const
 {
 	TileVisual center;
-	if (!tileVisual(tile, center) || center.autotile.path == NULL) return 0;
+	bool hasAutotile = tileVisual(tile, center) && center.autotile.path != NULL;
+	RtpTileReference catalogTile(RtpTilesetFamily::Outside, RtpTileSheet::A5, 0);
+	bool hasCatalogTile = catalogTerrain(tile, catalogTile) &&
+		(catalogTile.sheet == RtpTileSheet::A1 || catalogTile.sheet == RtpTileSheet::A2 ||
+			catalogTile.sheet == RtpTileSheet::A3 || catalogTile.sheet == RtpTileSheet::A4);
+	if (!hasAutotile && !hasCatalogTile) return 0;
 	auto connected = [&map, &center](int x, int y)
 	{
 		if (y < 0 || y >= (int)map.size() || x < 0 || x >= (int)map[y].size())
@@ -354,6 +602,24 @@ unsigned int WorldTileRenderer::connectionsFor(WorldTileId tile,
 		return tileVisual(WorldTiles::fromGlyph(map[y][x]), neighbor) &&
 			neighbor.autotile.path != NULL && neighbor.autotile.family == center.autotile.family;
 	};
+	if (!hasAutotile)
+	{
+		auto sameTile = [&map, tile](int x, int y)
+		{
+			return y >= 0 && y < (int)map.size() && x >= 0 && x < (int)map[y].size() &&
+				WorldTiles::fromGlyph(map[y][x]) == tile;
+		};
+		unsigned int result = 0;
+		if (sameTile(tileX, tileY - 1)) result |= North;
+		if (sameTile(tileX + 1, tileY)) result |= East;
+		if (sameTile(tileX, tileY + 1)) result |= South;
+		if (sameTile(tileX - 1, tileY)) result |= West;
+		if (sameTile(tileX - 1, tileY - 1)) result |= NorthWest;
+		if (sameTile(tileX + 1, tileY - 1)) result |= NorthEast;
+		if (sameTile(tileX + 1, tileY + 1)) result |= SouthEast;
+		if (sameTile(tileX - 1, tileY + 1)) result |= SouthWest;
+		return result;
+	}
 	unsigned int result = 0;
 	if (connected(tileX, tileY - 1)) result |= North;
 	if (connected(tileX + 1, tileY)) result |= East;
@@ -371,45 +637,16 @@ bool WorldTileRenderer::drawAutotile(WorldTileId tile, unsigned int connections,
 {
 	TileVisual visual;
 	if (!tileVisual(tile, visual) || visual.autotile.path == NULL ||
-		mRenderer == NULL || mAssets == NULL) return false;
-	SDL_Texture* texture = mAssets->texture(visual.autotile.path, true);
-	int width = 0;
-	int height = 0;
-	if (texture == NULL || SDL_QueryTexture(texture, NULL, NULL, &width, &height) != 0)
-		return false;
-	const int blockX = visual.autotile.animatedWater ?
-		(int)((SDL_GetTicks() / 420) % 3) * 64 : (visual.autotile.group % 8) * 64;
-	const int blockY = visual.autotile.animatedWater ? 0 :
-		(visual.autotile.group / 8) * 96;
-	if (blockX + 64 > width || blockY + 96 > height) return false;
-	const int leftWidth = destination.w / 2;
-	const int topHeight = destination.h / 2;
-	SDL_Rect targets[4] = {
-		{ destination.x, destination.y, leftWidth, topHeight },
-		{ destination.x + leftWidth, destination.y,
-			destination.w - leftWidth, topHeight },
-		{ destination.x, destination.y + topHeight,
-			leftWidth, destination.h - topHeight },
-		{ destination.x + leftWidth, destination.y + topHeight,
-			destination.w - leftWidth, destination.h - topHeight }
-	};
-	SDL_SetTextureColorMod(texture, visual.autotile.red,
-		visual.autotile.green, visual.autotile.blue);
-	bool rendered = true;
-	for (int quadrant = 0; quadrant < 4; ++quadrant)
-	{
-		SDL_Point quarter;
-		if (!autotileQuarterSource(quadrant, connections, quarter))
-		{
-			rendered = false;
-			break;
-		}
-		SDL_Rect source = { blockX + quarter.x * 16, blockY + quarter.y * 16, 16, 16 };
-		if (SDL_RenderCopy(mRenderer, texture, &source, &targets[quadrant]) != 0)
-			rendered = false;
-	}
-	SDL_SetTextureColorMod(texture, 255, 255, 255);
-	return rendered;
+		mRtpTiles == NULL) return false;
+	RtpTilesetFamily family = visual.autotile.path == INSIDE_AUTOTILES ?
+		RtpTilesetFamily::Inside : RtpTilesetFamily::Outside;
+	RtpTileSheet sheet = visual.autotile.animatedWater ?
+		RtpTileSheet::A1 : RtpTileSheet::A2;
+	RtpTileReference reference(family, sheet, visual.autotile.group,
+		RtpRenderLayer::Ground, visual.autotile.red, visual.autotile.green,
+		visual.autotile.blue);
+	return mRtpTiles->draw(reference, connections, destination,
+		visual.autotile.animatedWater ? SDL_GetTicks() / 420 : 0);
 }
 
 bool WorldTileRenderer::atlasSourceRect(int tileIndex, int columns, int tileSize,
@@ -428,42 +665,5 @@ bool WorldTileRenderer::atlasSourceRect(int tileIndex, int columns, int tileSize
 bool WorldTileRenderer::autotileQuarterSource(int quadrant, unsigned int connections,
 	SDL_Point& sourceQuarter)
 {
-	bool north = (connections & North) != 0;
-	bool east = (connections & East) != 0;
-	bool south = (connections & South) != 0;
-	bool west = (connections & West) != 0;
-	if (quadrant == 0)
-	{
-		if (north && west)
-			sourceQuarter = (connections & NorthWest) != 0 ? SDL_Point{ 2, 4 } : SDL_Point{ 0, 0 };
-		else if (north) sourceQuarter = { 0, 4 };
-		else if (west) sourceQuarter = { 2, 2 };
-		else sourceQuarter = { 0, 2 };
-	}
-	else if (quadrant == 1)
-	{
-		if (north && east)
-			sourceQuarter = (connections & NorthEast) != 0 ? SDL_Point{ 1, 4 } : SDL_Point{ 1, 0 };
-		else if (north) sourceQuarter = { 3, 4 };
-		else if (east) sourceQuarter = { 1, 2 };
-		else sourceQuarter = { 3, 2 };
-	}
-	else if (quadrant == 2)
-	{
-		if (south && west)
-			sourceQuarter = (connections & SouthWest) != 0 ? SDL_Point{ 2, 3 } : SDL_Point{ 0, 1 };
-		else if (south) sourceQuarter = { 0, 3 };
-		else if (west) sourceQuarter = { 2, 5 };
-		else sourceQuarter = { 0, 5 };
-	}
-	else if (quadrant == 3)
-	{
-		if (south && east)
-			sourceQuarter = (connections & SouthEast) != 0 ? SDL_Point{ 1, 3 } : SDL_Point{ 1, 1 };
-		else if (south) sourceQuarter = { 3, 3 };
-		else if (east) sourceQuarter = { 1, 5 };
-		else sourceQuarter = { 3, 5 };
-	}
-	else return false;
-	return true;
+	return RtpTilesetRenderer::floorQuarterSource(quadrant, connections, sourceQuarter);
 }
