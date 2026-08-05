@@ -85,7 +85,7 @@ The shop may offer a limited card-exchange service for excess commons. Mercer re
 
 The city's largest inn faces the square with a painted gull holding a violet lantern above its door. It serves sailors, Circuit challengers, investigators, and merchants waiting for cargo inspections.
 
-The ground floor includes a public dining hall, rumor board, and small stage. Upper floors contain ordinary rooms and a quieter wing reserved for registered challengers. During the main story, Marin and Tidal use a meeting room here when they are not at the prediction engine.
+The ground floor includes a public dining hall, rumor board, and small stage. Upper floors contain ordinary rooms and a quieter wing reserved for registered challengers. During the main story, Marin and Garran use a meeting room here when they are not at the prediction engine.
 
 The inn provides:
 
@@ -140,9 +140,9 @@ The building includes:
 - Rescue equipment and spare flotation gear
 - A holding room for dangerous cargo rather than ordinary prisoners
 - An honor wall listing past rescue crews
-- A quiet office Tidal once used during his service
+- A quiet office Garran once used during his service
 
-Tidal's return should prompt different dialogue from veteran guards who remember him. The headquarters helps explain his authority during the prediction-engine dispute without moving his permanent home away from Emberglen.
+Garran's return should prompt different dialogue from veteran guards who remember him. The headquarters helps explain his authority during the prediction-engine dispute without moving his permanent home away from Emberglen.
 
 ### Glasswater Shipyard
 
@@ -256,7 +256,7 @@ After resolution, the processing room is dismantled or rebuilt under explicit co
 
 A smaller violet building behind Prediction Hall stores permission forms, deletion requests, and the original scope of donated match records. It becomes critical evidence that the engine exceeded what participants authorized.
 
-The archive should reward careful exploration rather than a single glowing clue. The player compares timestamps, missing signatures, and transfer seals across several shelves with help from Marin or Tidal.
+The archive should reward careful exploration rather than a single glowing clue. The player compares timestamps, missing signatures, and transfer seals across several shelves with help from Marin or Garran.
 
 ### Iri's Ledger Brokerage
 
@@ -315,7 +315,7 @@ The player may tackle them in any order and return to the city between matches.
 
 The lodge houses sanctioned competitors separately from the central inn. It includes small rooms, deck-building tables, lockers, showers, and a quiet courtyard.
 
-Marin may stay here while researching the engine, while Tidal refuses the formal room and uses the Gull and Lantern with ordinary travelers. Their choices reinforce their personalities without changing services.
+Marin may stay here while researching the engine, while Garran refuses the formal room and uses the Gull and Lantern with ordinary travelers. Their choices reinforce their personalities without changing services.
 
 ### Practice Docks
 
@@ -421,7 +421,7 @@ The optional Lilyreed connection leaves from the ferry quay. Once introduced, fe
 - **Iri:** Ledger Brokerage courtyard
 - **Sol:** Chart House, city map, or a canal overlook during investigations
 - **Marin:** Prediction Hall, Consent Archive, or Challenger Lodge
-- **Tidal:** Tideguard House, Gull and Lantern meeting room, or Deepwell approach
+- **Garran:** Tideguard House, Gull and Lantern meeting room, or Deepwell approach
 - **Harbor Master:** Office balcony and Long Quay
 - **Card merchant:** Current and Quill Exchange
 - **Innkeeper:** Gull and Lantern front desk or dining hall

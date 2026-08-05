@@ -12,7 +12,7 @@ Mercer's House: A wooden hut. Inside Mercer has his experimental tools and his s
 
 Rook and Mira's Home: On the west of town. Mira is inside, whereas Rook is on his maintenance duty on the Old Road (east of town).
 
-Duelling Grounds: On the west of town are the duelling grounds. Flint, Briar, Marin, and Tidal are here. They are honing their skills and are ready for a duel. 
+Duelling Grounds: On the west of town are the duelling grounds. Flint, Briar, Marin, and Garran are here. They are honing their skills and are ready for a duel.
 
 Secluded Hut: Towards the south, somewhat far from the main town, is Nyx's secluded hut. Outside the hut, Nyx is investigating a nearby shard.
 
@@ -25,6 +25,4 @@ North: Path to another town, where the first crest battle takes place
 South: A spooky forest path
 
 West: TODO
-
-
 

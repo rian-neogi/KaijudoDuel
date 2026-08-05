@@ -1604,7 +1604,7 @@ Cards["Sword Butterfly"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-        Abils.PowerAttack(id,3000)
+        Abils.PowerAttacker(id,3000)
 	end
 }
 

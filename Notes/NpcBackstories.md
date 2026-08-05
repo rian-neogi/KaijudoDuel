@@ -94,19 +94,19 @@ Nyx is going to be competing for the Grand Championships alongside the player.
 
 The Curator's offer at Gloam Quarry is personally tempting: Nyx could erase the echoes of every defeat they failed to prevent. Rejecting that offer becomes their defining choice.
 
-## Tidal — The Retired Tideguard
+## Garran — The Retired Tideguard
 
 **Civilization:** Water  
 **Signature card:** King Depthcon  
 **Gameplay identity:** Card advantage, deep defenses, and patient finishers
 
-Tidal once served in the Tideguard, escorting card shipments through river routes where smugglers and rogue creatures were common. An injury ended that career, and Mercer persuaded him to settle in Emberglen as a caravan guard.
+Garran once served in the Tideguard, escorting card shipments through river routes where smugglers and rogue creatures were common. An injury ended that career, and Mercer persuaded him to settle in Emberglen as a caravan guard.
 
-He teaches patience because he has seen hurried decisions turn small dangers into disasters. Where Marin wants to calculate every future current, Tidal watches, waits, and keeps enough resources to survive being wrong.
+He teaches patience because he has seen hurried decisions turn small dangers into disasters. Where Marin wants to calculate every future current, Garran watches, waits, and keeps enough resources to survive being wrong.
 
-Tidal's quietness can be mistaken for detachment. In truth, he notices nearly everyone in town and positions himself near the southern road during the crisis so no frightened resident has to leave alone. His rematches become increasingly demanding tests of endurance, and King Depthcon is his acknowledgment that the player can carry responsibility without rushing it.
+Garran's quietness can be mistaken for detachment. In truth, he notices nearly everyone in town and positions himself near the southern road during the crisis so no frightened resident has to leave alone. His rematches become increasingly demanding tests of endurance, and King Depthcon is his acknowledgment that the player can carry responsibility without rushing it.
 
-At Glasswater Port, Tidal clashes with Marin over whether the stolen prediction system should be destroyed or studied. Their eventual cooperation combines her curiosity with his caution.
+At Glasswater Port, Garran clashes with Marin over whether the stolen prediction system should be destroyed or studied. Their eventual cooperation combines her curiosity with his caution.
 
 ## Briar — Warden of the Living Paths
 

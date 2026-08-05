@@ -10,7 +10,8 @@
 -- non-empty decks and rewards arrays. If max_battles is larger than either
 -- array, that array's final entry is reused for the remaining battles.
 -- Route duelists also require sight = { range = 1..12 }. This is a taxicab
--- radius and is not limited by the trainer's facing direction.
+-- radius and is not limited by the trainer's facing direction. They wander
+-- automatically within the 3x3 area centered on their World.lua position.
 --
 -- Supported kinds: town_npc, route_duelist, boss
 -- Supported appearances: mira, marin, rook, aurelia, flint, nyx, tidal,
@@ -85,7 +86,7 @@ return {
         options = { duel = true },
         appearance = "marin",
         max_battles = 4,
-        decks = { "AquaSniper.txt", "KingDepthcon.txt" },
+        decks = { "NPC/Marin.txt", "NPC/Marin 2.txt", "NPC/Marin 3.txt", "NPC/Marin 4.txt" },
         rewards = {
             { card = "Aqua Sniper", gold = 100 },
         },
@@ -105,11 +106,11 @@ return {
     {
         id = "rook",
         name = "Rook",
-        kind = "route_duelist",
-        sight = { range = 8 },
+        kind = "town_npc",
+        options = { duel = true },
         appearance = "rook",
-        max_battles = 4,
-        decks = { "RoaringGreathorn.txt", "DeathbladeBeetle.txt" },
+        max_battles = 1,
+        decks = { "RoaringGreathorn.txt"},
         rewards = {
             { card = "Roaring Great-Horn", gold = 100 },
         },
@@ -134,7 +135,7 @@ return {
         appearance = "aurelia",
         crest = "dawn",
         max_battles = 4,
-        decks = { "Hanusa.txt", "Urth.txt" },
+        decks = { "NPC/Aurelia.txt", "NPC/Aurelia 2.txt", "NPC/Aurelia 3.txt", "NPC/Aurelia 4.txt" },
         rewards = {
             { card = "Hanusa, Radiance Elemental", gold = 100 },
         },
@@ -159,9 +160,12 @@ return {
         options = { duel = true },
         appearance = "flint",
         max_battles = 4,
-        decks = { "AstrocometDragon.txt", "ScarletSkyterror.txt" },
+        decks = { "NPC/Flint.txt", "NPC/Flint 2.txt", "NPC/Flint 3.txt", "NPC/Flint 4.txt" },
         rewards = {
-            { card = "Astrocomet Dragon", gold = 100 },
+            { card = "Rothus, the Traveler", gold = 100 },
+			{ card = "Rothus, the Traveler", gold = 100 },
+			{ card = "Rothus, the Traveler", gold = 100 },
+			{ card = "Uberdragon Bajula", gold = 100 },
         },
         ai = { personality = "aggressive" },
         dialogue = {
@@ -184,9 +188,12 @@ return {
         options = { duel = true },
         appearance = "nyx",
         max_battles = 4,
-        decks = { "Deathliger.txt", "Zagaan.txt" },
+        decks = { "NPC/Nyx.txt", "NPC/Nyx 2.txt", "NPC/Nyx 3.txt", "NPC/Nyx 4.txt" },
         rewards = {
-            { card = "Deathliger, Lion of Chaos", gold = 100 },
+            { card = "Horrid Worm", gold = 100 },
+			{ card = "Trox, General of Destruction", gold = 100 },
+			{ card = "Ballom, Master of Death", gold = 100 },
+			{ card = "Phantomach, the Gigatrooper", gold = 100 },
         },
         ai = { personality = "sacrifice" },
         dialogue = {
@@ -203,12 +210,12 @@ return {
     },
     {
         id = "tidal",
-        name = "Tidal",
+        name = "Garran",
         kind = "town_npc",
         options = { duel = true },
         appearance = "tidal",
-        max_battles = 4,
-        decks = { "KingDepthcon.txt", "AquaSniper.txt" },
+        max_battles = 1,
+        decks = { "KingDepthcon.txt" },
         rewards = {
             { card = "King Depthcon", gold = 100 },
         },
@@ -231,8 +238,8 @@ return {
         kind = "town_npc",
         options = { duel = true },
         appearance = "briar",
-        max_battles = 4,
-        decks = { "DeathbladeBeetle.txt", "RoaringGreathorn.txt" },
+        max_battles = 1,
+        decks = { "DeathbladeBeetle.txt" },
         rewards = {
             { card = "Deathblade Beetle", gold = 100 },
         },
@@ -282,7 +289,7 @@ return {
         }
     },
 
-
+	--Cinderrail
 	{
         id = "pip",
         name = "Pip",
@@ -347,7 +354,7 @@ return {
         options = { duel = true },
         appearance = "generic-female-3",
         max_battles = 1,
-        decks = { "Urth.txt", "Deathliger.txt" },
+        decks = { "Urth.txt" },
         rewards = {
             { card = "Zagaan, Knight of Darkness", gold = 100 },
         },
@@ -366,7 +373,7 @@ return {
         options = { duel = true },
         appearance = "generic-male-5",
         max_battles = 1,
-        decks = { "Hanusa.txt", "Deathliger.txt" },
+        decks = { "Hanusa.txt" },
         rewards = {
             { card = "Zagaan, Knight of Darkness", gold = 100 },
         },
@@ -403,8 +410,8 @@ return {
         kind = "town_npc",
         options = { duel = true },
         appearance = "generic-male-6",
-        max_battles = 2,
-        decks = { "Fire Generic 2.txt", "Deathliger.txt" },
+        max_battles = 1,
+        decks = { "Fire Generic 2.txt" },
         rewards = {
             { card = "Zagaan, Knight of Darkness", gold = 100 },
         },
@@ -422,8 +429,8 @@ return {
         kind = "town_npc",
         options = { duel = true },
         appearance = "generic-female-7",
-        max_battles = 2,
-        decks = { "Zagaan.txt", "Deathliger.txt" },
+        max_battles = 1,
+        decks = { "Zagaan.txt" },
         rewards = {
             { card = "Zagaan, Knight of Darkness", gold = 100 },
         },
@@ -441,8 +448,8 @@ return {
         kind = "town_npc",
         options = { duel = true },
         appearance = "generic-male-7",
-        max_battles = 2,
-        decks = { "RoaringGreathorn.txt", "Deathliger.txt" },
+        max_battles = 1,
+        decks = { "RoaringGreathorn.txt" },
         rewards = {
             { card = "Zagaan, Knight of Darkness", gold = 100 },
         },
@@ -463,7 +470,7 @@ return {
 		options = { duel = true },
 		appearance = "neris",
 		crest = "tidal",
-		max_battles = 4,
+		max_battles = 3,
 		decks = { "NPC/Neris Quill.txt", "NPC/Neris Quill 2.txt", "NPC/Neris Quill 3.txt" },
 		rewards = {
 			{ card = "Crystal Paladin", gold = 150 },
@@ -505,7 +512,7 @@ return {
 		options = { duel = true },
 		appearance = "generic-female-4",
 		max_battles = 1,
-		decks = { "More2/WD Dark Tide v3.txt", "NPC/Neris Quill 2.txt" },
+		decks = { "More2/WD Dark Tide v3.txt" },
 		rewards = {
 			{ card = "Corile", gold = 90 },
 		},
@@ -566,7 +573,7 @@ return {
 		options = { duel = true },
 		appearance = "generic-female-2",
 		max_battles = 1,
-		decks = { "AnristVhal.txt", "StormWrangler.txt" },
+		decks = { "Barkwhip.txt" },
 		rewards = {
 			{ card = "Barkwhip, the Smasher", gold = 95 },
 		},
@@ -603,7 +610,7 @@ return {
 		kind = "town_npc",
 		options = { duel = true },
 		appearance = "generic-male-5",
-		max_battles = 4,
+		max_battles = 1,
 		decks = { "StormWrangler.txt" },
 		rewards = {
 			{ card = "Dimension Gate", gold = 100 },
@@ -622,12 +629,12 @@ return {
 		id = "crossroad-duelist-1",
 		name = "Ford",
 		kind = "route_duelist",
-		sight = { range = 8 },
+		sight = { range = 4 },
 		appearance = "generic-male-7",
 		max_battles = 1,
 		decks = { "Nature Generic 1.txt" },
 		rewards = {
-			{ card = "Aqua Sniper", gold = 200 },
+			{ card = "Bronze-Arm Tribe", gold = 200 },
 		},
 		ai = { personality = "tempo" },
 		dialogue = {
@@ -641,12 +648,12 @@ return {
 		id = "crossroad-duelist-2",
 		name = "Tony",
 		kind = "route_duelist",
-		sight = { range = 8 },
+		sight = { range = 4 },
 		appearance = "generic-male-8",
 		max_battles = 1,
 		decks = { "Water Generic 1.txt" },
 		rewards = {
-			{ card = "Storm Shell", gold = 200 },
+			{ card = "Teleportation", gold = 200 },
 		},
 		ai = { personality = "ramp" },
 		dialogue = {
@@ -660,7 +667,7 @@ return {
 		id = "crossroad-duelist-3",
 		name = "Cairn",
 		kind = "route_duelist",
-		sight = { range = 8 },
+		sight = { range = 4 },
 		appearance = "generic-male-1",
 		max_battles = 1,
 		decks = { "AstrocometDragon.txt" },
@@ -676,10 +683,143 @@ return {
 		}
 	},
 	{
+		id = "crossroad-duelist-4",
+		name = "Shobu",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "generic-male-2",
+		max_battles = 1,
+		decks = { "Official/2 - F Shobu Fire.txt" },
+		rewards = {
+			{ card = "Rothus, the Traveler", gold = 115 },
+		},
+		ai = { personality = "aggressive" },
+		dialogue = {
+			greeting = "The freight crews abandoned this cut. Good. Now there is room for a proper duel.",
+			defeat = "You crossed the exposed ridge without flinching. That is worth remembering.",
+			victory = "Out here, hesitation gets buried under the next rockfall.",
+			complete = "The ridge has tested you four times. I will not pretend a fifth would reveal anything new."
+		}
+	},
+	{
+		id = "crossroad-duelist-5",
+		name = "Anixa",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "generic-female-1",
+		max_battles = 1,
+		decks = { "Dark Generic 2.txt" },
+		rewards = {
+			{ card = "Amber Piercer", gold = 115 },
+		},
+		ai = { personality = "aggressive" },
+		dialogue = {
+			greeting = "The freight crews abandoned this cut. Good. Now there is room for a proper duel.",
+			defeat = "You crossed the exposed ridge without flinching. That is worth remembering.",
+			victory = "Out here, hesitation gets buried under the next rockfall.",
+			complete = "The ridge has tested you four times. I will not pretend a fifth would reveal anything new."
+		}
+	},
+	{
+		id = "crossroad-duelist-6",
+		name = "Caroline",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "generic-female-2",
+		max_battles = 1,
+		decks = { "Light Generic 1.txt" },
+		rewards = {
+			{ card = "Dia Nork, Moonlight Guardian", gold = 115 },
+		},
+		ai = { personality = "aggressive" },
+		dialogue = {
+			greeting = "The freight crews abandoned this cut. Good. Now there is room for a proper duel.",
+			defeat = "You crossed the exposed ridge without flinching. That is worth remembering.",
+			victory = "Out here, hesitation gets buried under the next rockfall.",
+			complete = "The ridge has tested you four times. I will not pretend a fifth would reveal anything new."
+		}
+	},
+	{
+		id = "crossroad-duelist-7",
+		name = "Musaffir",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "generic-male-6",
+		max_battles = 1,
+		decks = { "Nature Generic 1.txt" },
+		rewards = {
+			{ card = "Fear Fang", gold = 115 },
+		},
+		ai = { personality = "aggressive" },
+		dialogue = {
+			greeting = "The freight crews abandoned this cut. Good. Now there is room for a proper duel.",
+			defeat = "You crossed the exposed ridge without flinching. That is worth remembering.",
+			victory = "Out here, hesitation gets buried under the next rockfall.",
+			complete = "The ridge has tested you four times. I will not pretend a fifth would reveal anything new."
+		}
+	},
+	{
+		id = "crossroad-duelist-8",
+		name = "Onix",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "generic-male-5",
+		max_battles = 1,
+		decks = { "Nature Generic 2.txt" },
+		rewards = {
+			{ card = "Rumbling Terahorn", gold = 115 },
+		},
+		ai = { personality = "aggressive" },
+		dialogue = {
+			greeting = "The freight crews abandoned this cut. Good. Now there is room for a proper duel.",
+			defeat = "You crossed the exposed ridge without flinching. That is worth remembering.",
+			victory = "Out here, hesitation gets buried under the next rockfall.",
+			complete = "The ridge has tested you four times. I will not pretend a fifth would reveal anything new."
+		}
+	},
+	{
+		id = "crossroad-duelist-9",
+		name = "Kokujo",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "generic-male-3",
+		max_battles = 1,
+		decks = { "Official/2 - D Kokujo Darkness.txt" },
+		rewards = {
+			{ card = "Death Smoke", gold = 115 },
+		},
+		ai = { personality = "aggressive" },
+		dialogue = {
+			greeting = "The freight crews abandoned this cut. Good. Now there is room for a proper duel.",
+			defeat = "You crossed the exposed ridge without flinching. That is worth remembering.",
+			victory = "Out here, hesitation gets buried under the next rockfall.",
+			complete = "The ridge has tested you four times. I will not pretend a fifth would reveal anything new."
+		}
+	},
+	{
+		id = "crossroad-duelist-10",
+		name = "Asim",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "generic-male-4",
+		max_battles = 1,
+		decks = { "Fire Generic 2.txt" },
+		rewards = {
+			{ card = "Armored Cannon Balbaro", gold = 115 },
+		},
+		ai = { personality = "aggressive" },
+		dialogue = {
+			greeting = "The freight crews abandoned this cut. Good. Now there is room for a proper duel.",
+			defeat = "You crossed the exposed ridge without flinching. That is worth remembering.",
+			victory = "Out here, hesitation gets buried under the next rockfall.",
+			complete = "The ridge has tested you four times. I will not pretend a fifth would reveal anything new."
+		}
+	},
+	{
 		id = "old-road-duelist-1",
 		name = "Mara Flintway",
 		kind = "route_duelist",
-		sight = { range = 8 },
+		sight = { range = 4 },
 		appearance = "generic-female-4",
 		max_battles = 1,
 		decks = { "RoaringGreathorn.txt" },
@@ -717,12 +857,12 @@ return {
 		id = "old-road-duelist-3",
 		name = "Amber",
 		kind = "route_duelist",
-		sight = { range = 8 },
+		sight = { range = 4 },
 		appearance = "generic-female-2",
 		max_battles = 1,
 		decks = { "TrenchdiveShark.txt" },
 		rewards = {
-			{ card = "Roaring Great-Horn", gold = 115 },
+			{ card = "Cetibols", gold = 115 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
@@ -736,12 +876,12 @@ return {
 		id = "old-road-duelist-4",
 		name = "Pol",
 		kind = "route_duelist",
-		sight = { range = 8 },
+		sight = { range = 4 },
 		appearance = "generic-male-9",
-		max_battles = 4,
+		max_battles = 1,
 		decks = { "Fire Generic 1.txt" },
 		rewards = {
-			{ card = "Roaring Great-Horn", gold = 115 },
+			{ card = "Tornado Flame", gold = 115 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
@@ -755,12 +895,12 @@ return {
 		id = "old-road-duelist-5",
 		name = "Ponna",
 		kind = "route_duelist",
-		sight = { range = 8 },
+		sight = { range = 4 },
 		appearance = "generic-female-4",
-		max_battles = 4,
+		max_battles = 1,
 		decks = { "Fire Generic 2.txt" },
 		rewards = {
-			{ card = "Roaring Great-Horn", gold = 115 },
+			{ card = "Volcanic Arrows", gold = 115 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
@@ -774,12 +914,12 @@ return {
 		id = "old-road-duelist-6",
 		name = "Clara",
 		kind = "route_duelist",
-		sight = { range = 8 },
+		sight = { range = 4 },
 		appearance = "generic-female-3",
-		max_battles = 4,
+		max_battles = 1,
 		decks = { "AquaSniper.txt" },
 		rewards = {
-			{ card = "Roaring Great-Horn", gold = 115 },
+			{ card = "Aqua Sniper", gold = 115 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
@@ -793,12 +933,12 @@ return {
 		id = "old-road-duelist-7",
 		name = "Olmec",
 		kind = "route_duelist",
-		sight = { range = 8 },
+		sight = { range = 4 },
 		appearance = "generic-male-2",
 		max_battles = 1,
 		decks = { "Zagaan.txt" },
 		rewards = {
-			{ card = "Roaring Great-Horn", gold = 115 },
+			{ card = "Vampire Silphy", gold = 115 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
@@ -812,12 +952,12 @@ return {
 		id = "old-road-duelist-8",
 		name = "Totiana",
 		kind = "route_duelist",
-		sight = { range = 8 },
+		sight = { range = 4 },
 		appearance = "generic-female-7",
 		max_battles = 1,
 		decks = { "Dark Generic 2.txt" },
 		rewards = {
-			{ card = "Roaring Great-Horn", gold = 115 },
+			{ card = "Gigazoul", gold = 115 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
@@ -831,12 +971,12 @@ return {
 		id = "old-road-duelist-9",
 		name = "Flora",
 		kind = "route_duelist",
-		sight = { range = 8 },
+		sight = { range = 4 },
 		appearance = "generic-female-8",
-		max_battles = 4,
+		max_battles = 1,
 		decks = { "Nature Generic 2.txt" },
 		rewards = {
-			{ card = "Roaring Great-Horn", gold = 115 },
+			{ card = "Enchanted Soil", gold = 115 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
@@ -850,12 +990,12 @@ return {
 		id = "old-road-duelist-10",
 		name = "Berry",
 		kind = "route_duelist",
-		sight = { range = 8 },
+		sight = { range = 4 },
 		appearance = "generic-female-1",
-		max_battles = 4,
+		max_battles = 1,
 		decks = { "WorldTree.txt" },
 		rewards = {
-			{ card = "Roaring Great-Horn", gold = 115 },
+			{ card = "Senia, Orchard Avenger", gold = 115 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {

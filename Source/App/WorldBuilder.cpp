@@ -22,12 +22,14 @@ namespace
 	const SDL_Rect BUILDER_NEXT_MAP = { 1218, 61, 32, 34 };
 	const SDL_Rect BUILDER_TILES_TAB = { 1022, 105, 70, 35 };
 	const SDL_Rect BUILDER_NPCS_TAB = { 1096, 105, 70, 35 };
-	const SDL_Rect BUILDER_SHARDS_TAB = { 1170, 105, 80, 35 };
+	const SDL_Rect BUILDER_OBJECTS_TAB = { 1170, 105, 80, 35 };
 	const SDL_Rect BUILDER_SAVE = { 1022, 724, 228, 44 };
 	const int BUILDER_LIST_Y = 151;
 	const int BUILDER_LIST_ROW = 39;
 	const int BUILDER_LIST_ROWS = 13;
-	const int BUILDER_TILE_ROWS = 14;
+	const int BUILDER_CATEGORY_Y = 151;
+	const int BUILDER_TILE_Y = 223;
+	const int BUILDER_TILE_ROWS = 10;
 	const int BUILDER_VISIBLE_TILES = BUILDER_TILE_ROWS * 2;
 	const Uint32 BUILDER_PAN_INTERVAL = 80;
 	const int BUILDER_ZOOM_LEVELS[] = { 24, 32, 48, 64, 96 };
@@ -55,12 +57,141 @@ namespace
 		WorldTiles::RootmazeRoof, WorldTiles::RootmazeWall,
 		WorldTiles::RootmazeDoor, WorldTiles::RootmazeArena,
 		WorldTiles::RootmazeMarker, WorldTiles::Rocks, WorldTiles::Bush,
-		WorldTiles::Shrub, WorldTiles::CaveEntrance, WorldTiles::TreeStump };
+		WorldTiles::Shrub, WorldTiles::CaveEntrance, WorldTiles::TreeStump,
+		WorldTiles::BlackstoneGround, WorldTiles::BlackstonePath,
+		WorldTiles::BlackstoneWall, WorldTiles::BlackstoneGate };
 	const int TILE_TYPE_COUNT = sizeof(TILE_TYPES) / sizeof(TILE_TYPES[0]);
+	const int TILE_CATEGORY_COUNT = 4;
+	const char* TILE_CATEGORY_NAMES[TILE_CATEGORY_COUNT] = {
+		"GROUND", "BUILDINGS", "NATURE", "SPECIAL"
+	};
+
+	enum TileCategory
+	{
+		GroundTiles,
+		BuildingTiles,
+		NatureTiles,
+		SpecialTiles
+	};
+
+	SDL_Rect tileCategoryRect(int index)
+	{
+		return { 1022 + (index % 2) * 116, BUILDER_CATEGORY_Y + (index / 2) * 34,
+			108, 29 };
+	}
 
 	SDL_Rect paletteRect(int index)
 	{
-		return { 1022 + (index % 2) * 116, 151 + (index / 2) * 39, 108, 33 };
+		return { 1022 + (index % 2) * 116, BUILDER_TILE_Y + (index / 2) * 39, 108, 33 };
+	}
+
+	int tileCategory(WorldTileId type)
+	{
+		if (type == WorldTiles::Grass || type == WorldTiles::Path ||
+			type == WorldTiles::Water || type == WorldTiles::DuelSand ||
+			type == WorldTiles::Marble || type == WorldTiles::RailCrossing ||
+			type == WorldTiles::MetalGrate || type == WorldTiles::TimberBridge ||
+			type == WorldTiles::OldRoadPath || type == WorldTiles::CinderrailGround ||
+			type == WorldTiles::CinderrailPath || type == WorldTiles::CinderrailDuelSand ||
+			type == WorldTiles::WatershedGround || type == WorldTiles::WatershedPath ||
+			type == WorldTiles::GlasswaterGround || type == WorldTiles::GlasswaterPaving ||
+			type == WorldTiles::GlasswaterDock || type == WorldTiles::GlasswaterArena ||
+			type == WorldTiles::RootmazeGround || type == WorldTiles::RootmazePath ||
+			type == WorldTiles::RootmazeBridge || type == WorldTiles::RootmazeArena ||
+			type == WorldTiles::BlackstoneGround || type == WorldTiles::BlackstonePath)
+			return GroundTiles;
+		if (type == WorldTiles::House || type == WorldTiles::WoodWall ||
+			type == WorldTiles::Door || type == WorldTiles::WoodFloor ||
+			type == WorldTiles::Counter || type == WorldTiles::MarbleRoof ||
+			type == WorldTiles::IndustrialBrick || type == WorldTiles::TimberRoof ||
+			type == WorldTiles::IndustrialRoof || type == WorldTiles::CinderrailDoor ||
+			type == WorldTiles::GlasswaterRoof || type == WorldTiles::GlasswaterWall ||
+			type == WorldTiles::GlasswaterDoor || type == WorldTiles::RootmazeRoof ||
+			type == WorldTiles::RootmazeWall || type == WorldTiles::RootmazeDoor ||
+			type == WorldTiles::BlackstoneWall)
+			return BuildingTiles;
+		if (type == WorldTiles::Tree || type == WorldTiles::Forest ||
+			type == WorldTiles::RockyCliff || type == WorldTiles::RootmazeRoot ||
+			type == WorldTiles::Rocks || type == WorldTiles::Bush ||
+			type == WorldTiles::Shrub || type == WorldTiles::CaveEntrance ||
+			type == WorldTiles::TreeStump)
+			return NatureTiles;
+		return SpecialTiles;
+	}
+
+	std::vector<WorldTileId> categoryTiles(int category)
+	{
+		std::vector<WorldTileId> tiles;
+		for (int i = 0; i < TILE_TYPE_COUNT; ++i)
+			if (tileCategory(TILE_TYPES[i]) == category) tiles.push_back(TILE_TYPES[i]);
+		return tiles;
+	}
+
+	const char* tileName(WorldTileId type)
+	{
+		if (type == WorldTiles::Grass) return "Grass";
+		if (type == WorldTiles::Path) return "Path";
+		if (type == WorldTiles::Water) return "Water";
+		if (type == WorldTiles::House) return "House";
+		if (type == WorldTiles::Tree) return "Tree";
+		if (type == WorldTiles::Forest) return "Dense Forest";
+		if (type == WorldTiles::WoodWall) return "Wood Wall";
+		if (type == WorldTiles::Door) return "Wooden Door";
+		if (type == WorldTiles::WoodFloor) return "Wood Floor";
+		if (type == WorldTiles::Counter) return "Counter";
+		if (type == WorldTiles::Bonfire) return "Bonfire";
+		if (type == WorldTiles::FeastTable) return "Feast Table";
+		if (type == WorldTiles::DuelSand) return "Dueling Sand";
+		if (type == WorldTiles::Marble) return "Marble Floor";
+		if (type == WorldTiles::MarbleRoof) return "Marble Roof";
+		if (type == WorldTiles::WorkshopTools) return "Workshop Tools";
+		if (type == WorldTiles::Rail) return "Rail";
+		if (type == WorldTiles::RailCrossing) return "Rail Crossing";
+		if (type == WorldTiles::MetalGrate) return "Metal Grate";
+		if (type == WorldTiles::IndustrialBrick) return "Industrial Brick";
+		if (type == WorldTiles::Machinery) return "Machinery";
+		if (type == WorldTiles::Furnace) return "Furnace";
+		if (type == WorldTiles::TimberRoof) return "Timber Roof";
+		if (type == WorldTiles::IndustrialRoof) return "Industrial Roof";
+		if (type == WorldTiles::TimberBridge) return "Timber Bridge";
+		if (type == WorldTiles::RockyCliff) return "Rocky Cliff";
+		if (type == WorldTiles::OldRoadPath) return "Old Road Path";
+		if (type == WorldTiles::OldRoadWaystone) return "Waystone";
+		if (type == WorldTiles::CinderrailGround) return "Cinderrail Ground";
+		if (type == WorldTiles::CinderrailPath) return "Cinderrail Path";
+		if (type == WorldTiles::CinderrailRubble) return "Cinderrail Rubble";
+		if (type == WorldTiles::CinderrailDuelSand) return "Cinderrail Dueling Sand";
+		if (type == WorldTiles::CinderrailDoor) return "Cinderrail Door";
+		if (type == WorldTiles::WatershedGround) return "Watershed Ground";
+		if (type == WorldTiles::WatershedPath) return "Watershed Path";
+		if (type == WorldTiles::WatershedMarker) return "Watershed Route Marker";
+		if (type == WorldTiles::GlasswaterGround) return "Glasswater Ground";
+		if (type == WorldTiles::GlasswaterPaving) return "Tideglass Paving";
+		if (type == WorldTiles::GlasswaterRoof) return "Glasswater Roof";
+		if (type == WorldTiles::GlasswaterDock) return "Dock";
+		if (type == WorldTiles::GlasswaterWall) return "Glasswater Wall";
+		if (type == WorldTiles::GlasswaterDoor) return "Glasswater Door";
+		if (type == WorldTiles::GlasswaterArena) return "Tidal Arena Floor";
+		if (type == WorldTiles::GlasswaterMarker) return "Harbor Marker";
+		if (type == WorldTiles::RootmazeGround) return "Rootmaze Ground";
+		if (type == WorldTiles::RootmazePath) return "Rootmaze Path";
+		if (type == WorldTiles::RootmazeRoot) return "Living Root";
+		if (type == WorldTiles::RootmazeBridge) return "Root Bridge";
+		if (type == WorldTiles::RootmazeRoof) return "Living Roof";
+		if (type == WorldTiles::RootmazeWall) return "Root Wall";
+		if (type == WorldTiles::RootmazeDoor) return "Rootmaze Door";
+		if (type == WorldTiles::RootmazeArena) return "Meadow Arena Floor";
+		if (type == WorldTiles::RootmazeMarker) return "Leaf Marker";
+		if (type == WorldTiles::Rocks) return "Rocks";
+		if (type == WorldTiles::Bush) return "Bush";
+		if (type == WorldTiles::Shrub) return "Shrub";
+		if (type == WorldTiles::CaveEntrance) return "Cave Entrance";
+		if (type == WorldTiles::TreeStump) return "Tree Stump";
+		if (type == WorldTiles::BlackstoneGround) return "Blackstone Ground";
+		if (type == WorldTiles::BlackstonePath) return "Blackstone Road";
+		if (type == WorldTiles::BlackstoneWall) return "Blackstone Retaining Wall";
+		if (type == WorldTiles::BlackstoneGate) return "Blackstone Relay Gate";
+		return "Unknown Tile";
 	}
 
 	bool worldBuilderMovementKey(SDL_Keycode key, int& dx, int& dy)
@@ -372,6 +503,7 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 
 	struct LoadedPosition { std::string map; int x; int y; };
 	std::vector<LoadedPosition> npcPositions(mNpcs.size());
+	std::vector<LoadedPosition> objectPositions(mWorldObjects.size());
 	std::vector<LoadedPosition> shardPositions(mMercerStock.shards.size());
 	auto readPositions = [&](const char* field, const std::vector<std::string>& ids,
 		std::vector<LoadedPosition>& positions) -> bool
@@ -414,9 +546,12 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 	};
 	std::vector<std::string> npcIds;
 	for (size_t i = 0; i < mNpcs.size(); ++i) npcIds.push_back(mNpcs[i].id);
+	std::vector<std::string> objectIds;
+	for (size_t i = 0; i < mWorldObjects.size(); ++i) objectIds.push_back(mWorldObjects[i].id);
 	std::vector<std::string> shardIds;
 	for (size_t i = 0; i < mMercerStock.shards.size(); ++i) shardIds.push_back(mMercerStock.shards[i].id);
 	if (!readPositions("npcs", npcIds, npcPositions) ||
+		!readPositions("objects", objectIds, objectPositions) ||
 		!readPositions("shards", shardIds, shardPositions))
 	{
 		lua_close(state);
@@ -442,7 +577,8 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 		}
 		return true;
 	};
-	if (!placeMissing(npcPositions) || !placeMissing(shardPositions))
+	if (!placeMissing(npcPositions) || !placeMissing(objectPositions) ||
+		!placeMissing(shardPositions))
 	{
 		lua_close(state);
 		return false;
@@ -465,6 +601,12 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 	{
 		mNpcs[i].mapId = npcPositions[i].map;
 		mNpcs[i].setPosition(npcPositions[i].x, npcPositions[i].y);
+	}
+	for (size_t i = 0; i < mWorldObjects.size(); ++i)
+	{
+		mWorldObjects[i].mapId = objectPositions[i].map;
+		mWorldObjects[i].x = objectPositions[i].x;
+		mWorldObjects[i].y = objectPositions[i].y;
 	}
 	for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
 	{
@@ -544,6 +686,7 @@ bool Application::beginPortalAt(int x, int y)
 		mOpeningPortal = (int)i;
 		mPortalAnimationStarted = SDL_GetTicks();
 		mDialogueNpc = -1;
+		mDialogueObject = -1;
 		return true;
 	}
 	return false;
@@ -565,6 +708,7 @@ bool Application::activatePortalAt(int x, int y)
 		mOpeningPortal = -1;
 		mPortalAnimationStarted = 0;
 		mDialogueNpc = -1;
+		mDialogueObject = -1;
 		mNotice = mWorldAreas[destination].indoor ? "Entered " + mWorldAreas[destination].name + "." :
 			(portal.toMap == mWorldStartMap ? "Returned to " : "Arrived at ") +
 			mWorldAreas[destination].name + ".";
@@ -581,7 +725,7 @@ void Application::showWorldBuilderNotice(const std::string& notice, bool error)
 	mWorldBuilderNoticeUntil = SDL_GetTicks() + 4500;
 }
 
-bool Application::worldBuilderCanPlace(int x, int y, int ignoredNpc, int ignoredShard) const
+bool Application::worldBuilderCanPlace(int x, int y, int ignoredNpc, int ignoredObject) const
 {
 	if (!isWalkable(x, y) ||
 		(currentMapId() == mWorldStartMap && x == mWorldStartX && y == mWorldStartY) ||
@@ -589,8 +733,12 @@ bool Application::worldBuilderCanPlace(int x, int y, int ignoredNpc, int ignored
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 		if ((int)i != ignoredNpc && mNpcs[i].mapId == currentMapId() &&
 			mNpcs[i].x == x && mNpcs[i].y == y) return false;
+	for (size_t i = 0; i < mWorldObjects.size(); ++i)
+		if ((int)i != ignoredObject && mWorldObjects[i].mapId == currentMapId() &&
+			mWorldObjects[i].x == x && mWorldObjects[i].y == y) return false;
 	for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
-		if ((int)i != ignoredShard && mMercerStock.shards[i].mapId == currentMapId() &&
+		if ((int)(mWorldObjects.size() + i) != ignoredObject &&
+			mMercerStock.shards[i].mapId == currentMapId() &&
 			mMercerStock.shards[i].x == x &&
 			mMercerStock.shards[i].y == y) return false;
 	return true;
@@ -616,7 +764,14 @@ void Application::paintWorldBuilderTile(int x, int y)
 			if (mMercerStock.shards[i].mapId == currentMapId() &&
 				mMercerStock.shards[i].x == x && mMercerStock.shards[i].y == y)
 			{
-				showWorldBuilderNotice("Move the shard before blocking this tile.", true);
+				showWorldBuilderNotice("Move the object before blocking this tile.", true);
+				return;
+			}
+		for (size_t i = 0; i < mWorldObjects.size(); ++i)
+			if (mWorldObjects[i].mapId == currentMapId() &&
+				mWorldObjects[i].x == x && mWorldObjects[i].y == y)
+			{
+				showWorldBuilderNotice("Move the object before blocking this tile.", true);
 				return;
 			}
 	}
@@ -641,19 +796,31 @@ void Application::placeWorldBuilderSelection(int x, int y)
 		npc.setPosition(x, y);
 		mWorldBuilderDirty = true;
 	}
-	else if (mWorldBuilderTab == WorldBuilderTab::Shards && mWorldBuilderSelectedShard >= 0 &&
-		mWorldBuilderSelectedShard < (int)mMercerStock.shards.size())
+	else if (mWorldBuilderTab == WorldBuilderTab::Objects && mWorldBuilderSelectedObject >= 0 &&
+		mWorldBuilderSelectedObject < (int)(mWorldObjects.size() + mMercerStock.shards.size()))
 	{
-		if (!worldBuilderCanPlace(x, y, -1, mWorldBuilderSelectedShard))
+		if (!worldBuilderCanPlace(x, y, -1, mWorldBuilderSelectedObject))
 		{
-			showWorldBuilderNotice("Shards require an empty grass/path tile.", true);
+			showWorldBuilderNotice("Objects require an empty walkable tile.", true);
 			return;
 		}
-		MercerShard& shard = mMercerStock.shards[mWorldBuilderSelectedShard];
-		if (shard.mapId == currentMapId() && shard.x == x && shard.y == y) return;
-		shard.mapId = currentMapId();
-		shard.x = x;
-		shard.y = y;
+		if (mWorldBuilderSelectedObject < (int)mWorldObjects.size())
+		{
+			WorldObject& object = mWorldObjects[mWorldBuilderSelectedObject];
+			if (object.mapId == currentMapId() && object.x == x && object.y == y) return;
+			object.mapId = currentMapId();
+			object.x = x;
+			object.y = y;
+		}
+		else
+		{
+			int shardIndex = mWorldBuilderSelectedObject - (int)mWorldObjects.size();
+			MercerShard& shard = mMercerStock.shards[shardIndex];
+			if (shard.mapId == currentMapId() && shard.x == x && shard.y == y) return;
+			shard.mapId = currentMapId();
+			shard.x = x;
+			shard.y = y;
+		}
 		mWorldBuilderDirty = true;
 	}
 }
@@ -674,7 +841,8 @@ bool Application::saveWorldBuilder(std::string& error)
 		<< "-- Glasswater IDs: a ground, b paving, c roof, d dock, e wall,\n"
 		<< "-- f door, g arena floor, h harbor marker.\n"
 		<< "-- Rootmaze IDs: i ground, j path, k root, l bridge, m roof, n wall,\n"
-		<< "-- o door, p arena floor, q leaf marker.\n"
+		<< "-- o door, p arena floor, q leaf marker. Natural objects: r-v.\n"
+		<< "-- Blackstone IDs: w ground, x road, y retaining wall, z relay gate.\n"
 		<< "return {\n\tmaps = {\n";
 	for (size_t area = 0; area < mWorldAreas.size(); ++area)
 	{
@@ -711,6 +879,11 @@ bool Application::saveWorldBuilder(std::string& error)
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 		world << "\t\t[\"" << mNpcs[i].id << "\"] = { map = \"" << mNpcs[i].mapId <<
 			"\", x = " << mNpcs[i].x << ", y = " << mNpcs[i].y << " },\n";
+	world << "\t},\n\tobjects = {\n";
+	for (size_t i = 0; i < mWorldObjects.size(); ++i)
+		world << "\t\t[\"" << mWorldObjects[i].id << "\"] = { map = \"" <<
+			mWorldObjects[i].mapId << "\", x = " << mWorldObjects[i].x <<
+			", y = " << mWorldObjects[i].y << " },\n";
 	world << "\t},\n\tshards = {\n";
 	for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
 		world << "\t\t[\"" << mMercerStock.shards[i].id << "\"] = { map = \"" <<
@@ -857,12 +1030,14 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		if (key >= SDLK_1 && key <= SDLK_9)
 		{
 			mWorldBuilderTab = WorldBuilderTab::Tiles;
-			mWorldBuilderTile = TILE_TYPES[key - SDLK_1];
+			std::vector<WorldTileId> tiles = categoryTiles(mWorldBuilderTileCategory);
+			int index = key - SDLK_1;
+			if (index < (int)tiles.size()) mWorldBuilderTile = tiles[index];
 			return;
 		}
 		if (key == SDLK_t) mWorldBuilderTab = WorldBuilderTab::Tiles;
 		else if (key == SDLK_n) mWorldBuilderTab = WorldBuilderTab::Npcs;
-		else if (key == SDLK_r) mWorldBuilderTab = WorldBuilderTab::Shards;
+		else if (key == SDLK_o) mWorldBuilderTab = WorldBuilderTab::Objects;
 		else if (key == SDLK_PAGEUP)
 		{
 			mCurrentWorldArea = (mCurrentWorldArea + (int)mWorldAreas.size() - 1) % (int)mWorldAreas.size();
@@ -888,13 +1063,14 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		}
 		if (mWorldBuilderTab == WorldBuilderTab::Tiles)
 		{
-			int maximum = std::max(0, TILE_TYPE_COUNT - BUILDER_VISIBLE_TILES);
+			int maximum = std::max(0,
+				(int)categoryTiles(mWorldBuilderTileCategory).size() - BUILDER_VISIBLE_TILES);
 			mWorldBuilderListScroll = std::max(0,
 				std::min(maximum, mWorldBuilderListScroll - event.wheel.y * 2));
 			return;
 		}
 		int count = mWorldBuilderTab == WorldBuilderTab::Npcs ? (int)mNpcs.size() :
-			(int)mMercerStock.shards.size();
+			(int)(mWorldObjects.size() + mMercerStock.shards.size());
 		int maximum = std::max(0, count - BUILDER_LIST_ROWS);
 		mWorldBuilderListScroll = std::max(0,
 			std::min(maximum, mWorldBuilderListScroll - event.wheel.y));
@@ -955,21 +1131,29 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		mWorldBuilderTab = WorldBuilderTab::Npcs;
 		mWorldBuilderListScroll = 0;
 	}
-	else if (contains(BUILDER_SHARDS_TAB, x, y))
+	else if (contains(BUILDER_OBJECTS_TAB, x, y))
 	{
-		mWorldBuilderTab = WorldBuilderTab::Shards;
+		mWorldBuilderTab = WorldBuilderTab::Objects;
 		mWorldBuilderListScroll = 0;
 	}
 	else
 	{
 		if (mWorldBuilderTab == WorldBuilderTab::Tiles)
 		{
+			for (int category = 0; category < TILE_CATEGORY_COUNT; ++category)
+			{
+				if (!contains(tileCategoryRect(category), x, y)) continue;
+				mWorldBuilderTileCategory = category;
+				mWorldBuilderListScroll = 0;
+				return;
+			}
+			std::vector<WorldTileId> tiles = categoryTiles(mWorldBuilderTileCategory);
 			for (int slot = 0; slot < BUILDER_VISIBLE_TILES; ++slot)
 			{
 				int i = mWorldBuilderListScroll + slot;
-				if (i < TILE_TYPE_COUNT && contains(paletteRect(slot), x, y))
+				if (i < (int)tiles.size() && contains(paletteRect(slot), x, y))
 				{
-					mWorldBuilderTile = TILE_TYPES[i];
+					mWorldBuilderTile = tiles[i];
 					return;
 				}
 			}
@@ -992,18 +1176,25 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 					}
 				}
 			}
-			else if (mWorldBuilderTab == WorldBuilderTab::Shards &&
-				selected < (int)mMercerStock.shards.size())
+			else if (mWorldBuilderTab == WorldBuilderTab::Objects &&
+				selected < (int)(mWorldObjects.size() + mMercerStock.shards.size()))
 			{
-				mWorldBuilderSelectedShard = selected;
+				mWorldBuilderSelectedObject = selected;
 				if (event.button.clicks >= 2)
 				{
-					int map = worldAreaIndex(mMercerStock.shards[selected].mapId);
+					bool regularObject = selected < (int)mWorldObjects.size();
+					int shardIndex = selected - (int)mWorldObjects.size();
+					const std::string& mapId = regularObject ? mWorldObjects[selected].mapId :
+						mMercerStock.shards[shardIndex].mapId;
+					int objectX = regularObject ? mWorldObjects[selected].x :
+						mMercerStock.shards[shardIndex].x;
+					int objectY = regularObject ? mWorldObjects[selected].y :
+						mMercerStock.shards[shardIndex].y;
+					int map = worldAreaIndex(mapId);
 					if (map >= 0)
 					{
 						mCurrentWorldArea = map;
-						centerMapCamera(currentMap(), mMercerStock.shards[selected].x,
-							mMercerStock.shards[selected].y, mWorldBuilderCameraX,
+						centerMapCamera(currentMap(), objectX, objectY, mWorldBuilderCameraX,
 							mWorldBuilderCameraY, mWorldBuilderTileSize);
 					}
 				}
@@ -1031,10 +1222,14 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		else
 		{
 			int hit = -1;
+			for (size_t i = 0; i < mWorldObjects.size(); ++i)
+				if (mWorldObjects[i].mapId == currentMapId() &&
+					mWorldObjects[i].x == cellX && mWorldObjects[i].y == cellY) hit = (int)i;
 			for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
 				if (mMercerStock.shards[i].mapId == currentMapId() &&
-					mMercerStock.shards[i].x == cellX && mMercerStock.shards[i].y == cellY) hit = (int)i;
-			if (hit >= 0) mWorldBuilderSelectedShard = hit;
+					mMercerStock.shards[i].x == cellX && mMercerStock.shards[i].y == cellY)
+					hit = (int)mWorldObjects.size() + (int)i;
+			if (hit >= 0) mWorldBuilderSelectedObject = hit;
 			else placeWorldBuilderSelection(cellX, cellY);
 		}
 		mWorldBuilderDragging = true;
@@ -1051,6 +1246,7 @@ void Application::drawWorldBuilderTileIcon(WorldTileId type, const SDL_Rect& rec
 	else if (type == WorldTiles::WatershedPath) fillRect(rect, 148, 139, 105);
 	else if (type == WorldTiles::GlasswaterPaving) fillRect(rect, 165, 199, 202);
 	else if (type == WorldTiles::RootmazePath) fillRect(rect, 119, 134, 75);
+	else if (type == WorldTiles::BlackstonePath) fillRect(rect, 111, 106, 96);
 	else if (type == WorldTiles::Water || type == WorldTiles::TimberBridge)
 		fillRect(rect, 25, 111, 157);
 	else if (type == WorldTiles::House) fillRect(rect, 126, 65, 43);
@@ -1095,6 +1291,9 @@ void Application::drawWorldBuilderTileIcon(WorldTileId type, const SDL_Rect& rec
 	else if (type == WorldTiles::RootmazeWall) fillRect(rect, 109, 78, 47);
 	else if (type == WorldTiles::RootmazeDoor) fillRect(rect, 126, 89, 50);
 	else if (type == WorldTiles::RootmazeArena) fillRect(rect, 105, 154, 76);
+	else if (type == WorldTiles::BlackstoneGround) fillRect(rect, 61, 59, 55);
+	else if (type == WorldTiles::BlackstoneWall) fillRect(rect, 38, 37, 40);
+	else if (type == WorldTiles::BlackstoneGate) fillRect(rect, 72, 67, 58);
 	else if (type == WorldTiles::Rocks) fillRect(rect, 61, 139, 61);
 	else if (type == WorldTiles::Bush) fillRect(rect, 49, 126, 54);
 	else if (type == WorldTiles::Shrub) fillRect(rect, 61, 139, 61);
@@ -1118,7 +1317,8 @@ void Application::drawWorldBuilderTileIcon(WorldTileId type, const SDL_Rect& rec
 		fillRect({ x + 14, y + 13, 2, 12 }, 119, 194, 70);
 		fillRect({ x + 23, y + 19, 2, 7 }, 92, 172, 57);
 	}
-	else if (type == WorldTiles::Path || type == WorldTiles::OldRoadPath)
+	else if (type == WorldTiles::Path || type == WorldTiles::OldRoadPath ||
+		type == WorldTiles::BlackstonePath)
 	{
 		fillRect({ x + 3, y + 5, 11, 7 }, type == WorldTiles::Path ? 190 : 151,
 			type == WorldTiles::Path ? 158 : 136, type == WorldTiles::Path ? 93 : 104);
@@ -1414,6 +1614,24 @@ void Application::drawWorldBuilderTileIcon(WorldTileId type, const SDL_Rect& rec
 		fillRect({ x + 9, y + 7, 5, 3 }, 62, 146, 77);
 		fillRect({ x + w - 14, y + 7, 5, 3 }, 202, 151, 63);
 	}
+	else if (type == WorldTiles::BlackstoneGround)
+	{
+		fillRect({ x + 5, y + 8, 4, 3 }, 133, 126, 107);
+		fillRect({ x + 19, y + 21, 6, 3 }, 42, 41, 39);
+	}
+	else if (type == WorldTiles::BlackstoneWall)
+	{
+		for (int course = 6; course < h; course += 8)
+			fillRect({ x + 2, y + course, w - 4, 2 }, 20, 20, 22);
+		fillRect({ x + w - 9, y + 5, 4, 4 }, 192, 149, 52);
+	}
+	else if (type == WorldTiles::BlackstoneGate)
+	{
+		fillRect({ x + 3, y + 2, 5, h - 4 }, 27, 27, 29);
+		fillRect({ x + w - 8, y + 2, 5, h - 4 }, 27, 27, 29);
+		for (int bar = 10; bar < w - 7; bar += 7)
+			fillRect({ x + bar, y + 3, 3, h - 6 }, 202, 158, 57);
+	}
 
 	outlineRect(rect, 8, 14, 22, 255, 1);
 }
@@ -1433,7 +1651,8 @@ void Application::drawWorldBuilderScaledTileDetail(WorldTileId type, const SDL_R
 	}
 	else if (type == WorldTiles::Path || type == WorldTiles::OldRoadPath ||
 		type == WorldTiles::CinderrailPath || type == WorldTiles::WatershedPath ||
-		type == WorldTiles::GlasswaterPaving || type == WorldTiles::RootmazePath)
+		type == WorldTiles::GlasswaterPaving || type == WorldTiles::RootmazePath ||
+		type == WorldTiles::BlackstonePath)
 	{
 		fillRect({ rect.x + inset, rect.y + inset, rect.w / 3, rect.h / 4 },
 			190, 165, 110, 170);
@@ -1498,7 +1717,7 @@ void Application::drawWorldBuilderScaledTileDetail(WorldTileId type, const SDL_R
 	}
 	else if (type == WorldTiles::WoodWall || type == WorldTiles::IndustrialBrick ||
 		type == WorldTiles::GlasswaterWall || type == WorldTiles::RootmazeWall ||
-		type == WorldTiles::House)
+		type == WorldTiles::BlackstoneWall || type == WorldTiles::House)
 	{
 		outlineRect({ rect.x + inset, rect.y + inset, rect.w - inset * 2,
 			rect.h - inset * 2 }, 66, 48, 39, 220, unit);
@@ -1513,6 +1732,15 @@ void Application::drawWorldBuilderScaledTileDetail(WorldTileId type, const SDL_R
 		fillRect({ rect.x + rect.w / 4, rect.y + inset, rect.w / 2,
 			rect.h - inset }, 74, 61, 43);
 		fillRect({ rect.x + rect.w * 2 / 3, centerY, unit, unit }, 231, 184, 73);
+	}
+	else if (type == WorldTiles::BlackstoneGate)
+	{
+		fillRect({ rect.x + inset / 2, rect.y + inset / 2, unit * 2,
+			rect.h - inset }, 27, 27, 29);
+		fillRect({ rect.x + rect.w - inset / 2 - unit * 2, rect.y + inset / 2,
+			unit * 2, rect.h - inset }, 27, 27, 29);
+		for (int bar = rect.x + inset * 2; bar < rect.x + rect.w - inset; bar += unit * 3)
+			fillRect({ bar, rect.y + inset, unit, rect.h - inset * 2 }, 202, 158, 57);
 	}
 	else if (type == WorldTiles::DuelSand || type == WorldTiles::CinderrailDuelSand ||
 		type == WorldTiles::GlasswaterArena || type == WorldTiles::RootmazeArena)
@@ -1614,6 +1842,7 @@ void Application::renderWorldBuilder()
 			else if (type == WorldTiles::WatershedPath) fillRect(tile, 148, 139, 105);
 			else if (type == WorldTiles::GlasswaterPaving) fillRect(tile, 165, 199, 202);
 			else if (type == WorldTiles::RootmazePath) fillRect(tile, 119, 134, 75);
+			else if (type == WorldTiles::BlackstonePath) fillRect(tile, 111, 106, 96);
 			else if (type == WorldTiles::Water) fillRect(tile, 25, 111, 157);
 			else if (type == WorldTiles::House) fillRect(tile, 126, 65, 43);
 			else if (type == WorldTiles::Forest || type == WorldTiles::Tree)
@@ -1663,6 +1892,9 @@ void Application::renderWorldBuilder()
 			else if (type == WorldTiles::RootmazeWall) fillRect(tile, 109, 78, 47);
 			else if (type == WorldTiles::RootmazeDoor) fillRect(tile, 126, 89, 50);
 			else if (type == WorldTiles::RootmazeArena) fillRect(tile, 105, 154, 76);
+			else if (type == WorldTiles::BlackstoneGround) fillRect(tile, 61, 59, 55);
+			else if (type == WorldTiles::BlackstoneWall) fillRect(tile, 38, 37, 40);
+			else if (type == WorldTiles::BlackstoneGate) fillRect(tile, 72, 67, 58);
 			else if (type == WorldTiles::Rocks) fillRect(tile, 61, 139, 61);
 			else if (type == WorldTiles::Bush) fillRect(tile, 49, 126, 54);
 			else if (type == WorldTiles::Shrub) fillRect(tile, 61, 139, 61);
@@ -2045,6 +2277,29 @@ void Application::renderWorldBuilder()
 				fillRect({ tile.x + 10, tile.y + 10, 7, 4 }, 62, 146, 77);
 				fillRect({ tile.x + 30, tile.y + 10, 7, 4 }, 202, 151, 63);
 			}
+			else if (type == WorldTiles::BlackstoneGround)
+			{
+				fillRect({ tile.x + 7, tile.y + 11, 6, 4 }, 133, 126, 107);
+				fillRect({ tile.x + 31, tile.y + 34, 8, 4 }, 42, 41, 39);
+			}
+			else if (type == WorldTiles::BlackstonePath)
+			{
+				fillRect({ tile.x + 3, tile.y + 6, 19, 13 }, 142, 136, 121);
+				fillRect({ tile.x + 27, tile.y + 28, 17, 11 }, 77, 75, 70);
+			}
+			else if (type == WorldTiles::BlackstoneWall)
+			{
+				for (int course = 9; course < 45; course += 11)
+					fillRect({ tile.x + 2, tile.y + course, 44, 3 }, 20, 20, 22);
+				fillRect({ tile.x + 35, tile.y + 7, 6, 6 }, 192, 149, 52);
+			}
+			else if (type == WorldTiles::BlackstoneGate)
+			{
+				fillRect({ tile.x + 3, tile.y + 2, 7, 44 }, 27, 27, 29);
+				fillRect({ tile.x + 38, tile.y + 2, 7, 44 }, 27, 27, 29);
+				for (int bar = 13; bar < 38; bar += 8)
+					fillRect({ tile.x + bar, tile.y + 4, 4, 40 }, 202, 158, 57);
+			}
 			}
 			mWorldBuilderTileScaleActive = false;
 			outlineRect(displayedTile, 10, 20, 27, 100, 1);
@@ -2073,6 +2328,40 @@ void Application::renderWorldBuilder()
 				tileSize - inset * 2, tileSize - inset * 2 },
 				91, 222, 232, 255, std::max(2, tileSize / 24));
 		}
+	for (size_t i = 0; i < mWorldObjects.size(); ++i)
+	{
+		const WorldObject& object = mWorldObjects[i];
+		if (object.mapId != currentMapId() || !visibleTiles.contains(object.x, object.y))
+			continue;
+		int x = mapX + object.x * tileSize;
+		int y = mapY + object.y * tileSize;
+		if (object.kind == WorldObjectKind::Signpost)
+		{
+			int postWidth = std::max(2, tileSize / 9);
+			fillRect({ x + tileSize / 2 - postWidth / 2, y + tileSize / 3,
+				postWidth, tileSize * 3 / 5 }, 91, 58, 32, 255);
+			fillRect({ x + tileSize / 7, y + tileSize / 6,
+				tileSize * 5 / 7, tileSize / 3 }, 178, 125, 59, 255);
+			outlineRect({ x + tileSize / 7, y + tileSize / 6,
+				tileSize * 5 / 7, tileSize / 3 }, 70, 43, 27, 255, 1);
+		}
+		else
+		{
+			int inset = std::max(2, tileSize / 7);
+			fillRect({ x + inset, y + tileSize * 2 / 5,
+				tileSize - inset * 2, tileSize / 2 }, 121, 69, 32, 255);
+			fillRect({ x + inset, y + tileSize / 4,
+				tileSize - inset * 2, tileSize / 4 }, 166, 97, 39, 255);
+			outlineRect({ x + inset, y + tileSize / 4,
+				tileSize - inset * 2, tileSize * 13 / 20 }, 58, 35, 23, 255, 1);
+			fillRect({ x + tileSize * 9 / 20, y + tileSize / 2,
+				std::max(2, tileSize / 8), tileSize / 5 }, 224, 174, 65, 255);
+		}
+		if ((int)i == mWorldBuilderSelectedObject &&
+			mWorldBuilderTab == WorldBuilderTab::Objects)
+			outlineRect({ x + 2, y + 2, tileSize - 4, tileSize - 4 },
+				246, 211, 99, 255, std::max(2, tileSize / 16));
+	}
 	for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
 	{
 		const MercerShard& shard = mMercerStock.shards[i];
@@ -2087,7 +2376,8 @@ void Application::renderWorldBuilder()
 			tileSize / 2, tileSize / 3 }, 146, 87, 211, 250);
 		fillRect({ x + tileSize * 2 / 5, y + tileSize * 2 / 5,
 			tileSize / 5, tileSize / 5 }, 231, 193, 255, 255);
-		if ((int)i == mWorldBuilderSelectedShard && mWorldBuilderTab == WorldBuilderTab::Shards)
+		if ((int)(mWorldObjects.size() + i) == mWorldBuilderSelectedObject &&
+			mWorldBuilderTab == WorldBuilderTab::Objects)
 			outlineRect({ x + 2, y + 2, tileSize - 4, tileSize - 4 },
 				246, 211, 99, 255, std::max(2, tileSize / 16));
 	}
@@ -2148,31 +2438,57 @@ void Application::renderWorldBuilder()
 	};
 	tab(BUILDER_TILES_TAB, "TILES", mWorldBuilderTab == WorldBuilderTab::Tiles);
 	tab(BUILDER_NPCS_TAB, "NPCS", mWorldBuilderTab == WorldBuilderTab::Npcs);
-	tab(BUILDER_SHARDS_TAB, "SHARDS", mWorldBuilderTab == WorldBuilderTab::Shards);
+	tab(BUILDER_OBJECTS_TAB, "OBJECTS", mWorldBuilderTab == WorldBuilderTab::Objects);
 
 	if (mWorldBuilderTab == WorldBuilderTab::Tiles)
 	{
+		for (int category = 0; category < TILE_CATEGORY_COUNT; ++category)
+		{
+			SDL_Rect button = tileCategoryRect(category);
+			bool active = category == mWorldBuilderTileCategory;
+			fillRect(button, active ? 68 : 32, active ? 76 : 43,
+				active ? 58 : 60, 245);
+			outlineRect(button, active ? 226 : 94, active ? 183 : 113,
+				active ? 84 : 137, 255, 2);
+			drawText(TILE_CATEGORY_NAMES[category], button.x + 7, button.y + 8,
+				color(232, 236, 244), category == BuildingTiles ? 9 : 10, button.w - 12);
+		}
+
+		std::vector<WorldTileId> tiles = categoryTiles(mWorldBuilderTileCategory);
+		mWorldBuilderHoveredTileName.clear();
 		for (int slot = 0; slot < BUILDER_VISIBLE_TILES; ++slot)
 		{
 			int i = mWorldBuilderListScroll + slot;
-			if (i >= TILE_TYPE_COUNT) break;
+			if (i >= (int)tiles.size()) break;
 			SDL_Rect button = paletteRect(slot);
-			bool selected = mWorldBuilderTile == TILE_TYPES[i];
+			bool selected = mWorldBuilderTile == tiles[i];
+			bool hovered = contains(button, mMouseX, mMouseY);
 			fillRect(button, selected ? 79 : 38, selected ? 68 : 47, selected ? 43 : 64, 245);
-			outlineRect(button, selected ? 241 : 110, selected ? 190 : 125,
-				selected ? 87 : 147, 255, 2);
-			drawWorldBuilderTileIcon(TILE_TYPES[i],
+			outlineRect(button, selected ? 241 : (hovered ? 174 : 110),
+				selected ? 190 : (hovered ? 188 : 125),
+				selected ? 87 : (hovered ? 206 : 147), 255, 2);
+			drawWorldBuilderTileIcon(tiles[i],
 				{ button.x + (button.w - 29) / 2, button.y + 2, 29, 29 });
+			if (hovered) mWorldBuilderHoveredTileName = tileName(tiles[i]);
 		}
-		drawText("Click/drag to paint • Wheel: tiles", 1022, 704,
-			color(179, 195, 218), 13, 220);
+		fillRect({ 1022, 623, 228, 34 }, 27, 37, 53, 245);
+		outlineRect({ 1022, 623, 228, 34 }, 88, 112, 143, 255, 1);
+		std::string tileLabel = mWorldBuilderHoveredTileName.empty() ?
+			"Selected: " + std::string(tileName(mWorldBuilderTile)) :
+			mWorldBuilderHoveredTileName;
+		drawText(tileLabel, 1032, 632, color(224, 232, 243), 12, 208);
+		drawText("Hover: name  •  Wheel: tiles", 1022, 673,
+			color(179, 195, 218), 12, 220);
+		drawText("Click/drag map to paint", 1022, 699,
+			color(153, 174, 205), 11, 220);
 	}
 	else
 	{
+		mWorldBuilderHoveredTileName.clear();
 		int count = mWorldBuilderTab == WorldBuilderTab::Npcs ? (int)mNpcs.size() :
-			(int)mMercerStock.shards.size();
+			(int)(mWorldObjects.size() + mMercerStock.shards.size());
 		int selected = mWorldBuilderTab == WorldBuilderTab::Npcs ? mWorldBuilderSelectedNpc :
-			mWorldBuilderSelectedShard;
+			mWorldBuilderSelectedObject;
 		for (int row = 0; row < BUILDER_LIST_ROWS; ++row)
 		{
 			int index = mWorldBuilderListScroll + row;
@@ -2181,12 +2497,10 @@ void Application::renderWorldBuilder()
 			fillRect(item, index == selected ? 74 : (row % 2 ? 31 : 37),
 				index == selected ? 61 : 42, index == selected ? 42 : 59, 238);
 			if (index == selected) outlineRect(item, 233, 184, 82, 255, 2);
-			int entityX = mWorldBuilderTab == WorldBuilderTab::Npcs ? mNpcs[index].x :
-				mMercerStock.shards[index].x;
-			int entityY = mWorldBuilderTab == WorldBuilderTab::Npcs ? mNpcs[index].y :
-				mMercerStock.shards[index].y;
 			if (mWorldBuilderTab == WorldBuilderTab::Npcs)
 			{
+				int entityX = mNpcs[index].x;
+				int entityY = mNpcs[index].y;
 				drawWorldBuilderNpcPortrait(mNpcs[index],
 					{ item.x + 2, item.y + 2, 30, 30 });
 				std::string label = mNpcs[index].id + " (" + mNpcs[index].name + ")";
@@ -2196,10 +2510,42 @@ void Application::renderWorldBuilder()
 			}
 			else
 			{
-				drawText(mMercerStock.shards[index].name, item.x + 7, item.y + 5,
-					color(232, 236, 244), 12, 166);
+				bool regularObject = index < (int)mWorldObjects.size();
+				int shardIndex = index - (int)mWorldObjects.size();
+				const std::string& name = regularObject ? mWorldObjects[index].name :
+					mMercerStock.shards[shardIndex].name;
+				int entityX = regularObject ? mWorldObjects[index].x :
+					mMercerStock.shards[shardIndex].x;
+				int entityY = regularObject ? mWorldObjects[index].y :
+					mMercerStock.shards[shardIndex].y;
+				if (regularObject)
+				{
+					if (mWorldObjects[index].kind == WorldObjectKind::Signpost)
+					{
+						fillRect({ item.x + 8, item.y + 17, 4, 13 }, 91, 58, 32, 255);
+						fillRect({ item.x + 3, item.y + 7, 18, 11 }, 178, 125, 59, 255);
+					}
+					else
+					{
+						fillRect({ item.x + 3, item.y + 13, 20, 16 }, 117, 67, 31, 255);
+						fillRect({ item.x + 3, item.y + 8, 20, 8 }, 165, 96, 39, 255);
+						fillRect({ item.x + 11, item.y + 16, 5, 7 }, 225, 176, 66, 255);
+					}
+				}
+				else
+				{
+					fillRect({ item.x + 5, item.y + 7, 16, 20 }, 123, 73, 185, 255);
+					fillRect({ item.x + 9, item.y + 12, 8, 10 }, 226, 184, 255, 255);
+				}
+				drawText(name, item.x + 27, item.y + 3,
+					color(232, 236, 244), 9, 148);
+				std::string kindLabel = regularObject ?
+					(mWorldObjects[index].kind == WorldObjectKind::DeckChest ?
+						"Deck Chest" : "Signpost") : "Shard";
+				drawText(kindLabel, item.x + 27, item.y + 18,
+					color(171, 192, 218), 8, 80);
 				drawText(std::to_string(entityX) + "," + std::to_string(entityY), item.x + 181,
-					item.y + 5, color(173, 193, 220), 11);
+					item.y + 10, color(173, 193, 220), 9);
 			}
 		}
 		if (count > BUILDER_LIST_ROWS)
@@ -2213,7 +2559,7 @@ void Application::renderWorldBuilder()
 	outlineRect(BUILDER_SAVE, 207, 161, 66, 255, 2);
 	drawText("SAVE TO LUA   Ctrl+S", BUILDER_SAVE.x + 29, BUILDER_SAVE.y + 12,
 		color(245, 226, 181), 14);
-	drawText("T/N/R: tabs  •  Arrows/WASD: pan  •  Wheel over map or +/-: zoom",
+	drawText("T/N/O: tabs  •  Arrows/WASD: pan  •  Wheel over map or +/-: zoom",
 		32, 650, color(180, 196, 219), 14, 930);
 	drawText("Tiles: paint  •  Entities: place  •  P: start  •  PageUp/PageDown: maps",
 		32, 676, color(142, 173, 217), 13);

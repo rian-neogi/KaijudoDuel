@@ -26,11 +26,13 @@ Additional launch modes:
 ```
 
 The World Builder is available only through `--world-builder`. It edits map
-tiles and NPC/shard locations. Single-click an NPC or shard side-list row to
+tiles and NPC/object locations. Single-click an NPC or object side-list row to
 select it; double-click it to center its map location. Select entities from the
 Lua-populated side lists or directly on the map, then click or drag them to a
-free grass/path or indoor floor tile. Switch maps with the on-screen arrows or
-`PageUp`/`PageDown`; hold the arrow or WASD keys to pan large maps. Use the
+free walkable tile. The tile palette groups icons into Ground, Buildings,
+Nature, and Special categories; hover an icon to see its tile name. Switch maps
+with the on-screen arrows or `PageUp`/`PageDown`; hold the arrow or WASD keys
+to pan large maps. Use the
 mouse wheel over the map or `+`/`-` to zoom; the wheel continues to scroll when
 the pointer is over a side list. Save with the on-screen button or `Ctrl+S`.
 
@@ -56,8 +58,10 @@ rendering, and repeated duel teardown.
   shared drawing primitives, fonts, and coordinate handling.
 - `Source/App/Overworld.cpp`: map movement, NPC interaction, and overworld
   rendering.
-- `Source/App/WorldBuilder.cpp`: Lua world loading, map painting, NPC/shard
+- `Source/App/WorldBuilder.cpp`: Lua world loading, map painting, NPC/object
   placement, validation, and atomic `World.lua` saving.
+- `Source/App/WorldObject.h/.cpp`: overworld-object metadata loading and stable
+  object kinds.
 - `Source/App/DuelWindow.cpp`: duel lifecycle, actions, input, drag/drop,
   choices, AI turns, and board composition.
 - `Source/App/DeckBuilder.cpp`: player collection/deck persistence and the
@@ -68,7 +72,7 @@ rendering, and repeated duel teardown.
 - `Source/App/CardRenderer.cpp`: card textures, zones, hands, animation,
   tapping, dragging, and hover enlargement.
 - `Lua/World.lua`: authoritative seamless exterior, interior maps, named exterior
-  regions, player start, interior portals, and ID-keyed NPC/shard positions. This
+  regions, player start, interior portals, and ID-keyed NPC/object positions. This
   file is entirely maintained by the World Builder.
 - `Source/App/WorldTile.h`: stable semantic tile IDs and their compact one-byte
   serialization glyphs. Rendering and collision must use these IDs rather than
@@ -78,6 +82,8 @@ rendering, and repeated duel teardown.
 - `Lua/Npcs.lua`: authoritative NPC identities, kinds, appearances, decks,
   rewards, Crest Holder awards, AI personalities, and dialogue. It does not own
   positions.
+- `Lua/Objects.lua`: authoritative interactive-object identities, kinds, names,
+  interaction text, and deck-chest rewards. It does not own positions.
 - `Lua/MercerStock.lua`: Mercer prices, initial stock, shard identities, and
   shard inventory expansions. It does not own positions.
 - `Source/App/AppSupport.h`: shared logical dimensions and small UI helpers.
@@ -98,8 +104,8 @@ five decks.
 ## World data conventions
 
 - Keep all maps, portals, and entity coordinates in `Lua/World.lua`; never add
-  `position` fields back to `Lua/Npcs.lua` or `Lua/MercerStock.lua`.
-- NPC and shard position keys must match their metadata `id` fields and include
+  `position` fields back to metadata files.
+- NPC, object, and shard position keys must match their metadata `id` fields and include
   a valid `map` ID. Normal gameplay requires every current entity ID to have a
   valid `World.lua` map position.
 - Duel-enabled NPCs use ordered, non-empty `decks` and `rewards` arrays. When
@@ -108,12 +114,15 @@ five decks.
 - Exterior regions require an explicit `kind` of `town` or `connector` for
   geographic organization. NPC kinds may be placed in either region kind. The
   World Builder must preserve region kinds when saving.
-- The World Builder scans the NPC and shard metadata. New IDs without world
+- The World Builder scans the NPC, object, and shard metadata. New IDs without world
   entries are placed automatically on free walkable tiles when the builder is
   launched, mark the world dirty, and are persisted on the next save. Stale
   world IDs disappear on the next save.
 - World Builder saves must modify only `Lua/World.lua`, leaving NPC dialogue,
-  decks, rewards, Mercer stock, and other hand-authored metadata untouched.
+  object text, decks, rewards, Mercer stock, and other hand-authored metadata untouched.
+- Opened deck chests are persisted per save as `object.opened.<id>=1`. Their
+  rewarded deck files are copied into the save's Decks folder and their cards
+  are added to that save's collection exactly once.
 - Maps are rectangular and may be up to 1024 columns by 1024 rows. Gameplay
   follows the player through maps larger than its 25-by-12-tile viewport; the
   World Builder keeps a 960-by-576-pixel viewport beside its editor controls
@@ -135,11 +144,13 @@ five decks.
   `l` (walkable root bridge), `m` (living roof), `n` (root wall), `o`
   (walkable door), `p` (walkable meadow arena), and `q` (leaf marker).
   Natural landmark tiles are `r` (rocks), `s` (bush), `t` (walkable shrub),
-  `u` (walkable cave entrance), and `v` (tree stump).
+  `u` (walkable cave entrance), and `v` (tree stump). Blackstone Road uses
+  `w` (ground), `x` (road), `y` (retaining wall), and `z` (relay gate). The
+  relay gate is walkable only after the Confluence Crest has been earned.
   Indoor/wooden-building tiles are `W` (wood wall), `D` (door), `F` (wood
   floor), `C` (counter), and `E` (workshop tools). Outdoor buildings must use
   explicit `K`, `J`, or `Q` roof tiles rather than relying on wall tiles to draw a
-  roof automatically. NPCs and shards require distinct walkable tiles.
+  roof automatically. NPCs, signposts, and shards require distinct walkable tiles.
   Player starts, portal entrances, and portal destinations must remain
   walkable and unoccupied.
 - Portals are directed transitions. Define both directions explicitly when a

@@ -18,7 +18,7 @@ namespace
 
 void Application::handleOverworldEvent(const SDL_Event& event)
 {
-	if (mDialogueNpc >= 0)
+	if (mDialogueNpc >= 0 || mDialogueObject >= 0)
 	{
 		if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT)
 			advanceDialogue();
@@ -29,6 +29,11 @@ void Application::handleOverworldEvent(const SDL_Event& event)
 				advanceDialogue();
 			else if (key == SDLK_ESCAPE)
 			{
+				if (mDialogueObject >= 0)
+				{
+					clearDialogue();
+					return;
+				}
 				int npcIndex = mDialogueNpc;
 				DialogueAction action = mDialogueAction;
 				if (action == DialogueAction::NpcInteraction) clearDialogue();
@@ -105,12 +110,13 @@ void Application::updateOverworld(Uint32 deltaTime)
 {
 	updateDialogue(deltaTime);
 	updateRegionBanner();
-	if (mPauseMenuOpen || (mStoryScene != StoryScene::None && mDialogueNpc < 0)) return;
+	if (mPauseMenuOpen || (mStoryScene != StoryScene::None && mDialogueNpc < 0 &&
+		mDialogueObject < 0)) return;
 	float playerDx = mPlayerX - mVisualX;
 	float playerDy = mPlayerY - mVisualY;
 	float playerDistance = std::sqrt(playerDx * playerDx + playerDy * playerDy);
 	if (playerDistance <= 0.001f && mOpeningPortal < 0 && mDialogueNpc < 0 &&
-		mNpcMenuNpc < 0 && mRouteChallengeNpc < 0 &&
+		mDialogueObject < 0 && mNpcMenuNpc < 0 && mRouteChallengeNpc < 0 &&
 		(mMoveIntentX != 0 || mMoveIntentY != 0))
 	{
 		mVisualX = (float)mPlayerX;
@@ -152,6 +158,8 @@ void Application::updateOverworld(Uint32 deltaTime)
 		Npc& npc = mNpcs[i];
 		npc.updateMovement(deltaTime, mRouteChallengeNpc == (int)i ? 7.2f : 2.8f);
 		if (!npc.canWander()) continue;
+		if (npc.isRouteDuelist() && (mRouteChallengeNpc == (int)i ||
+			routeDuelistCanCatchPlayer((int)i))) continue;
 		if (npc.nextMoveAt == 0)
 		{
 			npc.scheduleWander(now);
@@ -165,7 +173,8 @@ void Application::updateOverworld(Uint32 deltaTime)
 			int nextX = npc.x + directionX[direction];
 			int nextY = npc.y + directionY[direction];
 			if (std::abs(nextX - npc.homeX) > 1 || std::abs(nextY - npc.homeY) > 1) continue;
-			if (!isWalkable(nextX, nextY) || npcAt(nextX, nextY, (int)i) >= 0) continue;
+			if (!isWalkable(nextX, nextY) || npcAt(nextX, nextY, (int)i) >= 0 ||
+				worldObjectAt(nextX, nextY) >= 0) continue;
 			if ((nextX == mPlayerX && nextY == mPlayerY) ||
 				(nextX == (int)std::round(mVisualX) && nextY == (int)std::round(mVisualY))) continue;
 			bool visuallyOccupied = false;
@@ -271,6 +280,7 @@ bool Application::routeDuelistNextStep(int npcIndex, int& nextX, int& nextY) con
 				current.second + directionY[direction]);
 			if (candidate.first == mPlayerX && candidate.second == mPlayerY) continue;
 			if (parents.count(candidate) || !isWalkable(candidate.first, candidate.second) ||
+				worldObjectAt(candidate.first, candidate.second) >= 0 ||
 				npcAt(candidate.first, candidate.second, npcIndex) >= 0) continue;
 			parents[candidate] = current;
 			depths[candidate] = depths[current] + 1;
@@ -282,7 +292,7 @@ bool Application::routeDuelistNextStep(int npcIndex, int& nextX, int& nextY) con
 
 void Application::updateRouteDuelistChallenge()
 {
-	if (mDialogueNpc >= 0 || mNpcMenuNpc >= 0 || mPauseMenuOpen ||
+	if (mDialogueNpc >= 0 || mDialogueObject >= 0 || mNpcMenuNpc >= 0 || mPauseMenuOpen ||
 		mOpeningPortal >= 0 || mStoryScene != StoryScene::None) return;
 	if (std::fabs(mPlayerX - mVisualX) > 0.001f ||
 		std::fabs(mPlayerY - mVisualY) > 0.001f) return;
@@ -345,7 +355,9 @@ bool Application::isWalkable(int x, int y) const
 {
 	const std::vector<std::string>& map = currentMap();
 	if (y < 0 || y >= (int)map.size() || x < 0 || x >= (int)map[y].size()) return false;
-	return WorldTiles::isWalkable(WorldTiles::fromGlyph(map[y][x]));
+	WorldTileId tile = WorldTiles::fromGlyph(map[y][x]);
+	if (tile == WorldTiles::BlackstoneGate && !hasCrest("confluence")) return false;
+	return WorldTiles::isWalkable(tile);
 }
 
 int Application::npcAt(int x, int y, int ignoredNpc) const
@@ -356,12 +368,29 @@ int Application::npcAt(int x, int y, int ignoredNpc) const
 	return -1;
 }
 
+int Application::worldObjectAt(int x, int y) const
+{
+	for (size_t i = 0; i < mWorldObjects.size(); ++i)
+		if (mWorldObjects[i].mapId == currentMapId() &&
+			mWorldObjects[i].x == x && mWorldObjects[i].y == y) return (int)i;
+	return -1;
+}
+
 void Application::tryMove(int dx, int dy)
 {
 	mFacingX = dx;
 	mFacingY = dy;
 	int x = mPlayerX + dx;
 	int y = mPlayerY + dy;
+	const std::vector<std::string>& map = currentMap();
+	if (y >= 0 && y < (int)map.size() && x >= 0 && x < (int)map[y].size() &&
+		WorldTiles::fromGlyph(map[y][x]) == WorldTiles::BlackstoneGate &&
+		!hasCrest("confluence"))
+	{
+		mNotice = "The Blackstone gate is sealed. Dragon Keep's Confluence relay must be restored.";
+		mNoticeUntil = SDL_GetTicks() + 4500;
+		return;
+	}
 	const WorldRegion* fromRegion = worldRegionAt(currentMapId(), mPlayerX, mPlayerY);
 	const WorldRegion* toRegion = worldRegionAt(currentMapId(), x, y);
 	if (mStoryStage < 4 && fromRegion != NULL && toRegion != NULL &&
@@ -378,7 +407,8 @@ void Application::tryMove(int dx, int dy)
 			x == (int)std::round(mNpcs[i].visualX) &&
 			y == (int)std::round(mNpcs[i].visualY))
 			occupiedByMovingNpc = true;
-	if (isWalkable(x, y) && npcAt(x, y) < 0 && !occupiedByMovingNpc)
+	if (isWalkable(x, y) && npcAt(x, y) < 0 && worldObjectAt(x, y) < 0 &&
+		!occupiedByMovingNpc)
 	{
 		mPlayerX = x;
 		mPlayerY = y;
@@ -442,7 +472,15 @@ void Application::interact()
 {
 	if (mOpeningPortal >= 0) return;
 	if (std::fabs(mPlayerX - mVisualX) > 0.001f || std::fabs(mPlayerY - mVisualY) > 0.001f) return;
-	int npcIndex = npcAt(mPlayerX + mFacingX, mPlayerY + mFacingY);
+	int targetX = mPlayerX + mFacingX;
+	int targetY = mPlayerY + mFacingY;
+	int objectIndex = worldObjectAt(targetX, targetY);
+	if (objectIndex >= 0)
+	{
+		beginObjectDialogue(objectIndex);
+		return;
+	}
+	int npcIndex = npcAt(targetX, targetY);
 	if (npcIndex < 0) return;
 	Npc& npc = mNpcs[npcIndex];
 	if (npc.isTownNpc())
@@ -459,6 +497,7 @@ void Application::beginDialogue(int npcIndex, const std::string& text, DialogueA
 {
 	if (npcIndex < 0 || npcIndex >= (int)mNpcs.size()) return;
 	mDialogueNpc = npcIndex;
+	mDialogueObject = -1;
 	mDialogueText = text;
 	mDialogueVisibleBytes = 0;
 	mDialogueCharacterAccumulator = 0;
@@ -467,9 +506,46 @@ void Application::beginDialogue(int npcIndex, const std::string& text, DialogueA
 	mMoveIntentX = mMoveIntentY = 0;
 }
 
+void Application::beginObjectDialogue(int objectIndex)
+{
+	if (objectIndex < 0 || objectIndex >= (int)mWorldObjects.size()) return;
+	WorldObject& object = mWorldObjects[objectIndex];
+	std::string dialogue = object.text;
+	if (object.kind == WorldObjectKind::DeckChest)
+	{
+		ensurePlayerDataLoaded();
+		if (mOpenedWorldObjects.count(object.id)) dialogue = object.openedText;
+		else
+		{
+			mOpenedWorldObjects.insert(object.id);
+			std::string error;
+			if (awardDeckReward(object.rewardDeck, object.rewardDeckName, error))
+			{
+				savePlayerProgress();
+				mNotice = "Found the " + object.rewardDeckName + " deck!";
+				mNoticeUntil = SDL_GetTicks() + 6500;
+			}
+			else
+			{
+				mOpenedWorldObjects.erase(object.id);
+				dialogue = error;
+			}
+		}
+	}
+	mDialogueNpc = -1;
+	mDialogueObject = objectIndex;
+	mDialogueText = dialogue;
+	mDialogueVisibleBytes = 0;
+	mDialogueCharacterAccumulator = 0;
+	mDialogueAction = DialogueAction::Close;
+	mMoveUp = mMoveDown = mMoveLeft = mMoveRight = false;
+	mMoveIntentX = mMoveIntentY = 0;
+}
+
 void Application::clearDialogue()
 {
 	mDialogueNpc = -1;
+	mDialogueObject = -1;
 	mDialogueText.clear();
 	mDialogueVisibleBytes = 0;
 	mDialogueCharacterAccumulator = 0;
@@ -478,7 +554,7 @@ void Application::clearDialogue()
 
 void Application::advanceDialogue()
 {
-	if (mDialogueNpc < 0) return;
+	if (mDialogueNpc < 0 && mDialogueObject < 0) return;
 	if (mDialogueVisibleBytes < mDialogueText.size())
 	{
 		mDialogueVisibleBytes = mDialogueText.size();
@@ -487,8 +563,10 @@ void Application::advanceDialogue()
 	}
 
 	int npcIndex = mDialogueNpc;
+	int objectIndex = mDialogueObject;
 	DialogueAction action = mDialogueAction;
 	clearDialogue();
+	if (objectIndex >= 0) return;
 	if (action == DialogueAction::ShowReward)
 	{
 		mRewardCardId = mPendingRewardCardId;
@@ -622,7 +700,8 @@ void Application::renderNpcMenu()
 
 void Application::updateDialogue(Uint32 deltaTime)
 {
-	if (mDialogueNpc < 0 || mDialogueVisibleBytes >= mDialogueText.size()) return;
+	if ((mDialogueNpc < 0 && mDialogueObject < 0) ||
+		mDialogueVisibleBytes >= mDialogueText.size()) return;
 	mDialogueCharacterAccumulator += deltaTime;
 	while (mDialogueCharacterAccumulator >= DIALOGUE_CHARACTER_DELAY &&
 		mDialogueVisibleBytes < mDialogueText.size())
@@ -657,22 +736,10 @@ void Application::renderOverworld()
 	fillRect({ 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT }, 13, 21, 34);
 	const std::vector<std::string>& map = currentMap();
 	const WorldRegion* cinderrailRegion = NULL;
-	const WorldRegion* watershedRegion = NULL;
-	const WorldRegion* oldRoadRegion = NULL;
-	const WorldRegion* glasswaterRegion = NULL;
-	const WorldRegion* rootmazeRegion = NULL;
 	for (size_t region = 0; region < mWorldRegions.size(); ++region)
 	{
 		if (mWorldRegions[region].mapId != currentMapId()) continue;
 		if (mWorldRegions[region].id == "cinderrail") cinderrailRegion = &mWorldRegions[region];
-		else if (mWorldRegions[region].id == "watershed_crossroads")
-			watershedRegion = &mWorldRegions[region];
-		else if (mWorldRegions[region].id == "old_road")
-			oldRoadRegion = &mWorldRegions[region];
-		else if (mWorldRegions[region].id == "glasswater")
-			glasswaterRegion = &mWorldRegions[region];
-		else if (mWorldRegions[region].id == "rootmaze")
-			rootmazeRegion = &mWorldRegions[region];
 	}
 	float cameraX = overworldCameraX();
 	float cameraY = overworldCameraY();
@@ -695,6 +762,7 @@ void Application::renderOverworld()
 			else if (tile == WorldTiles::WatershedPath) fillRect(tileRect, 148, 139, 105);
 			else if (tile == WorldTiles::GlasswaterPaving) fillRect(tileRect, 165, 199, 202);
 			else if (tile == WorldTiles::RootmazePath) fillRect(tileRect, 119, 134, 75);
+			else if (tile == WorldTiles::BlackstonePath) fillRect(tileRect, 111, 106, 96);
 			else if (tile == WorldTiles::Water) fillRect(tileRect, 25, 111, 157);
 			else if (tile == WorldTiles::House) fillRect(tileRect, 126, 65, 43);
 			else if (tile == WorldTiles::Forest || tile == WorldTiles::Tree)
@@ -744,6 +812,9 @@ void Application::renderOverworld()
 			else if (tile == WorldTiles::RootmazeWall) fillRect(tileRect, 109, 78, 47);
 			else if (tile == WorldTiles::RootmazeDoor) fillRect(tileRect, 126, 89, 50);
 			else if (tile == WorldTiles::RootmazeArena) fillRect(tileRect, 105, 154, 76);
+			else if (tile == WorldTiles::BlackstoneGround) fillRect(tileRect, 61, 59, 55);
+			else if (tile == WorldTiles::BlackstoneWall) fillRect(tileRect, 38, 37, 40);
+			else if (tile == WorldTiles::BlackstoneGate) fillRect(tileRect, 72, 67, 58);
 			else if (tile == WorldTiles::Rocks) fillRect(tileRect, 61, 139, 61);
 			else if (tile == WorldTiles::Bush) fillRect(tileRect, 49, 126, 54);
 			else if (tile == WorldTiles::Shrub) fillRect(tileRect, 61, 139, 61);
@@ -1246,119 +1317,34 @@ void Application::renderOverworld()
 				fillRect({ tileRect.x + 20, tileRect.y + 10, 7, 4 }, 52, 124, 181);
 				fillRect({ tileRect.x + 30, tileRect.y + 10, 7, 4 }, 202, 151, 63);
 			}
+			else if (tile == WorldTiles::BlackstoneGround)
+			{
+				fillRect({ tileRect.x + 7, tileRect.y + 11, 6, 4 }, 133, 126, 107);
+				fillRect({ tileRect.x + 31, tileRect.y + 34, 8, 4 }, 42, 41, 39);
+			}
+			else if (tile == WorldTiles::BlackstonePath)
+			{
+				fillRect({ tileRect.x + 3, tileRect.y + 6, 19, 13 }, 142, 136, 121);
+				fillRect({ tileRect.x + 27, tileRect.y + 28, 17, 11 }, 77, 75, 70);
+				fillRect({ tileRect.x + 20, tileRect.y + 20, 4, 4 }, 190, 151, 60);
+			}
+			else if (tile == WorldTiles::BlackstoneWall)
+			{
+				for (int course = 9; course < 45; course += 11)
+					fillRect({ tileRect.x + 2, tileRect.y + course, 44, 3 }, 20, 20, 22);
+				fillRect({ tileRect.x + 35, tileRect.y + 7, 6, 6 }, 192, 149, 52);
+			}
+			else if (tile == WorldTiles::BlackstoneGate)
+			{
+				fillRect({ tileRect.x + 3, tileRect.y + 2, 7, 44 }, 27, 27, 29);
+				fillRect({ tileRect.x + 38, tileRect.y + 2, 7, 44 }, 27, 27, 29);
+				if (!hasCrest("confluence"))
+					for (int bar = 13; bar < 38; bar += 8)
+						fillRect({ tileRect.x + bar, tileRect.y + 4, 4, 40 }, 202, 158, 57);
+				else
+					fillRect({ tileRect.x + 13, tileRect.y + 4, 24, 4 }, 202, 158, 57);
+			}
 		}
-	}
-	if (glasswaterRegion != NULL)
-	{
-		if (visibleTiles.intersects(glasswaterRegion->x + 36, glasswaterRegion->y + 18,
-			glasswaterRegion->x + 51, glasswaterRegion->y + 20))
-			drawText("TIDEGLASS SQUARE", mapX + (glasswaterRegion->x + 36) * TILE,
-				mapY + (glasswaterRegion->y + 18) * TILE + 10,
-				color(226, 239, 230), 12, 15 * TILE);
-		if (visibleTiles.intersects(glasswaterRegion->x + 8, glasswaterRegion->y + 17,
-			glasswaterRegion->x + 26, glasswaterRegion->y + 18))
-			drawText("LONG QUAY / FERRY", mapX + (glasswaterRegion->x + 8) * TILE,
-				mapY + (glasswaterRegion->y + 17) * TILE + 11,
-				color(130, 211, 226), 12, 18 * TILE);
-		if (visibleTiles.intersects(glasswaterRegion->x + 54, glasswaterRegion->y + 18,
-			glasswaterRegion->x + 69, glasswaterRegion->y + 19))
-			drawText("LEDGER WARD", mapX + (glasswaterRegion->x + 54) * TILE,
-				mapY + (glasswaterRegion->y + 18) * TILE + 10,
-				color(196, 164, 220), 12, 15 * TILE);
-		if (visibleTiles.intersects(glasswaterRegion->x + 79, glasswaterRegion->y + 18,
-			glasswaterRegion->x + 93, glasswaterRegion->y + 19))
-			drawText("TIDAL ARENA", mapX + (glasswaterRegion->x + 79) * TILE,
-				mapY + (glasswaterRegion->y + 18) * TILE + 10,
-				color(218, 228, 235), 12, 14 * TILE);
-		if (visibleTiles.intersects(glasswaterRegion->x + 18, glasswaterRegion->y + 34,
-			glasswaterRegion->x + 33, glasswaterRegion->y + 35))
-			drawText("SOUTH CANALS", mapX + (glasswaterRegion->x + 18) * TILE,
-				mapY + (glasswaterRegion->y + 34) * TILE + 10,
-				color(131, 208, 160), 12, 15 * TILE);
-		if (visibleTiles.intersects(glasswaterRegion->x + 84, glasswaterRegion->y + 35,
-			glasswaterRegion->x + 95, glasswaterRegion->y + 36))
-			drawText("WATERSHED GATE", mapX + (glasswaterRegion->x + 84) * TILE,
-				mapY + (glasswaterRegion->y + 35) * TILE + 10,
-				color(219, 211, 159), 11, 12 * TILE);
-	}
-	if (rootmazeRegion != NULL)
-	{
-		if (visibleTiles.intersects(rootmazeRegion->x + 40, rootmazeRegion->y + 17,
-			rootmazeRegion->x + 59, rootmazeRegion->y + 19))
-			drawText("GREATROOT COMMON", mapX + (rootmazeRegion->x + 40) * TILE,
-				mapY + (rootmazeRegion->y + 17) * TILE + 10,
-				color(224, 221, 150), 12, 19 * TILE);
-		if (visibleTiles.intersects(rootmazeRegion->x + 55, rootmazeRegion->y + 11,
-			rootmazeRegion->x + 73, rootmazeRegion->y + 12))
-			drawText("WATERSTEP MARKET", mapX + (rootmazeRegion->x + 55) * TILE,
-				mapY + (rootmazeRegion->y + 11) * TILE + 10,
-				color(126, 201, 205), 11, 18 * TILE);
-		if (visibleTiles.intersects(rootmazeRegion->x + 7, rootmazeRegion->y + 19,
-			rootmazeRegion->x + 23, rootmazeRegion->y + 20))
-			drawText("HEARTROOT", mapX + (rootmazeRegion->x + 7) * TILE,
-				mapY + (rootmazeRegion->y + 19) * TILE + 10,
-				color(151, 211, 117), 12, 16 * TILE);
-		if (visibleTiles.intersects(rootmazeRegion->x + 6, rootmazeRegion->y + 36,
-			rootmazeRegion->x + 23, rootmazeRegion->y + 37))
-			drawText("VERDANT ARENA", mapX + (rootmazeRegion->x + 6) * TILE,
-				mapY + (rootmazeRegion->y + 36) * TILE + 10,
-				color(221, 218, 139), 12, 17 * TILE);
-		if (visibleTiles.intersects(rootmazeRegion->x + 39, rootmazeRegion->y + 38,
-			rootmazeRegion->x + 63, rootmazeRegion->y + 39))
-			drawText("SOUTHROOT GREEN", mapX + (rootmazeRegion->x + 39) * TILE,
-				mapY + (rootmazeRegion->y + 38) * TILE + 10,
-				color(159, 218, 116), 12, 20 * TILE);
-		if (visibleTiles.intersects(rootmazeRegion->x + 84, rootmazeRegion->y + 6,
-			rootmazeRegion->x + 95, rootmazeRegion->y + 7))
-			drawText("NORTHWATER", mapX + (rootmazeRegion->x + 84) * TILE,
-				mapY + (rootmazeRegion->y + 6) * TILE + 10,
-				color(128, 193, 213), 11, 12 * TILE);
-	}
-	if (watershedRegion != NULL)
-	{
-		if (visibleTiles.intersects(watershedRegion->x + 51, watershedRegion->y + 34,
-			watershedRegion->x + 70, watershedRegion->y + 35))
-			drawText("WATERSHED CROSSROADS", mapX + (watershedRegion->x + 51) * TILE,
-				mapY + (watershedRegion->y + 34) * TILE + 12,
-				color(237, 220, 157), 12, 18 * TILE);
-		if (visibleTiles.intersects(watershedRegion->x + 1, watershedRegion->y + 19,
-			watershedRegion->x + 9, watershedRegion->y + 21))
-			drawText("GLASSWATER", mapX + (watershedRegion->x + 1) * TILE,
-				mapY + (watershedRegion->y + 19) * TILE + 12,
-				color(112, 192, 229), 12, 8 * TILE);
-		if (visibleTiles.intersects(watershedRegion->x + 1, watershedRegion->y + 42,
-			watershedRegion->x + 9, watershedRegion->y + 44))
-			drawText("ROOTMAZE", mapX + (watershedRegion->x + 1) * TILE,
-				mapY + (watershedRegion->y + 42) * TILE + 12,
-				color(122, 206, 115), 12, 8 * TILE);
-		if (visibleTiles.intersects(watershedRegion->x + 55, watershedRegion->y + 24,
-			watershedRegion->x + 67, watershedRegion->y + 26))
-			drawText("TOLL SHELTER", mapX + (watershedRegion->x + 55) * TILE,
-				mapY + (watershedRegion->y + 24) * TILE + 12,
-				color(211, 185, 129), 11, 12 * TILE);
-		if (visibleTiles.intersects(watershedRegion->x + 109, watershedRegion->y + 34,
-			watershedRegion->x + 127, watershedRegion->y + 36))
-			drawText("EMBERGLEN", mapX + (watershedRegion->x + 109) * TILE,
-				mapY + (watershedRegion->y + 34) * TILE + 12,
-				color(225, 178, 91), 12, 10 * TILE);
-	}
-	if (oldRoadRegion != NULL)
-	{
-		if (visibleTiles.intersects(oldRoadRegion->x + 35, oldRoadRegion->y + 23,
-			oldRoadRegion->x + 51, oldRoadRegion->y + 25))
-			drawText("THE OLD ROAD", mapX + (oldRoadRegion->x + 35) * TILE,
-				mapY + (oldRoadRegion->y + 23) * TILE + 12,
-				color(215, 197, 157), 12, 14 * TILE);
-		if (visibleTiles.intersects(oldRoadRegion->x + 59, oldRoadRegion->y + 35,
-			oldRoadRegion->x + 76, oldRoadRegion->y + 37))
-			drawText("WAYFARER CAMP", mapX + (oldRoadRegion->x + 59) * TILE,
-				mapY + (oldRoadRegion->y + 35) * TILE + 12,
-				color(234, 173, 91), 11, 14 * TILE);
-		if (visibleTiles.intersects(oldRoadRegion->x + 8, oldRoadRegion->y + 6,
-			oldRoadRegion->x + 23, oldRoadRegion->y + 8))
-			drawText("ABANDONED CUT", mapX + (oldRoadRegion->x + 8) * TILE,
-				mapY + (oldRoadRegion->y + 6) * TILE + 12,
-				color(176, 169, 151), 11, 14 * TILE);
 	}
 	if (cinderrailRegion != NULL)
 	{
@@ -1374,26 +1360,6 @@ void Application::renderOverworld()
 			fillRect({ stationX + 46, stationY + 25, 3, 13 }, 61, 56, 52);
 			fillRect({ stationX + 47, stationY + 36, 10, 3 }, 61, 56, 52);
 		}
-		if (visibleTiles.intersects(cinderrailRegion->x + 4, cinderrailRegion->y + 4,
-			cinderrailRegion->x + 13, cinderrailRegion->y + 5))
-			drawText("CENTRAL STATION", mapX + (cinderrailRegion->x + 4) * TILE,
-				mapY + (cinderrailRegion->y + 4) * TILE + 14,
-				color(250, 211, 104), 12, 9 * TILE);
-		if (visibleTiles.intersects(cinderrailRegion->x + 21, cinderrailRegion->y + 13,
-			cinderrailRegion->x + 30, cinderrailRegion->y + 14))
-			drawText("FORGE SQUARE", mapX + (cinderrailRegion->x + 21) * TILE,
-				mapY + (cinderrailRegion->y + 13) * TILE + 12,
-				color(244, 207, 92), 12, 9 * TILE);
-		if (visibleTiles.intersects(cinderrailRegion->x + 42, cinderrailRegion->y + 13,
-			cinderrailRegion->x + 50, cinderrailRegion->y + 14))
-			drawText("FOUNDRY HALL", mapX + (cinderrailRegion->x + 42) * TILE,
-				mapY + (cinderrailRegion->y + 13) * TILE + 12,
-				color(248, 205, 102), 12, 8 * TILE);
-		if (visibleTiles.intersects(cinderrailRegion->x + 42, cinderrailRegion->y + 23,
-			cinderrailRegion->x + 50, cinderrailRegion->y + 24))
-			drawText("FORGE ARENA", mapX + (cinderrailRegion->x + 42) * TILE,
-				mapY + (cinderrailRegion->y + 23) * TILE + 12,
-				color(255, 219, 137), 12, 8 * TILE);
 	}
 
 	for (size_t i = 0; i < mNpcs.size(); ++i)
@@ -1415,6 +1381,43 @@ void Application::renderOverworld()
 				trainerChallenge ? 68 : 78, 255, 2);
 			drawText("!", markerX + 2, markerY,
 				trainerChallenge ? color(255, 151, 92) : color(255, 225, 111), 16);
+		}
+	}
+	for (size_t i = 0; i < mWorldObjects.size(); ++i)
+	{
+		const WorldObject& object = mWorldObjects[i];
+		if (object.mapId != currentMapId() || !visibleTiles.contains(object.x, object.y))
+			continue;
+		int x = mapX + object.x * TILE;
+		int y = mapY + object.y * TILE;
+		if (object.kind == WorldObjectKind::Signpost)
+		{
+			fillRect({ x + 21, y + 17, 6, 29 }, 77, 48, 29, 255);
+			fillRect({ x + 6, y + 7, 36, 18 }, 166, 111, 50, 255);
+			fillRect({ x + 9, y + 10, 30, 3 }, 213, 159, 76, 255);
+			outlineRect({ x + 6, y + 7, 36, 18 }, 62, 38, 24, 255, 2);
+			fillRect({ x + 14, y + 16, 20, 3 }, 85, 55, 30, 255);
+		}
+		else
+		{
+			bool opened = mOpenedWorldObjects.count(object.id) != 0;
+			fillRect({ x + 7, y + 23, 34, 20 }, 111, 65, 31, 255);
+			outlineRect({ x + 7, y + 23, 34, 20 }, 50, 31, 22, 255, 2);
+			fillRect({ x + 10, y + 26, 28, 4 }, opened ? 38 : 151,
+				opened ? 30 : 92, opened ? 28 : 42, 255);
+			if (opened)
+			{
+				fillRect({ x + 8, y + 12, 32, 6 }, 105, 61, 31, 255);
+				fillRect({ x + 10, y + 8, 28, 5 }, 146, 88, 40, 255);
+				outlineRect({ x + 8, y + 8, 32, 10 }, 53, 34, 23, 255, 2);
+			}
+			else
+			{
+				fillRect({ x + 7, y + 16, 34, 10 }, 151, 88, 38, 255);
+				outlineRect({ x + 7, y + 16, 34, 10 }, 50, 31, 22, 255, 2);
+			}
+			fillRect({ x + 21, y + 25, 7, 10 }, 218, 171, 62, 255);
+			fillRect({ x + 23, y + 27, 3, 4 }, 255, 222, 116, 255);
 		}
 	}
 	for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
@@ -1443,27 +1446,32 @@ void Application::renderOverworld()
 		drawText(mNotice, 48, 19, color(113, 232, 143), 16, 1178);
 	}
 
-	if (mDialogueNpc >= 0)
+	if (mDialogueNpc >= 0 || mDialogueObject >= 0)
 	{
-		const Npc& npc = mNpcs[mDialogueNpc];
 		fillRect({ 40, 646, 1200, 128 }, 16, 22, 36, 248);
 		outlineRect({ 40, 646, 1200, 128 }, 194, 148, 62, 255, 3);
-		drawText(npc.name, 68, 664, color(244, 206, 103), 25);
+		const std::string speaker = mDialogueObject >= 0 ?
+			mWorldObjects[mDialogueObject].name : mNpcs[mDialogueNpc].name;
+		drawText(speaker, 68, 664, color(244, 206, 103), 25);
 		std::string dialogue = mDialogueText.substr(0, mDialogueVisibleBytes);
 		bool fullyRevealed = mDialogueVisibleBytes >= mDialogueText.size();
 		std::string prompt = "E / Click: continue";
-		if (mDialogueAction == DialogueAction::OpenNpcMenu)
+		if (mDialogueObject >= 0)
+			prompt = "E / Click: close";
+		else if (mDialogueAction == DialogueAction::OpenNpcMenu)
 			prompt = "E / Click: choices";
 		else if (mDialogueAction == DialogueAction::ReturnToNpcMenu)
 			prompt = "E / Click: back to choices";
 		else if (mDialogueAction == DialogueAction::ForcedBattle)
 			prompt = "Trainer challenge  •  E / Click: battle";
-		else if (mDialogueAction == DialogueAction::NpcInteraction && npc.isComplete())
+		else if (mDialogueAction == DialogueAction::NpcInteraction &&
+			mNpcs[mDialogueNpc].isComplete())
 		{
 			prompt = "E / Click: close";
 		}
-		else if (mDialogueAction == DialogueAction::NpcInteraction && npc.isDuelist())
-			prompt = npc.rankName() + "  •  E / Click: battle";
+		else if (mDialogueAction == DialogueAction::NpcInteraction &&
+			mNpcs[mDialogueNpc].isDuelist())
+			prompt = mNpcs[mDialogueNpc].rankName() + "  •  E / Click: battle";
 		drawText(dialogue, 68, 704, color(232, 237, 246), 19, 1080);
 		if (fullyRevealed)
 		{
@@ -1472,7 +1480,7 @@ void Application::renderOverworld()
 			drawText("▼", 1191, 739 + arrowOffset, color(244, 206, 103), 17);
 		}
 	}
-	if (mDialogueNpc < 0) renderStoryScene();
+	if (mDialogueNpc < 0 && mDialogueObject < 0) renderStoryScene();
 	if (mNpcMenuNpc >= 0) renderNpcMenu();
 	if (mPauseMenuOpen) renderPauseMenu();
 }

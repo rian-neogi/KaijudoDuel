@@ -35,13 +35,13 @@ Walking near a named landmark records it permanently in the player's route disco
 | --- | --- | --- | --- |
 | Old Road | Emberglen ↔ Cinderrail Foundry | After Act I | Implemented |
 | Watershed Crossroads | Emberglen ↔ Glasswater Port ↔ Rootmaze Commons | After Act I | Implemented |
-| Blackstone Road | Emberglen ↔ Gloam Quarry | After Confluence relay | Planned |
+| Blackstone Road | Emberglen ↔ Gloam Quarry | After Confluence relay | Implemented |
 | Fivefold Highway | Emberglen ↔ Dragon Keep | Midpoint route | Planned |
 | Lilyreed Ferry | Glasswater Port ↔ Lilyreed Village | First optional tier | Planned |
 | Rootrail Greenway | Rootmaze Commons ↔ Cinderrail Foundry | First open-world tier | Planned |
 | Honeyroot Trail | Rootmaze Commons ↔ Honeyreach | First optional tier | Planned |
-| Kiln Descent | Cinderrail Foundry ↔ Gloam Quarry | After Confluence relay | Planned |
-| Artisan Road | Cinderrail Foundry ↔ Clayhearth | First optional tier | Planned |
+| The Lowlands | Cinderrail Foundry ↔ Gloam Quarry | After Confluence relay | Planned |
+| Offshoot Path | Cinderrail Foundry ↔ Clayhearth | First optional tier | Planned |
 | Western Crossroads | Dragon Keep ↔ Mirror Arena ↔ Ribbonfair | After Confluence relay | Planned |
 | Courier Rise | Dragon Keep ↔ Stormbreak Plateau | After Confluence relay | Planned |
 | Eastern Crossroads | Dragon Keep ↔ Mirror Arena ↔ Sunspire Cloister | After Confluence relay | Planned |
@@ -61,7 +61,7 @@ Walking near a named landmark records it permanently in the player's route disco
 
 The Old Road is a former primary freight route whose traffic declined as newer links opened. It gradually changes from Emberglen woodland into the rocky ridge surrounding Cinderrail. Its expanded 96-by-48 map includes a winding cobbled path, several stream crossings, timber bridges, an old maintenance checkpoint, waystones, forest banks, exposed stone, and a broken freight cut.
 
-Rook maintains the western bridge and checkpoint. His position gives the connector a familiar character without turning it into another settlement. Beyond him, northern and southern loops leave the maintained road for abandoned works, rockfall country, and Wayfarer Camp. Cairn challenges explorers near the abandoned cut, while Mara Flintway watches the remote camp and eastern loop. Four civilization shards sit well away from the shortest crossing. The road's western gate returns to Emberglen, while its eastern gate enters Cinderrail near the gold-marked arrival road.
+Rook maintains the western bridge and checkpoint. His position gives the connector a familiar character without turning it into another settlement. Beyond him, northern and southern loops leave the maintained road for abandoned works, rockfall country, and Wayfarer Camp. Cairn challenges explorers near the abandoned cut, where a weathered freight chest contains the complete Fire/Nature Wayfarer's Cache deck. Mara Flintway watches the remote camp and eastern loop. Four civilization shards sit well away from the shortest crossing. The road's western gate returns to Emberglen, while its eastern gate enters Cinderrail near the gold-marked arrival road.
 
 The route discoveries are the Abandoned Freight Cut, Rook's Checkpoint, and Wayfarer Camp.
 
@@ -85,11 +85,11 @@ The route discoveries are Northwater Pools, the Old Toll Shelter, and the Drowne
 
 **Connects:** Emberglen's southern road ↔ Gloam Quarry's western caravan yard  
 **Availability:** Opens after the Confluence relay restores the outer tier  
-**Status:** Planned
+**Status:** Implemented as the `blackstone_road` region of the seamless `overworld` map in `Lua/World.lua`
 
 Blackstone Road is the longest direct route back from Gloam to the central hub. Orchard walls and timber bridges give way to dark retaining blocks, carved mileage records, and gold lantern cages maintained jointly by both towns.
 
-The route should contain a sheltered midpoint camp, an abandoned stone-loading platform, and an overlook toward the quarry. Before the outer tier opens, a staffed checkpoint explains the closure without making the road appear physically destroyed.
+The 96-by-96 route contains a sheltered midpoint camp, three optional exploration loops, an abandoned stone-loading platform, and an overlook toward the quarry. Its northern relay gate is physically closed at first, with a checkpoint sign explaining the closure. Earning the Confluence Crest restores the relay and opens the gate permanently.
 
 ### Fivefold Highway
 
@@ -104,17 +104,7 @@ The map should include milestone plazas, a caravan shelter, relay lines, and a v
 
 ## First-tier regional loop
 
-### Rootrail Greenway
-
-**Connects:** Rootmaze Commons' southeastern road ↔ Cinderrail Foundry's northwestern greenway  
-**Availability:** First open-world tier  
-**Status:** Planned
-
-Rootrail Greenway carries lumber, herbs, repair timbers, and creature-care supplies toward Cinderrail. Living roots transition into reinforced timber bridges and eventually red-brick freight platforms.
-
-The route should include a shared trade platform, a water station, and a safe crossing beneath an inactive freight spur. Red route marks point toward Cinderrail, while green marks lead back to Rootmaze.
-
-### Kiln Descent
+### The Lowlands
 
 **Connects:** Cinderrail Foundry's southern First Kiln road ↔ Gloam Quarry's eastern freight switchback  
 **Availability:** Opens after the Confluence relay restores the outer tier  

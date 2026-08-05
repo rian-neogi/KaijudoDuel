@@ -137,6 +137,7 @@ void Application::resetPlayerDataState()
 	mCollectedShards.clear();
 	mMercerShards.clear();
 	mDiscoveredLandmarks.clear();
+	mOpenedWorldObjects.clear();
 	mCollectionCounts.clear();
 	mPlayerDecks.clear();
 	mActiveDeckPath = STARTER_DECK_PATH;
@@ -166,6 +167,7 @@ void Application::resetPlayerDataState()
 	mMoveIntentX = mMoveIntentY = 0;
 	mOpeningPortal = -1;
 	mDialogueNpc = -1;
+	mDialogueObject = -1;
 	mDialogueAction = DialogueAction::None;
 	mNpcMenuNpc = -1;
 	mRouteChallengeNpc = -1;

@@ -64,7 +64,7 @@ still be used for a deck elsewhere; if that path exists, it takes priority.
 
 ## Route duelist template
 
-Before their first defeat, route duelists detect the player anywhere inside their configured taxicab-distance radius. Detection is independent of facing. The trainer displays an exclamation mark, stops player movement, and follows a cardinal path around walkable obstacles until adjacent before delivering `greeting` and starting a forced duel. Losing does not permanently lock the player in another challenge; leaving and re-entering the radius re-arms it. Later battles are voluntary rematches. Route duelists may be positioned in towns or connecting regions.
+Route duelists wander within the 3-by-3 area centered on their authored `World.lua` position. Before their first defeat, they detect the player anywhere inside their configured taxicab-distance radius. Detection is independent of facing. The trainer stops wandering as soon as the player is detected, displays an exclamation mark, stops player movement, and follows a cardinal path around walkable obstacles until adjacent before delivering `greeting` and starting a forced duel. Losing does not permanently lock the player in another challenge; leaving and re-entering the radius re-arms it. Later battles are voluntary rematches. Route duelists may be positioned in towns or connecting regions.
 
 ```lua
 {
@@ -88,7 +88,7 @@ Before their first defeat, route duelists detect the player anywhere inside thei
 }
 ```
 
-Sight ranges must be from 1 through 12 and are measured as Manhattan/taxicab distance: `abs(playerX - trainerX) + abs(playerY - trainerY)`. Route duelists do not wander, keeping their authored encounter radius predictable.
+Sight ranges must be from 1 through 12 and are measured as Manhattan/taxicab distance: `abs(playerX - trainerX) + abs(playerY - trainerY)`. The encounter radius follows the trainer's current position while they wander.
 
 Generic sprites are divided into `generic-male-1` through `generic-male-10`
 and `generic-female-1` through `generic-female-10`. Matching numbers retain

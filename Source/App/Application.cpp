@@ -22,13 +22,15 @@ Application::Application(bool worldBuilder)
 	  mOpeningPortal(-1), mPortalAnimationStarted(0),
 	  mWorldStartX(2), mWorldStartY(10), mPlayerX(2), mPlayerY(10), mFacingX(1), mFacingY(0),
 	  mMoveUp(false), mMoveDown(false), mMoveLeft(false), mMoveRight(false), mMoveIntentX(0), mMoveIntentY(0),
-	  mVisualX(2.f), mVisualY(10.f), mDialogueNpc(-1), mDialogueVisibleBytes(0),
+	  mVisualX(2.f), mVisualY(10.f), mDialogueNpc(-1), mDialogueObject(-1),
+	  mDialogueVisibleBytes(0),
 	  mDialogueCharacterAccumulator(0), mDialogueAction(DialogueAction::None),
 	  mNpcMenuNpc(-1), mNpcMenuSelection(0), mRouteChallengeNpc(-1), mNoticeUntil(0),
 	  mRegionBannerStarted(0), mRegionBannerConnector(false),
 	  mStoryStage(0), mStoryClues(0), mStoryScene(StoryScene::None), mStoryScenePage(0),
-	  mWorldBuilderTab(WorldBuilderTab::Tiles), mWorldBuilderTile(WorldTiles::Grass), mWorldBuilderSelectedNpc(-1),
-	  mWorldBuilderSelectedShard(-1), mWorldBuilderListScroll(0), mWorldBuilderCameraX(0),
+	  mWorldBuilderTab(WorldBuilderTab::Tiles), mWorldBuilderTile(WorldTiles::Grass),
+	  mWorldBuilderTileCategory(0), mWorldBuilderSelectedNpc(-1),
+	  mWorldBuilderSelectedObject(-1), mWorldBuilderListScroll(0), mWorldBuilderCameraX(0),
 	  mWorldBuilderCameraY(0), mWorldBuilderTileSize(TILE),
 	  mWorldBuilderTileScaleActive(false), mWorldBuilderTileScaleDestination({ 0, 0, TILE, TILE }),
 	  mWorldBuilderMoveUp(false), mWorldBuilderMoveDown(false),
@@ -63,6 +65,13 @@ Application::Application(bool worldBuilder)
 		if (!mNpcMetadataError.empty()) mNpcMetadataError += "\n";
 		mNpcMetadataError += "Unable to load Mercer stock: " + stockError;
 		std::cerr << "Unable to load Mercer stock: " << stockError << std::endl;
+	}
+	std::string objectError;
+	if (!loadWorldObjectsFromLua("Lua/Objects.lua", mWorldObjects, objectError))
+	{
+		if (!mNpcMetadataError.empty()) mNpcMetadataError += "\n";
+		mNpcMetadataError += "Unable to load overworld objects: " + objectError;
+		std::cerr << "Unable to load overworld objects: " << objectError << std::endl;
 	}
 	std::string worldError;
 	if (!loadWorldMap("Lua/World.lua", worldError, worldBuilder))

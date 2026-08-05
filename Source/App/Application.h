@@ -2,6 +2,7 @@
 
 #include "App/MercerStock.h"
 #include "App/Npc.h"
+#include "App/WorldObject.h"
 #include "App/WorldTile.h"
 #include "Game/Duel.h"
 
@@ -42,7 +43,7 @@ private:
 	{
 		Tiles,
 		Npcs,
-		Shards
+		Objects
 	};
 	enum class StoryScene
 	{
@@ -192,7 +193,9 @@ private:
 	void collectShardAt(int x, int y);
 	void discoverLandmarkAt(int x, int y);
 	void interact();
+	int worldObjectAt(int x, int y) const;
 	void beginDialogue(int npcIndex, const std::string& text, DialogueAction action);
+	void beginObjectDialogue(int objectIndex);
 	void clearDialogue();
 	void advanceDialogue();
 	void updateDialogue(Uint32 deltaTime);
@@ -227,7 +230,7 @@ private:
 	SDL_Rect worldBuilderTileRect(const SDL_Rect& rect) const;
 	void paintWorldBuilderTile(int x, int y);
 	void placeWorldBuilderSelection(int x, int y);
-	bool worldBuilderCanPlace(int x, int y, int ignoredNpc, int ignoredShard) const;
+	bool worldBuilderCanPlace(int x, int y, int ignoredNpc, int ignoredObject) const;
 	bool saveWorldBuilder(std::string& error);
 	void showWorldBuilderNotice(const std::string& notice, bool error = false);
 
@@ -317,6 +320,8 @@ private:
 	bool savePlayerProgress();
 	void saveSettings();
 	void awardNpcVictory(int npcIndex);
+	bool awardDeckReward(const std::string& sourcePath, const std::string& name,
+		std::string& error);
 	bool handleRewardPopupEvent(const SDL_Event& event);
 	void renderRewardPopup();
 
@@ -358,6 +363,7 @@ private:
 	int mWorldStartX;
 	int mWorldStartY;
 	std::vector<Npc> mNpcs;
+	std::vector<WorldObject> mWorldObjects;
 	MercerStockData mMercerStock;
 	std::string mNpcMetadataError;
 	int mPlayerX;
@@ -373,6 +379,7 @@ private:
 	float mVisualX;
 	float mVisualY;
 	int mDialogueNpc;
+	int mDialogueObject;
 	std::string mDialogueText;
 	size_t mDialogueVisibleBytes;
 	Uint32 mDialogueCharacterAccumulator;
@@ -393,8 +400,10 @@ private:
 	int mStoryScenePage;
 	WorldBuilderTab mWorldBuilderTab;
 	WorldTileId mWorldBuilderTile;
+	int mWorldBuilderTileCategory;
+	std::string mWorldBuilderHoveredTileName;
 	int mWorldBuilderSelectedNpc;
-	int mWorldBuilderSelectedShard;
+	int mWorldBuilderSelectedObject;
 	int mWorldBuilderListScroll;
 	int mWorldBuilderCameraX;
 	int mWorldBuilderCameraY;
@@ -457,6 +466,7 @@ private:
 	std::set<std::string> mCollectedShards;
 	std::set<std::string> mMercerShards;
 	std::set<std::string> mDiscoveredLandmarks;
+	std::set<std::string> mOpenedWorldObjects;
 	std::vector<int> mCollectionCounts;
 	std::vector<PlayerDeck> mPlayerDecks;
 	std::string mActiveDeckPath;

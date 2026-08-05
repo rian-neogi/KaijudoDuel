@@ -145,7 +145,7 @@ The late side roads lead to **Cloudrest**, **Lanternfen**, and **Ribbonfair**. L
 ### Returning NPC roles
 
 - Aurelia assists at Sunspire and learns that mercy without listening can become control.
-- Marin and Tidal investigate the copied predictions at Glasswater from opposing philosophical angles.
+- Marin and Garran investigate the copied predictions at Glasswater from opposing philosophical angles.
 - Flint helps break the forced-duel machinery at Cinderrail.
 - Rook and Briar guide displaced creatures through Rootmaze.
 - Mira and Nyx enter Gloam Quarry, where the Curator's promise is most tempting.

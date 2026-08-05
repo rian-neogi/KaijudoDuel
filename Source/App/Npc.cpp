@@ -149,6 +149,7 @@ Npc Npc::routeDuelist(int x, int y, const std::string& name,
 {
 	Npc npc(x, y, name, decks, challenge, rewards, NpcKind::RouteDuelist, appearance);
 	npc.duelEnabled = true;
+	npc.wanders = true;
 	npc.sightRange = trainerSightRange;
 	return npc;
 }

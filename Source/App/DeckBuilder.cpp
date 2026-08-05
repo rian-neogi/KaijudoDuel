@@ -86,7 +86,8 @@ namespace
 		for (size_t i = 0; i < name.size(); ++i)
 		{
 			unsigned char ch = (unsigned char)name[i];
-			if (std::isalnum(ch) || ch == ' ' || ch == '-' || ch == '_') safe.push_back((char)ch);
+		if (std::isalnum(ch) || ch == ' ' || ch == '-' || ch == '_' || ch == '\'')
+			safe.push_back((char)ch);
 		}
 		while (!safe.empty() && safe.back() == ' ') safe.pop_back();
 		while (!safe.empty() && safe.front() == ' ') safe.erase(safe.begin());
@@ -323,6 +324,20 @@ void Application::ensurePlayerDataLoaded()
 			}
 			continue;
 		}
+		const std::string openedObjectPrefix = "object.opened.";
+		if (line.find(openedObjectPrefix) == 0)
+		{
+			size_t equals = line.find('=', openedObjectPrefix.size());
+			if (equals == std::string::npos ||
+				std::atoi(line.substr(equals + 1).c_str()) != 1) continue;
+			std::string objectId = line.substr(openedObjectPrefix.size(),
+				equals - openedObjectPrefix.size());
+			for (size_t i = 0; i < mWorldObjects.size(); ++i)
+				if (mWorldObjects[i].id == objectId &&
+					mWorldObjects[i].kind == WorldObjectKind::DeckChest)
+					mOpenedWorldObjects.insert(objectId);
+			continue;
+		}
 		if (line.find("npc.") != 0) continue;
 		size_t equals = line.find('=');
 		if (equals == std::string::npos) continue;
@@ -385,6 +400,9 @@ bool Application::savePlayerProgress()
 		if (mCollectedShards.count(shardId)) progress << "shard.collected." << shardId << "=1\n";
 		if (mMercerShards.count(shardId)) progress << "shard.mercer." << shardId << "=1\n";
 	}
+	for (size_t i = 0; i < mWorldObjects.size(); ++i)
+		if (mOpenedWorldObjects.count(mWorldObjects[i].id))
+			progress << "object.opened." << mWorldObjects[i].id << "=1\n";
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 		if (mNpcs[i].isDuelist()) progress << "npc." << mNpcs[i].id << "=" << mNpcs[i].wins << "\n";
 	return collection.good() && progress.good();
@@ -424,6 +442,68 @@ void Application::awardNpcVictory(int npcIndex)
 	if (awardedCard) mNotice += "+1 " + reward.card + " and ";
 	mNotice += "+" + std::to_string(reward.gold) + " gold.";
 	mNoticeUntil = SDL_GetTicks() + 6500;
+}
+
+bool Application::awardDeckReward(const std::string& sourcePath,
+	const std::string& requestedName, std::string& error)
+{
+	error.clear();
+	ensurePlayerDataLoaded();
+	std::string resolvedPath;
+	if (!resolveDeckPath(sourcePath, resolvedPath))
+	{
+		error = "The abandoned deck file is missing.";
+		return false;
+	}
+
+	PlayerDeck reward;
+	reward.name = safeDeckName(requestedName);
+	std::ifstream source(resolvedPath.c_str());
+	std::string line;
+	int total = 0;
+	while (std::getline(source, line))
+	{
+		int count = 0;
+		std::string cardName;
+		if (!parseDeckLine(line, count, cardName)) continue;
+		int cardId = getCardIdFromName(cardName);
+		if (cardId < 0 || cardId >= (int)mCollectionCounts.size())
+		{
+			error = "The abandoned deck contains an unknown card: " + cardName;
+			return false;
+		}
+		reward.cards[cardId] += count;
+		total += count;
+	}
+	if (total < MINIMUM_DECK_SIZE)
+	{
+		error = "The abandoned deck does not contain at least 40 cards.";
+		return false;
+	}
+
+	std::string baseName = reward.name;
+	for (int suffix = 2;; ++suffix)
+	{
+		bool duplicate = false;
+		for (size_t i = 0; i < mPlayerDecks.size(); ++i)
+			if (mPlayerDecks[i].name == reward.name) duplicate = true;
+		if (!duplicate) break;
+		reward.name = baseName + " " + std::to_string(suffix);
+	}
+	for (std::map<int, int>::const_iterator card = reward.cards.begin();
+		card != reward.cards.end(); ++card)
+		mCollectionCounts[card->first] += card->second;
+	reward.dirty = true;
+	mPlayerDecks.push_back(reward);
+	int rewardIndex = (int)mPlayerDecks.size() - 1;
+	if (saveDeck(rewardIndex)) return true;
+
+	for (std::map<int, int>::const_iterator card = reward.cards.begin();
+		card != reward.cards.end(); ++card)
+		mCollectionCounts[card->first] -= card->second;
+	mPlayerDecks.pop_back();
+	error = "The abandoned deck could not be saved.";
+	return false;
 }
 
 int Application::deckCardCount(const PlayerDeck& deck) const
