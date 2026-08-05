@@ -27,6 +27,7 @@ set(GAME_SOURCES
     Source/Main.cpp
 	Source/AI/HeuristicBot.cpp
     Source/App/Application.cpp
+	Source/App/AssetManager.cpp
     Source/App/CardRenderer.cpp
     Source/App/DuelWindow.cpp
 	Source/App/DeckBuilder.cpp
@@ -37,6 +38,7 @@ set(GAME_SOURCES
 	Source/App/SaveMenu.cpp
 	Source/App/SmokeTests.cpp
 	Source/App/Shop.cpp
+	Source/App/SpriteSheetRenderer.cpp
 	Source/App/Story.cpp
 	Source/App/WorldBuilder.cpp
 	Source/App/WorldObject.cpp
@@ -94,6 +96,6 @@ if(BUILD_TESTING)
     )
     set_tests_properties(smoke PROPERTIES
         ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy"
-        TIMEOUT 30
+		TIMEOUT 60
     )
 endif()

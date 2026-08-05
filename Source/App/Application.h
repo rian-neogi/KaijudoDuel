@@ -17,6 +17,8 @@
 #include <vector>
 
 class SoundManager;
+class AssetManager;
+class SpriteSheetRenderer;
 
 class Application
 {
@@ -295,9 +297,9 @@ private:
 	void drawZone(const std::vector<Card*>& cards, int x, int y, int width, int cardWidth, int cardHeight, bool faceUp, bool clickable);
 	void drawHand(const std::vector<Card*>& cards, bool opponent);
 	void drawCharacter(float gridX, float gridY, CharacterAppearance appearance,
-		bool completed, bool walking = false);
+		bool completed, bool walking = false, int facingX = 0, int facingY = 1);
 	void drawCharacterSprite(int x, int y, CharacterAppearance appearance,
-		bool completed, bool walking = false);
+		bool completed, bool walking = false, int facingX = 0, int facingY = 1);
 	SDL_Color civilizationColor(int civilization) const;
 	void logicalMouse(int windowX, int windowY, int& logicalX, int& logicalY) const;
 	bool contains(const SDL_Rect& rect, int x, int y) const;
@@ -337,6 +339,8 @@ private:
 	SDL_Renderer* mRenderer;
 	SDL_Texture* mBoardTexture;
 	SDL_Texture* mCardBackTexture;
+	AssetManager* mAssets;
+	SpriteSheetRenderer* mSpriteSheets;
 	SoundManager* mSoundManager;
 	std::map<int, SDL_Texture*> mCardTextures;
 	std::map<std::string, SDL_Texture*> mCrestTextures;

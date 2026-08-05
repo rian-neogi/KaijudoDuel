@@ -84,6 +84,7 @@ public:
 	std::string dialogueText(const std::string& key, const std::string& fallback = "") const;
 	bool isMoving() const;
 	void setPosition(int x, int y);
+	void moveTo(int x, int y);
 	void updateMovement(unsigned int deltaMilliseconds, float tilesPerSecond = 2.8f);
 	void scheduleWander(unsigned int now);
 	int nextWanderDirection();
@@ -94,6 +95,8 @@ public:
 	int homeY;
 	float visualX;
 	float visualY;
+	int facingX;
+	int facingY;
 	unsigned int nextMoveAt;
 	std::string id;
 	std::string crestId;

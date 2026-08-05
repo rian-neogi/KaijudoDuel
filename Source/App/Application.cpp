@@ -1,8 +1,10 @@
 #include "Application.h"
 
 #include "AppSupport.h"
+#include "AssetManager.h"
 #include "Game/Card.h"
 #include "SoundManager.h"
+#include "SpriteSheetRenderer.h"
 
 #include <algorithm>
 #include <cmath>
@@ -16,11 +18,12 @@ namespace
 }
 
 Application::Application(bool worldBuilder)
-	: mWindow(NULL), mRenderer(NULL), mBoardTexture(NULL), mCardBackTexture(NULL), mSoundManager(NULL), mRunning(false),
+	: mWindow(NULL), mRenderer(NULL), mBoardTexture(NULL), mCardBackTexture(NULL),
+	  mAssets(NULL), mSpriteSheets(NULL), mSoundManager(NULL), mRunning(false),
 	  mScreen(Screen::MainMenu), mMainMenuSelection(0), mLoadGameSelection(0),
 	  mLoadGameScroll(0), mPauseMenuOpen(false), mPauseMenuSelection(0), mCurrentWorldArea(0),
 	  mOpeningPortal(-1), mPortalAnimationStarted(0),
-	  mWorldStartX(2), mWorldStartY(10), mPlayerX(2), mPlayerY(10), mFacingX(1), mFacingY(0),
+	  mWorldStartX(2), mWorldStartY(10), mPlayerX(2), mPlayerY(10), mFacingX(0), mFacingY(1),
 	  mMoveUp(false), mMoveDown(false), mMoveLeft(false), mMoveRight(false), mMoveIntentX(0), mMoveIntentY(0),
 	  mVisualX(2.f), mVisualY(10.f), mDialogueNpc(-1), mDialogueObject(-1),
 	  mDialogueVisibleBytes(0),
@@ -129,10 +132,12 @@ bool Application::initialize()
 	SDL_RenderSetLogicalSize(mRenderer, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 	SDL_SetRenderDrawBlendMode(mRenderer, SDL_BLENDMODE_BLEND);
 
-	mBoardTexture = IMG_LoadTexture(mRenderer, "Resources/Textures/duel-board.png");
+	mAssets = new AssetManager(mRenderer);
+	mSpriteSheets = new SpriteSheetRenderer(mRenderer, mAssets);
+	mBoardTexture = mAssets->texture("Resources/Textures/duel-board.png");
 	if (mBoardTexture == NULL)
 		std::cerr << "Board texture unavailable; using fallback colors: " << IMG_GetError() << std::endl;
-	mCardBackTexture = IMG_LoadTexture(mRenderer, "Resources/cardback.png");
+	mCardBackTexture = mAssets->texture("Resources/cardback.png");
 	if (mCardBackTexture == NULL)
 		std::cerr << "Card-back texture unavailable; using fallback colors: " << IMG_GetError() << std::endl;
 
@@ -151,15 +156,17 @@ void Application::shutdown()
 	for (std::map<int, TTF_Font*>::iterator item = mFonts.begin(); item != mFonts.end(); ++item)
 		TTF_CloseFont(item->second);
 	mFonts.clear();
-	if (mBoardTexture != NULL) SDL_DestroyTexture(mBoardTexture);
-	if (mCardBackTexture != NULL) SDL_DestroyTexture(mCardBackTexture);
 	if (SoundMngr == mSoundManager) SoundMngr = NULL;
 	delete mSoundManager;
 	mSoundManager = NULL;
-	if (mRenderer != NULL) SDL_DestroyRenderer(mRenderer);
-	if (mWindow != NULL) SDL_DestroyWindow(mWindow);
+	delete mSpriteSheets;
+	mSpriteSheets = NULL;
 	mBoardTexture = NULL;
 	mCardBackTexture = NULL;
+	delete mAssets;
+	mAssets = NULL;
+	if (mRenderer != NULL) SDL_DestroyRenderer(mRenderer);
+	if (mWindow != NULL) SDL_DestroyWindow(mWindow);
 	mRenderer = NULL;
 	mWindow = NULL;
 	if (TTF_WasInit()) TTF_Quit();

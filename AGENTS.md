@@ -56,6 +56,9 @@ rendering, and repeated duel teardown.
 
 - `Source/App/Application.cpp`: process lifecycle, SDL ownership, main loop,
   shared drawing primitives, fonts, and coordinate handling.
+- `Source/App/AssetManager.h/.cpp`: shared SDL texture cache and texture lifetime.
+- `Source/App/SpriteSheetRenderer.h/.cpp`: directional character-sheet frame
+  selection and nearest-neighbor sprite rendering.
 - `Source/App/Overworld.cpp`: map movement, NPC interaction, and overworld
   rendering.
 - `Source/App/WorldBuilder.cpp`: Lua world loading, map painting, NPC/object

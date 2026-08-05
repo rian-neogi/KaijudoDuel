@@ -120,7 +120,7 @@ Npc::Npc(int xValue, int yValue, const std::string& npcName,
 	const std::vector<NpcReward>& battleRewards, NpcKind npcKind,
 	CharacterAppearance characterAppearance)
 	: x(xValue), y(yValue), homeX(xValue), homeY(yValue),
-	  visualX((float)xValue), visualY((float)yValue), nextMoveAt(0),
+	  visualX((float)xValue), visualY((float)yValue), facingX(0), facingY(1), nextMoveAt(0),
 	  name(npcName), decks(deckPaths), rewards(battleRewards), challenge(greeting), wins(0),
 	  maxWins((int)battleRewards.size()), kind(npcKind), appearance(characterAppearance),
 	  duelEnabled(npcKind != NpcKind::Town), tradeEnabled(false), wanders(false),
@@ -246,6 +246,19 @@ void Npc::setPosition(int xValue, int yValue)
 	nextMoveAt = 0;
 	mWanderState = (unsigned int)(xValue * 73856093u) ^
 		(unsigned int)(yValue * 19349663u) ^ (unsigned int)name.size() * 83492791u;
+}
+
+void Npc::moveTo(int xValue, int yValue)
+{
+	int dx = xValue - x;
+	int dy = yValue - y;
+	if (dx != 0 || dy != 0)
+	{
+		facingX = dx < 0 ? -1 : (dx > 0 ? 1 : 0);
+		facingY = dy < 0 ? -1 : (dy > 0 ? 1 : 0);
+	}
+	x = xValue;
+	y = yValue;
 }
 
 void Npc::updateMovement(unsigned int deltaMilliseconds, float tilesPerSecond)

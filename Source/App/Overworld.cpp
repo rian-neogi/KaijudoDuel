@@ -2,6 +2,7 @@
 
 #include "AppSupport.h"
 #include "Landmarks.h"
+#include "SpriteSheetRenderer.h"
 
 #include <algorithm>
 #include <cmath>
@@ -14,6 +15,42 @@ namespace
 	constexpr Uint32 DIALOGUE_CHARACTER_DELAY = 18;
 	constexpr Uint32 REGION_BANNER_DURATION = 3400;
 	constexpr Uint32 REGION_BANNER_SLIDE = 260;
+
+	CharacterSpriteDefinition characterSprite(CharacterAppearance appearance)
+	{
+		const std::string root = "Resources/Graphics/Characters/";
+		const int value = static_cast<int>(appearance);
+		const int maleFirst = static_cast<int>(CharacterAppearance::GenericMale1);
+		const int femaleFirst = static_cast<int>(CharacterAppearance::GenericFemale1);
+		if (value >= maleFirst && value <= static_cast<int>(CharacterAppearance::GenericMale10))
+		{
+			int variant = value - maleFirst;
+			return { root + (variant < 8 ? "People3.png" : "People5.png"), variant % 8 };
+		}
+		if (value >= femaleFirst && value <= static_cast<int>(CharacterAppearance::GenericFemale10))
+		{
+			int variant = value - femaleFirst;
+			return { root + (variant < 8 ? "People4.png" : "People6.png"), variant % 8 };
+		}
+
+		switch (appearance)
+		{
+		case CharacterAppearance::Player: return { root + "Actor1.png", 0 };
+		case CharacterAppearance::Mira: return { root + "Actor1.png", 5 };
+		case CharacterAppearance::Marin: return { root + "Actor1.png", 3 };
+		case CharacterAppearance::Rook: return { root + "Actor1.png", 6 };
+		case CharacterAppearance::Aurelia: return { root + "Actor1.png", 1 };
+		case CharacterAppearance::Flint: return { root + "Actor3.png", 0 };
+		case CharacterAppearance::Nyx: return { root + "Actor2.png", 7 };
+		case CharacterAppearance::Tidal: return { root + "Actor2.png", 2 };
+		case CharacterAppearance::Briar: return { root + "Actor5.png", 0 };
+		case CharacterAppearance::Mercer: return { root + "People1.png", 4 };
+		case CharacterAppearance::VeiledOne: return { root + "Evil.png", 3 };
+		case CharacterAppearance::Neris: return { root + "Actor2.png", 4 };
+		case CharacterAppearance::Oren: return { root + "Actor5.png", 1 };
+		default: return { "", 0 };
+		}
+	}
 }
 
 void Application::handleOverworldEvent(const SDL_Event& event)
@@ -182,8 +219,7 @@ void Application::updateOverworld(Uint32 deltaTime)
 				if (other != i && nextX == (int)std::round(mNpcs[other].visualX) &&
 					nextY == (int)std::round(mNpcs[other].visualY)) visuallyOccupied = true;
 			if (visuallyOccupied) continue;
-			npc.x = nextX;
-			npc.y = nextY;
+			npc.moveTo(nextX, nextY);
 			break;
 		}
 		npc.scheduleWander(now);
@@ -325,8 +361,7 @@ void Application::updateRouteDuelistChallenge()
 			mRouteChallengeNpc = -1;
 			return;
 		}
-		npc.x = nextX;
-		npc.y = nextY;
+		npc.moveTo(nextX, nextY);
 		return;
 	}
 
@@ -1368,7 +1403,8 @@ void Application::renderOverworld()
 		if (!visibleTiles.contains((int)std::floor(mNpcs[i].visualX),
 			(int)std::floor(mNpcs[i].visualY))) continue;
 		drawCharacter(mNpcs[i].visualX, mNpcs[i].visualY, mNpcs[i].appearance,
-			mNpcs[i].isComplete(), mNpcs[i].isMoving());
+			mNpcs[i].isComplete(), mNpcs[i].isMoving(),
+			mNpcs[i].facingX, mNpcs[i].facingY);
 		bool trainerChallenge = mRouteChallengeNpc == (int)i;
 		if (npcHasStoryMarker((int)i) || trainerChallenge)
 		{
@@ -1434,7 +1470,8 @@ void Application::renderOverworld()
 	}
 	bool playerWalking = std::fabs(mPlayerX - mVisualX) > 0.001f ||
 		std::fabs(mPlayerY - mVisualY) > 0.001f;
-	drawCharacter(mVisualX, mVisualY, CharacterAppearance::Player, false, playerWalking);
+	drawCharacter(mVisualX, mVisualY, CharacterAppearance::Player, false, playerWalking,
+		mFacingX, mFacingY);
 	SDL_RenderSetClipRect(mRenderer, NULL);
 
 	renderStoryTracker();
@@ -1486,7 +1523,7 @@ void Application::renderOverworld()
 }
 
 void Application::drawCharacter(float gridX, float gridY, CharacterAppearance appearance,
-	bool completed, bool walking)
+	bool completed, bool walking, int facingX, int facingY)
 {
 	const std::vector<std::string>& map = currentMap();
 	const bool worldBuilder = mScreen == Screen::WorldBuilder;
@@ -1512,15 +1549,28 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 		y = mapOriginY((int)map.size()) +
 			(int)std::round((gridY - cameraY) * TILE);
 	}
-	drawCharacterSprite(x, y, appearance, completed, walking);
+	drawCharacterSprite(x, y, appearance, completed, walking, facingX, facingY);
 }
 
 void Application::drawCharacterSprite(int x, int y, CharacterAppearance appearance,
-	bool completed, bool walking)
+	bool completed, bool walking, int facingX, int facingY)
 {
 	int stride = walking && (SDL_GetTicks() / 110) % 2 == 0 ? 2 : (walking ? -2 : 0);
 	int bob = walking && (SDL_GetTicks() / 110) % 2 == 0 ? -1 : 0;
 	fillRect({ x + 9, y + 39, 31, 6 }, 8, 14, 18, 100);
+	CharacterSpriteDefinition sprite = characterSprite(appearance);
+	SDL_Rect spriteDestination = worldBuilderTileRect({ x, y, TILE, TILE });
+	if (mSpriteSheets != NULL && mSpriteSheets->drawCharacter(sprite, facingX, facingY,
+		walking, SDL_GetTicks(), spriteDestination))
+	{
+		if (completed)
+		{
+			fillRect({ x + 34, y + 17, 8, 10 }, 33, 39, 48);
+			fillRect({ x + 36, y + 19, 4, 4 }, 220, 193, 92);
+			fillRect({ x + 37, y + 23, 2, 3 }, 151, 124, 55);
+		}
+		return;
+	}
 	y += bob;
 
 	const int appearanceValue = static_cast<int>(appearance);

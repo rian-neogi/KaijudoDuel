@@ -4,6 +4,7 @@
 #include "AppSupport.h"
 #include "Game/Card.h"
 #include "Landmarks.h"
+#include "SpriteSheetRenderer.h"
 
 #include <algorithm>
 #include <cmath>
@@ -1103,6 +1104,21 @@ bool Application::exerciseHoverTimingSmoke()
 bool Application::exerciseOverworldMovementSmoke()
 {
 	if (mNpcs.empty()) return false;
+	SDL_Rect spriteFrame;
+	bool spriteSheetsReady = SpriteSheetRenderer::characterSourceRect(
+		"Resources/Graphics/Characters/Actor1.png", 5, 0, 1, false, 0,
+		384, 256, spriteFrame) && spriteFrame.x == 128 && spriteFrame.y == 128 &&
+		spriteFrame.w == 32 && spriteFrame.h == 32;
+	spriteSheetsReady = spriteSheetsReady && SpriteSheetRenderer::characterSourceRect(
+		"Resources/Graphics/Characters/Actor1.png", 5, -1, 0, true, 0,
+		384, 256, spriteFrame) && spriteFrame.x == 96 && spriteFrame.y == 160;
+	spriteSheetsReady = spriteSheetsReady && SpriteSheetRenderer::characterSourceRect(
+		"Resources/Graphics/Characters/!$Gate1.png", 0, 0, 1, false, 0,
+		288, 256, spriteFrame) && spriteFrame.x == 96 && spriteFrame.y == 0 &&
+		spriteFrame.w == 96 && spriteFrame.h == 64 &&
+		!SpriteSheetRenderer::characterSourceRect(
+			"Resources/Graphics/Characters/Actor1.png", 8, 0, 1, false, 0,
+			384, 256, spriteFrame);
 	int savedPlayerX = mPlayerX;
 	int savedPlayerY = mPlayerY;
 	float savedVisualX = mVisualX;
@@ -1134,6 +1150,8 @@ bool Application::exerciseOverworldMovementSmoke()
 	int savedNpcY = npc.y;
 	float savedNpcVisualX = npc.visualX;
 	float savedNpcVisualY = npc.visualY;
+	int savedNpcFacingX = npc.facingX;
+	int savedNpcFacingY = npc.facingY;
 	Uint32 savedNextMoveAt = npc.nextMoveAt;
 	npc.nextMoveAt = SDL_GetTicks();
 	updateOverworld(16);
@@ -1146,6 +1164,8 @@ bool Application::exerciseOverworldMovementSmoke()
 	npc.y = savedNpcY;
 	npc.visualX = savedNpcVisualX;
 	npc.visualY = savedNpcVisualY;
+	npc.facingX = savedNpcFacingX;
+	npc.facingY = savedNpcFacingY;
 	npc.nextMoveAt = savedNextMoveAt;
 
 	int savedArea = mCurrentWorldArea;
@@ -1653,7 +1673,7 @@ bool Application::exerciseOverworldMovementSmoke()
 	mPlayerY = savedPortalPlayerY;
 	mVisualX = savedPortalVisualX;
 	mVisualY = savedPortalVisualY;
-	return playerInterpolated && npcInterpolated && enteredIndoor && returnedOutside &&
+	return spriteSheetsReady && playerInterpolated && npcInterpolated && enteredIndoor && returnedOutside &&
 		mercerIsIndoors && seamlessWorldReady && signpostReady && roadGateReady && watershedGateReady &&
 		viewportCullingReady && naturalTilesReady && blackstoneGateReady;
 }

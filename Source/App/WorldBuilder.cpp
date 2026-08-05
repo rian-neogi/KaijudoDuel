@@ -1789,7 +1789,8 @@ void Application::drawWorldBuilderNpcPortrait(const Npc& npc, const SDL_Rect& re
 	SDL_Rect savedScaleDestination = mWorldBuilderTileScaleDestination;
 	mWorldBuilderTileScaleActive = true;
 	mWorldBuilderTileScaleDestination = rect;
-	drawCharacterSprite(rect.x, rect.y, npc.appearance, false, false);
+	drawCharacterSprite(rect.x, rect.y, npc.appearance, false, false,
+		npc.facingX, npc.facingY);
 	mWorldBuilderTileScaleActive = savedScaleActive;
 	mWorldBuilderTileScaleDestination = savedScaleDestination;
 	outlineRect(rect, 104, 123, 153, 255, 1);
@@ -2389,7 +2390,7 @@ void Application::renderWorldBuilder()
 		int npcY = mapY + mNpcs[i].y * tileSize;
 		if (tileSize >= TILE)
 			drawCharacter((float)mNpcs[i].x, (float)mNpcs[i].y,
-				mNpcs[i].appearance, false, false);
+				mNpcs[i].appearance, false, false, mNpcs[i].facingX, mNpcs[i].facingY);
 		else
 		{
 			int inset = std::max(3, tileSize / 5);

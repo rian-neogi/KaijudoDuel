@@ -1,6 +1,7 @@
 #include "Application.h"
 
 #include "AppSupport.h"
+#include "AssetManager.h"
 #include "Landmarks.h"
 #include "SoundManager.h"
 
@@ -61,19 +62,13 @@ SDL_Texture* Application::crestTexture(const std::string& crestId)
 	std::map<std::string, SDL_Texture*>::iterator existing = mCrestTextures.find(crestId);
 	if (existing != mCrestTextures.end()) return existing->second;
 	std::string path = "Resources/Sprites/Crests/" + crestId + ".png";
-	SDL_Texture* loaded = IMG_LoadTexture(mRenderer, path.c_str());
-#if SDL_VERSION_ATLEAST(2, 0, 12)
-	if (loaded != NULL) SDL_SetTextureScaleMode(loaded, SDL_ScaleModeNearest);
-#endif
+	SDL_Texture* loaded = mAssets == NULL ? NULL : mAssets->texture(path, true);
 	mCrestTextures[crestId] = loaded;
 	return loaded;
 }
 
 void Application::destroyCrestTextures()
 {
-	for (std::map<std::string, SDL_Texture*>::iterator item = mCrestTextures.begin();
-		item != mCrestTextures.end(); ++item)
-		if (item->second != NULL) SDL_DestroyTexture(item->second);
 	mCrestTextures.clear();
 }
 
