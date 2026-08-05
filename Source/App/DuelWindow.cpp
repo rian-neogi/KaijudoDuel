@@ -216,43 +216,43 @@ void Application::handleDuelEvent(const SDL_Event& event)
 				return;
 			}
 		}
-		for (std::vector<CardHitbox>::reverse_iterator item = mCardHitboxes.rbegin(); item != mCardHitboxes.rend(); ++item)
+		CardHitbox clickedCard;
+		if (duelClickHitboxAt(x, y, clickedCard))
 		{
-			if (contains(item->rect, x, y))
+			Message directAction;
+			if (findClickAction(clickedCard.cardId, directAction))
 			{
-				Message directAction;
-				if (findClickAction(item->cardId, directAction))
-				{
-					playAction(directAction);
-					return;
-				}
-				if (event.button.clicks >= 2)
-				{
-					Message tapAbility;
-					if (findDragAction("creatureusetapability", item->cardId, -1, tapAbility))
-					{
-						cancelDrag();
-						playAction(tapAbility);
-						return;
-					}
-				}
-				bool draggable = false;
-				{
-					std::lock_guard<std::mutex> lock(gMutex);
-					if (mDuel != NULL && item->cardId >= 0 && item->cardId < (int)mDuel->mCardList.size())
-					{
-						Card* card = mDuel->mCardList[item->cardId];
-						draggable = card->mOwner == 0 && (card->mZone == ZONE_HAND || card->mZone == ZONE_BATTLE);
-					}
-				}
-				if (draggable) beginDrag(item->cardId, item->rect, x, y);
-				else
-				{
-					mSelectedCard = mSelectedCard == item->cardId ? -1 : item->cardId;
-					mActionScroll = 0;
-				}
+				playAction(directAction);
 				return;
 			}
+			if (event.button.clicks >= 2)
+			{
+				Message tapAbility;
+				if (findDragAction("creatureusetapability", clickedCard.cardId, -1, tapAbility))
+				{
+					cancelDrag();
+					playAction(tapAbility);
+					return;
+				}
+			}
+			bool draggable = false;
+			{
+				std::lock_guard<std::mutex> lock(gMutex);
+				if (mDuel != NULL && clickedCard.cardId >= 0 &&
+					clickedCard.cardId < (int)mDuel->mCardList.size())
+				{
+					Card* card = mDuel->mCardList[clickedCard.cardId];
+					draggable = card->mOwner == 0 &&
+						(card->mZone == ZONE_HAND || card->mZone == ZONE_BATTLE);
+				}
+			}
+			if (draggable) beginDrag(clickedCard.cardId, clickedCard.rect, x, y);
+			else
+			{
+				mSelectedCard = mSelectedCard == clickedCard.cardId ? -1 : clickedCard.cardId;
+				mActionScroll = 0;
+			}
+			return;
 		}
 	}
 	else if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT && mDraggingCard >= 0)

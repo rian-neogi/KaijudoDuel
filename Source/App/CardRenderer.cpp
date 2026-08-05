@@ -194,6 +194,32 @@ int Application::duelHoverCandidateAt(int x, int y, bool& immediate) const
 	return -1;
 }
 
+bool Application::duelClickHitboxAt(int x, int y, CardHitbox& result) const
+{
+	// The highlighted card is rendered above the rest of the hand. In overlap
+	// areas it must receive the click even if a later fanned card owns the raw
+	// topmost hitbox.
+	if (mHoveredCard >= 0)
+	{
+		for (std::vector<CardHitbox>::const_reverse_iterator item = mCardHitboxes.rbegin();
+			item != mCardHitboxes.rend(); ++item)
+		{
+			if (item->cardId != mHoveredCard || !item->hoverAnchor ||
+				!contains(item->rect, x, y)) continue;
+			result = *item;
+			return true;
+		}
+	}
+	for (std::vector<CardHitbox>::const_reverse_iterator item = mCardHitboxes.rbegin();
+		item != mCardHitboxes.rend(); ++item)
+	{
+		if (!contains(item->rect, x, y)) continue;
+		result = *item;
+		return true;
+	}
+	return false;
+}
+
 void Application::drawCardBack(const SDL_Rect& rect)
 {
 	if (mCardBackTexture != NULL)

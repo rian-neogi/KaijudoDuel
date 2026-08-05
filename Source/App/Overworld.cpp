@@ -1578,7 +1578,7 @@ void Application::drawCharacterSprite(int x, int y, CharacterAppearance appearan
 		block(18, 7, 15, 15, skin);
 		block(15, 4, 21, 8, color(91, 48, 22));
 		block(15, 10, 4, 9, color(91, 48, 22));
-		block(29, 13, 2, 2, color(38, 31, 27));
+		forwardFace(color(38, 31, 27));
 		break;
 
 	case CharacterAppearance::Mira:

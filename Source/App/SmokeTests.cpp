@@ -1054,6 +1054,7 @@ bool Application::exerciseHoverTimingSmoke()
 
 	std::vector<CardHitbox> savedHitboxes = mCardHitboxes;
 	int savedCandidate = mHoverCandidateCard;
+	int savedHovered = mHoveredCard;
 	mCardHitboxes.clear();
 	SDL_Rect overlap = { 100, 100, 80, 120 };
 	mCardHitboxes.push_back({ overlap, 11, true, true, true });
@@ -1063,6 +1064,11 @@ bool Application::exerciseHoverTimingSmoke()
 	valid = valid && duelHoverCandidateAt(140, 150, immediate) == 11 && immediate;
 	mHoverCandidateCard = -1;
 	valid = valid && duelHoverCandidateAt(140, 150, immediate) == 12;
+	CardHitbox clicked;
+	mHoveredCard = 11;
+	valid = valid && duelClickHitboxAt(140, 150, clicked) && clicked.cardId == 11;
+	mHoveredCard = -1;
+	valid = valid && duelClickHitboxAt(140, 150, clicked) && clicked.cardId == 12;
 
 	// An enlarged or shrinking card may extend above its original position, but
 	// that animated area must never reactivate hover after the pointer leaves the
@@ -1077,6 +1083,7 @@ bool Application::exerciseHoverTimingSmoke()
 	valid = valid && duelHoverCandidateAt(140, 240, immediate) == 21 && immediate;
 	mCardHitboxes = savedHitboxes;
 	mHoverCandidateCard = savedCandidate;
+	mHoveredCard = savedHovered;
 	return valid;
 }
 
@@ -1539,19 +1546,25 @@ bool Application::exerciseOverworldMovementSmoke()
 bool Application::exerciseStorySmoke()
 {
 	if (mNpcs.size() < 10) return false;
+	bool repeatedDeckReady = false;
+	bool repeatedRewardReady = false;
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 	{
 		Npc& npc = mNpcs[i];
 		if (!npc.isDuelist()) continue;
-		if (npc.maxWins <= 0 || npc.maxWins != (int)npc.decks.size() ||
-			npc.maxWins != (int)npc.rewards.size()) return false;
+		if (npc.maxWins <= 0 || npc.decks.empty() || npc.rewards.empty()) return false;
+		repeatedDeckReady = repeatedDeckReady || npc.maxWins > (int)npc.decks.size();
+		repeatedRewardReady = repeatedRewardReady || npc.maxWins > (int)npc.rewards.size();
 		int savedNpcWins = npc.wins;
 		for (int battle = 0; battle < npc.maxWins; ++battle)
 		{
 			npc.wins = battle;
 			NpcReward reward = npc.nextReward();
-			if (npc.battleDeck() != npc.decks[battle] || npc.battleDeck().empty() ||
-				reward.card != npc.rewards[battle].card || reward.gold != npc.rewards[battle].gold)
+			const size_t deckIndex = std::min((size_t)battle, npc.decks.size() - 1);
+			const size_t rewardIndex = std::min((size_t)battle, npc.rewards.size() - 1);
+			if (npc.battleDeck() != npc.decks[deckIndex] || npc.battleDeck().empty() ||
+				reward.card != npc.rewards[rewardIndex].card ||
+				reward.gold != npc.rewards[rewardIndex].gold)
 			{
 				npc.wins = savedNpcWins;
 				return false;
@@ -1559,6 +1572,7 @@ bool Application::exerciseStorySmoke()
 		}
 		npc.wins = savedNpcWins;
 	}
+	if (!repeatedDeckReady || !repeatedRewardReady) return false;
 	int savedStage = mStoryStage;
 	int savedClues = mStoryClues;
 	StoryScene savedScene = mStoryScene;

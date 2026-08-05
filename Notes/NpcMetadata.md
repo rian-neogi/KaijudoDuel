@@ -22,14 +22,11 @@ NPC positions belong exclusively to `Lua/World.lua`. Each exterior region also d
 
     max_battles = 4,
 
-    deck1 = "Example.txt",
-    deck2 = "ExampleAdvanced.txt", -- optional
-    -- deck2 is reused for battles 3 and 4 when deck3/deck4 are omitted.
-
-    reward1 = { card = "First Reward Card", gold = 100 },
-    reward2 = { card = "Second Reward Card", gold = 125 },
-    reward3 = { card = "Third Reward Card", gold = 150 },
-    reward4 = { card = "Fourth Reward Card", gold = 200 },
+    decks = { "Example.txt", "ExampleAdvanced.txt" },
+    rewards = {
+        { card = "First Reward Card", gold = 100 },
+        { card = "Later Reward Card", gold = 125 },
+    },
 
     ai = {
         personality = "balanced"
@@ -55,11 +52,12 @@ Interacting with a town NPC first displays `greeting`, then opens a menu contain
 
 ### Battle sequence
 
-`max_battles` can be between one and four. `deck1` is required. Later deck
-fields are optional and carry forward: if `deck2` is defined but `deck3` and
-`deck4` are omitted, battles three and four also use `deck2`. Each enabled
-battle requires its matching `rewardN` table. Rewards do not carry forward,
-preventing an omitted reward from silently granting the wrong card.
+`max_battles` can be between one and four. Duel-enabled NPCs require non-empty
+`decks` and `rewards` arrays. Entries are used in order for each battle. If
+`max_battles` is greater than either array's size, that array's final entry is
+reused independently for every remaining battle. In the example above, battles
+three and four use `ExampleAdvanced.txt` and grant `Later Reward Card` with 125
+gold.
 
 Deck names are searched beneath `Decks/` automatically. An explicit path can
 still be used for a deck elsewhere; if that path exists, it takes priority.
@@ -76,11 +74,10 @@ Before their first defeat, route duelists detect the player anywhere inside thei
     sight = { range = 7 },
     appearance = "generic-male-1",
     max_battles = 4,
-    deck1 = "Example.txt",
-    reward1 = { card = "First Reward Card", gold = 100 },
-    reward2 = { card = "Second Reward Card", gold = 100 },
-    reward3 = { card = "Third Reward Card", gold = 100 },
-    reward4 = { card = "Fourth Reward Card", gold = 100 },
+    decks = { "Example.txt" },
+    rewards = {
+        { card = "Reward Card", gold = 100 },
+    },
     ai = { personality = "balanced" },
     dialogue = {
         greeting = "I saw you. Prepare to duel!",
@@ -122,7 +119,7 @@ Town NPCs without Duel do not need battle, deck, reward, or AI fields.
 
 ## Boss template
 
-Bosses use the same numbered deck and reward fields as battle-enabled town NPCs.
+Bosses use the same deck and reward arrays as battle-enabled town NPCs.
 `max_battles` is normally one.
 
 ```lua
@@ -132,8 +129,10 @@ Bosses use the same numbered deck and reward fields as battle-enabled town NPCs.
     kind = "boss",
     appearance = "veiled_one",
     max_battles = 1,
-    deck1 = "Boss.txt",
-    reward1 = { card = "Exact Card Name", gold = 250 },
+    decks = { "Boss.txt" },
+    rewards = {
+        { card = "Exact Card Name", gold = 250 },
+    },
     ai = { personality = "adaptive" },
     dialogue = {
         greeting = "Boss challenge.",

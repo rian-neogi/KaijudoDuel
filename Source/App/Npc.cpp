@@ -213,8 +213,8 @@ std::string Npc::battleDeck() const
 
 NpcReward Npc::nextReward() const
 {
-	if (wins < 0 || wins >= (int)rewards.size()) return { "", 0 };
-	return rewards[wins];
+	if (rewards.empty()) return { "", 0 };
+	return rewards[std::max(0, std::min((int)rewards.size() - 1, wins))];
 }
 
 std::string Npc::rankName() const
@@ -395,7 +395,6 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 		const int maxBattles = luaIntegerField(state, entry, "max_battles", defaultBattles);
 		std::vector<std::string> decks;
 		std::vector<NpcReward> rewards;
-		std::string latestDeck;
 		if (duelEnabled)
 		{
 			if (maxBattles <= 0 || maxBattles > 4)
@@ -404,36 +403,53 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 				lua_close(state);
 				return false;
 			}
-			for (int battle = 1; battle <= maxBattles; ++battle)
+			lua_getfield(state, entry, "decks");
+			if (!lua_istable(state, -1) || lua_rawlen(state, -1) == 0)
 			{
-				const std::string suffix = std::to_string(battle);
-				const std::string configuredDeck = luaStringField(
-					state, entry, ("deck" + suffix).c_str());
-				if (!configuredDeck.empty())
+				error = "NPC '" + id + "' needs a non-empty decks array";
+				lua_close(state);
+				return false;
+			}
+			const size_t deckCount = lua_rawlen(state, -1);
+			for (size_t deck = 1; deck <= deckCount; ++deck)
+			{
+				lua_rawgeti(state, -1, (lua_Integer)deck);
+				if (!lua_isstring(state, -1))
 				{
-					std::string resolvedDeck;
-					if (!resolveDeckPath(configuredDeck, resolvedDeck))
-					{
-						error = "NPC '" + id + "' cannot find deck for battle " + suffix +
-							" directly or beneath Decks/: " + configuredDeck;
-						lua_close(state);
-						return false;
-					}
-					latestDeck = resolvedDeck;
-				}
-				if (latestDeck.empty())
-				{
-					error = "NPC '" + id + "' must define deck1";
+					error = "NPC '" + id + "' has a non-string decks entry at index " +
+						std::to_string(deck);
 					lua_close(state);
 					return false;
 				}
-				decks.push_back(latestDeck);
+				const std::string configuredDeck = lua_tostring(state, -1);
+				lua_pop(state, 1);
+				std::string resolvedDeck;
+				if (configuredDeck.empty() || !resolveDeckPath(configuredDeck, resolvedDeck))
+				{
+					error = "NPC '" + id + "' cannot find decks entry " +
+						std::to_string(deck) + " directly or beneath Decks/: " + configuredDeck;
+					lua_close(state);
+					return false;
+				}
+				decks.push_back(resolvedDeck);
+			}
+			lua_pop(state, 1);
 
-				const std::string rewardKey = "reward" + suffix;
-				lua_getfield(state, entry, rewardKey.c_str());
+			lua_getfield(state, entry, "rewards");
+			if (!lua_istable(state, -1) || lua_rawlen(state, -1) == 0)
+			{
+				error = "NPC '" + id + "' needs a non-empty rewards array";
+				lua_close(state);
+				return false;
+			}
+			const size_t rewardCount = lua_rawlen(state, -1);
+			for (size_t rewardIndex = 1; rewardIndex <= rewardCount; ++rewardIndex)
+			{
+				lua_rawgeti(state, -1, (lua_Integer)rewardIndex);
 				if (!lua_istable(state, -1))
 				{
-					error = "NPC '" + id + "' needs " + rewardKey;
+					error = "NPC '" + id + "' has a non-table rewards entry at index " +
+						std::to_string(rewardIndex);
 					lua_close(state);
 					return false;
 				}
@@ -444,12 +460,14 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 				lua_pop(state, 1);
 				if (reward.card.empty() || getCardIdFromName(reward.card) < 0 || reward.gold < 0)
 				{
-					error = "NPC '" + id + "' has invalid " + rewardKey;
+					error = "NPC '" + id + "' has an invalid rewards entry at index " +
+						std::to_string(rewardIndex);
 					lua_close(state);
 					return false;
 				}
 				rewards.push_back(reward);
 			}
+			lua_pop(state, 1);
 		}
 
 		lua_getfield(state, entry, "ai");
@@ -471,6 +489,7 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 		npc.crestId = crestId;
 		npc.aiPersonality = aiPersonality;
 		npc.dialogue = dialogue;
+		npc.maxWins = maxBattles;
 		npcs.push_back(npc);
 		lua_pop(state, 1);
 	}

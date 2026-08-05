@@ -271,6 +271,7 @@ private:
 	void renderHoverPreview();
 	void updateHoverState(int candidateCard, bool immediate, Uint32 now);
 	int duelHoverCandidateAt(int x, int y, bool& immediate) const;
+	bool duelClickHitboxAt(int x, int y, CardHitbox& result) const;
 	bool exerciseHoverTimingSmoke();
 	std::vector<Message> visibleActions();
 	bool messageReferencesCard(const Message& message, int cardId) const;

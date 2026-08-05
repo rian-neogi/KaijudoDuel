@@ -102,6 +102,9 @@ five decks.
 - NPC and shard position keys must match their metadata `id` fields and include
   a valid `map` ID. Normal gameplay requires every current entity ID to have a
   valid `World.lua` map position.
+- Duel-enabled NPCs use ordered, non-empty `decks` and `rewards` arrays. When
+  `max_battles` exceeds either array's size, the last entry in that array is
+  reused for the remaining battles.
 - Exterior regions require an explicit `kind` of `town` or `connector` for
   geographic organization. NPC kinds may be placed in either region kind. The
   World Builder must preserve region kinds when saving.
