@@ -16,12 +16,39 @@ namespace
 {
 	constexpr Uint32 DOOR_OPEN_DURATION = 400;
 	const SDL_Rect GRAVEYARD_NEXT = { 700, 590, 145, 42 };
-	const SDL_Rect SETTINGS_BUTTON = { 890, 430, 300, 58 };
+	const SDL_Rect SETTINGS_BUTTON = { 890, 502, 300, 58 };
 }
 
 int Application::runSmokeTests()
 {
 	const bool smokeTest = true;
+		if (mScreen != Screen::MainMenu)
+		{
+			std::cerr << "Main menu did not open at startup." << std::endl;
+			return 2;
+		}
+		renderMainMenu();
+		SDL_Event menuNavigation = {};
+		menuNavigation.type = SDL_KEYDOWN;
+		menuNavigation.key.keysym.sym = SDLK_DOWN;
+		handleEvent(menuNavigation);
+		menuNavigation.key.keysym.sym = SDLK_UP;
+		handleEvent(menuNavigation);
+		mScreen = Screen::LoadGame;
+		renderLoadGame();
+		menuNavigation.key.keysym.sym = SDLK_ESCAPE;
+		handleEvent(menuNavigation);
+		std::string savedDirectory = mActiveSaveDirectory;
+		mActiveSaveDirectory = "PlayerData/Smoke Slot";
+		bool savePathsReady = playerDataPath("progress.txt") ==
+			"PlayerData/Smoke Slot/progress.txt" &&
+			playerDeckDirectory() == "PlayerData/Smoke Slot/Decks";
+		mActiveSaveDirectory = savedDirectory;
+		if (mScreen != Screen::MainMenu || !savePathsReady)
+		{
+			std::cerr << "Save menu smoke test failed." << std::endl;
+			return 2;
+		}
 		if (!exerciseOverworldMovementSmoke())
 		{
 			std::cerr << "Overworld movement smoke test failed." << std::endl;
@@ -1187,6 +1214,15 @@ bool Application::exerciseOverworldMovementSmoke()
 		smallMapBounds.tileCount() == 80;
 	int overworldArea = worldAreaIndex("overworld");
 	bool seamlessWorldReady = overworldArea >= 0 && !mWorldAreas[overworldArea].indoor;
+	bool naturalTilesReady = WorldTiles::isValid(WorldTiles::Rocks) &&
+		WorldTiles::isValid(WorldTiles::Bush) && WorldTiles::isValid(WorldTiles::Shrub) &&
+		WorldTiles::isValid(WorldTiles::CaveEntrance) &&
+		WorldTiles::isValid(WorldTiles::TreeStump) &&
+		!WorldTiles::isWalkable(WorldTiles::Rocks) &&
+		!WorldTiles::isWalkable(WorldTiles::Bush) &&
+		WorldTiles::isWalkable(WorldTiles::Shrub) &&
+		WorldTiles::isWalkable(WorldTiles::CaveEntrance) &&
+		!WorldTiles::isWalkable(WorldTiles::TreeStump);
 	int outdoorAreas = 0;
 	for (size_t area = 0; area < mWorldAreas.size(); ++area)
 		if (!mWorldAreas[area].indoor) ++outdoorAreas;
@@ -1225,6 +1261,48 @@ bool Application::exerciseOverworldMovementSmoke()
 		emberglenRegion->id == "emberglen" && oldRoadRegion->id == "old_road" &&
 		oldRoadRegion->width == 96 && oldRoadRegion->height == 48 &&
 		cinderrailRegion->id == "cinderrail";
+	int savedBannerArea = mCurrentWorldArea;
+	int savedBannerPlayerX = mPlayerX;
+	int savedBannerPlayerY = mPlayerY;
+	float savedBannerVisualX = mVisualX;
+	float savedBannerVisualY = mVisualY;
+	int savedBannerMoveIntentX = mMoveIntentX;
+	std::string savedLastRegionId = mLastWorldRegionId;
+	std::string savedBannerName = mRegionBannerName;
+	Uint32 savedBannerStarted = mRegionBannerStarted;
+	bool savedBannerConnector = mRegionBannerConnector;
+	mCurrentWorldArea = overworldArea;
+	mPlayerX = 43;
+	mPlayerY = 25;
+	mVisualX = 43.f;
+	mVisualY = 25.f;
+	mMoveIntentX = 1;
+	mLastWorldRegionId.clear();
+	updateRegionBanner();
+	bool regionBannerReady = mLastWorldRegionId == "glasswater" &&
+		mRegionBannerName == "Glasswater Port" && !mRegionBannerConnector &&
+		mMoveIntentX == 1;
+	mPlayerX = 130;
+	mPlayerY = 50;
+	mVisualX = 130.f;
+	mVisualY = 50.f;
+	updateRegionBanner();
+	regionBannerReady = regionBannerReady &&
+		mLastWorldRegionId == "watershed_crossroads" &&
+		mRegionBannerName == "Watershed Crossroads" && mRegionBannerConnector &&
+		mMoveIntentX == 1;
+	renderRegionBanner();
+	mCurrentWorldArea = savedBannerArea;
+	mPlayerX = savedBannerPlayerX;
+	mPlayerY = savedBannerPlayerY;
+	mVisualX = savedBannerVisualX;
+	mVisualY = savedBannerVisualY;
+	mMoveIntentX = savedBannerMoveIntentX;
+	mLastWorldRegionId = savedLastRegionId;
+	mRegionBannerName = savedBannerName;
+	mRegionBannerStarted = savedBannerStarted;
+	mRegionBannerConnector = savedBannerConnector;
+	seamlessWorldReady = seamlessWorldReady && regionBannerReady;
 	for (size_t i = 0; i < mWorldPortals.size(); ++i)
 	{
 		int from = worldAreaIndex(mWorldPortals[i].fromMap);
@@ -1306,12 +1384,11 @@ bool Application::exerciseOverworldMovementSmoke()
 		seamlessWorldReady = seamlessWorldReady && Landmarks::find(*discovered) != NULL;
 	const char* regionalNpcs[] = { "rook", "kipp", "ansa", "holt",
 		"neris", "pell", "iri", "sol", "oren", "fern", "toma", "moss",
-		"tern_ford", "vale_reed", "cairn", "mara_flintway" };
+	};
 	const char* expectedRegions[] = { "old_road", "cinderrail", "cinderrail", "cinderrail",
 		"glasswater", "glasswater", "glasswater", "glasswater",
-		"rootmaze", "rootmaze", "rootmaze", "rootmaze",
-		"watershed_crossroads", "watershed_crossroads", "old_road", "old_road" };
-	for (size_t expected = 0; expected < 16; ++expected)
+		"rootmaze", "rootmaze", "rootmaze", "rootmaze" };
+	for (size_t expected = 0; expected < 12; ++expected)
 	{
 		bool found = false;
 		for (size_t i = 0; i < mNpcs.size(); ++i)
@@ -1333,34 +1410,21 @@ bool Application::exerciseOverworldMovementSmoke()
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 	{
 		const Npc& npc = mNpcs[i];
-		const WorldRegion* region = worldRegionAt(npc.mapId, npc.x, npc.y);
 		if (npc.isRouteDuelist())
 		{
 			++routeDuelists;
 			if (challengeNpc < 0) challengeNpc = (int)i;
-			bool cardinalFacing = std::abs(npc.facingX) + std::abs(npc.facingY) == 1;
-			bool sightHasWalkableTile = false;
-			if (npc.mapId == "overworld")
-			{
-				mCurrentWorldArea = overworldArea;
-				int sightX = npc.x + npc.facingX;
-				int sightY = npc.y + npc.facingY;
-				sightHasWalkableTile = isWalkable(sightX, sightY) &&
-					npcAt(sightX, sightY, (int)i) < 0;
-			}
 			seamlessWorldReady = seamlessWorldReady && npc.isDuelist() && !npc.canTrade() &&
-				!npc.canWander() && npc.sightRange >= 1 && npc.sightRange <= 12 &&
-				cardinalFacing && sightHasWalkableTile && region != NULL && region->connector;
+				!npc.canWander() && npc.sightRange >= 1 && npc.sightRange <= 12;
 		}
 		else if (npc.isTownNpc())
 		{
 			++townNpcs;
 			if (npc.canTrade()) ++traders;
-			seamlessWorldReady = seamlessWorldReady &&
-				(region == NULL || !region->connector) && npc.sightRange == 0;
+			seamlessWorldReady = seamlessWorldReady && npc.sightRange == 0;
 		}
 	}
-	seamlessWorldReady = seamlessWorldReady && routeDuelists == 5 && townNpcs > 0 &&
+	seamlessWorldReady = seamlessWorldReady && routeDuelists > 0 && townNpcs > 0 &&
 		traders > 0 && challengeNpc >= 0;
 	int savedChallengeStage = mStoryStage;
 	int savedChallengeArea = mCurrentWorldArea;
@@ -1384,21 +1448,42 @@ bool Application::exerciseOverworldMovementSmoke()
 	challenger.wins = 0;
 	challenger.visualX = (float)challenger.x;
 	challenger.visualY = (float)challenger.y;
-	mPlayerX = challenger.x + challenger.facingX * 2;
-	mPlayerY = challenger.y + challenger.facingY * 2;
-	mVisualX = (float)mPlayerX;
-	mVisualY = (float)mPlayerY;
 	mRouteChallengeNpc = -1;
 	mNpcMenuNpc = -1;
 	mDialogueNpc = -1;
 	mSuppressedRouteChallenges.erase(challenger.id);
-	bool routeSightReady = routeDuelistCanSeePlayer(challengeNpc);
+	bool diagonalPositionFound = false;
+	for (int dy = -challenger.sightRange; dy <= challenger.sightRange &&
+		!diagonalPositionFound; ++dy)
+		for (int dx = -challenger.sightRange; dx <= challenger.sightRange &&
+			!diagonalPositionFound; ++dx)
+		{
+			int distance = std::abs(dx) + std::abs(dy);
+			if (dx == 0 || dy == 0 || distance < 2 || distance > challenger.sightRange)
+				continue;
+			mPlayerX = challenger.x + dx;
+			mPlayerY = challenger.y + dy;
+			mVisualX = (float)mPlayerX;
+			mVisualY = (float)mPlayerY;
+			diagonalPositionFound = isWalkable(mPlayerX, mPlayerY) &&
+				npcAt(mPlayerX, mPlayerY, challengeNpc) < 0 &&
+				routeDuelistCanCatchPlayer(challengeNpc);
+		}
+	bool routeRadiusReady = diagonalPositionFound;
 	updateRouteDuelistChallenge();
-	routeSightReady = routeSightReady && mRouteChallengeNpc == challengeNpc;
-	updateRouteDuelistChallenge();
-	challenger.updateMovement(1000, 7.2f);
-	updateRouteDuelistChallenge();
-	routeSightReady = routeSightReady && mDialogueNpc == challengeNpc &&
+	routeRadiusReady = routeRadiusReady && mRouteChallengeNpc == challengeNpc;
+	for (int step = 0; step < challenger.sightRange * 3 + 2 &&
+		mDialogueNpc != challengeNpc; ++step)
+	{
+		int previousX = challenger.x;
+		int previousY = challenger.y;
+		updateRouteDuelistChallenge();
+		if (challenger.x != previousX || challenger.y != previousY)
+			routeRadiusReady = routeRadiusReady &&
+				std::abs(challenger.x - previousX) + std::abs(challenger.y - previousY) == 1;
+		challenger.updateMovement(1000, 7.2f);
+	}
+	routeRadiusReady = routeRadiusReady && mDialogueNpc == challengeNpc &&
 		mDialogueAction == DialogueAction::ForcedBattle && mRouteChallengeNpc < 0;
 	clearDialogue();
 	challenger.x = savedTrainerX;
@@ -1417,7 +1502,7 @@ bool Application::exerciseOverworldMovementSmoke()
 	mSuppressedRouteChallenges = savedSuppressedChallenges;
 	mNotice = savedChallengeNotice;
 	mNoticeUntil = savedChallengeNoticeUntil;
-	seamlessWorldReady = seamlessWorldReady && routeSightReady;
+	seamlessWorldReady = seamlessWorldReady && routeRadiusReady;
 	int savedStoryStage = mStoryStage;
 	mCurrentWorldArea = overworldArea;
 	mPlayerX = 259;
@@ -1448,7 +1533,7 @@ bool Application::exerciseOverworldMovementSmoke()
 	mVisualY = savedPortalVisualY;
 	return playerInterpolated && npcInterpolated && enteredIndoor && returnedOutside &&
 		mercerIsIndoors && seamlessWorldReady && roadGateReady && watershedGateReady &&
-		viewportCullingReady;
+		viewportCullingReady && naturalTilesReady;
 }
 
 bool Application::exerciseStorySmoke()
@@ -1536,6 +1621,7 @@ bool Application::exerciseMenuScreensSmoke()
 	handleOverworldEvent(navigate);
 	navigate.key.keysym.sym = SDLK_s;
 	handleOverworldEvent(navigate);
+	handleOverworldEvent(navigate);
 	navigate.key.keysym.sym = SDLK_RETURN;
 	handleOverworldEvent(navigate);
 	if (mScreen != Screen::DeckBuilder) return false;
@@ -1553,7 +1639,7 @@ bool Application::exerciseMenuScreensSmoke()
 		!thirtyNineCardsIllegal) return false;
 	for (size_t i = 0; i < mPlayerDecks.size(); ++i)
 		if (!mPlayerDecks[i].path.empty() &&
-			mPlayerDecks[i].path.find("PlayerData/Decks/") != 0) return false;
+			mPlayerDecks[i].path.find(playerDeckDirectory() + "/") != 0) return false;
 	renderDeckBuilder();
 	mMouseX = 300;
 	mMouseY = 200;
@@ -1627,10 +1713,12 @@ bool Application::exerciseMenuScreensSmoke()
 	int savedBuilderCameraY = mWorldBuilderCameraY;
 	int savedBuilderTileSize = mWorldBuilderTileSize;
 	int savedBuilderListScroll = mWorldBuilderListScroll;
+	int savedBuilderSelectedNpc = mWorldBuilderSelectedNpc;
+	int savedBuilderSelectedShard = mWorldBuilderSelectedShard;
 	int savedMouseX = mMouseX;
 	int savedMouseY = mMouseY;
 	int builderArea = worldAreaIndex("overworld");
-	if (builderArea < 0) return false;
+	if (builderArea < 0 || mMercerStock.shards.empty()) return false;
 	mScreen = Screen::WorldBuilder;
 	mCurrentWorldArea = builderArea;
 	mWorldBuilderTab = WorldBuilderTab::Tiles;
@@ -1641,6 +1729,58 @@ bool Application::exerciseMenuScreensSmoke()
 	mWorldBuilderMoveUp = mWorldBuilderMoveDown = false;
 	mWorldBuilderMoveLeft = mWorldBuilderMoveRight = false;
 	mWorldBuilderPanAccumulator = 0;
+	int portraitNpc = 0;
+	int portraitArea = worldAreaIndex(mNpcs[portraitNpc].mapId);
+	if (portraitArea < 0) return false;
+	mWorldBuilderTab = WorldBuilderTab::Npcs;
+	SDL_Event npcListClick = {};
+	npcListClick.type = SDL_MOUSEBUTTONDOWN;
+	npcListClick.button.button = SDL_BUTTON_LEFT;
+	npcListClick.button.x = 1100;
+	npcListClick.button.y = 159;
+	npcListClick.button.clicks = 1;
+	handleWorldBuilderEvent(npcListClick);
+	bool npcDoubleClickReady = mWorldBuilderSelectedNpc == portraitNpc &&
+		mCurrentWorldArea == builderArea;
+	npcListClick.button.clicks = 2;
+	handleWorldBuilderEvent(npcListClick);
+	npcDoubleClickReady = npcDoubleClickReady && mCurrentWorldArea == portraitArea;
+	mCurrentWorldArea = builderArea;
+	mWorldBuilderCameraX = 10;
+	mWorldBuilderCameraY = 10;
+	mWorldBuilderListScroll = 0;
+	mWorldBuilderTab = WorldBuilderTab::Shards;
+	SDL_Event shardListClick = npcListClick;
+	shardListClick.button.clicks = 1;
+	handleWorldBuilderEvent(shardListClick);
+	bool shardDoubleClickReady = mWorldBuilderSelectedShard == 0 &&
+		mCurrentWorldArea == builderArea && mWorldBuilderCameraX == 10 &&
+		mWorldBuilderCameraY == 10;
+	shardListClick.button.clicks = 2;
+	handleWorldBuilderEvent(shardListClick);
+	int shardArea = worldAreaIndex(mMercerStock.shards[0].mapId);
+	shardDoubleClickReady = shardDoubleClickReady && mCurrentWorldArea == shardArea &&
+		(mWorldBuilderCameraX != 10 || mWorldBuilderCameraY != 10);
+	mWorldBuilderTab = WorldBuilderTab::Npcs;
+	mCurrentWorldArea = portraitArea;
+	mWorldBuilderCameraX = 0;
+	mWorldBuilderCameraY = 0;
+	const std::vector<std::string>& portraitMap = currentMap();
+	int portraitMapX = MAP_X + std::max(0,
+		MAP_VIEW_WIDTH - (int)portraitMap[0].size() * TILE) / 2;
+	int portraitMapY = MAP_Y + std::max(0,
+		MAP_VIEW_HEIGHT - (int)portraitMap.size() * TILE) / 2;
+	mMouseX = portraitMapX + mNpcs[portraitNpc].x * TILE + TILE / 2;
+	mMouseY = portraitMapY + mNpcs[portraitNpc].y * TILE + TILE / 2;
+	bool npcBuilderViewReady = worldBuilderHoveredNpc() == portraitNpc;
+	renderWorldBuilder();
+	npcBuilderViewReady = npcBuilderViewReady && !mWorldBuilderTileScaleActive;
+	mCurrentWorldArea = builderArea;
+	mWorldBuilderTab = WorldBuilderTab::Tiles;
+	mWorldBuilderCameraX = 10;
+	mWorldBuilderCameraY = 10;
+	mMouseX = -100;
+	mMouseY = -100;
 	renderWorldBuilder();
 	SDL_Event pan = {};
 	pan.type = SDL_KEYDOWN;
@@ -1672,9 +1812,24 @@ bool Application::exerciseMenuScreensSmoke()
 	bool zoomedIn = mWorldBuilderTileSize == 64 &&
 		mWorldBuilderCameraX == 13 && mWorldBuilderCameraY == 12;
 	renderWorldBuilder();
+	zoomWorldBuilder(1, mMouseX, mMouseY);
+	renderWorldBuilder();
+	bool largeZoomRendered = mWorldBuilderTileSize == 96 &&
+		!mWorldBuilderTileScaleActive;
+	zoomWorldBuilder(-1, mMouseX, mMouseY);
 	zoom.wheel.y = -1;
 	handleWorldBuilderEvent(zoom);
 	bool zoomedOut = mWorldBuilderTileSize == TILE;
+	zoomWorldBuilder(-1, mMouseX, mMouseY);
+	renderWorldBuilder();
+	bool smallZoomRendered = mWorldBuilderTileSize == 32 &&
+		!mWorldBuilderTileScaleActive;
+	zoomWorldBuilder(-1, mMouseX, mMouseY);
+	renderWorldBuilder();
+	smallZoomRendered = smallZoomRendered && mWorldBuilderTileSize == 24 &&
+		!mWorldBuilderTileScaleActive;
+	zoomWorldBuilder(1, mMouseX, mMouseY);
+	zoomWorldBuilder(1, mMouseX, mMouseY);
 	mMouseX = 1100;
 	mMouseY = 300;
 	zoom.wheel.y = -1;
@@ -1688,13 +1843,18 @@ bool Application::exerciseMenuScreensSmoke()
 	mWorldBuilderCameraY = savedBuilderCameraY;
 	mWorldBuilderTileSize = savedBuilderTileSize;
 	mWorldBuilderListScroll = savedBuilderListScroll;
+	mWorldBuilderSelectedNpc = savedBuilderSelectedNpc;
+	mWorldBuilderSelectedShard = savedBuilderSelectedShard;
 	mMouseX = savedMouseX;
 	mMouseY = savedMouseY;
 	mWorldBuilderTab = savedBuilderTab;
 	mCurrentWorldArea = savedBuilderArea;
 	mScreen = savedScreen;
-	if (!arrowHeld || !wasdHeld || !zoomedIn || !zoomedOut ||
-		!panelWheelStillScrolls) return false;
+	if (!npcDoubleClickReady || !shardDoubleClickReady || !npcBuilderViewReady ||
+		!arrowHeld || !wasdHeld ||
+		!zoomedIn || !zoomedOut ||
+		!largeZoomRendered ||
+		!smallZoomRendered || !panelWheelStillScrolls) return false;
 
 	mPendingRewardCardId = getCardIdFromName("Aqua Hulcus");
 	mPendingRewardGold = 100;

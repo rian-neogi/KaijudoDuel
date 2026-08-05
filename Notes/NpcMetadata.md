@@ -4,7 +4,7 @@ Overworld NPCs are defined in `Lua/Npcs.lua`. The file returns an array with one
 
 The loader rejects invalid metadata with a specific startup error. It validates duplicate IDs and names, kinds, sprite appearances, positions, deck files, reward cards, reward limits, and empty rosters.
 
-NPC positions belong exclusively to `Lua/World.lua`. Each exterior region also declares `kind = "town"` or `kind = "connector"`; the loader rejects NPC kinds placed in the wrong region type.
+NPC positions belong exclusively to `Lua/World.lua`. Each exterior region also declares `kind = "town"` or `kind = "connector"` for geographic organization and editor labels. Region kinds do not restrict which NPC kinds may be placed there.
 
 ## Town NPC template
 
@@ -66,15 +66,15 @@ still be used for a deck elsewhere; if that path exists, it takes priority.
 
 ## Route duelist template
 
-Route duelists may only be positioned in `connector` regions. Before their first defeat, they watch a straight, obstacle-blocked line in their configured direction. Seeing the player displays an exclamation mark, stops player movement, and makes the trainer rush forward before delivering `greeting` and starting a forced duel. Losing does not permanently lock the player in another challenge; leaving and re-entering the sight line re-arms it. Later battles are voluntary rematches.
+Before their first defeat, route duelists detect the player anywhere inside their configured taxicab-distance radius. Detection is independent of facing. The trainer displays an exclamation mark, stops player movement, and follows a cardinal path around walkable obstacles until adjacent before delivering `greeting` and starting a forced duel. Losing does not permanently lock the player in another challenge; leaving and re-entering the radius re-arms it. Later battles are voluntary rematches. Route duelists may be positioned in towns or connecting regions.
 
 ```lua
 {
     id = "road_trainer",
     name = "Road Trainer",
     kind = "route_duelist",
-    sight = { range = 7, direction = "left" },
-    appearance = "generic1",
+    sight = { range = 7 },
+    appearance = "generic-male-1",
     max_battles = 4,
     deck1 = "Example.txt",
     reward1 = { card = "First Reward Card", gold = 100 },
@@ -91,7 +91,13 @@ Route duelists may only be positioned in `connector` regions. Before their first
 }
 ```
 
-Sight ranges must be from 1 through 12. Directions are `up`, `down`, `left`, or `right`. Route duelists do not wander, keeping their authored sight line predictable.
+Sight ranges must be from 1 through 12 and are measured as Manhattan/taxicab distance: `abs(playerX - trainerX) + abs(playerY - trainerY)`. Route duelists do not wander, keeping their authored encounter radius predictable.
+
+Generic sprites are divided into `generic-male-1` through `generic-male-10`
+and `generic-female-1` through `generic-female-10`. Matching numbers retain
+the same outfit palette and accessory theme while using the selected gendered
+silhouette. The former unqualified `generic1` through `generic10` names are no
+longer accepted.
 
 ## Trade-only town NPC template
 

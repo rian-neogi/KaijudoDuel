@@ -5,6 +5,7 @@
 #include "SoundManager.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 
 using namespace AppSupport;
@@ -16,17 +17,20 @@ namespace
 
 Application::Application(bool worldBuilder)
 	: mWindow(NULL), mRenderer(NULL), mBoardTexture(NULL), mCardBackTexture(NULL), mSoundManager(NULL), mRunning(false),
-	  mScreen(Screen::Overworld), mPauseMenuOpen(false), mPauseMenuSelection(0), mCurrentWorldArea(0),
+	  mScreen(Screen::MainMenu), mMainMenuSelection(0), mLoadGameSelection(0),
+	  mLoadGameScroll(0), mPauseMenuOpen(false), mPauseMenuSelection(0), mCurrentWorldArea(0),
 	  mOpeningPortal(-1), mPortalAnimationStarted(0),
 	  mWorldStartX(2), mWorldStartY(10), mPlayerX(2), mPlayerY(10), mFacingX(1), mFacingY(0),
 	  mMoveUp(false), mMoveDown(false), mMoveLeft(false), mMoveRight(false), mMoveIntentX(0), mMoveIntentY(0),
 	  mVisualX(2.f), mVisualY(10.f), mDialogueNpc(-1), mDialogueVisibleBytes(0),
 	  mDialogueCharacterAccumulator(0), mDialogueAction(DialogueAction::None),
 	  mNpcMenuNpc(-1), mNpcMenuSelection(0), mRouteChallengeNpc(-1), mNoticeUntil(0),
+	  mRegionBannerStarted(0), mRegionBannerConnector(false),
 	  mStoryStage(0), mStoryClues(0), mStoryScene(StoryScene::None), mStoryScenePage(0),
 	  mWorldBuilderTab(WorldBuilderTab::Tiles), mWorldBuilderTile(WorldTiles::Grass), mWorldBuilderSelectedNpc(-1),
 	  mWorldBuilderSelectedShard(-1), mWorldBuilderListScroll(0), mWorldBuilderCameraX(0),
 	  mWorldBuilderCameraY(0), mWorldBuilderTileSize(TILE),
+	  mWorldBuilderTileScaleActive(false), mWorldBuilderTileScaleDestination({ 0, 0, TILE, TILE }),
 	  mWorldBuilderMoveUp(false), mWorldBuilderMoveDown(false),
 	  mWorldBuilderMoveLeft(false), mWorldBuilderMoveRight(false),
 	  mWorldBuilderPanAccumulator(0), mWorldBuilderPainting(false),
@@ -124,6 +128,8 @@ bool Application::initialize()
 		std::cerr << "Card-back texture unavailable; using fallback colors: " << IMG_GetError() << std::endl;
 
 	loadSettings();
+	migrateLegacyPlayerData();
+	refreshSaveSlots();
 	mRunning = true;
 	return true;
 }
@@ -200,7 +206,9 @@ void Application::handleEvent(const SDL_Event& event)
 		return;
 	}
 	if (mRewardCardId >= 0 && handleRewardPopupEvent(event)) return;
-	if (mScreen == Screen::Overworld) handleOverworldEvent(event);
+	if (mScreen == Screen::MainMenu) handleMainMenuEvent(event);
+	else if (mScreen == Screen::LoadGame) handleLoadGameEvent(event);
+	else if (mScreen == Screen::Overworld) handleOverworldEvent(event);
 	else if (mScreen == Screen::Duel) handleDuelEvent(event);
 	else if (mScreen == Screen::DeckBuilder) handleDeckBuilderEvent(event);
 	else if (mScreen == Screen::Shop) handleShopEvent(event);
@@ -232,7 +240,9 @@ void Application::render()
 {
 	setColor(14, 18, 28);
 	SDL_RenderClear(mRenderer);
-	if (mScreen == Screen::Overworld) renderOverworld();
+	if (mScreen == Screen::MainMenu) renderMainMenu();
+	else if (mScreen == Screen::LoadGame) renderLoadGame();
+	else if (mScreen == Screen::Overworld) renderOverworld();
 	else if (mScreen == Screen::Duel) renderDuel();
 	else if (mScreen == Screen::DeckBuilder) renderDeckBuilder();
 	else if (mScreen == Screen::Shop) renderShop();
@@ -322,17 +332,38 @@ void Application::setColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a)
 void Application::fillRect(const SDL_Rect& rect, Uint8 r, Uint8 g, Uint8 b, Uint8 a)
 {
 	setColor(r, g, b, a);
-	SDL_RenderFillRect(mRenderer, &rect);
+	SDL_Rect rendered = worldBuilderTileRect(rect);
+	SDL_RenderFillRect(mRenderer, &rendered);
 }
 
 void Application::outlineRect(const SDL_Rect& rect, Uint8 r, Uint8 g, Uint8 b, Uint8 a, int thickness)
 {
+	if (mWorldBuilderTileScaleActive)
+		thickness = std::max(1, (int)std::round(thickness *
+			mWorldBuilderTileScaleDestination.w / (float)TILE));
+	SDL_Rect rendered = worldBuilderTileRect(rect);
 	setColor(r, g, b, a);
 	for (int i = 0; i < thickness; ++i)
 	{
-		SDL_Rect line = { rect.x + i, rect.y + i, rect.w - i * 2, rect.h - i * 2 };
+		SDL_Rect line = { rendered.x + i, rendered.y + i,
+			rendered.w - i * 2, rendered.h - i * 2 };
 		SDL_RenderDrawRect(mRenderer, &line);
 	}
+}
+
+SDL_Rect Application::worldBuilderTileRect(const SDL_Rect& rect) const
+{
+	if (!mWorldBuilderTileScaleActive) return rect;
+	const SDL_Rect& destination = mWorldBuilderTileScaleDestination;
+	int left = destination.x + (int)std::round((rect.x - destination.x) *
+		destination.w / (float)TILE);
+	int top = destination.y + (int)std::round((rect.y - destination.y) *
+		destination.h / (float)TILE);
+	int right = destination.x + (int)std::round((rect.x + rect.w - destination.x) *
+		destination.w / (float)TILE);
+	int bottom = destination.y + (int)std::round((rect.y + rect.h - destination.y) *
+		destination.h / (float)TILE);
+	return { left, top, std::max(1, right - left), std::max(1, bottom - top) };
 }
 
 TTF_Font* Application::font(int size)

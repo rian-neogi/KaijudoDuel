@@ -9,13 +9,14 @@
 -- with duel enabled, route duelists, and bosses require max_battles, deck1,
 -- and one reward table for every enabled battle. deck2 through deck4 are
 -- optional: a missing deck reuses the most recently defined deck.
--- Route duelists also require sight = { range = 1..12, direction = "up" |
--- "down" | "left" | "right" }.
+-- Route duelists also require sight = { range = 1..12 }. This is a taxicab
+-- radius and is not limited by the trainer's facing direction.
 --
 -- Supported kinds: town_npc, route_duelist, boss
 -- Supported appearances: mira, marin, rook, aurelia, flint, nyx, tidal,
 --                        briar, mercer, veiled_one, neris, oren,
---                        generic1 through generic10
+--                        generic-male-1 through generic-male-10,
+--                        generic-female-1 through generic-female-10
 --
 -- Dialogue is a flat, extensible string table. The current application uses:
 --   greeting, talk, defeat, victory, complete, clue, investigation,
@@ -32,7 +33,7 @@
 --     kind = "town_npc",
 --     options = { duel = true, trade = false, wander = true },
 --     -- Route duelists use kind = "route_duelist" and:
---     -- sight = { range = 6, direction = "left" },
+--     -- sight = { range = 6 },
 --     appearance = "mira",
 --     crest = "dawn", -- optional; awarded by the first victory
 --     max_battles = 4,
@@ -52,6 +53,7 @@
 -- },
 
 return {
+	--Emberglen
     {
         id = "mira",
         name = "Mira",
@@ -109,7 +111,7 @@ return {
         id = "rook",
         name = "Rook",
         kind = "route_duelist",
-        sight = { range = 8, direction = "left" },
+        sight = { range = 8 },
         appearance = "rook",
         max_battles = 4,
         deck1 = "RoaringGreathorn.txt",
@@ -294,14 +296,16 @@ return {
             complete = "The Curator has already crossed the old road. Rowan still lives—but not for long."
         }
     },
+
+
 	{
         id = "pip",
         name = "Pip",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "generic1",
-        max_battles = 2,
-        deck1 = "Zagaan.txt",
+        appearance = "generic-male-1",
+        max_battles = 1,
+        deck1 = "DeathbladeBeetle.txt",
         deck2 = "Deathliger.txt",
         reward1 = { card = "Zagaan, Knight of Darkness", gold = 100 },
         reward2 = { card = "Zagaan, Knight of Darkness", gold = 100 },
@@ -320,9 +324,9 @@ return {
         name = "Noma",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "generic2",
-        max_battles = 2,
-        deck1 = "Zagaan.txt",
+        appearance = "generic-female-2",
+        max_battles = 1,
+        deck1 = "AstrocometDragon.txt",
         deck2 = "Deathliger.txt",
         reward1 = { card = "Zagaan, Knight of Darkness", gold = 100 },
         reward2 = { card = "Zagaan, Knight of Darkness", gold = 100 },
@@ -341,9 +345,9 @@ return {
         name = "Bram",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "generic3",
-        max_battles = 2,
-        deck1 = "Zagaan.txt",
+        appearance = "generic-male-3",
+        max_battles = 1,
+        deck1 = "Fire Generic 1.txt",
         deck2 = "Deathliger.txt",
         reward1 = { card = "Zagaan, Knight of Darkness", gold = 100 },
         reward2 = { card = "Zagaan, Knight of Darkness", gold = 100 },
@@ -362,9 +366,9 @@ return {
         name = "Elia",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "generic3",
-        max_battles = 2,
-        deck1 = "Zagaan.txt",
+        appearance = "generic-female-3",
+        max_battles = 1,
+        deck1 = "Urth.txt",
         deck2 = "Deathliger.txt",
         reward1 = { card = "Zagaan, Knight of Darkness", gold = 100 },
         reward2 = { card = "Zagaan, Knight of Darkness", gold = 100 },
@@ -383,9 +387,9 @@ return {
         name = "Tomas",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "generic3",
-        max_battles = 2,
-        deck1 = "Zagaan.txt",
+        appearance = "generic-male-5",
+        max_battles = 1,
+        deck1 = "Hanusa.txt",
         deck2 = "Deathliger.txt",
         reward1 = { card = "Zagaan, Knight of Darkness", gold = 100 },
         reward2 = { card = "Zagaan, Knight of Darkness", gold = 100 },
@@ -404,7 +408,7 @@ return {
         name = "Senn",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "generic3",
+        appearance = "generic-male-4",
         max_battles = 1,
         deck1 = "TrenchdiveShark.txt",
         reward1 = { card = "Zagaan, Knight of Darkness", gold = 100 },
@@ -424,9 +428,9 @@ return {
         name = "Kipp",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "generic3",
+        appearance = "generic-male-6",
         max_battles = 2,
-        deck1 = "Zagaan.txt",
+        deck1 = "Fire Generic 2.txt",
         deck2 = "Deathliger.txt",
         reward1 = { card = "Zagaan, Knight of Darkness", gold = 100 },
         reward2 = { card = "Zagaan, Knight of Darkness", gold = 100 },
@@ -445,7 +449,7 @@ return {
         name = "Ansa",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "generic3",
+        appearance = "generic-female-7",
         max_battles = 2,
         deck1 = "Zagaan.txt",
         deck2 = "Deathliger.txt",
@@ -466,9 +470,9 @@ return {
         name = "Holt",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "generic3",
+        appearance = "generic-male-7",
         max_battles = 2,
-        deck1 = "Zagaan.txt",
+        deck1 = "RoaringGreathorn.txt",
         deck2 = "Deathliger.txt",
         reward1 = { card = "Zagaan, Knight of Darkness", gold = 100 },
         reward2 = { card = "Zagaan, Knight of Darkness", gold = 100 },
@@ -482,6 +486,8 @@ return {
 			talk = ""
 		}
 	},
+
+	--Glasswater
 	{
 		id = "neris",
 		name = "Neris Quill",
@@ -511,9 +517,9 @@ return {
 		name = "Pell",
 		kind = "town_npc",
 		options = { duel = true },
-		appearance = "generic5",
-		max_battles = 4,
-		deck1 = "NPC/Neris Quill 3.txt",
+		appearance = "generic-male-5",
+		max_battles = 1,
+		deck1 = "KingTsunami.txt",
 		reward1 = { card = "Emeral", gold = 85 },
 		reward2 = { card = "Emeral", gold = 85 },
 		reward3 = { card = "Emeral", gold = 85 },
@@ -531,8 +537,8 @@ return {
 		name = "Iri",
 		kind = "town_npc",
 		options = { duel = true },
-		appearance = "generic4",
-		max_battles = 4,
+		appearance = "generic-female-4",
+		max_battles = 1,
 		deck1 = "More2/WD Dark Tide v3.txt",
 		deck2 = "NPC/Neris Quill 2.txt",
 		reward1 = { card = "Corile", gold = 90 },
@@ -552,8 +558,8 @@ return {
 		name = "Sol",
 		kind = "town_npc",
 		options = { duel = true },
-		appearance = "generic10",
-		max_battles = 4,
+		appearance = "generic-male-10",
+		max_battles = 1,
 		deck1 = "KingDepthcon.txt",
 		reward1 = { card = "Crystal Memory", gold = 90 },
 		reward2 = { card = "Crystal Memory", gold = 90 },
@@ -567,6 +573,8 @@ return {
 			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
 		}
 	},
+
+	--Rootmaze
 	{
 		id = "oren",
 		name = "Oren Canopy",
@@ -574,7 +582,7 @@ return {
 		options = { duel = true },
 		appearance = "oren",
 		crest = "verdant",
-		max_battles = 4,
+		max_battles = 1,
 		deck1 = "NPC/Oren.txt",
 		reward1 = { card = "Cryptic Totem", gold = 160 },
 		reward2 = { card = "Cryptic Totem", gold = 160 },
@@ -594,8 +602,8 @@ return {
 		name = "Fern",
 		kind = "town_npc",
 		options = { duel = true },
-		appearance = "generic2",
-		max_battles = 4,
+		appearance = "generic-female-2",
+		max_battles = 1,
 		deck1 = "AnristVhal.txt",
 		deck2 = "StormWrangler.txt",
 		reward1 = { card = "Barkwhip, the Smasher", gold = 95 },
@@ -615,8 +623,8 @@ return {
 		name = "Toma",
 		kind = "town_npc",
 		options = { duel = true },
-		appearance = "generic6",
-		max_battles = 4,
+		appearance = "generic-male-6",
+		max_battles = 1,
 		deck1 = "AnristVhal.txt",
 		reward1 = { card = "Essence Elf", gold = 95 },
 		reward2 = { card = "Essence Elf", gold = 95 },
@@ -635,7 +643,7 @@ return {
 		name = "Moss",
 		kind = "town_npc",
 		options = { duel = true },
-		appearance = "generic5",
+		appearance = "generic-male-5",
 		max_battles = 4,
 		deck1 = "StormWrangler.txt",
 		reward1 = { card = "Dimension Gate", gold = 100 },
@@ -650,15 +658,17 @@ return {
 			complete = "No more tolls. You have paid for every path Rootmaze can offer."
 		}
 	},
+
+	---Watershed Crossroads
 	{
-		id = "tern_ford",
-		name = "Tern Ford",
+		id = "crossroad-duelist-1",
+		name = "Ford",
 		kind = "route_duelist",
-		sight = { range = 8, direction = "right" },
-		appearance = "generic7",
-		max_battles = 4,
-		deck1 = "More2/NW The Everglades.txt",
-		reward1 = { card = "Aqua Sniper", gold = 105 },
+		sight = { range = 8 },
+		appearance = "generic-male-7",
+		max_battles = 1,
+		deck1 = "Nature Generic 1.txt",
+		reward1 = { card = "Aqua Sniper", gold = 200 },
 		reward2 = { card = "Aqua Sniper", gold = 105 },
 		reward3 = { card = "Aqua Sniper", gold = 105 },
 		reward4 = { card = "Aqua Sniper", gold = 105 },
@@ -671,14 +681,14 @@ return {
 		}
 	},
 	{
-		id = "vale_reed",
-		name = "Vale Reed",
+		id = "crossroad-duelist-2",
+		name = "Tony",
 		kind = "route_duelist",
-		sight = { range = 8, direction = "right" },
-		appearance = "generic8",
-		max_battles = 4,
-		deck1 = "StormWrangler.txt",
-		reward1 = { card = "Storm Shell", gold = 110 },
+		sight = { range = 8 },
+		appearance = "generic-male-8",
+		max_battles = 1,
+		deck1 = "Water Generic 1.txt",
+		reward1 = { card = "Storm Shell", gold = 200 },
 		reward2 = { card = "Storm Shell", gold = 110 },
 		reward3 = { card = "Storm Shell", gold = 110 },
 		reward4 = { card = "Storm Shell", gold = 110 },
@@ -691,12 +701,12 @@ return {
 		}
 	},
 	{
-		id = "cairn",
+		id = "crossroad-duelist-3",
 		name = "Cairn",
 		kind = "route_duelist",
-		sight = { range = 8, direction = "down" },
-		appearance = "generic9",
-		max_battles = 4,
+		sight = { range = 8 },
+		appearance = "generic-male-1",
+		max_battles = 1,
 		deck1 = "AstrocometDragon.txt",
 		reward1 = { card = "Astrocomet Dragon", gold = 115 },
 		reward2 = { card = "Astrocomet Dragon", gold = 115 },
@@ -711,13 +721,193 @@ return {
 		}
 	},
 	{
-		id = "mara_flintway",
+		id = "old-road-duelist-1",
 		name = "Mara Flintway",
 		kind = "route_duelist",
-		sight = { range = 8, direction = "left" },
-		appearance = "generic4",
-		max_battles = 4,
+		sight = { range = 8 },
+		appearance = "generic-female-4",
+		max_battles = 1,
 		deck1 = "RoaringGreathorn.txt",
+		reward1 = { card = "Roaring Great-Horn", gold = 200 },
+		reward2 = { card = "Roaring Great-Horn", gold = 115 },
+		reward3 = { card = "Roaring Great-Horn", gold = 115 },
+		reward4 = { card = "Roaring Great-Horn", gold = 115 },
+		ai = { personality = "adaptive" },
+		dialogue = {
+			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
+			defeat = "That will do. You have the nerve to explore beyond the road stones.",
+			victory = "A campfire is no substitute for preparation.",
+			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+		}
+	},
+	{
+		id = "old-road-duelist-2",
+		name = "Shi Li",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "generic-male-4",
+		max_battles = 1,
+		deck1 = "Dark Generic 1.txt",
+		reward1 = { card = "Bloody Squito", gold = 200 },
+		reward2 = { card = "Roaring Great-Horn", gold = 115 },
+		reward3 = { card = "Roaring Great-Horn", gold = 115 },
+		reward4 = { card = "Roaring Great-Horn", gold = 115 },
+		ai = { personality = "adaptive" },
+		dialogue = {
+			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
+			defeat = "That will do. You have the nerve to explore beyond the road stones.",
+			victory = "A campfire is no substitute for preparation.",
+			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+		}
+	},
+	{
+		id = "old-road-duelist-3",
+		name = "Amber",
+		kind = "route_duelist",
+		sight = { range = 8 },
+		appearance = "generic-female-2",
+		max_battles = 1,
+		deck1 = "TrenchdiveShark.txt",
+		reward1 = { card = "Roaring Great-Horn", gold = 115 },
+		reward2 = { card = "Roaring Great-Horn", gold = 115 },
+		reward3 = { card = "Roaring Great-Horn", gold = 115 },
+		reward4 = { card = "Roaring Great-Horn", gold = 115 },
+		ai = { personality = "adaptive" },
+		dialogue = {
+			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
+			defeat = "That will do. You have the nerve to explore beyond the road stones.",
+			victory = "A campfire is no substitute for preparation.",
+			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+		}
+	},
+	{
+		id = "old-road-duelist-4",
+		name = "Pol",
+		kind = "route_duelist",
+		sight = { range = 8 },
+		appearance = "generic-male-9",
+		max_battles = 4,
+		deck1 = "Fire Generic 1.txt",
+		reward1 = { card = "Roaring Great-Horn", gold = 115 },
+		reward2 = { card = "Roaring Great-Horn", gold = 115 },
+		reward3 = { card = "Roaring Great-Horn", gold = 115 },
+		reward4 = { card = "Roaring Great-Horn", gold = 115 },
+		ai = { personality = "adaptive" },
+		dialogue = {
+			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
+			defeat = "That will do. You have the nerve to explore beyond the road stones.",
+			victory = "A campfire is no substitute for preparation.",
+			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+		}
+	},
+	{
+		id = "old-road-duelist-5",
+		name = "Ponna",
+		kind = "route_duelist",
+		sight = { range = 8 },
+		appearance = "generic-female-4",
+		max_battles = 4,
+		deck1 = "Fire Generic 2.txt",
+		reward1 = { card = "Roaring Great-Horn", gold = 115 },
+		reward2 = { card = "Roaring Great-Horn", gold = 115 },
+		reward3 = { card = "Roaring Great-Horn", gold = 115 },
+		reward4 = { card = "Roaring Great-Horn", gold = 115 },
+		ai = { personality = "adaptive" },
+		dialogue = {
+			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
+			defeat = "That will do. You have the nerve to explore beyond the road stones.",
+			victory = "A campfire is no substitute for preparation.",
+			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+		}
+	},
+	{
+		id = "old-road-duelist-6",
+		name = "Clara",
+		kind = "route_duelist",
+		sight = { range = 8 },
+		appearance = "generic-female-3",
+		max_battles = 4,
+		deck1 = "AquaSniper.txt",
+		reward1 = { card = "Roaring Great-Horn", gold = 115 },
+		reward2 = { card = "Roaring Great-Horn", gold = 115 },
+		reward3 = { card = "Roaring Great-Horn", gold = 115 },
+		reward4 = { card = "Roaring Great-Horn", gold = 115 },
+		ai = { personality = "adaptive" },
+		dialogue = {
+			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
+			defeat = "That will do. You have the nerve to explore beyond the road stones.",
+			victory = "A campfire is no substitute for preparation.",
+			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+		}
+	},
+	{
+		id = "old-road-duelist-7",
+		name = "Olmec",
+		kind = "route_duelist",
+		sight = { range = 8 },
+		appearance = "generic-male-2",
+		max_battles = 1,
+		deck1 = "Zagaan.txt",
+		reward1 = { card = "Roaring Great-Horn", gold = 115 },
+		reward2 = { card = "Roaring Great-Horn", gold = 115 },
+		reward3 = { card = "Roaring Great-Horn", gold = 115 },
+		reward4 = { card = "Roaring Great-Horn", gold = 115 },
+		ai = { personality = "adaptive" },
+		dialogue = {
+			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
+			defeat = "That will do. You have the nerve to explore beyond the road stones.",
+			victory = "A campfire is no substitute for preparation.",
+			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+		}
+	},
+	{
+		id = "old-road-duelist-8",
+		name = "Totiana",
+		kind = "route_duelist",
+		sight = { range = 8 },
+		appearance = "generic-female-7",
+		max_battles = 1,
+		deck1 = "Dark Generic 2.txt",
+		reward1 = { card = "Roaring Great-Horn", gold = 115 },
+		reward2 = { card = "Roaring Great-Horn", gold = 115 },
+		reward3 = { card = "Roaring Great-Horn", gold = 115 },
+		reward4 = { card = "Roaring Great-Horn", gold = 115 },
+		ai = { personality = "adaptive" },
+		dialogue = {
+			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
+			defeat = "That will do. You have the nerve to explore beyond the road stones.",
+			victory = "A campfire is no substitute for preparation.",
+			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+		}
+	},
+	{
+		id = "old-road-duelist-9",
+		name = "Flora",
+		kind = "route_duelist",
+		sight = { range = 8 },
+		appearance = "generic-female-8",
+		max_battles = 4,
+		deck1 = "Nature Generic 2.txt",
+		reward1 = { card = "Roaring Great-Horn", gold = 115 },
+		reward2 = { card = "Roaring Great-Horn", gold = 115 },
+		reward3 = { card = "Roaring Great-Horn", gold = 115 },
+		reward4 = { card = "Roaring Great-Horn", gold = 115 },
+		ai = { personality = "adaptive" },
+		dialogue = {
+			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
+			defeat = "That will do. You have the nerve to explore beyond the road stones.",
+			victory = "A campfire is no substitute for preparation.",
+			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+		}
+	},
+	{
+		id = "old-road-duelist-10",
+		name = "Berry",
+		kind = "route_duelist",
+		sight = { range = 8 },
+		appearance = "generic-female-1",
+		max_battles = 4,
+		deck1 = "WorldTree.txt",
 		reward1 = { card = "Roaring Great-Horn", gold = 115 },
 		reward2 = { card = "Roaring Great-Horn", gold = 115 },
 		reward3 = { card = "Roaring Great-Horn", gold = 115 },

@@ -54,7 +54,8 @@ namespace
 		WorldTiles::RootmazeRoot, WorldTiles::RootmazeBridge,
 		WorldTiles::RootmazeRoof, WorldTiles::RootmazeWall,
 		WorldTiles::RootmazeDoor, WorldTiles::RootmazeArena,
-		WorldTiles::RootmazeMarker };
+		WorldTiles::RootmazeMarker, WorldTiles::Rocks, WorldTiles::Bush,
+		WorldTiles::Shrub, WorldTiles::CaveEntrance, WorldTiles::TreeStump };
 	const int TILE_TYPE_COUNT = sizeof(TILE_TYPES) / sizeof(TILE_TYPES[0]);
 
 	SDL_Rect paletteRect(int index)
@@ -422,7 +423,7 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 		return false;
 	}
 	bool placedMissing = false;
-	auto placeMissing = [&](std::vector<LoadedPosition>& positions, bool npcEntities) -> bool
+	auto placeMissing = [&](std::vector<LoadedPosition>& positions) -> bool
 	{
 		for (size_t i = 0; i < positions.size(); ++i)
 		{
@@ -431,86 +432,20 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 			for (size_t map = 0; map < areas.size() && !placed; ++map)
 				for (int y = 0; y < (int)areas[map].tiles.size() && !placed; ++y)
 					for (int x = 0; x < (int)areas[map].tiles[y].size() && !placed; ++x)
-					{
-						const WorldRegion* candidateRegion = NULL;
-						for (size_t regionIndex = 0; regionIndex < regions.size(); ++regionIndex)
-							if (regions[regionIndex].mapId == areas[map].id &&
-								x >= regions[regionIndex].x && y >= regions[regionIndex].y &&
-								x < regions[regionIndex].x + regions[regionIndex].width &&
-								y < regions[regionIndex].y + regions[regionIndex].height)
-							{
-								candidateRegion = &regions[regionIndex];
-								break;
-							}
-						bool matchesKind = true;
-						if (npcEntities && mNpcs[i].isRouteDuelist())
-						{
-							int sightX = x + mNpcs[i].facingX;
-							int sightY = y + mNpcs[i].facingY;
-							matchesKind = candidateRegion != NULL && candidateRegion->connector &&
-								inBounds(areas[map], sightX, sightY) &&
-								walkable(areas[map].tiles[sightY][sightX]) &&
-								sightX >= candidateRegion->x && sightY >= candidateRegion->y &&
-								sightX < candidateRegion->x + candidateRegion->width &&
-								sightY < candidateRegion->y + candidateRegion->height;
-						}
-						else if (npcEntities && mNpcs[i].isTownNpc())
-							matchesKind = areas[map].indoor ||
-								(candidateRegion != NULL && !candidateRegion->connector);
-						if (matchesKind && walkable(areas[map].tiles[y][x]) &&
+						if (walkable(areas[map].tiles[y][x]) &&
 							occupied.insert(std::make_tuple(areas[map].id, x, y)).second)
 						{
 							positions[i] = { areas[map].id, x, y };
 							placed = placedMissing = true;
 						}
-					}
 			if (!placed) { error = "no free walkable tile is available for new world entities"; return false; }
 		}
 		return true;
 	};
-	if (!placeMissing(npcPositions, true) || !placeMissing(shardPositions, false))
+	if (!placeMissing(npcPositions) || !placeMissing(shardPositions))
 	{
 		lua_close(state);
 		return false;
-	}
-	for (size_t npcIndex = 0; npcIndex < mNpcs.size(); ++npcIndex)
-	{
-		const WorldRegion* npcRegion = NULL;
-		for (size_t regionIndex = 0; regionIndex < regions.size(); ++regionIndex)
-		{
-			const WorldRegion& candidate = regions[regionIndex];
-			if (candidate.mapId == npcPositions[npcIndex].map &&
-				npcPositions[npcIndex].x >= candidate.x &&
-				npcPositions[npcIndex].y >= candidate.y &&
-				npcPositions[npcIndex].x < candidate.x + candidate.width &&
-				npcPositions[npcIndex].y < candidate.y + candidate.height)
-			{
-				npcRegion = &candidate;
-				break;
-			}
-		}
-		bool invalidRouteSight = false;
-		if (mNpcs[npcIndex].isRouteDuelist() && npcRegion != NULL)
-		{
-			int mapIndex = areaIndex(npcPositions[npcIndex].map);
-			int sightX = npcPositions[npcIndex].x + mNpcs[npcIndex].facingX;
-			int sightY = npcPositions[npcIndex].y + mNpcs[npcIndex].facingY;
-			invalidRouteSight = mapIndex < 0 || !inBounds(areas[mapIndex], sightX, sightY) ||
-				!walkable(areas[mapIndex].tiles[sightY][sightX]) ||
-				sightX < npcRegion->x || sightY < npcRegion->y ||
-				sightX >= npcRegion->x + npcRegion->width ||
-				sightY >= npcRegion->y + npcRegion->height;
-		}
-		if ((mNpcs[npcIndex].isRouteDuelist() &&
-			(npcRegion == NULL || !npcRegion->connector)) ||
-			(mNpcs[npcIndex].isTownNpc() && npcRegion != NULL && npcRegion->connector) ||
-			invalidRouteSight)
-		{
-			error = "NPC '" + mNpcs[npcIndex].id +
-				" is not placed in a region matching its NPC kind";
-			lua_close(state);
-			return false;
-		}
 	}
 	lua_close(state);
 	mWorldAreas.swap(areas);
@@ -1046,25 +981,31 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 			if (mWorldBuilderTab == WorldBuilderTab::Npcs && selected < (int)mNpcs.size())
 			{
 				mWorldBuilderSelectedNpc = selected;
-				int map = worldAreaIndex(mNpcs[selected].mapId);
-				if (map >= 0)
+				if (event.button.clicks >= 2)
 				{
-					mCurrentWorldArea = map;
-					centerMapCamera(currentMap(), mNpcs[selected].x, mNpcs[selected].y,
-						mWorldBuilderCameraX, mWorldBuilderCameraY, mWorldBuilderTileSize);
+					int map = worldAreaIndex(mNpcs[selected].mapId);
+					if (map >= 0)
+					{
+						mCurrentWorldArea = map;
+						centerMapCamera(currentMap(), mNpcs[selected].x, mNpcs[selected].y,
+							mWorldBuilderCameraX, mWorldBuilderCameraY, mWorldBuilderTileSize);
+					}
 				}
 			}
 			else if (mWorldBuilderTab == WorldBuilderTab::Shards &&
 				selected < (int)mMercerStock.shards.size())
 			{
 				mWorldBuilderSelectedShard = selected;
-				int map = worldAreaIndex(mMercerStock.shards[selected].mapId);
-				if (map >= 0)
+				if (event.button.clicks >= 2)
 				{
-					mCurrentWorldArea = map;
-					centerMapCamera(currentMap(), mMercerStock.shards[selected].x,
-						mMercerStock.shards[selected].y, mWorldBuilderCameraX,
-						mWorldBuilderCameraY, mWorldBuilderTileSize);
+					int map = worldAreaIndex(mMercerStock.shards[selected].mapId);
+					if (map >= 0)
+					{
+						mCurrentWorldArea = map;
+						centerMapCamera(currentMap(), mMercerStock.shards[selected].x,
+							mMercerStock.shards[selected].y, mWorldBuilderCameraX,
+							mWorldBuilderCameraY, mWorldBuilderTileSize);
+					}
 				}
 			}
 			return;
@@ -1154,6 +1095,11 @@ void Application::drawWorldBuilderTileIcon(WorldTileId type, const SDL_Rect& rec
 	else if (type == WorldTiles::RootmazeWall) fillRect(rect, 109, 78, 47);
 	else if (type == WorldTiles::RootmazeDoor) fillRect(rect, 126, 89, 50);
 	else if (type == WorldTiles::RootmazeArena) fillRect(rect, 105, 154, 76);
+	else if (type == WorldTiles::Rocks) fillRect(rect, 61, 139, 61);
+	else if (type == WorldTiles::Bush) fillRect(rect, 49, 126, 54);
+	else if (type == WorldTiles::Shrub) fillRect(rect, 61, 139, 61);
+	else if (type == WorldTiles::CaveEntrance) fillRect(rect, 78, 70, 62);
+	else if (type == WorldTiles::TreeStump) fillRect(rect, 61, 139, 61);
 	else if (type == WorldTiles::WoodWall || type == WorldTiles::Door ||
 		type == WorldTiles::CinderrailDoor || type == WorldTiles::WoodFloor ||
 		type == WorldTiles::Counter)
@@ -1300,6 +1246,35 @@ void Application::drawWorldBuilderTileIcon(WorldTileId type, const SDL_Rect& rec
 		fillRect({ x + 3, y + 4, 12, 9 }, 112, 94, 75);
 		fillRect({ x + 15, y + 12, 11, 10 }, 64, 58, 55);
 		fillRect({ x + 5, y + 20, 14, 6 }, 88, 75, 65);
+	}
+	else if (type == WorldTiles::Rocks)
+	{
+		fillRect({ x + 4, y + 15, 12, 10 }, 96, 91, 82);
+		fillRect({ x + 12, y + 8, 13, 15 }, 125, 117, 103);
+		fillRect({ x + 15, y + 9, 7, 3 }, 163, 153, 134);
+	}
+	else if (type == WorldTiles::Bush || type == WorldTiles::Shrub)
+	{
+		int top = type == WorldTiles::Bush ? 6 : 14;
+		int height = type == WorldTiles::Bush ? 19 : 11;
+		fillRect({ x + 4, y + top + 5, 21, height - 5 },
+			type == WorldTiles::Bush ? 34 : 52, type == WorldTiles::Bush ? 105 : 137, 48);
+		fillRect({ x + 8, y + top, 10, 9 }, 71, 153, 65);
+		fillRect({ x + 17, y + top + 3, 8, 8 }, 45, 124, 53);
+	}
+	else if (type == WorldTiles::CaveEntrance)
+	{
+		fillRect({ x + 3, y + 5, w - 6, h - 7 }, 112, 99, 82);
+		fillRect({ x + 8, y + 10, w - 16, h - 10 }, 30, 31, 33);
+		fillRect({ x + 5, y + 5, 7, 6 }, 151, 135, 108);
+	}
+	else if (type == WorldTiles::TreeStump)
+	{
+		fillRect({ x + 9, y + 13, 13, 13 }, 105, 65, 36);
+		fillRect({ x + 7, y + 10, 17, 7 }, 155, 103, 53);
+		fillRect({ x + 11, y + 12, 9, 3 }, 91, 57, 34);
+		fillRect({ x + 4, y + 23, 8, 3 }, 75, 52, 31);
+		fillRect({ x + 20, y + 22, 6, 3 }, 75, 52, 31);
 	}
 	else if (type == WorldTiles::OldRoadWaystone)
 	{
@@ -1470,6 +1445,34 @@ void Application::drawWorldBuilderScaledTileDetail(WorldTileId type, const SDL_R
 		fillRect({ rect.x + inset, rect.y + inset / 2, rect.w - inset * 2,
 			rect.h * 2 / 3 }, 41, 116, 49);
 	}
+	else if (type == WorldTiles::Rocks)
+	{
+		fillRect({ rect.x + inset, centerY, rect.w / 2, rect.h / 3 }, 96, 91, 82);
+		fillRect({ centerX - unit, rect.y + inset, rect.w / 2,
+			rect.h / 2 }, 125, 117, 103);
+	}
+	else if (type == WorldTiles::Bush || type == WorldTiles::Shrub)
+	{
+		int top = type == WorldTiles::Bush ? rect.y + inset : centerY;
+		fillRect({ rect.x + inset, top, rect.w - inset * 2,
+			rect.y + rect.h - top - inset }, type == WorldTiles::Bush ? 34 : 52,
+			type == WorldTiles::Bush ? 105 : 137, 48);
+		fillRect({ centerX - unit * 2, top - unit, unit * 4, unit * 3 }, 71, 153, 65);
+	}
+	else if (type == WorldTiles::CaveEntrance)
+	{
+		fillRect({ rect.x + inset / 2, rect.y + inset, rect.w - inset,
+			rect.h - inset }, 112, 99, 82);
+		fillRect({ rect.x + inset * 2, rect.y + inset * 2,
+			rect.w - inset * 4, rect.h - inset * 2 }, 30, 31, 33);
+	}
+	else if (type == WorldTiles::TreeStump)
+	{
+		fillRect({ centerX - unit * 2, centerY - unit,
+			unit * 4, rect.h / 2 }, 105, 65, 36);
+		fillRect({ centerX - unit * 3, centerY - unit * 2,
+			unit * 6, unit * 2 }, 155, 103, 53);
+	}
 	else if (type == WorldTiles::TimberBridge || type == WorldTiles::GlasswaterDock ||
 		type == WorldTiles::RootmazeBridge)
 	{
@@ -1550,6 +1553,30 @@ void Application::drawWorldBuilderScaledTileDetail(WorldTileId type, const SDL_R
 		fillRect({ rect.x + rect.w * 2 / 3, rect.y + rect.h / 3, unit, unit * 2 },
 			88, 155, 69, 180);
 	}
+}
+
+void Application::drawWorldBuilderNpcPortrait(const Npc& npc, const SDL_Rect& rect)
+{
+	bool savedScaleActive = mWorldBuilderTileScaleActive;
+	SDL_Rect savedScaleDestination = mWorldBuilderTileScaleDestination;
+	mWorldBuilderTileScaleActive = true;
+	mWorldBuilderTileScaleDestination = rect;
+	drawCharacterSprite(rect.x, rect.y, npc.appearance, false, false);
+	mWorldBuilderTileScaleActive = savedScaleActive;
+	mWorldBuilderTileScaleDestination = savedScaleDestination;
+	outlineRect(rect, 104, 123, 153, 255, 1);
+}
+
+int Application::worldBuilderHoveredNpc() const
+{
+	int cellX = -1;
+	int cellY = -1;
+	if (!mapCellAt(mMouseX, mMouseY, currentMap(), mWorldBuilderCameraX,
+		mWorldBuilderCameraY, mWorldBuilderTileSize, cellX, cellY)) return -1;
+	for (size_t i = 0; i < mNpcs.size(); ++i)
+		if (mNpcs[i].mapId == currentMapId() && mNpcs[i].x == cellX &&
+			mNpcs[i].y == cellY) return (int)i;
+	return -1;
 }
 
 void Application::renderWorldBuilder()
@@ -1636,8 +1663,20 @@ void Application::renderWorldBuilder()
 			else if (type == WorldTiles::RootmazeWall) fillRect(tile, 109, 78, 47);
 			else if (type == WorldTiles::RootmazeDoor) fillRect(tile, 126, 89, 50);
 			else if (type == WorldTiles::RootmazeArena) fillRect(tile, 105, 154, 76);
+			else if (type == WorldTiles::Rocks) fillRect(tile, 61, 139, 61);
+			else if (type == WorldTiles::Bush) fillRect(tile, 49, 126, 54);
+			else if (type == WorldTiles::Shrub) fillRect(tile, 61, 139, 61);
+			else if (type == WorldTiles::CaveEntrance) fillRect(tile, 78, 70, 62);
+			else if (type == WorldTiles::TreeStump) fillRect(tile, 61, 139, 61);
 			else fillRect(tile, 61, 139, 61);
-			if (tileSize == TILE)
+			SDL_Rect displayedTile = tile;
+			mWorldBuilderTileScaleActive = tileSize != TILE;
+			mWorldBuilderTileScaleDestination = displayedTile;
+			if (mWorldBuilderTileScaleActive)
+			{
+				tile.w = TILE;
+				tile.h = TILE;
+			}
 			{
 			if (type == WorldTiles::Water)
 				fillRect({ tile.x + 7, tile.y + 17, 28, 3 }, 92, 189, 210, 190);
@@ -1671,6 +1710,37 @@ void Application::renderWorldBuilder()
 				fillRect({ tile.x + 5, tile.y + 8, 19, 8 }, 116, 99, 78);
 				fillRect({ tile.x + 27, tile.y + 18, 15, 9 }, 58, 55, 54);
 				fillRect({ tile.x + 10, tile.y + 27, 24, 4 }, 66, 60, 56);
+			}
+			else if (type == WorldTiles::Rocks)
+			{
+				fillRect({ tile.x + 5, tile.y + 26, 21, 16 }, 96, 91, 82);
+				fillRect({ tile.x + 17, tile.y + 13, 24, 27 }, 125, 117, 103);
+				fillRect({ tile.x + 21, tile.y + 16, 14, 5 }, 163, 153, 134);
+			}
+			else if (type == WorldTiles::Bush || type == WorldTiles::Shrub)
+			{
+				int top = type == WorldTiles::Bush ? 9 : 24;
+				int height = type == WorldTiles::Bush ? 34 : 18;
+				fillRect({ tile.x + 5, tile.y + top + 7, 38, height - 7 },
+					type == WorldTiles::Bush ? 34 : 52,
+					type == WorldTiles::Bush ? 105 : 137, 48);
+				fillRect({ tile.x + 10, tile.y + top, 18, 15 }, 71, 153, 65);
+				fillRect({ tile.x + 25, tile.y + top + 5, 15, 14 }, 45, 124, 53);
+			}
+			else if (type == WorldTiles::CaveEntrance)
+			{
+				fillRect({ tile.x + 3, tile.y + 7, 42, 41 }, 112, 99, 82);
+				fillRect({ tile.x + 10, tile.y + 15, 28, 33 }, 30, 31, 33);
+				fillRect({ tile.x + 6, tile.y + 8, 13, 8 }, 151, 135, 108);
+				fillRect({ tile.x + 15, tile.y + 41, 18, 4 }, 49, 44, 40);
+			}
+			else if (type == WorldTiles::TreeStump)
+			{
+				fillRect({ tile.x + 15, tile.y + 21, 20, 21 }, 105, 65, 36);
+				fillRect({ tile.x + 11, tile.y + 16, 28, 11 }, 155, 103, 53);
+				fillRect({ tile.x + 17, tile.y + 19, 16, 5 }, 91, 57, 34);
+				fillRect({ tile.x + 7, tile.y + 39, 13, 5 }, 75, 52, 31);
+				fillRect({ tile.x + 31, tile.y + 38, 11, 5 }, 75, 52, 31);
 			}
 			else if (type == WorldTiles::TimberRoof)
 			{
@@ -1976,8 +2046,8 @@ void Application::renderWorldBuilder()
 				fillRect({ tile.x + 30, tile.y + 10, 7, 4 }, 202, 151, 63);
 			}
 			}
-			else drawWorldBuilderScaledTileDetail(type, tile);
-			outlineRect(tile, 10, 20, 27, 100, 1);
+			mWorldBuilderTileScaleActive = false;
+			outlineRect(displayedTile, 10, 20, 27, 100, 1);
 		}
 	}
 
@@ -2042,6 +2112,22 @@ void Application::renderWorldBuilder()
 			outlineRect({ npcX + 2, npcY + 2, tileSize - 4, tileSize - 4 },
 				246, 211, 99, 255, std::max(2, tileSize / 16));
 	}
+	int hoveredNpc = worldBuilderHoveredNpc();
+	if (hoveredNpc >= 0)
+	{
+		const Npc& npc = mNpcs[hoveredNpc];
+		int npcX = mapX + npc.x * tileSize;
+		int npcY = mapY + npc.y * tileSize;
+		int labelWidth = std::max(54, std::min(230, 18 + (int)npc.id.size() * 8));
+		int labelX = std::max(MAP_X + 3, std::min(MAP_X + MAP_VIEW_WIDTH - labelWidth - 3,
+			npcX + tileSize / 2 - labelWidth / 2));
+		int labelY = npcY - 27;
+		if (labelY < MAP_Y + 3) labelY = npcY + tileSize + 3;
+		fillRect({ labelX, labelY, labelWidth, 24 }, 12, 20, 34, 244);
+		outlineRect({ labelX, labelY, labelWidth, 24 }, 238, 188, 79, 255, 2);
+		drawText(npc.id, labelX + 8, labelY + 5, color(247, 221, 151), 12,
+			labelWidth - 16);
+	}
 	SDL_RenderSetClipRect(mRenderer, NULL);
 
 	fillRect(BUILDER_PANEL, 20, 28, 44, 248);
@@ -2095,18 +2181,31 @@ void Application::renderWorldBuilder()
 			fillRect(item, index == selected ? 74 : (row % 2 ? 31 : 37),
 				index == selected ? 61 : 42, index == selected ? 42 : 59, 238);
 			if (index == selected) outlineRect(item, 233, 184, 82, 255, 2);
-			const std::string& name = mWorldBuilderTab == WorldBuilderTab::Npcs ?
-				mNpcs[index].name : mMercerStock.shards[index].name;
 			int entityX = mWorldBuilderTab == WorldBuilderTab::Npcs ? mNpcs[index].x :
 				mMercerStock.shards[index].x;
 			int entityY = mWorldBuilderTab == WorldBuilderTab::Npcs ? mNpcs[index].y :
 				mMercerStock.shards[index].y;
-			drawText(name, item.x + 7, item.y + 5, color(232, 236, 244), 12, 166);
-			drawText(std::to_string(entityX) + "," + std::to_string(entityY), item.x + 181,
-				item.y + 5, color(173, 193, 220), 11);
+			if (mWorldBuilderTab == WorldBuilderTab::Npcs)
+			{
+				drawWorldBuilderNpcPortrait(mNpcs[index],
+					{ item.x + 2, item.y + 2, 30, 30 });
+				std::string label = mNpcs[index].id + " (" + mNpcs[index].name + ")";
+				drawText(label, item.x + 38, item.y + 3, color(232, 236, 244), 8, 188);
+				drawText(std::to_string(entityX) + "," + std::to_string(entityY),
+					item.x + 38, item.y + 18, color(173, 193, 220), 9, 100);
+			}
+			else
+			{
+				drawText(mMercerStock.shards[index].name, item.x + 7, item.y + 5,
+					color(232, 236, 244), 12, 166);
+				drawText(std::to_string(entityX) + "," + std::to_string(entityY), item.x + 181,
+					item.y + 5, color(173, 193, 220), 11);
+			}
 		}
 		if (count > BUILDER_LIST_ROWS)
 			drawText("Mouse wheel scrolls", 1052, 682, color(166, 184, 211), 12);
+		drawText("Click: select  •  Double-click: locate", 1022, 701,
+			color(166, 184, 211), 10, 224);
 	}
 
 	fillRect(BUILDER_SAVE, mWorldBuilderDirty ? 74 : 45, mWorldBuilderDirty ? 76 : 55,

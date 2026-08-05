@@ -22,7 +22,6 @@ namespace
 	constexpr int COLLECTION_PAGE_SIZE = 15;
 	constexpr int MINIMUM_DECK_SIZE = 40;
 	const char* PLAYER_DATA_DIRECTORY = "PlayerData";
-	const char* PLAYER_DECK_DIRECTORY = "PlayerData/Decks";
 	const SDL_Rect BACK_BUTTON = { 20, 20, 120, 46 };
 	const SDL_Rect NEW_DECK_BUTTON = { 154, 20, 150, 46 };
 	const SDL_Rect SEARCH_BOX = { 326, 20, 430, 46 };
@@ -58,10 +57,11 @@ namespace
 		return file.good();
 	}
 
-	void ensureDirectory(const char* path)
+	bool ensureDirectory(const std::string& path)
 	{
-		if (mkdir(path, 0755) != 0 && errno != EEXIST)
-			std::fprintf(stderr, "Could not create player-data directory %s\n", path);
+		if (mkdir(path.c_str(), 0755) == 0 || errno == EEXIST) return true;
+		std::fprintf(stderr, "Could not create player-data directory %s\n", path.c_str());
+		return false;
 	}
 
 	std::vector<std::string> textFilesIn(const std::string& directory)
@@ -141,12 +141,12 @@ void Application::ensurePlayerDataLoaded()
 {
 	if (mPlayerDataLoaded) return;
 	mPlayerDataLoaded = true;
-	ensureDirectory(PLAYER_DATA_DIRECTORY);
-	ensureDirectory(PLAYER_DECK_DIRECTORY);
+	ensureDirectory(playerDataPath());
+	ensureDirectory(playerDeckDirectory());
 	mCollectionCounts.assign(gCardDatabase.size(), 0);
 	loadSettings();
 
-	std::ifstream collection("PlayerData/collection.txt");
+	std::ifstream collection(playerDataPath("collection.txt").c_str());
 	bool collectionLoaded = false;
 	if (collection.good())
 	{
@@ -184,16 +184,20 @@ void Application::ensurePlayerDataLoaded()
 		mPlayerDecks.push_back(deck);
 	};
 
-	std::vector<std::string> playerDecks = textFilesIn(PLAYER_DECK_DIRECTORY);
+	std::vector<std::string> playerDecks = textFilesIn(playerDeckDirectory());
 	for (size_t i = 0; i < playerDecks.size(); ++i) loadDeckFile(playerDecks[i]);
 
 	mActiveDeckPath = STARTER_DECK_PATH;
-	std::ifstream profile("PlayerData/profile.txt");
+	std::ifstream profile(playerDataPath("profile.txt").c_str());
 	std::string line;
 	while (std::getline(profile, line))
 	{
 		if (line.find("active=") != 0) continue;
 		std::string configuredPath = line.substr(7);
+		const std::string legacyDeckPrefix = "PlayerData/Decks/";
+		if (configuredPath.find(legacyDeckPrefix) == 0)
+			configuredPath = playerDeckDirectory() + "/" +
+				configuredPath.substr(legacyDeckPrefix.size());
 		for (size_t i = 0; i < mPlayerDecks.size(); ++i)
 			if (mPlayerDecks[i].path == configuredPath)
 			{
@@ -221,9 +225,45 @@ void Application::ensurePlayerDataLoaded()
 		}
 	}
 
-	std::ifstream progress("PlayerData/progress.txt");
+	std::ifstream progress(playerDataPath("progress.txt").c_str());
+	std::string savedMap;
+	int savedX = 0;
+	int savedY = 0;
+	int savedFacingX = 0;
+	int savedFacingY = 1;
+	bool hasSavedX = false;
+	bool hasSavedY = false;
 	while (std::getline(progress, line))
 	{
+		if (line.find("world.map=") == 0)
+		{
+			savedMap = line.substr(10);
+			continue;
+		}
+		if (line.find("world.x=") == 0)
+		{
+			savedX = std::atoi(line.substr(8).c_str());
+			hasSavedX = true;
+			continue;
+		}
+		if (line.find("world.y=") == 0)
+		{
+			savedY = std::atoi(line.substr(8).c_str());
+			hasSavedY = true;
+			continue;
+		}
+		if (line.find("world.facing_x=") == 0)
+		{
+			savedFacingX = std::max(-1, std::min(1,
+				std::atoi(line.substr(15).c_str())));
+			continue;
+		}
+		if (line.find("world.facing_y=") == 0)
+		{
+			savedFacingY = std::max(-1, std::min(1,
+				std::atoi(line.substr(15).c_str())));
+			continue;
+		}
 		if (line.find("money=") == 0)
 		{
 			mMoney = std::max(0, std::atoi(line.substr(6).c_str()));
@@ -280,21 +320,49 @@ void Application::ensurePlayerDataLoaded()
 				(mNpcs[i].id == npcName || mNpcs[i].name == npcName))
 				mNpcs[i].wins = std::min(mNpcs[i].maxWins, wins);
 	}
+	int savedArea = worldAreaIndex(savedMap);
+	if (savedArea >= 0 && hasSavedX && hasSavedY)
+	{
+		const std::vector<std::string>& tiles = mWorldAreas[savedArea].tiles;
+		bool validPosition = savedY >= 0 && savedY < (int)tiles.size() && savedX >= 0 &&
+			savedX < (int)tiles[savedY].size() &&
+			WorldTiles::isWalkable(WorldTiles::fromGlyph(tiles[savedY][savedX]));
+		if (validPosition)
+		{
+			mCurrentWorldArea = savedArea;
+			mPlayerX = savedX;
+			mPlayerY = savedY;
+			mVisualX = (float)savedX;
+			mVisualY = (float)savedY;
+			if (std::abs(savedFacingX) + std::abs(savedFacingY) == 1)
+			{
+				mFacingX = savedFacingX;
+				mFacingY = savedFacingY;
+			}
+		}
+	}
 	initializeStory();
 }
 
-void Application::savePlayerProgress()
+bool Application::savePlayerProgress()
 {
-	ensureDirectory("PlayerData");
-	std::ofstream collection("PlayerData/collection.txt", std::ios::trunc);
+	if (!ensureDirectory(playerDataPath())) return false;
+	std::ofstream collection(playerDataPath("collection.txt").c_str(), std::ios::trunc);
+	if (!collection.good()) return false;
 	for (size_t i = 0; i < mCollectionCounts.size() && i < gCardDatabase.size(); ++i)
 		if (mCollectionCounts[i] > 0)
 			collection << mCollectionCounts[i] << " " << gCardDatabase[i].Name << "\n";
 
-	std::ofstream progress("PlayerData/progress.txt", std::ios::trunc);
+	std::ofstream progress(playerDataPath("progress.txt").c_str(), std::ios::trunc);
+	if (!progress.good()) return false;
 	progress << "money=" << std::max(0, mMoney) << "\n";
 	progress << "story.stage=" << mStoryStage << "\n";
 	progress << "story.clues=" << mStoryClues << "\n";
+	progress << "world.map=" << currentMapId() << "\n";
+	progress << "world.x=" << mPlayerX << "\n";
+	progress << "world.y=" << mPlayerY << "\n";
+	progress << "world.facing_x=" << mFacingX << "\n";
+	progress << "world.facing_y=" << mFacingY << "\n";
 	for (size_t i = 0; i < Landmarks::COUNT; ++i)
 		if (mDiscoveredLandmarks.count(Landmarks::DEFINITIONS[i].id))
 			progress << "landmark." << Landmarks::DEFINITIONS[i].id << "=1\n";
@@ -306,6 +374,7 @@ void Application::savePlayerProgress()
 	}
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 		if (mNpcs[i].isDuelist()) progress << "npc." << mNpcs[i].id << "=" << mNpcs[i].wins << "\n";
+	return collection.good() && progress.good();
 }
 
 void Application::saveSettings()
@@ -372,7 +441,7 @@ std::vector<int> Application::filteredCollection() const
 
 std::string Application::availableDeckPath(const std::string& name, const std::string& currentPath) const
 {
-	std::string base = std::string(PLAYER_DECK_DIRECTORY) + "/" + safeDeckName(name);
+	std::string base = playerDeckDirectory() + "/" + safeDeckName(name);
 	std::string candidate = base + ".txt";
 	if (candidate == currentPath || !fileExists(candidate)) return candidate;
 	for (int suffix = 2; suffix < 1000; ++suffix)
@@ -386,8 +455,8 @@ std::string Application::availableDeckPath(const std::string& name, const std::s
 bool Application::saveDeck(int deckIndex)
 {
 	if (deckIndex < 0 || deckIndex >= (int)mPlayerDecks.size()) return false;
-	ensureDirectory(PLAYER_DATA_DIRECTORY);
-	ensureDirectory(PLAYER_DECK_DIRECTORY);
+	ensureDirectory(playerDataPath());
+	ensureDirectory(playerDeckDirectory());
 	PlayerDeck& deck = mPlayerDecks[deckIndex];
 	deck.name = safeDeckName(deck.name);
 	std::string newPath = availableDeckPath(deck.name, deck.managed ? deck.path : "");
@@ -415,7 +484,7 @@ bool Application::saveDeck(int deckIndex)
 		if (deckHasMinimumCards(deck))
 		{
 			mActiveDeckPath = deck.path;
-			std::ofstream profile("PlayerData/profile.txt", std::ios::trunc);
+			std::ofstream profile(playerDataPath("profile.txt").c_str(), std::ios::trunc);
 			profile << "active=" << mActiveDeckPath << "\n";
 		}
 		else
@@ -425,7 +494,7 @@ bool Application::saveDeck(int deckIndex)
 			mActiveDeckIndex = -1;
 			for (size_t i = 0; i < mPlayerDecks.size(); ++i)
 				if (mPlayerDecks[i].path == mActiveDeckPath) mActiveDeckIndex = (int)i;
-			std::ofstream profile("PlayerData/profile.txt", std::ios::trunc);
+			std::ofstream profile(playerDataPath("profile.txt").c_str(), std::ios::trunc);
 			profile << "active=" << mActiveDeckPath << "\n";
 			showDeckNotice("Deck saved; the starter deck is active until this deck has at least 40 cards.");
 		}
@@ -448,8 +517,8 @@ void Application::setActiveDeck(int deckIndex)
 		if (!saveDeck(deckIndex)) return;
 	mActiveDeckIndex = deckIndex;
 	mActiveDeckPath = mPlayerDecks[deckIndex].path;
-	ensureDirectory("PlayerData");
-	std::ofstream profile("PlayerData/profile.txt", std::ios::trunc);
+	ensureDirectory(playerDataPath());
+	std::ofstream profile(playerDataPath("profile.txt").c_str(), std::ios::trunc);
 	profile << "active=" << mActiveDeckPath << "\n";
 	showDeckNotice("Active deck updated.");
 }

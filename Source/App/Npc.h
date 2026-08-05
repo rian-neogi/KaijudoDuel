@@ -26,16 +26,26 @@ enum class CharacterAppearance
 	VeiledOne,
 	Neris,
 	Oren,
-	Generic1,
-	Generic2,
-	Generic3,
-	Generic4,
-	Generic5,
-	Generic6,
-	Generic7,
-	Generic8,
-	Generic9,
-	Generic10
+	GenericMale1,
+	GenericMale2,
+	GenericMale3,
+	GenericMale4,
+	GenericMale5,
+	GenericMale6,
+	GenericMale7,
+	GenericMale8,
+	GenericMale9,
+	GenericMale10,
+	GenericFemale1,
+	GenericFemale2,
+	GenericFemale3,
+	GenericFemale4,
+	GenericFemale5,
+	GenericFemale6,
+	GenericFemale7,
+	GenericFemale8,
+	GenericFemale9,
+	GenericFemale10
 };
 
 struct NpcReward
@@ -54,7 +64,7 @@ public:
 	static Npc routeDuelist(int x, int y, const std::string& name,
 		const std::vector<std::string>& decks, const std::string& challenge,
 		const std::vector<NpcReward>& rewards, CharacterAppearance appearance,
-		int sightRange, int facingX, int facingY);
+		int sightRange);
 	static Npc boss(int x, int y, const std::string& name,
 		const std::vector<std::string>& decks, const std::string& challenge,
 		const std::vector<NpcReward>& rewards, CharacterAppearance appearance);
@@ -100,8 +110,6 @@ public:
 	bool tradeEnabled;
 	bool wanders;
 	int sightRange;
-	int facingX;
-	int facingY;
 	std::string aiPersonality;
 	std::map<std::string, std::string> dialogue;
 

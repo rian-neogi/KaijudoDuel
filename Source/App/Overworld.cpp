@@ -12,6 +12,8 @@ namespace
 {
 	constexpr Uint32 DOOR_OPEN_DURATION = 400;
 	constexpr Uint32 DIALOGUE_CHARACTER_DELAY = 18;
+	constexpr Uint32 REGION_BANNER_DURATION = 3400;
+	constexpr Uint32 REGION_BANNER_SLIDE = 260;
 }
 
 void Application::handleOverworldEvent(const SDL_Event& event)
@@ -102,6 +104,7 @@ void Application::handleOverworldEvent(const SDL_Event& event)
 void Application::updateOverworld(Uint32 deltaTime)
 {
 	updateDialogue(deltaTime);
+	updateRegionBanner();
 	if (mPauseMenuOpen || (mStoryScene != StoryScene::None && mDialogueNpc < 0)) return;
 	float playerDx = mPlayerX - mVisualX;
 	float playerDy = mPlayerY - mVisualY;
@@ -131,12 +134,14 @@ void Application::updateOverworld(Uint32 deltaTime)
 			mVisualY += playerDy / playerDistance * playerStep;
 		}
 	}
+	updateRegionBanner();
 
 	Uint32 now = SDL_GetTicks();
 	if (mOpeningPortal >= 0)
 	{
 		if (playerDistance <= 0.001f && now - mPortalAnimationStarted >= DOOR_OPEN_DURATION)
 			activatePortalAt(mPlayerX, mPlayerY);
+		updateRegionBanner();
 		return;
 	}
 	const int directionX[] = { 0, 1, 0, -1 };
@@ -177,25 +182,102 @@ void Application::updateOverworld(Uint32 deltaTime)
 	updateRouteDuelistChallenge();
 }
 
-bool Application::routeDuelistCanSeePlayer(int npcIndex) const
+void Application::updateRegionBanner()
+{
+	const WorldRegion* region = currentWorldRegion();
+	std::string regionId = region == NULL ? "" : region->id;
+	if (regionId == mLastWorldRegionId) return;
+	mLastWorldRegionId = regionId;
+	if (region == NULL) return;
+	mRegionBannerName = region->name;
+	mRegionBannerConnector = region->connector;
+	mRegionBannerStarted = SDL_GetTicks();
+}
+
+void Application::renderRegionBanner()
+{
+	if (mRegionBannerName.empty()) return;
+	Uint32 elapsed = SDL_GetTicks() - mRegionBannerStarted;
+	if (elapsed >= REGION_BANNER_DURATION) return;
+	const int width = 252;
+	int slide = 0;
+	if (elapsed < REGION_BANNER_SLIDE)
+		slide = (int)((REGION_BANNER_SLIDE - elapsed) * width / REGION_BANNER_SLIDE);
+	else if (elapsed > REGION_BANNER_DURATION - REGION_BANNER_SLIDE)
+		slide = (int)((elapsed - (REGION_BANNER_DURATION - REGION_BANNER_SLIDE)) *
+			width / REGION_BANNER_SLIDE);
+	int x = LOGICAL_WIDTH - width - 18 + slide;
+	const SDL_Rect panel = { x, 70, width, 58 };
+	fillRect(panel, 13, 23, 38, 224);
+	fillRect({ x, panel.y, 5, panel.h }, mRegionBannerConnector ? 89 : 207,
+		mRegionBannerConnector ? 151 : 163, mRegionBannerConnector ? 194 : 65, 255);
+	drawText(mRegionBannerConnector ? "NEW REGION" : "NOW ENTERING", x + 16,
+		panel.y + 7, mRegionBannerConnector ? color(139, 199, 231) : color(234, 193, 104), 10);
+	drawText(mRegionBannerName, x + 16, panel.y + 25, color(235, 240, 247), 15,
+		width - 28);
+}
+
+bool Application::routeDuelistCanCatchPlayer(int npcIndex) const
 {
 	if (npcIndex < 0 || npcIndex >= (int)mNpcs.size()) return false;
 	const Npc& npc = mNpcs[npcIndex];
 	if (!npc.isRouteDuelist() || !npc.canBattle() || npc.wins > 0 ||
 		npc.mapId != currentMapId() || npc.isMoving()) return false;
-	int dx = mPlayerX - npc.x;
-	int dy = mPlayerY - npc.y;
-	if ((npc.facingX != 0 && (dy != 0 || dx * npc.facingX <= 0)) ||
-		(npc.facingY != 0 && (dx != 0 || dy * npc.facingY <= 0))) return false;
-	int distance = std::abs(dx) + std::abs(dy);
+	int distance = std::abs(mPlayerX - npc.x) + std::abs(mPlayerY - npc.y);
 	if (distance <= 0 || distance > npc.sightRange) return false;
-	for (int step = 1; step < distance; ++step)
+	int nextX = npc.x;
+	int nextY = npc.y;
+	return routeDuelistNextStep(npcIndex, nextX, nextY);
+}
+
+bool Application::routeDuelistNextStep(int npcIndex, int& nextX, int& nextY) const
+{
+	if (npcIndex < 0 || npcIndex >= (int)mNpcs.size()) return false;
+	const Npc& npc = mNpcs[npcIndex];
+	if (npc.mapId != currentMapId()) return false;
+	typedef std::pair<int, int> Cell;
+	Cell start = std::make_pair(npc.x, npc.y);
+	if (std::abs(npc.x - mPlayerX) + std::abs(npc.y - mPlayerY) <= 1)
 	{
-		int x = npc.x + npc.facingX * step;
-		int y = npc.y + npc.facingY * step;
-		if (!isWalkable(x, y) || npcAt(x, y, npcIndex) >= 0) return false;
+		nextX = npc.x;
+		nextY = npc.y;
+		return true;
 	}
-	return true;
+	std::vector<Cell> frontier;
+	std::map<Cell, Cell> parents;
+	std::map<Cell, int> depths;
+	frontier.push_back(start);
+	parents[start] = start;
+	depths[start] = 0;
+	const int directionX[] = { 0, 1, 0, -1 };
+	const int directionY[] = { -1, 0, 1, 0 };
+	const int maximumPathLength = std::max(8, npc.sightRange * 3);
+	for (size_t currentIndex = 0; currentIndex < frontier.size(); ++currentIndex)
+	{
+		Cell current = frontier[currentIndex];
+		if (std::abs(current.first - mPlayerX) + std::abs(current.second - mPlayerY) == 1)
+		{
+			Cell step = current;
+			while (parents[step] != start && step != start) step = parents[step];
+			if (step == start) return false;
+			nextX = step.first;
+			nextY = step.second;
+			return true;
+		}
+		if (depths[current] >= maximumPathLength) continue;
+		for (int direction = 0; direction < 4; ++direction)
+		{
+			Cell candidate = std::make_pair(current.first + directionX[direction],
+				current.second + directionY[direction]);
+			if (candidate.first == mPlayerX && candidate.second == mPlayerY) continue;
+			if (parents.count(candidate) || !isWalkable(candidate.first, candidate.second) ||
+				npcAt(candidate.first, candidate.second, npcIndex) >= 0) continue;
+			parents[candidate] = current;
+			depths[candidate] = depths[current] + 1;
+			frontier.push_back(candidate);
+		}
+	}
+	return false;
 }
 
 void Application::updateRouteDuelistChallenge()
@@ -226,14 +308,13 @@ void Application::updateRouteDuelistChallenge()
 				"I saw you on the road. Prepare to duel!"), DialogueAction::ForcedBattle);
 			return;
 		}
-		int stepX = dx == 0 ? 0 : (dx > 0 ? 1 : -1);
-		int stepY = dy == 0 ? 0 : (dy > 0 ? 1 : -1);
-		int nextX = npc.x + stepX;
-		int nextY = npc.y + stepY;
-		if (!isWalkable(nextX, nextY) || npcAt(nextX, nextY, mRouteChallengeNpc) >= 0 ||
-			(nextX == mPlayerX && nextY == mPlayerY)) return;
-		npc.facingX = stepX;
-		npc.facingY = stepY;
+		int nextX = npc.x;
+		int nextY = npc.y;
+		if (!routeDuelistNextStep(mRouteChallengeNpc, nextX, nextY))
+		{
+			mRouteChallengeNpc = -1;
+			return;
+		}
 		npc.x = nextX;
 		npc.y = nextY;
 		return;
@@ -243,13 +324,13 @@ void Application::updateRouteDuelistChallenge()
 	{
 		Npc& npc = mNpcs[i];
 		if (!npc.isRouteDuelist() || npc.mapId != currentMapId()) continue;
-		bool seesPlayer = routeDuelistCanSeePlayer((int)i);
+		bool catchesPlayer = routeDuelistCanCatchPlayer((int)i);
 		if (mSuppressedRouteChallenges.count(npc.id))
 		{
-			if (!seesPlayer) mSuppressedRouteChallenges.erase(npc.id);
+			if (!catchesPlayer) mSuppressedRouteChallenges.erase(npc.id);
 			continue;
 		}
-		if (!seesPlayer) continue;
+		if (!catchesPlayer) continue;
 		mRouteChallengeNpc = (int)i;
 		mSuppressedRouteChallenges.insert(npc.id);
 		mMoveUp = mMoveDown = mMoveLeft = mMoveRight = false;
@@ -663,6 +744,11 @@ void Application::renderOverworld()
 			else if (tile == WorldTiles::RootmazeWall) fillRect(tileRect, 109, 78, 47);
 			else if (tile == WorldTiles::RootmazeDoor) fillRect(tileRect, 126, 89, 50);
 			else if (tile == WorldTiles::RootmazeArena) fillRect(tileRect, 105, 154, 76);
+			else if (tile == WorldTiles::Rocks) fillRect(tileRect, 61, 139, 61);
+			else if (tile == WorldTiles::Bush) fillRect(tileRect, 49, 126, 54);
+			else if (tile == WorldTiles::Shrub) fillRect(tileRect, 61, 139, 61);
+			else if (tile == WorldTiles::CaveEntrance) fillRect(tileRect, 78, 70, 62);
+			else if (tile == WorldTiles::TreeStump) fillRect(tileRect, 61, 139, 61);
 			else fillRect(tileRect, 61, 139, 61);
 
 			if (tile == WorldTiles::Water)
@@ -709,6 +795,40 @@ void Application::renderOverworld()
 				fillRect({ tileRect.x + 10, tileRect.y + 27, 24, 4 }, 66, 60, 56);
 				fillRect({ tileRect.x + 20, tileRect.y + 14, 3, 14 }, 54, 51, 50);
 				fillRect({ tileRect.x + 33, tileRect.y + 7, 7, 3 }, 143, 118, 84);
+			}
+			else if (tile == WorldTiles::Rocks)
+			{
+				fillRect({ tileRect.x + 5, tileRect.y + 26, 21, 16 }, 96, 91, 82);
+				fillRect({ tileRect.x + 17, tileRect.y + 13, 24, 27 }, 125, 117, 103);
+				fillRect({ tileRect.x + 21, tileRect.y + 16, 14, 5 }, 163, 153, 134);
+				fillRect({ tileRect.x + 8, tileRect.y + 28, 9, 4 }, 137, 128, 111);
+			}
+			else if (tile == WorldTiles::Bush || tile == WorldTiles::Shrub)
+			{
+				int top = tile == WorldTiles::Bush ? 9 : 24;
+				int height = tile == WorldTiles::Bush ? 34 : 18;
+				fillRect({ tileRect.x + 5, tileRect.y + top + 7, 38, height - 7 },
+					tile == WorldTiles::Bush ? 34 : 52,
+					tile == WorldTiles::Bush ? 105 : 137, 48);
+				fillRect({ tileRect.x + 10, tileRect.y + top, 18, 15 }, 71, 153, 65);
+				fillRect({ tileRect.x + 25, tileRect.y + top + 5, 15, 14 }, 45, 124, 53);
+				fillRect({ tileRect.x + 17, tileRect.y + top + 12, 5, 4 }, 99, 173, 76);
+			}
+			else if (tile == WorldTiles::CaveEntrance)
+			{
+				fillRect({ tileRect.x + 3, tileRect.y + 7, 42, 41 }, 112, 99, 82);
+				fillRect({ tileRect.x + 10, tileRect.y + 15, 28, 33 }, 30, 31, 33);
+				fillRect({ tileRect.x + 6, tileRect.y + 8, 13, 8 }, 151, 135, 108);
+				fillRect({ tileRect.x + 32, tileRect.y + 12, 9, 5 }, 73, 67, 61);
+				fillRect({ tileRect.x + 15, tileRect.y + 41, 18, 4 }, 49, 44, 40);
+			}
+			else if (tile == WorldTiles::TreeStump)
+			{
+				fillRect({ tileRect.x + 15, tileRect.y + 21, 20, 21 }, 105, 65, 36);
+				fillRect({ tileRect.x + 11, tileRect.y + 16, 28, 11 }, 155, 103, 53);
+				fillRect({ tileRect.x + 17, tileRect.y + 19, 16, 5 }, 91, 57, 34);
+				fillRect({ tileRect.x + 7, tileRect.y + 39, 13, 5 }, 75, 52, 31);
+				fillRect({ tileRect.x + 31, tileRect.y + 38, 11, 5 }, 75, 52, 31);
 			}
 			else if (tile == WorldTiles::TimberRoof)
 			{
@@ -1284,17 +1404,6 @@ void Application::renderOverworld()
 		drawCharacter(mNpcs[i].visualX, mNpcs[i].visualY, mNpcs[i].appearance,
 			mNpcs[i].isComplete(), mNpcs[i].isMoving());
 		bool trainerChallenge = mRouteChallengeNpc == (int)i;
-		if (mNpcs[i].isRouteDuelist() && mNpcs[i].wins == 0 && !trainerChallenge)
-		{
-			std::string facing = mNpcs[i].facingX < 0 ? "<" :
-				(mNpcs[i].facingX > 0 ? ">" : (mNpcs[i].facingY < 0 ? "^" : "v"));
-			int facingX = mapX + (int)std::round(mNpcs[i].visualX * TILE) + 19 +
-				mNpcs[i].facingX * 24;
-			int facingY = mapY + (int)std::round(mNpcs[i].visualY * TILE) + 14 +
-				mNpcs[i].facingY * 22;
-			fillRect({ facingX - 4, facingY - 2, 18, 20 }, 22, 17, 10, 205);
-			drawText(facing, facingX, facingY, color(247, 198, 78), 14);
-		}
 		if (npcHasStoryMarker((int)i) || trainerChallenge)
 		{
 			int markerX = mapX + (int)std::round(mNpcs[i].visualX * TILE) + 17;
@@ -1326,6 +1435,7 @@ void Application::renderOverworld()
 	SDL_RenderSetClipRect(mRenderer, NULL);
 
 	renderStoryTracker();
+	renderRegionBanner();
 
 	if (!mNotice.empty() && SDL_GetTicks() < mNoticeUntil)
 	{
@@ -1394,16 +1504,26 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 		y = mapOriginY((int)map.size()) +
 			(int)std::round((gridY - cameraY) * TILE);
 	}
+	drawCharacterSprite(x, y, appearance, completed, walking);
+}
+
+void Application::drawCharacterSprite(int x, int y, CharacterAppearance appearance,
+	bool completed, bool walking)
+{
 	int stride = walking && (SDL_GetTicks() / 110) % 2 == 0 ? 2 : (walking ? -2 : 0);
 	int bob = walking && (SDL_GetTicks() / 110) % 2 == 0 ? -1 : 0;
 	fillRect({ x + 9, y + 39, 31, 6 }, 8, 14, 18, 100);
 	y += bob;
 
 	const int appearanceValue = static_cast<int>(appearance);
-	const int genericFirst = static_cast<int>(CharacterAppearance::Generic1);
-	const int genericVariant = appearanceValue >= genericFirst &&
-		appearanceValue <= static_cast<int>(CharacterAppearance::Generic10) ?
-		appearanceValue - genericFirst : -1;
+	const int genericMaleFirst = static_cast<int>(CharacterAppearance::GenericMale1);
+	const int genericFemaleFirst = static_cast<int>(CharacterAppearance::GenericFemale1);
+	const bool genericMale = appearanceValue >= genericMaleFirst &&
+		appearanceValue <= static_cast<int>(CharacterAppearance::GenericMale10);
+	const bool genericFemale = appearanceValue >= genericFemaleFirst &&
+		appearanceValue <= static_cast<int>(CharacterAppearance::GenericFemale10);
+	const int genericVariant = genericMale ? appearanceValue - genericMaleFirst :
+		(genericFemale ? appearanceValue - genericFemaleFirst : -1);
 	SDL_Color trousers = color(31, 38, 53);
 	SDL_Color shoes = color(17, 22, 31);
 	if (genericVariant >= 0)
@@ -1441,6 +1561,13 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 	const SDL_Color outline = color(24, 25, 35);
 	const SDL_Color skin = color(224, 172, 126);
 	const SDL_Color skinShadow = color(183, 124, 91);
+	auto forwardFace = [&block, skinShadow](SDL_Color eyes)
+	{
+		block(21, 13, 2, 2, eyes);
+		block(29, 13, 2, 2, eyes);
+		block(25, 15, 2, 2, skinShadow);
+		block(24, 18, 5, 1, color(125, 76, 67));
+	};
 
 	switch (appearance)
 	{
@@ -1463,7 +1590,7 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 		block(13, 9, 5, 16, color(57, 23, 68));
 		block(33, 9, 5, 16, color(57, 23, 68));
 		block(24, 27, 4, 5, color(190, 85, 219));
-		block(29, 13, 2, 2, color(57, 28, 52));
+		forwardFace(color(57, 28, 52));
 		break;
 
 	case CharacterAppearance::Marin:
@@ -1476,7 +1603,7 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 		block(34, 8, 5, 13, color(36, 151, 181));
 		block(38, 16, 4, 8, color(36, 151, 181));
 		block(17, 9, 18, 3, color(210, 235, 224));
-		block(29, 13, 2, 2, color(24, 50, 62));
+		forwardFace(color(24, 50, 62));
 		break;
 
 	case CharacterAppearance::Rook:
@@ -1489,7 +1616,7 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 		block(12, 2, 4, 7, color(151, 116, 62));
 		block(35, 1, 4, 8, color(151, 116, 62));
 		block(15, 30, 22, 4, color(47, 75, 38));
-		block(29, 13, 2, 2, color(45, 34, 26));
+		forwardFace(color(45, 34, 26));
 		break;
 
 	case CharacterAppearance::Aurelia:
@@ -1502,7 +1629,7 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 		block(33, 9, 5, 17, color(227, 196, 93));
 		block(19, 4, 15, 2, color(250, 238, 168));
 		block(24, 27, 4, 8, color(237, 194, 68));
-		block(29, 13, 2, 2, color(71, 58, 37));
+		forwardFace(color(71, 58, 37));
 		break;
 
 	case CharacterAppearance::Flint:
@@ -1519,6 +1646,7 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 		block(17, 10, 7, 3, color(238, 170, 53));
 		block(28, 10, 7, 3, color(238, 170, 53));
 		block(14, 30, 23, 4, color(89, 33, 30));
+		forwardFace(color(71, 43, 36));
 		break;
 
 	case CharacterAppearance::Nyx:
@@ -1544,7 +1672,7 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 		block(14, 9, 5, 11, color(28, 113, 128));
 		block(17, 7, 19, 3, color(224, 220, 177));
 		block(34, 2, 5, 8, color(50, 169, 176));
-		block(29, 13, 2, 2, color(24, 40, 44));
+		forwardFace(color(24, 40, 44));
 		block(13, 30, 25, 4, color(35, 154, 161));
 		break;
 
@@ -1558,7 +1686,7 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 		block(33, 10, 5, 14, color(43, 87, 43));
 		block(11, 2, 7, 5, color(70, 137, 51));
 		block(35, 3, 7, 5, color(70, 137, 51));
-		block(29, 13, 2, 2, color(44, 40, 25));
+		forwardFace(color(44, 40, 25));
 		block(23, 28, 5, 6, color(157, 110, 48));
 		break;
 
@@ -1573,7 +1701,7 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 		block(16, 29, 21, 4, color(111, 75, 143));
 		block(34, 1, 3, 13, color(235, 231, 207));
 		block(37, 0, 3, 8, color(204, 222, 223));
-		block(29, 13, 2, 2, color(29, 42, 55));
+		forwardFace(color(29, 42, 55));
 		block(8, 28, 5, 11, color(210, 216, 208));
 		break;
 
@@ -1591,19 +1719,29 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 		block(14, 29, 24, 4, color(37, 91, 132));
 		block(41, 6, 4, 35, color(104, 72, 41));
 		block(38, 3, 10, 8, color(91, 154, 66));
-		block(29, 13, 2, 2, color(39, 48, 33));
+		forwardFace(color(39, 48, 33));
 		break;
 
-	case CharacterAppearance::Generic1:
-	case CharacterAppearance::Generic2:
-	case CharacterAppearance::Generic3:
-	case CharacterAppearance::Generic4:
-	case CharacterAppearance::Generic5:
-	case CharacterAppearance::Generic6:
-	case CharacterAppearance::Generic7:
-	case CharacterAppearance::Generic8:
-	case CharacterAppearance::Generic9:
-	case CharacterAppearance::Generic10:
+	case CharacterAppearance::GenericMale1:
+	case CharacterAppearance::GenericMale2:
+	case CharacterAppearance::GenericMale3:
+	case CharacterAppearance::GenericMale4:
+	case CharacterAppearance::GenericMale5:
+	case CharacterAppearance::GenericMale6:
+	case CharacterAppearance::GenericMale7:
+	case CharacterAppearance::GenericMale8:
+	case CharacterAppearance::GenericMale9:
+	case CharacterAppearance::GenericMale10:
+	case CharacterAppearance::GenericFemale1:
+	case CharacterAppearance::GenericFemale2:
+	case CharacterAppearance::GenericFemale3:
+	case CharacterAppearance::GenericFemale4:
+	case CharacterAppearance::GenericFemale5:
+	case CharacterAppearance::GenericFemale6:
+	case CharacterAppearance::GenericFemale7:
+	case CharacterAppearance::GenericFemale8:
+	case CharacterAppearance::GenericFemale9:
+	case CharacterAppearance::GenericFemale10:
 	{
 		const SDL_Color outfits[10] = {
 			color(42, 86, 166), color(59, 119, 70), color(190, 104, 43), color(109, 63, 145),
@@ -1629,14 +1767,20 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 		const SDL_Color accent = accents[genericVariant];
 		const SDL_Color hair = hairColors[genericVariant];
 		const SDL_Color genericSkin = skinTones[genericVariant];
-		const bool broad = genericVariant == 2 || genericVariant == 6 || genericVariant == 7;
+		const bool broad = genericMale &&
+			(genericVariant == 2 || genericVariant == 6 || genericVariant == 7);
+		if (genericFemale)
+		{
+			block(13, 7, 5, 18, hair);
+			block(33, 7, 5, 18, hair);
+		}
 		block(broad ? 9 : 11, 18, broad ? 32 : 28, 22, outline);
 		block(broad ? 11 : 13, 20, broad ? 28 : 24, 19, outfit);
 		block(broad ? 8 : 10, 21, 7, 8, broad && genericVariant == 6 ? genericSkin : outfit);
 		block(broad ? 36 : 35, 21, 7, 8, broad && genericVariant == 6 ? genericSkin : outfit);
 		block(14, 29, 23, 4, accent);
 		block(18, 7, 15, 15, genericSkin);
-		block(29, 13, 2, 2, color(43, 35, 31));
+		forwardFace(color(43, 35, 31));
 
 		switch (genericVariant)
 		{
@@ -1728,6 +1872,7 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 		block(21, 16, 10, 3, color(104, 57, 31));
 		block(35, 25, 8, 11, color(193, 134, 45));
 		block(36, 27, 6, 7, color(108, 67, 34));
+		forwardFace(color(72, 48, 32));
 		break;
 
 	case CharacterAppearance::VeiledOne:

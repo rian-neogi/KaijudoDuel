@@ -47,18 +47,6 @@ namespace
 		return true;
 	}
 
-	bool parseFacing(const std::string& value, int& x, int& y)
-	{
-		x = 0;
-		y = 0;
-		if (value == "up") y = -1;
-		else if (value == "down") y = 1;
-		else if (value == "left") x = -1;
-		else if (value == "right") x = 1;
-		else return false;
-		return true;
-	}
-
 	bool validCrestId(const std::string& value)
 	{
 		static const char* ids[] = { "dawn", "tidal", "forge", "verdant",
@@ -66,6 +54,15 @@ namespace
 		for (size_t i = 0; i < sizeof(ids) / sizeof(ids[0]); ++i)
 			if (value == ids[i]) return true;
 		return false;
+	}
+
+	int numberedAppearanceVariant(const std::string& value, const std::string& prefix)
+	{
+		if (value.compare(0, prefix.size(), prefix) != 0) return 0;
+		const std::string suffix = value.substr(prefix.size());
+		if (suffix == "10") return 10;
+		return suffix.size() == 1 && suffix[0] >= '1' && suffix[0] <= '9' ?
+			suffix[0] - '0' : 0;
 	}
 
 	bool parseAppearance(const std::string& value, CharacterAppearance& result)
@@ -82,16 +79,18 @@ namespace
 		else if (value == "veiled_one") result = CharacterAppearance::VeiledOne;
 		else if (value == "neris") result = CharacterAppearance::Neris;
 		else if (value == "oren") result = CharacterAppearance::Oren;
-		else if (value.compare(0, 7, "generic") == 0)
+		else
 		{
-			const std::string suffix = value.substr(7);
-			int variant = suffix == "10" ? 10 :
-				(suffix.size() == 1 && suffix[0] >= '1' && suffix[0] <= '9' ? suffix[0] - '0' : 0);
-			if (variant == 0) return false;
-			result = static_cast<CharacterAppearance>(
-				static_cast<int>(CharacterAppearance::Generic1) + variant - 1);
+			int maleVariant = numberedAppearanceVariant(value, "generic-male-");
+			int femaleVariant = numberedAppearanceVariant(value, "generic-female-");
+			if (maleVariant > 0)
+				result = static_cast<CharacterAppearance>(
+					static_cast<int>(CharacterAppearance::GenericMale1) + maleVariant - 1);
+			else if (femaleVariant > 0)
+				result = static_cast<CharacterAppearance>(
+					static_cast<int>(CharacterAppearance::GenericFemale1) + femaleVariant - 1);
+			else return false;
 		}
-		else return false;
 		return true;
 	}
 
@@ -125,7 +124,7 @@ Npc::Npc(int xValue, int yValue, const std::string& npcName,
 	  name(npcName), decks(deckPaths), rewards(battleRewards), challenge(greeting), wins(0),
 	  maxWins((int)battleRewards.size()), kind(npcKind), appearance(characterAppearance),
 	  duelEnabled(npcKind != NpcKind::Town), tradeEnabled(false), wanders(false),
-	  sightRange(0), facingX(0), facingY(1),
+	  sightRange(0),
 	  mWanderState((unsigned int)(xValue * 73856093u) ^
 		(unsigned int)(yValue * 19349663u) ^ (unsigned int)npcName.size() * 83492791u)
 {
@@ -146,13 +145,11 @@ Npc Npc::town(int x, int y, const std::string& name,
 Npc Npc::routeDuelist(int x, int y, const std::string& name,
 	const std::vector<std::string>& decks, const std::string& challenge,
 	const std::vector<NpcReward>& rewards, CharacterAppearance appearance,
-	int trainerSightRange, int trainerFacingX, int trainerFacingY)
+	int trainerSightRange)
 {
 	Npc npc(x, y, name, decks, challenge, rewards, NpcKind::RouteDuelist, appearance);
 	npc.duelEnabled = true;
 	npc.sightRange = trainerSightRange;
-	npc.facingX = trainerFacingX;
-	npc.facingY = trainerFacingY;
 	return npc;
 }
 
@@ -375,8 +372,6 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 		const int y = 0;
 
 		int sightRange = 0;
-		int facingX = 0;
-		int facingY = 1;
 		if (kind == NpcKind::RouteDuelist)
 		{
 			lua_getfield(state, entry, "sight");
@@ -387,11 +382,10 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 				return false;
 			}
 			sightRange = luaIntegerField(state, -1, "range", 6);
-			std::string direction = luaStringField(state, -1, "direction");
 			lua_pop(state, 1);
-			if (sightRange < 1 || sightRange > 12 || !parseFacing(direction, facingX, facingY))
+			if (sightRange < 1 || sightRange > 12)
 			{
-				error = "route duelist '" + id + "' needs sight range 1-12 and a cardinal direction";
+				error = "route duelist '" + id + "' needs sight range 1-12";
 				lua_close(state);
 				return false;
 			}
@@ -472,7 +466,7 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 			(kind == NpcKind::Boss ?
 				Npc::boss(x, y, name, decks, greeting, rewards, appearance) :
 				Npc::routeDuelist(x, y, name, decks, greeting, rewards, appearance,
-					sightRange, facingX, facingY));
+					sightRange));
 		npc.id = id;
 		npc.crestId = crestId;
 		npc.aiPersonality = aiPersonality;

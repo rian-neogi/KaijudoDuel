@@ -60,6 +60,11 @@ namespace WorldTiles
 	constexpr WorldTileId RootmazeDoor = 'o';
 	constexpr WorldTileId RootmazeArena = 'p';
 	constexpr WorldTileId RootmazeMarker = 'q';
+	constexpr WorldTileId Rocks = 'r';
+	constexpr WorldTileId Bush = 's';
+	constexpr WorldTileId Shrub = 't';
+	constexpr WorldTileId CaveEntrance = 'u';
+	constexpr WorldTileId TreeStump = 'v';
 
 	inline WorldTileId fromGlyph(char glyph)
 	{
@@ -89,7 +94,8 @@ namespace WorldTiles
 		case GlasswaterDoor: case GlasswaterArena: case GlasswaterMarker:
 		case RootmazeGround: case RootmazePath: case RootmazeRoot:
 		case RootmazeBridge: case RootmazeRoof: case RootmazeWall:
-		case RootmazeDoor: case RootmazeArena: case RootmazeMarker:
+		case RootmazeDoor: case RootmazeArena: case RootmazeMarker: case Rocks:
+		case Bush: case Shrub: case CaveEntrance: case TreeStump:
 			return true;
 		default:
 			return false;
@@ -107,7 +113,7 @@ namespace WorldTiles
 		case GlasswaterGround: case GlasswaterPaving: case GlasswaterDock:
 		case GlasswaterDoor: case GlasswaterArena:
 		case RootmazeGround: case RootmazePath: case RootmazeBridge:
-		case RootmazeDoor: case RootmazeArena:
+		case RootmazeDoor: case RootmazeArena: case Shrub: case CaveEntrance:
 			return true;
 		default:
 			return false;

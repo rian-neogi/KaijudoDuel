@@ -26,9 +26,10 @@ Additional launch modes:
 ```
 
 The World Builder is available only through `--world-builder`. It edits map
-tiles and NPC/shard locations. Select entities from the Lua-populated side
-lists or directly on the map, then click or drag them to a free grass/path
-or indoor floor tile. Switch maps with the on-screen arrows or
+tiles and NPC/shard locations. Single-click an NPC or shard side-list row to
+select it; double-click it to center its map location. Select entities from the
+Lua-populated side lists or directly on the map, then click or drag them to a
+free grass/path or indoor floor tile. Switch maps with the on-screen arrows or
 `PageUp`/`PageDown`; hold the arrow or WASD keys to pan large maps. Use the
 mouse wheel over the map or `+`/`-` to zoom; the wheel continues to scroll when
 the pointer is over a side list. Save with the on-screen button or `Ctrl+S`.
@@ -61,7 +62,9 @@ rendering, and repeated duel teardown.
   choices, AI turns, and board composition.
 - `Source/App/DeckBuilder.cpp`: player collection/deck persistence and the
   deck-builder screen.
-- `Source/App/Menus.cpp`: overworld pause menu and auxiliary screens.
+- `Source/App/Menus.cpp`: overworld pause menu and settings screen.
+- `Source/App/SaveMenu.cpp`: title screen, save-slot selection, legacy-data
+  migration, and selected-save lifecycle.
 - `Source/App/CardRenderer.cpp`: card textures, zones, hands, animation,
   tapping, dragging, and hover enlargement.
 - `Lua/World.lua`: authoritative seamless exterior, interior maps, named exterior
@@ -84,8 +87,10 @@ rendering, and repeated duel teardown.
 Keep `Application` as the owner of SDL resources and screen state unless a
 change has a clear lifetime model and test coverage.
 
-Player-authored decks are stored exclusively in `PlayerData/Decks`. The Deck
-Builder must not enumerate the bundled gameplay and NPC decks under `Decks`.
+Player-authored decks are stored exclusively in `PlayerData/<save>/Decks`.
+Collection, profile, and progress files live beside that save's `Decks`
+directory. Global settings remain at `PlayerData/settings.txt`. The Deck Builder
+must not enumerate the bundled gameplay and NPC decks under `Decks`.
 
 ## World data conventions
 
@@ -94,9 +99,9 @@ Builder must not enumerate the bundled gameplay and NPC decks under `Decks`.
 - NPC and shard position keys must match their metadata `id` fields and include
   a valid `map` ID. Normal gameplay requires every current entity ID to have a
   valid `World.lua` map position.
-- Exterior regions require an explicit `kind` of `town` or `connector`.
-  `route_duelist` NPCs must be in connector regions; `town_npc` NPCs must not
-  be. The World Builder must preserve region kinds when saving.
+- Exterior regions require an explicit `kind` of `town` or `connector` for
+  geographic organization. NPC kinds may be placed in either region kind. The
+  World Builder must preserve region kinds when saving.
 - The World Builder scans the NPC and shard metadata. New IDs without world
   entries are placed automatically on free walkable tiles when the builder is
   launched, mark the world dirty, and are persisted on the next save. Stale
@@ -123,6 +128,8 @@ Builder must not enumerate the bundled gameplay and NPC decks under `Decks`.
   Rootmaze uses `i` (clearing ground), `j` (stable path), `k` (living root),
   `l` (walkable root bridge), `m` (living roof), `n` (root wall), `o`
   (walkable door), `p` (walkable meadow arena), and `q` (leaf marker).
+  Natural landmark tiles are `r` (rocks), `s` (bush), `t` (walkable shrub),
+  `u` (walkable cave entrance), and `v` (tree stump).
   Indoor/wooden-building tiles are `W` (wood wall), `D` (door), `F` (wood
   floor), `C` (counter), and `E` (workshop tools). Outdoor buildings must use
   explicit `K`, `J`, or `Q` roof tiles rather than relying on wall tiles to draw a
@@ -142,8 +149,11 @@ Builder must not enumerate the bundled gameplay and NPC decks under `Decks`.
   lies within every discovery radius.
 - Town NPC interaction capabilities come from `Lua/Npcs.lua` `options` fields.
   Talk is always present; Duel and Trade must not appear unless enabled. Route
-  duelist sight ranges and cardinal facing also come from Lua. Their first
-  undefeated sight-line encounter is forced, while rematches are voluntary.
+  duelist taxicab-distance encounter radii also come from Lua. Their first
+  undefeated radius encounter is forced, while rematches are voluntary.
+- Generic NPC appearance IDs are `generic-male-1` through `generic-male-10`
+  and `generic-female-1` through `generic-female-10`; do not restore the old
+  unqualified `generic1` through `generic10` names.
 
 ## Rules-engine safety
 

@@ -29,6 +29,8 @@ public:
 private:
 	enum class Screen
 	{
+		MainMenu,
+		LoadGame,
 		Overworld,
 		Duel,
 		DeckBuilder,
@@ -146,10 +148,24 @@ private:
 	void handleEvent(const SDL_Event& event);
 	void update(Uint32 deltaTime);
 	void render();
+	void handleMainMenuEvent(const SDL_Event& event);
+	void handleLoadGameEvent(const SDL_Event& event);
+	void renderMainMenu();
+	void renderLoadGame();
+	void refreshSaveSlots();
+	void migrateLegacyPlayerData();
+	void startNewGame();
+	bool loadSaveSlot(const std::string& name);
+	void resetPlayerDataState();
+	std::string playerDataPath(const std::string& leaf = "") const;
+	std::string playerDeckDirectory() const;
+	bool saveCurrentGame();
 
 	void handleOverworldEvent(const SDL_Event& event);
 	void updateOverworld(Uint32 deltaTime);
 	void renderOverworld();
+	void updateRegionBanner();
+	void renderRegionBanner();
 	void handlePauseMenuEvent(const SDL_Event& event);
 	void renderPauseMenu();
 	bool hasCrest(const std::string& crestId) const;
@@ -184,7 +200,8 @@ private:
 	void renderNpcMenu();
 	std::vector<NpcMenuAction> npcMenuActions(int npcIndex) const;
 	void activateNpcMenuAction(NpcMenuAction action);
-	bool routeDuelistCanSeePlayer(int npcIndex) const;
+	bool routeDuelistCanCatchPlayer(int npcIndex) const;
+	bool routeDuelistNextStep(int npcIndex, int& nextX, int& nextY) const;
 	void updateRouteDuelistChallenge();
 	bool isWalkable(int x, int y) const;
 	int npcAt(int x, int y, int ignoredNpc = -1) const;
@@ -205,6 +222,9 @@ private:
 	void zoomWorldBuilder(int direction, int anchorX, int anchorY);
 	void drawWorldBuilderTileIcon(WorldTileId type, const SDL_Rect& rect);
 	void drawWorldBuilderScaledTileDetail(WorldTileId type, const SDL_Rect& rect);
+	void drawWorldBuilderNpcPortrait(const Npc& npc, const SDL_Rect& rect);
+	int worldBuilderHoveredNpc() const;
+	SDL_Rect worldBuilderTileRect(const SDL_Rect& rect) const;
 	void paintWorldBuilderTile(int x, int y);
 	void placeWorldBuilderSelection(int x, int y);
 	bool worldBuilderCanPlace(int x, int y, int ignoredNpc, int ignoredShard) const;
@@ -272,6 +292,8 @@ private:
 	void drawHand(const std::vector<Card*>& cards, bool opponent);
 	void drawCharacter(float gridX, float gridY, CharacterAppearance appearance,
 		bool completed, bool walking = false);
+	void drawCharacterSprite(int x, int y, CharacterAppearance appearance,
+		bool completed, bool walking = false);
 	SDL_Color civilizationColor(int civilization) const;
 	void logicalMouse(int windowX, int windowY, int& logicalX, int& logicalY) const;
 	bool contains(const SDL_Rect& rect, int x, int y) const;
@@ -291,7 +313,7 @@ private:
 	std::vector<int> filteredCollection() const;
 	std::string availableDeckPath(const std::string& name, const std::string& currentPath) const;
 	void showDeckNotice(const std::string& notice);
-	void savePlayerProgress();
+	bool savePlayerProgress();
 	void saveSettings();
 	void awardNpcVictory(int npcIndex);
 	bool handleRewardPopupEvent(const SDL_Event& event);
@@ -315,6 +337,13 @@ private:
 	std::map<int, TTF_Font*> mFonts;
 	bool mRunning;
 	Screen mScreen;
+	int mMainMenuSelection;
+	int mLoadGameSelection;
+	int mLoadGameScroll;
+	std::vector<std::string> mSaveSlots;
+	std::string mActiveSaveName;
+	std::string mActiveSaveDirectory;
+	std::string mMainMenuNotice;
 	bool mPauseMenuOpen;
 	int mPauseMenuSelection;
 
@@ -353,6 +382,10 @@ private:
 	std::set<std::string> mSuppressedRouteChallenges;
 	std::string mNotice;
 	Uint32 mNoticeUntil;
+	std::string mLastWorldRegionId;
+	std::string mRegionBannerName;
+	Uint32 mRegionBannerStarted;
+	bool mRegionBannerConnector;
 	int mStoryStage;
 	int mStoryClues;
 	StoryScene mStoryScene;
@@ -365,6 +398,8 @@ private:
 	int mWorldBuilderCameraX;
 	int mWorldBuilderCameraY;
 	int mWorldBuilderTileSize;
+	bool mWorldBuilderTileScaleActive;
+	SDL_Rect mWorldBuilderTileScaleDestination;
 	bool mWorldBuilderMoveUp;
 	bool mWorldBuilderMoveDown;
 	bool mWorldBuilderMoveLeft;

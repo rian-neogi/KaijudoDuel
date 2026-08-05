@@ -14,9 +14,10 @@ namespace
 	const SDL_Rect PAUSE_STATUS_PANEL = { 65, 88, 780, 652 };
 	const SDL_Rect PAUSE_ACTION_PANEL = { 865, 88, 350, 652 };
 	const SDL_Rect RESUME_BUTTON = { 890, 286, 300, 58 };
-	const SDL_Rect DECK_BUILDER_BUTTON = { 890, 358, 300, 58 };
-	const SDL_Rect SETTINGS_BUTTON = { 890, 430, 300, 58 };
-	const SDL_Rect QUIT_BUTTON = { 890, 502, 300, 58 };
+	const SDL_Rect SAVE_GAME_BUTTON = { 890, 358, 300, 58 };
+	const SDL_Rect DECK_BUILDER_BUTTON = { 890, 430, 300, 58 };
+	const SDL_Rect SETTINGS_BUTTON = { 890, 502, 300, 58 };
+	const SDL_Rect QUIT_TO_MENU_BUTTON = { 890, 574, 300, 58 };
 	const SDL_Rect SETTINGS_BACK_BUTTON = { 42, 718, 180, 50 };
 	const SDL_Rect SETTINGS_PANEL = { 150, 126, 980, 520 };
 	const SDL_Rect MUSIC_SLIDER = { 445, 246, 555, 12 };
@@ -81,13 +82,31 @@ void Application::handlePauseMenuEvent(const SDL_Event& event)
 	auto activateSelection = [this]()
 	{
 		if (mPauseMenuSelection == 0) mPauseMenuOpen = false;
-		else if (mPauseMenuSelection == 1) enterDeckBuilder();
-		else if (mPauseMenuSelection == 2)
+		else if (mPauseMenuSelection == 1)
+		{
+			bool saved = saveCurrentGame();
+			mPauseMenuOpen = false;
+			mNotice = saved ? "Game saved to " + mActiveSaveName + "." :
+				"Unable to save the game.";
+			mNoticeUntil = SDL_GetTicks() + 4000;
+		}
+		else if (mPauseMenuSelection == 2) enterDeckBuilder();
+		else if (mPauseMenuSelection == 3)
 		{
 			mPauseMenuOpen = false;
 			mScreen = Screen::Settings;
 		}
-		else if (mPauseMenuSelection == 3) mRunning = false;
+		else if (mPauseMenuSelection == 4)
+		{
+			mPauseMenuOpen = false;
+			mMoveUp = mMoveDown = mMoveLeft = mMoveRight = false;
+			mMoveIntentX = mMoveIntentY = 0;
+			refreshSaveSlots();
+			mMainMenuSelection = 0;
+			mMainMenuNotice.clear();
+			mScreen = Screen::MainMenu;
+			if (mWindow != NULL) SDL_SetWindowTitle(mWindow, "Kaijudo Duel");
+		}
 	};
 	if (event.type == SDL_KEYDOWN && !event.key.repeat)
 	{
@@ -99,12 +118,12 @@ void Application::handlePauseMenuEvent(const SDL_Event& event)
 		}
 		if (key == SDLK_w || key == SDLK_UP)
 		{
-			mPauseMenuSelection = (mPauseMenuSelection + 3) % 4;
+			mPauseMenuSelection = (mPauseMenuSelection + 4) % 5;
 			return;
 		}
 		if (key == SDLK_s || key == SDLK_DOWN)
 		{
-			mPauseMenuSelection = (mPauseMenuSelection + 1) % 4;
+			mPauseMenuSelection = (mPauseMenuSelection + 1) % 5;
 			return;
 		}
 		if (key == SDLK_RETURN || key == SDLK_SPACE)
@@ -118,18 +137,20 @@ void Application::handlePauseMenuEvent(const SDL_Event& event)
 		int x, y;
 		logicalMouse(event.motion.x, event.motion.y, x, y);
 		if (contains(RESUME_BUTTON, x, y)) mPauseMenuSelection = 0;
-		else if (contains(DECK_BUILDER_BUTTON, x, y)) mPauseMenuSelection = 1;
-		else if (contains(SETTINGS_BUTTON, x, y)) mPauseMenuSelection = 2;
-		else if (contains(QUIT_BUTTON, x, y)) mPauseMenuSelection = 3;
+		else if (contains(SAVE_GAME_BUTTON, x, y)) mPauseMenuSelection = 1;
+		else if (contains(DECK_BUILDER_BUTTON, x, y)) mPauseMenuSelection = 2;
+		else if (contains(SETTINGS_BUTTON, x, y)) mPauseMenuSelection = 3;
+		else if (contains(QUIT_TO_MENU_BUTTON, x, y)) mPauseMenuSelection = 4;
 		return;
 	}
 	if (event.type != SDL_MOUSEBUTTONDOWN || event.button.button != SDL_BUTTON_LEFT) return;
 	int x, y;
 	logicalMouse(event.button.x, event.button.y, x, y);
 	if (contains(RESUME_BUTTON, x, y)) mPauseMenuSelection = 0;
-	else if (contains(DECK_BUILDER_BUTTON, x, y)) mPauseMenuSelection = 1;
-	else if (contains(SETTINGS_BUTTON, x, y)) mPauseMenuSelection = 2;
-	else if (contains(QUIT_BUTTON, x, y)) mPauseMenuSelection = 3;
+	else if (contains(SAVE_GAME_BUTTON, x, y)) mPauseMenuSelection = 1;
+	else if (contains(DECK_BUILDER_BUTTON, x, y)) mPauseMenuSelection = 2;
+	else if (contains(SETTINGS_BUTTON, x, y)) mPauseMenuSelection = 3;
+	else if (contains(QUIT_TO_MENU_BUTTON, x, y)) mPauseMenuSelection = 4;
 	else return;
 	activateSelection();
 }
@@ -230,11 +251,12 @@ void Application::renderPauseMenu()
 		drawText(label, rect.x + 26, rect.y + 16, color(238, 241, 247), 19);
 	};
 	drawButton(RESUME_BUTTON, "Resume", false, 0);
-	drawButton(DECK_BUILDER_BUTTON, "Deck Builder", false, 1);
-	drawButton(SETTINGS_BUTTON, "Settings", false, 2);
-	drawButton(QUIT_BUTTON, "Quit Game", true, 3);
-	drawText("W/S/Arrows + Enter", 920, 690, color(161, 178, 202), 12);
-	drawText("Esc: resume", 983, 713, color(161, 178, 202), 12);
+	drawButton(SAVE_GAME_BUTTON, "Save Game", false, 1);
+	drawButton(DECK_BUILDER_BUTTON, "Deck Builder", false, 2);
+	drawButton(SETTINGS_BUTTON, "Settings", false, 3);
+	drawButton(QUIT_TO_MENU_BUTTON, "Quit to Main Menu", true, 4);
+	drawText("W/S/Arrows + Enter", 920, 657, color(161, 178, 202), 12);
+	drawText("Esc: resume", 983, 680, color(161, 178, 202), 12);
 }
 
 void Application::handleSettingsEvent(const SDL_Event& event)
