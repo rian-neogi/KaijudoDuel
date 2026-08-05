@@ -6,6 +6,9 @@ shard positions. `World/Maps/*.json` owns visual layers, dimensions, collision,
 and map-local gameplay tags. Gameplay and the World Builder load these files
 directly and never read `Lua/World.lua`.
 
+See `World/OverworldFormat.md` for a field-by-field explanation of the catalog
+map schema, palette references, RLE layers, collision, coordinates, and tags.
+
 For a one-time migration from the deprecated Lua format, run from the
 repository root:
 

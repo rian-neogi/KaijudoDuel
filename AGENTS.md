@@ -38,8 +38,10 @@ right-click/drag erases it. Collision is inferred from the uppermost catalog
 tile with collision behavior; cells without a collision-bearing catalog tile
 are blocked. Switch maps with the on-screen arrows or `PageUp`/`PageDown`; hold
 the arrow or WASD keys to pan large maps. Use the mouse wheel over the map or
-`+`/`-` to zoom; the wheel continues to scroll when the pointer is over a side
-list. Save with the on-screen button or `Ctrl+S`.
+`+`/`-` to zoom from 10% through 100%; panning steps are normalized to the
+zoom so they remain consistent in screen space. The wheel continues to scroll
+when the pointer is over a side list. Save with the on-screen button or
+`Ctrl+S`.
 
 When adding a C++ source file, add it to `GAME_SOURCES` in `CMakeLists.txt`.
 Do not restore the legacy Windows/OpenGL interface to the Linux target.
@@ -98,6 +100,8 @@ converter, and repeated duel teardown.
   tapping, dragging, and hover enlargement.
 - `World/Maps/*.json`: authoritative catalog tile layers, map dimensions, and
   map-local gameplay tags. The World Builder saves tile edits here.
+- `World/OverworldFormat.md`: field-by-field catalog-map documentation,
+  including palette references, RLE decoding, collision, and coordinate rules.
 - `World/World.json`: authoritative map list, named exterior regions, player
   start, portals, and ID-keyed NPC/object/shard positions.
 - `Lua/World.lua`: deprecated migration input. Normal gameplay and the World

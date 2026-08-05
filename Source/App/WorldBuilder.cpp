@@ -32,9 +32,25 @@ namespace
 	const SDL_Rect BUILDER_TILESET_VIEW = { 1022, 257, 228, 428 };
 	const SDL_Rect BUILDER_TILE_INFO = { 1022, 690, 228, 25 };
 	const Uint32 BUILDER_PAN_INTERVAL = 80;
-	const int BUILDER_ZOOM_LEVELS[] = { 24, 32, 48, 64, 96 };
+	const int BUILDER_ZOOM_PERCENTAGES[] = {
+		10, 20, 30, 40, 50, 60, 70, 80, 90, 100
+	};
+	const int BUILDER_ZOOM_LEVELS[] = {
+		(TILE * 10 + 50) / 100, (TILE * 20 + 50) / 100,
+		(TILE * 30 + 50) / 100, (TILE * 40 + 50) / 100,
+		(TILE * 50 + 50) / 100, (TILE * 60 + 50) / 100,
+		(TILE * 70 + 50) / 100, (TILE * 80 + 50) / 100,
+		(TILE * 90 + 50) / 100, TILE
+	};
 	const int BUILDER_ZOOM_LEVEL_COUNT = sizeof(BUILDER_ZOOM_LEVELS) /
 		sizeof(BUILDER_ZOOM_LEVELS[0]);
+
+	int builderZoomLevel(int tileSize)
+	{
+		for (int level = 0; level < BUILDER_ZOOM_LEVEL_COUNT; ++level)
+			if (BUILDER_ZOOM_LEVELS[level] == tileSize) return level;
+		return BUILDER_ZOOM_LEVEL_COUNT - 1;
+	}
 	const int TILE_CATEGORY_COUNT = 4;
 	const char* TILE_CATEGORY_NAMES[TILE_CATEGORY_COUNT] = {
 		"DUNGEON", "INSIDE", "OUTSIDE", "WORLD"
@@ -213,34 +229,38 @@ namespace
 		return MAP_Y + std::max(0, MAP_VIEW_HEIGHT - rows * tileSize) / 2;
 	}
 
-	void clampMapCamera(const std::vector<std::string>& map, int& cameraX, int& cameraY,
+	void clampMapCamera(const std::vector<std::string>& map, float& cameraX, float& cameraY,
 		int tileSize)
 	{
-		cameraX = std::max(0, std::min(std::max(0,
-			(int)map[0].size() - builderViewportColumns(tileSize)), cameraX));
-		cameraY = std::max(0, std::min(std::max(0,
-			(int)map.size() - builderViewportRows(tileSize)), cameraY));
+		float visibleColumns = MAP_VIEW_WIDTH / (float)tileSize;
+		float visibleRows = MAP_VIEW_HEIGHT / (float)tileSize;
+		cameraX = std::max(0.f, std::min(std::max(0.f,
+			(float)map[0].size() - visibleColumns), cameraX));
+		cameraY = std::max(0.f, std::min(std::max(0.f,
+			(float)map.size() - visibleRows), cameraY));
 	}
 
 	void centerMapCamera(const std::vector<std::string>& map, int x, int y,
-		int& cameraX, int& cameraY, int tileSize)
+		float& cameraX, float& cameraY, int tileSize)
 	{
-		cameraX = x - builderViewportColumns(tileSize) / 2;
-		cameraY = y - builderViewportRows(tileSize) / 2;
+		cameraX = x - MAP_VIEW_WIDTH / (2.f * tileSize);
+		cameraY = y - MAP_VIEW_HEIGHT / (2.f * tileSize);
 		clampMapCamera(map, cameraX, cameraY, tileSize);
 	}
 
 	bool mapCellAt(int x, int y, const std::vector<std::string>& map,
-		int cameraX, int cameraY, int tileSize, int& cellX, int& cellY)
+		float cameraX, float cameraY, int tileSize, int& cellX, int& cellY)
 	{
 		if (map.empty() || map[0].empty()) return false;
 		if (x < MAP_X || x >= MAP_X + MAP_VIEW_WIDTH || y < MAP_Y ||
 			y >= MAP_Y + MAP_VIEW_HEIGHT) return false;
-		int originX = builderMapOriginX((int)map[0].size(), tileSize) - cameraX * tileSize;
-		int originY = builderMapOriginY((int)map.size(), tileSize) - cameraY * tileSize;
+		float originX = builderMapOriginX((int)map[0].size(), tileSize) -
+			cameraX * tileSize;
+		float originY = builderMapOriginY((int)map.size(), tileSize) -
+			cameraY * tileSize;
 		if (x < originX || y < originY) return false;
-		cellX = (x - originX) / tileSize;
-		cellY = (y - originY) / tileSize;
+		cellX = (int)std::floor((x - originX) / tileSize);
+		cellY = (int)std::floor((y - originY) / tileSize);
 		return cellY >= 0 && cellY < (int)map.size() && cellX >= 0 &&
 			cellX < (int)map[cellY].size();
 	}
@@ -1129,17 +1149,16 @@ bool Application::saveWorldBuilder(std::string& error)
 
 void Application::panWorldBuilder(int dx, int dy)
 {
-	mWorldBuilderCameraX += dx;
-	mWorldBuilderCameraY += dy;
+	const float step = TILE / (float)mWorldBuilderTileSize;
+	mWorldBuilderCameraX += dx * step;
+	mWorldBuilderCameraY += dy * step;
 	clampMapCamera(currentMap(), mWorldBuilderCameraX, mWorldBuilderCameraY,
 		mWorldBuilderTileSize);
 }
 
 void Application::zoomWorldBuilder(int direction, int anchorX, int anchorY)
 {
-	int currentLevel = 0;
-	for (int level = 0; level < BUILDER_ZOOM_LEVEL_COUNT; ++level)
-		if (BUILDER_ZOOM_LEVELS[level] == mWorldBuilderTileSize) currentLevel = level;
+	int currentLevel = builderZoomLevel(mWorldBuilderTileSize);
 	int nextLevel = std::max(0, std::min(BUILDER_ZOOM_LEVEL_COUNT - 1,
 		currentLevel + direction));
 	if (nextLevel == currentLevel) return;
@@ -1151,19 +1170,19 @@ void Application::zoomWorldBuilder(int direction, int anchorX, int anchorY)
 		anchorX = MAP_X + MAP_VIEW_WIDTH / 2;
 		anchorY = MAP_Y + MAP_VIEW_HEIGHT / 2;
 	}
-	int oldOriginX = builderMapOriginX((int)map[0].size(), mWorldBuilderTileSize) -
+	float oldOriginX = builderMapOriginX((int)map[0].size(), mWorldBuilderTileSize) -
 		mWorldBuilderCameraX * mWorldBuilderTileSize;
-	int oldOriginY = builderMapOriginY((int)map.size(), mWorldBuilderTileSize) -
+	float oldOriginY = builderMapOriginY((int)map.size(), mWorldBuilderTileSize) -
 		mWorldBuilderCameraY * mWorldBuilderTileSize;
 	float worldX = (anchorX - oldOriginX) / (float)mWorldBuilderTileSize;
 	float worldY = (anchorY - oldOriginY) / (float)mWorldBuilderTileSize;
 	mWorldBuilderTileSize = BUILDER_ZOOM_LEVELS[nextLevel];
 	int newBaseX = builderMapOriginX((int)map[0].size(), mWorldBuilderTileSize);
 	int newBaseY = builderMapOriginY((int)map.size(), mWorldBuilderTileSize);
-	mWorldBuilderCameraX = (int)std::round(worldX -
-		(anchorX - newBaseX) / (float)mWorldBuilderTileSize);
-	mWorldBuilderCameraY = (int)std::round(worldY -
-		(anchorY - newBaseY) / (float)mWorldBuilderTileSize);
+	mWorldBuilderCameraX = worldX -
+		(anchorX - newBaseX) / (float)mWorldBuilderTileSize;
+	mWorldBuilderCameraY = worldY -
+		(anchorY - newBaseY) / (float)mWorldBuilderTileSize;
 	clampMapCamera(map, mWorldBuilderCameraX, mWorldBuilderCameraY,
 		mWorldBuilderTileSize);
 	mWorldBuilderPainting = false;
@@ -1521,7 +1540,8 @@ void Application::renderWorldBuilder()
 	fillRect({ 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT }, 12, 18, 29);
 	drawText("WORLD BUILDER", 32, 13, color(244, 207, 103), 25);
 	drawText(mWorld.maps[mCurrentWorldArea].name, 320, 17, color(189, 207, 232), 18, 360);
-	drawText("ZOOM " + std::to_string(mWorldBuilderTileSize * 100 / TILE) + "%",
+	drawText("ZOOM " + std::to_string(
+		BUILDER_ZOOM_PERCENTAGES[builderZoomLevel(mWorldBuilderTileSize)]) + "%",
 		690, 19, color(143, 189, 231), 14);
 	drawText(mWorldBuilderDirty ? "UNSAVED CHANGES" : "SAVED", 810, 19,
 		mWorldBuilderDirty ? color(244, 139, 88) : color(105, 218, 139), 14);
@@ -1530,9 +1550,9 @@ void Application::renderWorldBuilder()
 	const int viewportColumns = builderViewportColumns(tileSize);
 	const int viewportRows = builderViewportRows(tileSize);
 	int mapX = builderMapOriginX((int)map[0].size(), tileSize) -
-		mWorldBuilderCameraX * tileSize;
+		(int)std::round(mWorldBuilderCameraX * tileSize);
 	int mapY = builderMapOriginY((int)map.size(), tileSize) -
-		mWorldBuilderCameraY * tileSize;
+		(int)std::round(mWorldBuilderCameraY * tileSize);
 	TileBounds visibleTiles = visibleTileBounds((float)mWorldBuilderCameraX,
 		(float)mWorldBuilderCameraY, (int)map[0].size(), (int)map.size(),
 		viewportColumns, viewportRows);
@@ -2150,18 +2170,9 @@ void Application::renderWorldBuilder()
 		if (!visibleTiles.contains(mNpcs[i].x, mNpcs[i].y)) continue;
 		int npcX = mapX + mNpcs[i].x * tileSize;
 		int npcY = mapY + mNpcs[i].y * tileSize;
-		if (tileSize >= TILE)
-			drawCharacter((float)mNpcs[i].x, (float)mNpcs[i].y,
-				mNpcs[i].appearance, false, false, mNpcs[i].facingX, mNpcs[i].facingY,
-				mNpcs[i].spriteSheet, mNpcs[i].spriteIndex);
-		else
-		{
-			int inset = std::max(3, tileSize / 5);
-			fillRect({ npcX + inset, npcY + inset, tileSize - inset * 2,
-				tileSize - inset * 2 }, 213, 137, 78, 255);
-			outlineRect({ npcX + inset, npcY + inset, tileSize - inset * 2,
-				tileSize - inset * 2 }, 62, 35, 31, 255, 1);
-		}
+		drawCharacter((float)mNpcs[i].x, (float)mNpcs[i].y,
+			mNpcs[i].appearance, false, false, mNpcs[i].facingX, mNpcs[i].facingY,
+			mNpcs[i].spriteSheet, mNpcs[i].spriteIndex);
 		if ((int)i == mWorldBuilderSelectedNpc && mWorldBuilderTab == WorldBuilderTab::Npcs)
 				outlineRect({ npcX + 2, npcY + 2, tileSize - 4, tileSize - 4 },
 					246, 211, 99, 255, std::max(2, tileSize / 16));

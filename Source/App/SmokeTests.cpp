@@ -2076,8 +2076,8 @@ bool Application::exerciseMenuScreensSmoke()
 	Screen savedScreen = mScreen;
 	WorldBuilderTab savedBuilderTab = mWorldBuilderTab;
 	int savedBuilderArea = mCurrentWorldArea;
-	int savedBuilderCameraX = mWorldBuilderCameraX;
-	int savedBuilderCameraY = mWorldBuilderCameraY;
+	float savedBuilderCameraX = mWorldBuilderCameraX;
+	float savedBuilderCameraY = mWorldBuilderCameraY;
 	int savedBuilderTileSize = mWorldBuilderTileSize;
 	int savedBuilderListScroll = mWorldBuilderListScroll;
 	int savedBuilderTileCategory = mWorldBuilderTileCategory;
@@ -2253,9 +2253,10 @@ bool Application::exerciseMenuScreensSmoke()
 	updateWorldBuilder(160);
 	pan.type = SDL_KEYUP;
 	handleWorldBuilderEvent(pan);
-	int stoppedCameraX = mWorldBuilderCameraX;
+	float stoppedCameraX = mWorldBuilderCameraX;
 	updateWorldBuilder(160);
-	bool arrowHeld = stoppedCameraX == 13 && mWorldBuilderCameraX == stoppedCameraX;
+	bool arrowHeld = std::fabs(stoppedCameraX - 13.f) < 0.001f &&
+		std::fabs(mWorldBuilderCameraX - stoppedCameraX) < 0.001f;
 	pan = {};
 	pan.type = SDL_KEYDOWN;
 	pan.key.keysym.sym = SDLK_s;
@@ -2263,7 +2264,7 @@ bool Application::exerciseMenuScreensSmoke()
 	updateWorldBuilder(160);
 	pan.type = SDL_KEYUP;
 	handleWorldBuilderEvent(pan);
-	bool wasdHeld = mWorldBuilderCameraY == 13 &&
+	bool wasdHeld = std::fabs(mWorldBuilderCameraY - 13.f) < 0.001f &&
 		mWorldBuilderTab == WorldBuilderTab::Tiles;
 	mWorldBuilderCameraX = 10;
 	mWorldBuilderCameraY = 10;
@@ -2273,27 +2274,52 @@ bool Application::exerciseMenuScreensSmoke()
 	zoom.type = SDL_MOUSEWHEEL;
 	zoom.wheel.y = 1;
 	handleWorldBuilderEvent(zoom);
-	bool zoomedIn = mWorldBuilderTileSize == 64 &&
-		mWorldBuilderCameraX == 13 && mWorldBuilderCameraY == 12;
-	renderWorldBuilder();
-	zoomWorldBuilder(1, mMouseX, mMouseY);
-	renderWorldBuilder();
-	bool largeZoomRendered = mWorldBuilderTileSize == 96 &&
-		!mWorldBuilderTileScaleActive;
-	zoomWorldBuilder(-1, mMouseX, mMouseY);
+	bool maximumZoomRendered = mWorldBuilderTileSize == TILE;
 	zoom.wheel.y = -1;
 	handleWorldBuilderEvent(zoom);
-	bool zoomedOut = mWorldBuilderTileSize == TILE;
-	zoomWorldBuilder(-1, mMouseX, mMouseY);
+	const int ninetyPercentTile = (TILE * 90 + 50) / 100;
+	float expectedCameraX = 10.f + MAP_VIEW_WIDTH / (2.f * TILE) -
+		MAP_VIEW_WIDTH / (2.f * ninetyPercentTile);
+	float expectedCameraY = 10.f + MAP_VIEW_HEIGHT / (2.f * TILE) -
+		MAP_VIEW_HEIGHT / (2.f * ninetyPercentTile);
+	bool zoomedOut = mWorldBuilderTileSize == ninetyPercentTile &&
+		std::fabs(mWorldBuilderCameraX - expectedCameraX) < 0.001f &&
+		std::fabs(mWorldBuilderCameraY - expectedCameraY) < 0.001f;
+	for (int level = 9; level > 1; --level)
+		zoomWorldBuilder(-1, mMouseX, mMouseY);
 	renderWorldBuilder();
-	bool smallZoomRendered = mWorldBuilderTileSize == 32 &&
+	const int tenPercentTile = (TILE * 10 + 50) / 100;
+	bool minimumZoomRendered = mWorldBuilderTileSize == tenPercentTile &&
 		!mWorldBuilderTileScaleActive;
 	zoomWorldBuilder(-1, mMouseX, mMouseY);
+	minimumZoomRendered = minimumZoomRendered &&
+		mWorldBuilderTileSize == tenPercentTile;
+	mCurrentWorldArea = portraitArea;
+	mWorldBuilderTab = WorldBuilderTab::Npcs;
+	mWorldBuilderCameraX = (float)mNpcs[portraitNpc].x;
+	mWorldBuilderCameraY = (float)mNpcs[portraitNpc].y;
 	renderWorldBuilder();
-	smallZoomRendered = smallZoomRendered && mWorldBuilderTileSize == 24 &&
+	minimumZoomRendered = minimumZoomRendered &&
 		!mWorldBuilderTileScaleActive;
+	mCurrentWorldArea = builderArea;
+	mWorldBuilderTab = WorldBuilderTab::Tiles;
+	mWorldBuilderCameraX = 10;
+	mWorldBuilderCameraY = 10;
+	pan = {};
+	pan.type = SDL_KEYDOWN;
+	pan.key.keysym.sym = SDLK_RIGHT;
+	handleWorldBuilderEvent(pan);
+	updateWorldBuilder(160);
+	pan.type = SDL_KEYUP;
+	handleWorldBuilderEvent(pan);
+	float expectedScaledPan = 10.f + 3.f * TILE / tenPercentTile;
+	bool scaledPanReady = std::fabs(mWorldBuilderCameraX - expectedScaledPan) < 0.001f;
+	for (int level = 1; level < 10; ++level)
+		zoomWorldBuilder(1, mMouseX, mMouseY);
 	zoomWorldBuilder(1, mMouseX, mMouseY);
-	zoomWorldBuilder(1, mMouseX, mMouseY);
+	renderWorldBuilder();
+	maximumZoomRendered = maximumZoomRendered && mWorldBuilderTileSize == TILE &&
+		!mWorldBuilderTileScaleActive;
 	mMouseX = 1100;
 	mMouseY = 300;
 	zoom.wheel.y = -1;
@@ -2322,9 +2348,8 @@ bool Application::exerciseMenuScreensSmoke()
 	if (!npcDoubleClickReady || !objectDoubleClickReady || !shardListedAsObject ||
 		!npcBuilderViewReady || !tilePaletteReady || !catalogPaintingReady ||
 		!arrowHeld || !wasdHeld ||
-		!zoomedIn || !zoomedOut ||
-		!largeZoomRendered ||
-		!smallZoomRendered || !panelWheelPreservesSheetLayout) return false;
+		!zoomedOut || !maximumZoomRendered || !scaledPanReady ||
+		!minimumZoomRendered || !panelWheelPreservesSheetLayout) return false;
 
 	mPendingRewardCardId = getCardIdFromName("Aqua Hulcus");
 	mPendingRewardGold = 100;

@@ -393,8 +393,8 @@ private:
 	int mWorldBuilderSelectedNpc;
 	int mWorldBuilderSelectedObject;
 	int mWorldBuilderListScroll;
-	int mWorldBuilderCameraX;
-	int mWorldBuilderCameraY;
+	float mWorldBuilderCameraX;
+	float mWorldBuilderCameraY;
 	int mWorldBuilderTileSize;
 	bool mWorldBuilderTileScaleActive;
 	SDL_Rect mWorldBuilderTileScaleDestination;

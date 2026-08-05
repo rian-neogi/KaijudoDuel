@@ -1576,10 +1576,19 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 			MAP_VIEW_WIDTH - (int)map[0].size() * mWorldBuilderTileSize) / 2;
 		int baseY = MAP_Y + std::max(0,
 			MAP_VIEW_HEIGHT - (int)map.size() * mWorldBuilderTileSize) / 2;
-		x = baseX + (int)std::round((gridX - cameraX) * mWorldBuilderTileSize) +
-			(mWorldBuilderTileSize - TILE) / 2;
-		y = baseY + (int)std::round((gridY - cameraY) * mWorldBuilderTileSize) +
-			(mWorldBuilderTileSize - TILE) / 2;
+		x = baseX + (int)std::round((gridX - cameraX) * mWorldBuilderTileSize);
+		y = baseY + (int)std::round((gridY - cameraY) * mWorldBuilderTileSize);
+		bool savedScaleActive = mWorldBuilderTileScaleActive;
+		SDL_Rect savedScaleDestination = mWorldBuilderTileScaleDestination;
+		mWorldBuilderTileScaleActive = mWorldBuilderTileSize != TILE;
+		mWorldBuilderTileScaleDestination = {
+			x, y, mWorldBuilderTileSize, mWorldBuilderTileSize
+		};
+		drawCharacterSprite(x, y, appearance, completed, walking, facingX, facingY,
+			spriteSheet, spriteIndex);
+		mWorldBuilderTileScaleActive = savedScaleActive;
+		mWorldBuilderTileScaleDestination = savedScaleDestination;
+		return;
 	}
 	else
 	{
