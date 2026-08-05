@@ -29,8 +29,9 @@ The World Builder is available only through `--world-builder`. It edits map
 tiles and NPC/shard locations. Select entities from the Lua-populated side
 lists or directly on the map, then click or drag them to a free grass/path
 or indoor floor tile. Switch maps with the on-screen arrows or
-`PageUp`/`PageDown`; hold the arrow or WASD keys to pan large maps. Save with
-the on-screen button or `Ctrl+S`.
+`PageUp`/`PageDown`; hold the arrow or WASD keys to pan large maps. Use the
+mouse wheel over the map or `+`/`-` to zoom; the wheel continues to scroll when
+the pointer is over a side list. Save with the on-screen button or `Ctrl+S`.
 
 When adding a C++ source file, add it to `GAME_SOURCES` in `CMakeLists.txt`.
 Do not restore the legacy Windows/OpenGL interface to the Linux target.
@@ -99,7 +100,8 @@ Builder must not enumerate the bundled gameplay and NPC decks under `Decks`.
   decks, rewards, Mercer stock, and other hand-authored metadata untouched.
 - Maps are rectangular and may be up to 1024 columns by 1024 rows. Gameplay
   follows the player through maps larger than its 25-by-12-tile viewport; the
-  World Builder keeps a 20-by-12 viewport beside its editor controls.
+  World Builder keeps a 960-by-576-pixel viewport beside its editor controls
+  (20-by-12 tiles at 100% zoom).
   Outdoor tile characters are `.` (grass), `=` (path), `~` (water), `H`
   (house), `T` (tree), `#` (dense forest), `B` (bonfire), `A` (feast table),
   `S` (walkable dueling sand), `M` (marble), `Q` (marble roof), `R` (rail),
@@ -126,6 +128,10 @@ Builder must not enumerate the bundled gameplay and NPC decks under `Decks`.
   doorway must support entering and leaving an interior. Exterior regions share
   the `overworld` map and must connect through adjacent walkable tiles, not
   portals.
+- Treat connecting regions as explorable adventures rather than transit
+  corridors. The implemented Watershed Crossroads is 128-by-72 tiles and the
+  Old Road is 96-by-48; preserve their readable main routes, optional loops,
+  camps, route duelists, and off-road shard discoveries when editing them.
 
 ## Rules-engine safety
 

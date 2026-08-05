@@ -19,6 +19,14 @@ Names attached to planned connectors are working region names. Their exits and b
 
 Connecting areas are not towns. They may contain trainers, collectibles, shelters, overlooks, and short side encounters, but should not contain a Circuit Crest, Resonance Seal, irreplaceable shop, or other service that forces repeated travel through a long route.
 
+## Scale and adventure standard
+
+Connecting areas are destinations in their own right, not narrow loading corridors. The implemented routes use roughly twice the width and twice the height of their original layouts, producing four times the explorable tile area. New connectors should use this expedition scale as their baseline unless geography gives them a good reason to be even larger.
+
+Every connector should provide a legible main route for repeat travel and enough uncertainty to make the first crossing feel like an adventure. Aim for at least two optional loops, two or more route duelists, remote shard or treasure sites, a shelter or campsite, and one environmental story told through terrain. Bridges, ridges, ruins, wetlands, or route machinery should create meaningful subareas. A player following the main markers must never become trapped, while a player who leaves the road should find something worth the detour.
+
+The unknown comes from exploration and fixed discoveries rather than mandatory random battles. Once a player learns a route, its landmarks and shortcuts should make the return trip quicker and more confident.
+
 ## Route overview
 
 | Connecting area | Connects | Availability | Status |
@@ -26,16 +34,16 @@ Connecting areas are not towns. They may contain trainers, collectibles, shelter
 | Old Road | Emberglen ↔ Cinderrail Foundry | After Act I | Implemented |
 | Watershed Crossroads | Emberglen ↔ Glasswater Port ↔ Rootmaze Commons | After Act I | Implemented |
 | Blackstone Road | Emberglen ↔ Gloam Quarry | After Confluence relay | Planned |
-| Fivefold Highway | Emberglen ↔ Confluence Arena | Midpoint route | Planned |
-| Reedwake Ferry | Glasswater Port ↔ Reedwake | First optional tier | Planned |
+| Fivefold Highway | Emberglen ↔ Dragon Keep | Midpoint route | Planned |
+| Lilyreed Ferry | Glasswater Port ↔ Lilyreed Village | First optional tier | Planned |
 | Rootrail Greenway | Rootmaze Commons ↔ Cinderrail Foundry | First open-world tier | Planned |
 | Honeyroot Trail | Rootmaze Commons ↔ Honeyreach | First optional tier | Planned |
 | Kiln Descent | Cinderrail Foundry ↔ Gloam Quarry | After Confluence relay | Planned |
 | Artisan Road | Cinderrail Foundry ↔ Clayhearth | First optional tier | Planned |
-| Western Crossroads | Confluence Arena ↔ Mirror Arena ↔ Ribbonfair | After Confluence relay | Planned |
-| Courier Rise | Confluence Arena ↔ Stormbreak Plateau | After Confluence relay | Planned |
-| Eastern Crossroads | Confluence Arena ↔ Mirror Arena ↔ Sunspire Cloister | After Confluence relay | Planned |
-| Archive Approach | Confluence Arena ↔ Hollow Archive | Hollow finale | Planned |
+| Western Crossroads | Dragon Keep ↔ Mirror Arena ↔ Ribbonfair | After Confluence relay | Planned |
+| Courier Rise | Dragon Keep ↔ Stormbreak Plateau | After Confluence relay | Planned |
+| Eastern Crossroads | Dragon Keep ↔ Mirror Arena ↔ Sunspire Cloister | After Confluence relay | Planned |
+| Archive Approach | Dragon Keep ↔ Hollow Archive | Hollow finale | Planned |
 | Prism Pass | Mirror Arena ↔ Stormbreak Plateau | Second open-world tier | Planned |
 | Path to Crown Gate | Mirror Arena ↔ Crown Gate | After Hollow finale | Planned |
 | Springline Trail | Stormbreak Plateau ↔ Cloudrest Peak | Second optional tier | Planned |
@@ -49,9 +57,9 @@ Connecting areas are not towns. They may contain trainers, collectibles, shelter
 **Availability:** Opens after Act I  
 **Status:** Implemented as the `old_road` region of the seamless `overworld` map in `Lua/World.lua`
 
-The Old Road is a former primary freight route whose traffic declined as newer links opened. It gradually changes from Emberglen woodland into the rocky ridge surrounding Cinderrail. Its current 48-by-24 map includes a winding cobbled path, stream, timber bridge, old maintenance checkpoint, waystones, campfire, forest banks, and exposed stone.
+The Old Road is a former primary freight route whose traffic declined as newer links opened. It gradually changes from Emberglen woodland into the rocky ridge surrounding Cinderrail. Its expanded 96-by-48 map includes a winding cobbled path, several stream crossings, timber bridges, an old maintenance checkpoint, waystones, forest banks, exposed stone, and a broken freight cut.
 
-Rook maintains the bridge and checkpoint. His position gives the connector a familiar character without turning it into another settlement. The road's western gate returns to Emberglen, while its eastern gate enters Cinderrail near the gold-marked arrival road.
+Rook maintains the western bridge and checkpoint. His position gives the connector a familiar character without turning it into another settlement. Beyond him, northern and southern loops leave the maintained road for abandoned works, rockfall country, and Wayfarer Camp. Cairn challenges explorers near the abandoned cut, while Mara Flintway watches the remote camp and eastern loop. Four civilization shards sit well away from the shortest crossing. The road's western gate returns to Emberglen, while its eastern gate enters Cinderrail near the gold-marked arrival road.
 
 The Emberglen entrance remains locked until the Act I investigation and boss confrontation are complete. Returning from Cinderrail or the Old Road toward Emberglen is never restricted after the route opens.
 
@@ -63,7 +71,9 @@ The Emberglen entrance remains locked until the Act I investigation and boss con
 
 Watershed Crossroads is one continuous three-way region rather than three separate roads. Its central landmark is an old toll shelter beside the point where Emberglen's drainage stream divides between Glasswater's canals and Rootmaze's root-supported wetlands. Gold orchard markers identify Emberglen, blue tide markers identify Glasswater, and green leaf signs identify Rootmaze.
 
-The current 64-by-36 region sits directly west of Emberglen. The Emberglen branch passes through orchards and a caravan pull-off. The Glasswater branch crosses two broad canal bridges beneath a lighthouse silhouette and joins the city's Watershed Gate directly, while the Rootmaze branch follows a shallow stream beneath living roots into Northwater Gate. The old toll shelter, creature shelter, colored route markers, and small optional loops make the junction recognizable without interrupting its permanent walkable routes. This single region replaces Tideglass Road, Homeward Walk, and Northwater Greenway.
+The expanded 128-by-72 region sits directly west of Emberglen. The Emberglen branch passes through orchards and a caravan pull-off. The Glasswater branch crosses broad canal bridges beneath a lighthouse silhouette and joins the city's Watershed Gate directly, while the Rootmaze branch follows shallow streams beneath living roots into Northwater Gate. Between them lie a northern pool trail, a southern marsh loop, drowned foundations, and a creature shelter around the old toll house.
+
+Tern Ford patrols the unpredictable western crossing and Vale Reed surveys the southern pools. Four civilization shards reward leaving the route markers and exploring the remote corners. The central shelter and colored signs always provide a reliable way to reorient, so the wetland feels unknown on the first journey without becoming tedious on later crossings. This single region replaces Tideglass Road, Homeward Walk, and Northwater Greenway.
 
 ### Blackstone Road
 
@@ -77,13 +87,14 @@ The route should contain a sheltered midpoint camp, an abandoned stone-loading p
 
 ### Fivefold Highway
 
-**Connects:** Emberglen's northern trunk road ↔ Confluence Arena's southern relay gate  
+**Connects:** Emberglen's northern trunk road ↔ Dragon Keep's southern relay gate
+
 **Availability:** Reachable after Act I; its outer checkpoint advances at the campaign midpoint  
 **Status:** Planned
 
-The Fivefold Highway is the broadest central connector and the main supply road between Mercer's hub and Confluence. Five narrow route bands appear and separate as side roads branch toward other regions.
+The Fivefold Highway is the broadest central connector and the main supply road between Mercer's hub and Dragon Keep. Five narrow route bands appear and separate as side roads branch toward other regions.
 
-The map should include milestone plazas, a caravan shelter, relay lines, and a visible but initially closed outer checkpoint. Travel between Emberglen and Confluence remains available while the checkpoint beyond Confluence controls access to the second open-world tier.
+The map should include milestone plazas, a caravan shelter, relay lines, and a visible but initially closed outer checkpoint. Travel between Emberglen and Dragon Keep remains available while the checkpoint beyond the Keep controls access to the second open-world tier.
 
 ## First-tier regional loop
 
@@ -109,9 +120,10 @@ The connector should contain freight-cart background lanes, a sealed early-game 
 
 ## Optional first-tier branches
 
-### Reedwake Ferry
+### Lilyreed Ferry
 
-**Connects:** Glasswater Port's western ferry pier ↔ Reedwake's eastern landing  
+**Connects:** Glasswater Port's western ferry pier ↔ Lilyreed Village's eastern landing
+
 **Availability:** First optional tier  
 **Status:** Planned
 
@@ -129,31 +141,33 @@ The trail begins beneath flowering roots and becomes a warm orchard lane lined w
 
 Two looping footpaths can provide gathering spots and optional duels, but both must return to the main trail before reaching either portal.
 
-### Artisan Road
+### Offshoot Path
 
 **Connects:** Cinderrail Foundry's eastern courier road ↔ Clayhearth's western kiln gate  
 **Availability:** First optional tier  
 **Status:** Planned
 
-Artisan Road carries cooled ceramic material, cookware, pigments, and furnace components. White chimney symbols and stacks of safe refractory tiles distinguish it from Cinderrail's active industrial routes.
+Offshoot Path carries cooled ceramic material, cookware, pigments, and furnace components. White chimney symbols and stacks of safe refractory tiles distinguish it from Cinderrail's active industrial routes.
 
 The route should include a wagon shelter, clay banks, a cooling yard, and distant kiln smoke. It remains an optional branch and never lies between the player and the Forge Crest or Fire Seal.
 
-## Outer network from Confluence
+## Outer network from Dragon Keep
 
-### Ribbonway Crossroads
+### Western Crossroads
 
-**Connects:** Confluence Arena's northwestern relay road ↔ Mirror Arena's western practice district ↔ Ribbonfair's main caravan entrance  
+**Connects:** Dragon Keep's northwestern relay road ↔ Mirror Arena's western practice district ↔ Ribbonfair's main caravan entrance
+
 **Availability:** Opens after the Confluence relay  
 **Status:** Planned
 
-Ribbonway Crossroads is a three-exit challenger and entertainment route. Teal relay markers lead toward Confluence, silver reflective signs lead toward Mirror, and painted ribbons lead toward Ribbonfair. A central deck-testing shelter serves as the unmistakable junction landmark.
+Ribbonway Crossroads is a three-exit challenger and entertainment route. Teal relay markers lead toward Dragon Keep, silver reflective signs lead toward Mirror, and painted ribbons lead toward Ribbonfair. A central deck-testing shelter serves as the unmistakable junction landmark.
 
-The Confluence and Mirror branches are disciplined, heavily traveled roads with tactical practice boards. The Ribbonfair branch gradually adds painted wagon tracks, paper streamers, and joke arrows, while a reliable line of road studs preserves clear navigation. Portable stalls may change between visits, but all three portal approaches remain visible. This map replaces Mirrorway and Ribbon Road.
+The Dragon Keep and Mirror branches are disciplined, heavily traveled roads with tactical practice boards. The Ribbonfair branch gradually adds painted wagon tracks, paper streamers, and joke arrows, while a reliable line of road studs preserves clear navigation. Portable stalls may change between visits, but all three portal approaches remain visible. This map replaces Mirrorway and Ribbon Road.
 
 ### Courier Rise
 
-**Connects:** Confluence Arena's northeastern courier gate ↔ Stormbreak Plateau's southwestern shelf  
+**Connects:** Dragon Keep's northeastern courier gate ↔ Stormbreak Plateau's southwestern shelf
+
 **Availability:** Opens after the Confluence relay  
 **Status:** Planned
 
@@ -161,19 +175,21 @@ Courier Rise climbs from mixed caravan country into exposed highland. Relay post
 
 The route should use switchbacks rather than narrow cliff ledges. Weather may alter flags and background visibility, but the path and portal positions remain stable. A midway signal hut provides shelter and optional courier dialogue.
 
-### Sunmirror Causeway
+### Eastern Crossroads
 
-**Connects:** Confluence Arena's eastern ward road ↔ Mirror Arena's northeastern terrace ↔ Sunspire Cloister's lower gate  
+**Connects:** Dragon Keep's eastern ward road ↔ Mirror Arena's northeastern terrace ↔ Sunspire Cloister's lower gate
+
 **Availability:** Opens after the Confluence relay  
 **Status:** Planned
 
-Sunmirror Causeway is a three-exit scholarly and warded road. It rises from Confluence across pale stone bridges to a high junction, then divides toward Mirror's analytical terraces and Sunspire's lower gate. Teal relay bands, silver calibration plates, and gold bell markers clearly distinguish the three directions.
+Sunmirror Causeway is a three-exit scholarly and warded road. It rises from Dragon Keep across pale stone bridges to a high junction, then divides toward Mirror's analytical terraces and Sunspire's lower gate. Teal relay bands, silver calibration plates, and gold bell markers clearly distinguish the three directions.
 
 The central junction contains shaded reading shelters and calibrated mirrors used jointly by both destinations. The road is required for the Hollow storyline but contains no Crest checkpoint. Defensive wards may appear visually unstable during the Light Seal crisis, while clearly marked safe lanes remain passable between every pair of exits. This map replaces Warden's Causeway and Sunmirror Walk.
 
 ### Archive Approach
 
-**Connects:** Confluence Arena's sealed archive branch ↔ Hollow Archive's exterior gate  
+**Connects:** Dragon Keep's sealed archive branch ↔ Hollow Archive's exterior gate
+
 **Availability:** Opens for the Hollow finale after the required Crests and Resonance Seals  
 **Status:** Planned
 
@@ -245,8 +261,8 @@ The route should contain competitor lodges, registration milestones, formal gard
 
 1. **Watershed Crossroads** to open Emberglen, Glasswater, and Rootmaze through one shared junction.
 2. **Rootrail Greenway** to extend the first regional loop toward Cinderrail.
-3. **Fivefold Highway** to establish Confluence and the midpoint gate.
+3. **Fivefold Highway** to establish Dragon Keep and the midpoint gate.
 4. **Ribbonway Crossroads**, **Sunmirror Causeway**, and **Courier Rise** to open the outer tier.
 5. **Prism Pass** to connect the Mirror and Stormbreak regions directly.
-6. Optional branches to Reedwake, Honeyreach, Clayhearth, Cloudrest, Lanternfen, and Ribbonfair.
+6. Optional branches to Lilyreed Village, Honeyreach, Clayhearth, Cloudrest, Lanternfen, and Ribbonfair.
 7. **Archive Approach** and **Crownway** when their destination maps and story gates are ready.

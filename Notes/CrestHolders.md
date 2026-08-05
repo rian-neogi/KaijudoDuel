@@ -4,9 +4,9 @@
 
 The nine Crest Holders are sanctioned masters of the Fivefold Circuit. Their official matches obey ordinary duel rules: their difficulty comes from strong decks, specialized AI priorities, and good card selection rather than boss-only effects.
 
-Each holder has an overworld trial that demonstrates the value behind their strategy. Completing a trial grants the right to challenge the holder; winning the duel grants an Arena Crest and unlocks the next tier of Circuit shops and opponents.
+Each holder has an overworld trial that demonstrates the value behind their strategy. Completing a trial grants the right to challenge the holder; winning the duel grants a Circuit Crest and unlocks the next tier of Circuit shops and opponents.
 
-The first open-world tier teaches familiar two-civilization strategies. Kestrel's Confluence match then acts as a midpoint examination and opens a second tier of more specialized mixed-deck challenges. This creates a natural learning curve toward the Grand Championship without imposing one route through every region.
+The first open-world tier teaches familiar two- and three-civilization strategies. Kestrel's Dragon Keep match then acts as a midpoint examination and opens a second tier of more specialized archetype challenges. This creates a natural learning curve toward the Grand Championship without imposing one route through every region.
 
 The intended campaign order is:
 
@@ -158,38 +158,41 @@ Rootmaze proves that an echo can briefly survive outside its physical card. Bria
 
 ## 5. Kestrel Vane — Holder of the Confluence Crest
 
-**Area:** Confluence Arena at the Archive Gate  
+**Area:** Dragon Keep at the Confluence
+
 **Civilizations:** Fire. A full dragon deck with Uberdragon Bajula.
 **Signature card:** Uberdragon Bajula 
 **Secondary threat:** Bolmeteus Steel Dragon
-**Circuit lesson:** A mixed deck needs a coherent purpose, not merely powerful cards
+**Circuit lesson:** Great power matters only when the whole deck can carry it into play
 
 ### Public profile
 
-Kestrel is a former caravan duelist who won his title by completing the Circuit with a different deck at every arena. He now operates Confluence Arena, where the five regional roads meet before entering the championship territories.
+Kestrel is a former caravan duelist who won his title by completing the Circuit with a different deck at every arena. He now serves as road warden of Dragon Keep, the castle built above the Confluence where the five great resonance currents meet before the Archive territories.
 
 He is charming, restless, and infamous for dismantling his decks immediately after major victories. His long coat combines blue panels, a green shoulder cape, and red gloves without looking like a uniform. The Confluence Crest is a three-part pin that can be separated and recombined.
 
-### Arena trial
+### Keep trial
 
-The player is given three short route problems that can be solved by Fire, Nature, or Water approaches. Using all three opens bonus encounters, but specialization remains valid. Kestrel then asks the player to explain the single plan connecting the cards in their active deck.
+The player crosses three old gatehouses built above separate arms of the Confluence. Each tests one requirement of a Dragon deck: preserving evolution material, accumulating enough mana for a finisher, and choosing when a costly attack is worth exposing the board. Kestrel then meets the player in the Fivefold Court—the Keep's former muster yard—and asks which early cards make their strongest creature possible.
 
 The game does not need to judge the explanation mechanically; the conversation establishes the theme before the duel does.
 
 ### Deck profile
 
-Kestrel uses Nature acceleration to reach large Fire Dragons, with Water draw and bounce preventing the early game from collapsing. Bolmeteus Steel Dragon is his signature finisher, while Uberdragon Bajula appears in the master version.
+Kestrel uses a mono-Fire Dragon deck whose smaller Dragonoids and Fire Birds prepare a succession of increasingly dangerous Dragons. Bolmeteus Steel Dragon punishes passive shield defense, while Uberdragon Bajula crowns the deck by attacking the opponent's mana as well as their board.
 
-His AI should plan several turns ahead when charging mana, avoid burying necessary civilization sources, and recognize when Water tempo is more valuable than accelerating toward another large creature.
+His AI should plan several turns ahead when charging mana, preserve valid evolution material for Bajula, and avoid spending setup creatures on low-value attacks. It should recognize when mana destruction will delay a decisive answer and when deploying another Dragon is safer than evolving immediately.
 
 ### Hollow-story role
 
-Confluence Arena is the central relay of the Circuit's resonance broadcasts. Kestrel believes the relay is secure because he personally changes its routes every season. The Chief Collector exploits old routes preserved in the Curator's archive, proving that constant reinvention cannot substitute for understanding history.
+Dragon Keep houses the central relay of the Circuit's resonance broadcasts in its rebuilt watchtower. Dragons have unusually persistent echoes, so generations of Keep wardens used Dragon-linked cards to test whether the five currents below remained distinct and stable under extreme resonant pressure. Kestrel's full Dragon deck continues that tradition rather than merely decorating the castle with a convenient mascot.
+
+Kestrel believes the relay is secure because he personally changes its routes every season. The Chief Collector exploits old paths preserved in the castle archive and hides the corruption beneath the powerful Dragon calibration signal, proving that constant reinvention cannot substitute for understanding history.
 
 ### Reward and rematches
 
-- **First victory:** Confluence Crest and Bolmeteus Steel Dragon
-- **Master rematch:** Four-civilization Dragon control with Darkness removal
+- **First victory:** Confluence Crest and Uberdragon Bajula
+- **Master rematch:** Faster mono-Fire Dragon evolution with stronger mana denial
 - **Championship role:** Friendly quarterfinal opponent if the player completed his bonus routes
 
 ## 6. Natasha Gale — Holder of the Tempest Crest

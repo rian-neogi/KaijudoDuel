@@ -4,12 +4,12 @@
 
 Glasswater should feel like a major port city rather than a compact regional town. It has several neighborhoods, a working commercial harbor, civic offices, residential canals, specialized markets, a large sanctioned arena, and old infrastructure beneath the streets.
 
-The city is a required first-tier region containing the Tidal Crest and Water Resonance Seal. Its Watershed Gate enters the shared crossroads for Emberglen and Rootmaze Commons, while its western ferry route reaches the optional village of Reedwake.
+The city is a required first-tier region containing the Tidal Crest and Water Resonance Seal. Its Watershed Gate enters the shared crossroads for Emberglen and Rootmaze Commons, while its western ferry route reaches the optional Lilyreed Village.
 
 **Implementation status:** The 96-by-48 surface city is implemented as the
 `glasswater` region of the seamless `overworld` map. Its Grand Harbor, Long
 Quay, Tideglass Square, Ledger Ward, Arena Isle, South Canals, lighthouse,
-Reedwake ferry quay, and Watershed Gate are playable. Major building and
+Lilyreed ferry quay, and Watershed Gate are playable. Major building and
 Underglass interiors, regional shops, and the Water Seal investigation remain
 future layers of this layout.
 
@@ -30,7 +30,7 @@ future layers of this layout.
                                               |
             [West Breakwater] -- [Grand Harbor] -- [Tideguard Pier] -- [East Breakwater]
                     |                 |                  |                    |
-            [Reedwake Ferry] -- [Long Quay] ------ [Shipyard] -------- [Lighthouse]
+            [Lilyreed Ferry] -- [Long Quay] ------ [Shipyard] -------- [Lighthouse]
                     |                 |                  |
               [Fish Market] -- [Tideglass Square] -- [Ledger Ward] -- [Arena Bridge]
                                       |                  |                  |
@@ -77,7 +77,7 @@ The Exchange specializes in:
 - Liquid People evolution lines
 - Shield-trigger creatures used by sailors
 - Nature support imported from Rootmaze
-- Rotating cards brought through Reedwake and Emberglen
+- Rotating cards brought through Lilyreed and Emberglen
 
 The shop may offer a limited card-exchange service for excess commons. Mercer remains the world's broadest general merchant, while Current and Quill provides deeper regional Water/Darkness stock.
 
@@ -154,7 +154,7 @@ The yard provides:
 - Delivery and repair side quests
 - A Fire/Water worker duelist who uses mechanical support cards
 - A shortcut between the Grand Harbor and eastern breakwater
-- Environmental storytelling through hulls from Reedwake, distant ports, and patrol fleets
+- Environmental storytelling through hulls from Lilyreed, distant ports, and patrol fleets
 
 One dry dock may temporarily close during the false-prediction crisis after a ship arrives at the wrong tide.
 
@@ -172,7 +172,7 @@ At least one warehouse should have an enterable interior with rows of crates, ov
 
 ### Fish Market
 
-The Fish Market sits between Long Quay and the Reedwake ferry. It is loud, wet, crowded, and markedly less formal than Tideglass Square.
+The Fish Market sits between Long Quay and the Lilyreed ferry. It is loud, wet, crowded, and markedly less formal than Tideglass Square.
 
 Besides seafood stalls, it contains:
 
@@ -180,15 +180,15 @@ Besides seafood stalls, it contains:
 - A bait and river-supply vendor
 - A casual duel corner marked with old rope
 - A bulletin board for ferry crews
-- A rotating Reedwake trader
+- A rotating Lilyreed trader
 
 The market's awnings change color by catch type, helping it remain visually readable despite many stalls.
 
-### Reedwake Ferry Quay
+### Lilyreed Ferry Quay
 
 The western quay serves small ferries traveling through shallow reed channels. It has a covered waiting area, hand-operated cargo crane, and ticket booth rather than a major terminal.
 
-The ferry to Reedwake remains optional. Its departure board and distinctive green pennant advertise the side town without making the player pass through it for any Glasswater objective.
+The ferry to Lilyreed Village remains optional. Its departure board and distinctive green pennant advertise the side town without making the player pass through it for any Glasswater objective.
 
 ### Breakwaters and lighthouse
 
@@ -410,9 +410,9 @@ The city's sole inland portal leaves through a broad customs arch southeast of t
 
 Mercer's cargo wagons and Rootmaze handcarts use the same gate, so it remains wide, obvious, and permanently bidirectional after Act I. A parcel depot beside the arch sorts goods for both destinations and provides dialogue when Mercer's inventory expands. This three-way connector preserves the first-tier loop without maintaining two separate Glasswater road maps.
 
-### West Ferry to Reedwake
+### West Ferry to Lilyreed Village
 
-The optional Reedwake connection leaves from the ferry quay. Once introduced, ferries run on a visible schedule but should not force the player to wait in real time. Speaking to the ferrymaster triggers the transition.
+The optional Lilyreed connection leaves from the ferry quay. Once introduced, ferries run on a visible schedule but should not force the player to wait in real time. Speaking to the ferrymaster triggers the transition.
 
 ## Suggested NPC placement
 
@@ -452,7 +452,7 @@ Challenge NPCs should patrol plazas, quays, and practice courts rather than brid
 
 - Harbor schedules and actual currents agree again
 - The unauthorized processing room is closed or rebuilt transparently
-- Reedwake trade and Emberglen parcel traffic increase
+- Lilyreed trade and Emberglen parcel traffic increase
 - Current and Quill expands its regional stock
 - Neris's Tidal Crest match and advanced rematches remain available
 - A fast canal ferry opens between Tideglass Square and Arena Isle

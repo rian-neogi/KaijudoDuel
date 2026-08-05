@@ -11,17 +11,17 @@ These settlements exist to make the world feel inhabited beyond the Fivefold Cir
 - Town dialogue may react to major world events, but resolving the Hollow crisis never depends on these reactions.
 - During Act III, every town keeps its essential services available. Blank-zone effects can change presentation and dialogue without removing player conveniences.
 
-The first three towns become reachable with the first open-world tier. The final three become reachable after the Confluence gate opens.
+The first three towns become reachable with the first open-world tier. The final three become reachable after Dragon Keep's Confluence gate opens.
 
 ## First-tier towns
 
-### Reedwake
+### Lilyreed Village
 
 **Side road:** West of Glasswater Port  
 **Visual identity:** A fishing village built on painted stilts, joined by rope walkways and small hand-pulled ferries  
 **Common decks:** Water/Nature hand filtering, mana recovery, blockers, and creature swapping
 
-Reedwake follows the tide rather than a clock. Shops open when their owners' boats return, the central duel platform rises and falls with the water, and nearly every family maintains a different shortcut through the reed beds.
+Lilyreed follows the tide rather than a clock. Shops open when their owners' boats return, the central duel platform rises and falls with the water, and nearly every family maintains a different shortcut through the reed beds.
 
 Its self-contained story concerns the annual Lantern Regatta. Two ferry crews each claim that the other copied a winning route. The player duels both crews, finds that they learned the route from the same retired navigator, and helps turn the dispute into a cooperative relay race. Nothing discovered here relates to the Curator.
 
@@ -31,7 +31,7 @@ Gameplay uses narrow docks, moving ferries, and optional trainer circuits. The l
 
 - **Mara Pike, ferrymaster:** Water/Nature tempo; organizes the Regatta rematch ladder.
 - **Old Fen, retired navigator:** Offers deck advice and trades basic search cards.
-- **Tib and Tobb, rival siblings:** Separate Water and Nature decks that combine for an advanced tag-themed rematch.
+- **Tib and Tobb, rival siblings:** Separate Water and Nature decks.
 
 ### Honeyreach
 
@@ -109,7 +109,7 @@ The apothecary sells graveyard- and mana-oriented support cards. A repeatable bo
 
 ### Ribbonfair
 
-**Side road:** Ribbonway Crossroads, shared with Confluence and Mirror Arena<br>
+**Side road:** Ribbonway Crossroads, shared with Dragon Keep and Mirror Arena<br>
 **Visual identity:** A semi-permanent carnival of striped tents, painted wagons, paper streamers, and portable duel stages  
 **Common decks:** Rotating civilizations and unusual theme restrictions rather than one regional archetype
 

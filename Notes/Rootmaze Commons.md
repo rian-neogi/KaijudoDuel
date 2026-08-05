@@ -115,7 +115,7 @@ The northern route enters Watershed Crossroads, where clearly marked branches co
 
 ### Waterstep Market
 
-Waterstep is a morning market arranged on raised platforms over a shallow stream. Glasswater tools, Reedwake fish, Rootmaze herbs, and Honeyreach fruit circulate here before traveling toward Emberglen.
+Waterstep is a morning market arranged on raised platforms over a shallow stream. Glasswater tools, Lilyreed fish, Rootmaze herbs, and Honeyreach fruit circulate here before traveling toward Emberglen.
 
 Permanent stalls include:
 

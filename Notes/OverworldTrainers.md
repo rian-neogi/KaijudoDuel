@@ -155,6 +155,46 @@ Rootmaze trainers use creature families and evolution chains. Their sprites shou
 - **Reward:** 100 gold and **Dimension Gate** per victory.
 - **Rematch:** Adds evolution finishers and searches for creature types needed by the current hand.
 
+## Watershed Crossroads
+
+Watershed trainers make the large three-way wetland feel inhabited without making it safe or fully mapped. They stand away from the central toll shelter, encouraging the player to try the northern and southern loops.
+
+### Tern Ford — Crossing Scout
+
+- **Visual:** Blue-green ford coat, high boots, pale scarf, and a water-depth staff.
+- **Deck:** Water/Nature tempo with bounce, acceleration, and adaptable creatures.
+- **Challenge:** “The western ford changes every week. A duel is the safest way to learn whether a traveler adapts.”
+- **Reward:** 105 gold and **Aqua Sniper** per victory.
+- **Rematch:** Uses the same mature Everglades list, but increasingly punishes players who commit every creature to one route.
+
+### Vale Reed — Marsh Surveyor
+
+- **Visual:** Reed-green rain cape, broad survey hat, and a waterproof chart case.
+- **Deck:** Nature ramp into resilient threats and Storm Shell.
+- **Challenge:** “I came to chart the southern pools. They keep turning into paths when I am not looking.”
+- **Reward:** 110 gold and **Storm Shell** per victory.
+- **Rematch:** Develops mana patiently and waits for a safer turn to expose key creatures.
+
+## The Old Road
+
+Old Road trainers occupy abandoned work sites beyond Rook's maintained checkpoint. Their stronger rewards make the long detours worthwhile while their dialogue reinforces that the connector was once a busy freight route.
+
+### Cairn — Cut Duelist
+
+- **Visual:** Slate-gray hood, red climbing sash, and a broken waystone chip worn as a badge.
+- **Deck:** Fast Fire pressure culminating in Astrocomet Dragon.
+- **Challenge:** “The freight crews abandoned this cut. Good. Now there is room for a proper duel.”
+- **Reward:** 115 gold and **Astrocomet Dragon** per victory.
+- **Rematch:** Presses shields aggressively but respects blockers that can win the counterattack.
+
+### Mara Flintway — Camp Warden
+
+- **Visual:** Amber trail coat, charcoal trousers, travel lantern, and a horn-shaped camp clasp.
+- **Deck:** Nature mana growth into Roaring Great-Horn and other large creatures.
+- **Challenge:** “Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.”
+- **Reward:** 115 gold and **Roaring Great-Horn** per victory.
+- **Rematch:** Uses the road's slower pace to build mana and chooses efficient combat trades.
+
 ## Gloam Quarry
 
 Gloam trainers introduce more demanding sacrifice and graveyard strategies. Their dialogue can be solemn or dryly funny without displacing Sister Vey's Ashen Crest trial or Hollow-story conflict.
@@ -183,9 +223,9 @@ Gloam trainers introduce more demanding sacrifice and graveyard strategies. Thei
 - **Reward:** 110 gold and **Terror Pit** per victory.
 - **Rematch:** Adds hand disruption and saves removal for creatures that materially threaten the board.
 
-## Confluence Roads
+## Dragon Keep Roads
 
-Confluence trainers use three civilizations and more coherent deck archetypes. They prepare the player for Kestrel's mixed deck rather than simply combining unrelated strong cards.
+Dragon Keep trainers use focused Fire decks built around Dragonoids, Fire Birds, and progressively larger Dragons. They prepare the player for Kestrel's evolution-heavy Dragon deck by testing mana discipline, evolution setup, and recovery after mana destruction.
 
 ### Qia — Route Tinker
 

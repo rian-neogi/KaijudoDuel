@@ -2,7 +2,7 @@
 
 ## Campaign structure
 
-The campaign carries two parallel objectives: earn nine Arena Crests to enter the Grand Championship, and investigate the Curator's Hollow Deck. Each act follows the same broad gameplay rhythm while raising the stakes:
+The campaign carries two parallel objectives: earn nine Circuit Crests to enter the Grand Championship, and investigate the Curator's Hollow Deck. Each act follows the same broad gameplay rhythm while raising the stakes:
 
 1. Enter a new area and discover a disruption in its card echoes.
 2. Meet duelists whose personalities are reflected in their decks.
@@ -17,7 +17,7 @@ Progression is controlled by story gates between open regions, not by a fixed or
 1. Act I establishes the Hollow mystery and awards the Dawn Crest.
 2. A Hollow-story scene opens the first three Crest regions.
 3. Completing Crests 2–4 in any order advances the Hollow investigation.
-4. The Confluence match awards Crest 5 and opens the inner roads.
+4. The Dragon Keep match awards Crest 5 and opens the inner roads.
 5. Crests 6–8 may be completed in any order.
 6. The Hollow storyline reaches its finale.
 7. The Unity match awards the final Crest, after which the Championship begins.
@@ -108,7 +108,7 @@ After the Dawn Crest and the next Hollow-story scene, three frontier roads open 
 
 Each region contains a town hub, local trainers, a shop or specialist, environmental shortcuts, and both a Circuit objective and a Hollow-story problem. Completing one region should provide useful information or cards for the others without making any particular order canonical.
 
-Three side roads lead to **Reedwake**, **Honeyreach**, and **Clayhearth**. These optional towns offer self-contained local quests, specialized shops, and repeatable duelists. They award no Crests, repair no Seals, and are never counted by a story gate.
+Three side roads lead to **Lilyreed Village**, **Honeyreach**, and **Clayhearth**. These optional towns offer self-contained local quests, specialized shops, and repeatable duelists. They award no Crests, repair no Seals, and are never counted by a story gate.
 
 ### The Resonance Seals
 
@@ -122,15 +122,15 @@ After the player holds the Forge, Tidal, and Verdant Crests, the three repaired 
 
 A hidden message in the player's starter deck later reveals that Rowan is delaying the Hollow Deck from within. Before the player can follow him, the Chief Collector corrupts the Confluence relay and closes every road into the inner territories.
 
-### Crest 5: Confluence
+### Crest 5: Dragon Keep
 
-Kestrel Vane restores the physical relay routes but will authorize the repaired outer-road network only after his official match. The player must defeat his coherent three-civilization deck and earn the Confluence Crest.
+Kestrel Vane restores the physical relay routes but will authorize the repaired outer-road network only after his official match in Dragon Keep's Fivefold Court. The player must defeat his mono-Fire Dragon deck and earn the Confluence Crest.
 
-The Crest itself does not magically open the world. Victory proves that the player can manage the more complex decks used beyond the checkpoints, while Kestrel's repaired relay and Circuit authority provide the actual access. Once opened, every road remains bidirectional, including the direct return route from Confluence to Emberglen. This distinction preserves the parallel sporting and Hollow-story goals.
+The Crest itself does not magically open the world. Victory proves that the player can manage the more complex decks used beyond the checkpoints, while Kestrel's repaired relay and Circuit authority provide the actual access. Once opened, every road remains bidirectional, including the direct return route from Dragon Keep to Emberglen. This distinction preserves the parallel sporting and Hollow-story goals.
 
 ### Second open-world tier: Crests 6–8
 
-Beyond Confluence, three more Crest regions open simultaneously:
+Beyond Dragon Keep, three more Crest regions open simultaneously:
 
 - **Stormbreak Plateau — Tempest Crest:** Natasha Gale restores signal towers linked by changing wind bridges and discovers false storms generated from stolen courier memories.
 - **Gloam Quarry — Darkness Seal and Ashen Crest:** Sister Vey considers the Curator's promise to erase painful memories while the Ashvault's memorial echoes begin disappearing.
@@ -171,7 +171,7 @@ After the player earns Crests 6–8 and repairs all five seals, the Chief Collec
 ### Systems expanded
 
 - One coherent overworld network spanning the regional maps
-- Persistent bidirectional roads linking both availability tiers through Emberglen and Confluence
+- Persistent bidirectional roads linking both availability tiers through Emberglen and Dragon Keep
 - Emberglen as the reusable central hub for Mercer, deck preparation, and returning story characters
 - Two tiers of regions that can be completed in any order
 - Six optional side towns with no Crest, Seal, or required Hollow objective

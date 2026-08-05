@@ -6,9 +6,12 @@ The Hollow storyline for Act I is implemented in the game. Its Fivefold Circuit 
 
 ## Premise
 
+The setting rules behind cards, echoes, duels, Resonance Seals, shards, the
+Confluence, and the Hollow Deck are defined in `Notes/WorldPhysics.md`.
+
 In this world, a card is more than ink and rules. Every card carries an **echo**: a magical impression made from every duelist who has trusted it, risked it, and won or lost with it. Strong echoes allow creatures from the five civilizations to answer a duelist clearly. Weak or damaged echoes cause names, artwork, and even rules text to fade.
 
-Emberglen holds an annual Festival of Five Civilizations to celebrate the fragile peace between Light, Water, Darkness, Fire, and Nature. The player is a young local duelist trained by Rowan, a traveling scholar who treats dueling as a conversation rather than a contest. Rowan intends to use the festival exhibition as the player's first sanctioned match in the Fivefold Circuit, beginning a journey to earn nine Arena Crests and challenge the Grand Champion.
+Emberglen holds an annual Festival of Five Civilizations to celebrate the fragile peace between Light, Water, Darkness, Fire, and Nature. The player is a young local duelist trained by Rowan, a traveling scholar who treats dueling as a conversation rather than a contest. Rowan intends to use the festival exhibition as the player's first sanctioned match in the Fivefold Circuit, beginning a journey to earn nine Circuit Crests and challenge the Grand Champion.
 
 Before the exhibition begins, the arena lights fail. Hundreds of cards turn pale and blank. A broken-circle symbol appears on the fragments, and Rowan disappears while pursuing a masked figure across the northern bridge. He leaves one message hidden in the player's deck:
 
@@ -54,11 +57,11 @@ The old road crosses five frontier sanctuaries, one associated with each civiliz
 
 Roads from the central Emberglen region open Cinderrail Foundry, Glasswater Port, and Rootmaze Commons simultaneously. The player may earn the Forge, Tidal, and Verdant Crests in any order while repairing the Fire, Water, and Nature Resonance Seals. NPC decks and dialogue scale from the number of Crests already held, allowing every route to work as the player's first or third destination. All routes remain bidirectional, so Mercer continues to serve as the natural collection and deck-building hub.
 
-Side roads also lead to Reedwake, Honeyreach, and Clayhearth. These settlements have their own residents, shops, and local disputes, but contain no Crest, Seal, or required clue. Their purpose is to reward curiosity and make the frontier feel larger than the player's two central quests.
+Side roads also lead to Lilyreed Village, Honeyreach, and Clayhearth. These settlements have their own residents, shops, and local disputes, but contain no Crest, Seal, or required clue. Their purpose is to reward curiosity and make the frontier feel larger than the player's two central quests.
 
-Once those three Crests are gathered, the Hollow plot resumes. The player finds a projection of Rowan apparently helping the Curator, and the Chief Collector corrupts the relay into the inner territories. A later hidden message reveals that Rowan stayed behind to sabotage the final transfer. Kestrel Vane repairs the relay, then tests the player in the mandatory fifth Crest match at Confluence Arena.
+Once those three Crests are gathered, the Hollow plot resumes. The player finds a projection of Rowan apparently helping the Curator, and the Chief Collector corrupts the relay into the inner territories. A later hidden message reveals that Rowan stayed behind to sabotage the final transfer. Kestrel Vane repairs the relay, then tests the player in the mandatory fifth Crest match at Dragon Keep.
 
-When the Confluence relay is restored, a second set of connected roads opens without closing the first. The Tempest Crest at Stormbreak Plateau, the Ashen Crest at Gloam Quarry, and the Mirror Crest at Mirror Arena may again be earned in any order. Sunspire Cloister is available alongside them as a Hollow-only Light Seal route. Stormbreak, Mirror, and Confluence share northern cross-roads, while Gloam is reached from the persistent southern roads through Emberglen or Cinderrail. The player enters each area for both ordinary Circuit progress and a local echo crisis, but the Crests remain sporting credentials rather than magical components of the Hollow Deck.
+When the Confluence relay is restored, a second set of connected roads opens without closing the first. The Tempest Crest at Stormbreak Plateau, the Ashen Crest at Gloam Quarry, and the Mirror Crest at Mirror Arena may again be earned in any order. Sunspire Cloister is available alongside them as a Hollow-only Light Seal route. Stormbreak, Mirror, and Dragon Keep share northern cross-roads, while Gloam is reached from the persistent southern roads through Emberglen or Cinderrail. The player enters each area for both ordinary Circuit progress and a local echo crisis, but the Crests remain sporting credentials rather than magical components of the Hollow Deck.
 
 Cloudrest, Lanternfen, and Ribbonfair form a second set of optional offshoots. They acknowledge changing world events but do not become sources of secret Hollow research or mandatory allies.
 

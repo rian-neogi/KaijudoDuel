@@ -618,4 +618,80 @@ return {
 			complete = "No more tolls. You have paid for every path Rootmaze can offer."
 		}
 	},
+	{
+		id = "tern_ford",
+		name = "Tern Ford",
+		kind = "duelist",
+		appearance = "generic7",
+		max_battles = 4,
+		deck1 = "More2/NW The Everglades.txt",
+		reward1 = { card = "Aqua Sniper", gold = 105 },
+		reward2 = { card = "Aqua Sniper", gold = 105 },
+		reward3 = { card = "Aqua Sniper", gold = 105 },
+		reward4 = { card = "Aqua Sniper", gold = 105 },
+		ai = { personality = "tempo" },
+		dialogue = {
+			greeting = "The western ford changes every week. A duel is the safest way to learn whether a traveler adapts.",
+			defeat = "You read the current before committing. The long path north may reward that patience.",
+			victory = "The shortest crossing is rarely the safest one.",
+			complete = "You know all four moods of this ford now. The water has nothing left to teach by duel."
+		}
+	},
+	{
+		id = "vale_reed",
+		name = "Vale Reed",
+		kind = "duelist",
+		appearance = "generic8",
+		max_battles = 4,
+		deck1 = "StormWrangler.txt",
+		reward1 = { card = "Storm Shell", gold = 110 },
+		reward2 = { card = "Storm Shell", gold = 110 },
+		reward3 = { card = "Storm Shell", gold = 110 },
+		reward4 = { card = "Storm Shell", gold = 110 },
+		ai = { personality = "ramp" },
+		dialogue = {
+			greeting = "I came to chart the southern pools. They keep turning into paths when I am not looking.",
+			defeat = "Perhaps a route does not need to stay still to be understood.",
+			victory = "You chased the marker. I watched the marsh.",
+			complete = "Four surveys are enough. Take the shell; it remembers this wetland better than my maps do."
+		}
+	},
+	{
+		id = "cairn",
+		name = "Cairn",
+		kind = "duelist",
+		appearance = "generic9",
+		max_battles = 4,
+		deck1 = "AstrocometDragon.txt",
+		reward1 = { card = "Astrocomet Dragon", gold = 115 },
+		reward2 = { card = "Astrocomet Dragon", gold = 115 },
+		reward3 = { card = "Astrocomet Dragon", gold = 115 },
+		reward4 = { card = "Astrocomet Dragon", gold = 115 },
+		ai = { personality = "aggressive" },
+		dialogue = {
+			greeting = "The freight crews abandoned this cut. Good. Now there is room for a proper duel.",
+			defeat = "You crossed the exposed ridge without flinching. That is worth remembering.",
+			victory = "Out here, hesitation gets buried under the next rockfall.",
+			complete = "The ridge has tested you four times. I will not pretend a fifth would reveal anything new."
+		}
+	},
+	{
+		id = "mara_flintway",
+		name = "Mara Flintway",
+		kind = "duelist",
+		appearance = "generic4",
+		max_battles = 4,
+		deck1 = "RoaringGreathorn.txt",
+		reward1 = { card = "Roaring Great-Horn", gold = 115 },
+		reward2 = { card = "Roaring Great-Horn", gold = 115 },
+		reward3 = { card = "Roaring Great-Horn", gold = 115 },
+		reward4 = { card = "Roaring Great-Horn", gold = 115 },
+		ai = { personality = "adaptive" },
+		dialogue = {
+			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
+			defeat = "That will do. You have the nerve to explore beyond the road stones.",
+			victory = "A campfire is no substitute for preparation.",
+			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+		}
+	},
 }

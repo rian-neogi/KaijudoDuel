@@ -54,7 +54,7 @@ Dockside decks favor Water draw and bounce, while investigators add Darkness dis
 
 ### Campaign role
 
-The stolen-memory prediction system divides the town between people who value its accuracy and people whose private matches were taken. Restoring the Water Seal requires rebuilding consent and trust, not simply smashing a useful machine. Afterward, the port reopens western trade and carries Reedwake goods toward Mercer's shop.
+The stolen-memory prediction system divides the town between people who value its accuracy and people whose private matches were taken. Restoring the Water Seal requires rebuilding consent and trust, not simply smashing a useful machine. Afterward, the port reopens western trade and carries Lilyreed goods toward Mercer's shop.
 
 ## Rootmaze Commons
 
@@ -108,29 +108,38 @@ Shift whistles structure the day. Markets become busiest when crews change, and 
 
 The Curator's collectors hide resonance-harvesting equipment inside machinery the town cannot easily shut down. Brassa's initial refusal comes from fear that closing the furnaces will isolate several settlements, not indifference to the victims. Separating the rail power from the forced-duel engines restores the Fire Seal and keeps the eastern loop open.
 
-## Confluence
+## Dragon Keep
 
-**Map role:** Midpoint road city, relay checkpoint, and Confluence Crest region  
-**Visual identity:** Layered caravan yards, bridges pointing in many directions, route markers, temporary markets, and an arena built around a tall relay mast  
-**Common decks:** Coherent three- and four-civilization strategies, especially ramp, Dragons, draw, and tempo
+**Map role:** Midpoint castle-town, relay checkpoint, and Confluence Crest region
+
+**Visual identity:** A many-gated stone keep, carved dragon buttresses, layered caravan yards, route banners, and a tall relay mast rising from the central court
+
+**Common decks:** Fire Dragon evolution, Dragonoid and Fire Bird setup, mana denial, plus coherent mixed decks among the caravan wards
+
+The detailed castle, wards, gatehouses, undercroft, Crest route, and building
+plan is in `Notes/Dragon Keep.md`.
 
 ### Founding and history
 
-Confluence grew where several regional roads met the old approach to the Archive. It has never belonged completely to one landscape or culture. Caravan families built permanent warehouses, innkeepers joined them, and the Circuit eventually placed a relay there to coordinate sanctioned results across the frontier.
+Dragon Keep began as a road fortress where several regional routes met above the Confluence, the place where all five resonance currents approach the old road to the Archive. It was never a royal palace. Its wardens protected travelers, settled right-of-way disputes, and opened the gates during dangerous weather. Caravan families built permanent warehouses beneath its walls, innkeepers joined them, and a castle-town grew across the surrounding terraces.
+
+As the frontier became safer, the keep's military purpose faded. Its central watchtower was rebuilt as the Circuit's largest regional relay, while the old muster court became a public Crest-dueling ground. Gatehouses now record road conditions and sanctioned results rather than collecting a lord's toll.
+
+The castle takes its name from the Dragon-linked cards that stabilized an early Confluence surge. Their unusually persistent echoes let the first wardens separate the five currents before they collapsed into blank interference. Keep wardens still use Dragon decks as a deliberate stress test for the relay, and five stone dragons along the outer walls commemorate the original calibration cards.
 
 The town has been rebuilt repeatedly as trade routes changed. A building that once faced the main road may now open onto a quiet courtyard, while yesterday's side gate may become tomorrow's market entrance. Residents view this impermanence as normal and are suspicious of anyone claiming there is only one proper route through the region.
 
-Kestrel Vane chose Confluence after years as a caravan duelist. His habit of rebuilding decks mirrors the town, though the preserved relay records eventually teach him that reinvention without historical understanding leaves old weaknesses intact.
+Kestrel Vane chose the Keep after years as a caravan duelist and eventually became its road warden. His habit of rebuilding decks mirrors the town, though the castle's preserved relay records eventually teach him that reinvention without historical understanding leaves old weaknesses intact.
 
 ### Daily life and duel culture
 
 Nearly everyone encounters mixed-civilization decks here. Traders bring cards from every direction, but locals mock decks that combine expensive cards without a shared plan. Public deck clinics ask duelists to explain what connects their civilizations before suggesting any changes.
 
-The relay arena is both sporting venue and infrastructure. Its tower carries match certification, road conditions, weather reports, and emergency messages. Inns and markets remain busy even when no official tournament is underway.
+The Fivefold Court is both civic square and Crest venue. The relay mast above it carries match certification, road conditions, weather reports, and emergency messages. Inns and markets remain busy even when no official match is underway, while the old walls provide workshops, archives, barracks for road wardens, and sheltered space for stranded caravans.
 
 ### Campaign role
 
-Confluence is the persistent bridge between availability tiers, not a one-way departure point. The Chief Collector corrupts old relay paths and temporarily blocks the outer checkpoints. Kestrel and the player restore them, after which the town becomes the easiest route back to Emberglen and outward toward the late regions.
+Dragon Keep is the persistent bridge between availability tiers, not a one-way departure point. The Chief Collector corrupts old relay paths and temporarily blocks the outer checkpoints. Kestrel and the player restore them, after which the Keep becomes the easiest route back to Emberglen and outward toward the late regions.
 
 ## Stormbreak Plateau
 
@@ -150,7 +159,7 @@ Natasha Gale became Crest Holder after coordinating the plateau through a season
 
 Stormbreak duelists favor cards whose value changes when enough allies assemble. Wave Strikers match a culture built around separate shelters acting as one network. A single creature may look unimportant, just as one signal tower seems small, but the full formation can redirect an entire route.
 
-Courier races, tower maintenance, and forecast contests fill the clear-weather days. Cloudrest provides a calmer place to recover, while Confluence and Mirror maintain the plateau's strongest trade connections.
+Courier races, tower maintenance, and forecast contests fill the clear-weather days. Cloudrest provides a calmer place to recover, while Dragon Keep and Mirror maintain the plateau's strongest trade connections.
 
 ### Campaign role
 
@@ -224,7 +233,7 @@ Sunspire's reputation for certainty is both strength and weakness. Generations o
 
 Life follows bells marking study, maintenance, mediation, and rest. Visitors may join public lessons without taking vows. Guardian decks teach students to protect others first, then identify the moment when defense must become action.
 
-The settlement trades legal expertise, preserved manuscripts, medicinal herbs, and polished signal mirrors. Its road connections to Confluence and Mirror make it a quiet alternative to those crowded competitive centers.
+The settlement trades legal expertise, preserved manuscripts, medicinal herbs, and polished signal mirrors. Its road connections to Dragon Keep and Mirror make it a quiet alternative to those crowded competitive centers.
 
 ### Campaign role
 
@@ -256,4 +265,4 @@ During the Hollow crisis, Caelum shelters travelers and postpones the official U
 
 ## Coverage of optional settlements
 
-Reedwake, Honeyreach, Clayhearth, Cloudrest, Lanternfen, and Ribbonfair already have equivalent background profiles in `Notes/OptionalTowns.md`. Together, the two documents cover every inhabited destination currently named on the planned world map.
+Lilyreed Village, Honeyreach, Clayhearth, Cloudrest, Lanternfen, and Ribbonfair already have equivalent background profiles in `Notes/OptionalTowns.md`. Together, the two documents cover every inhabited destination currently named on the planned world map.

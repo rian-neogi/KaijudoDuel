@@ -5,6 +5,10 @@ This files contains Mercer's stock, and how it evolves upon giving him shards.
 Mercer has unlimited copies of each card in his stock, but the player can only buy upto 4 of each card.
 There are other traders that can be found in the overworld too. Their stock will also be listed here.
 
+The in-world behavior of shards and Mercer's restoration bench is defined in
+`Notes/WorldPhysics.md`. Shards calibrate compatible stock; they do not create
+cards from nothing or contain trapped creatures.
+
 ## Card Price Tiers
 
 Prices are split into several tiers:
@@ -167,6 +171,5 @@ Aqua Shooter
 Aqua Bouncer
 Aqua Surfer
 Recon Operation
-
 
 

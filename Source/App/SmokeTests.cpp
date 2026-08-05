@@ -1191,7 +1191,7 @@ bool Application::exerciseOverworldMovementSmoke()
 		if (!mWorldAreas[area].indoor) ++outdoorAreas;
 	seamlessWorldReady = seamlessWorldReady && outdoorAreas == 1 &&
 		mWorldAreas[overworldArea].tiles.size() == 108 &&
-		mWorldAreas[overworldArea].tiles[0].size() == 296;
+		mWorldAreas[overworldArea].tiles[0].size() == 408;
 	std::set<char> worldTiles;
 	if (seamlessWorldReady)
 		for (size_t row = 0; row < mWorldAreas[overworldArea].tiles.size(); ++row)
@@ -1210,9 +1210,9 @@ bool Application::exerciseOverworldMovementSmoke()
 	const WorldRegion* glasswaterRegion = worldRegionAt("overworld", 43, 25);
 	const WorldRegion* rootmazeRegion = worldRegionAt("overworld", 50, 78);
 	const WorldRegion* watershedRegion = worldRegionAt("overworld", 130, 50);
-	const WorldRegion* emberglenRegion = worldRegionAt("overworld", 177, 50);
-	const WorldRegion* oldRoadRegion = worldRegionAt("overworld", 220, 44);
-	const WorldRegion* cinderrailRegion = worldRegionAt("overworld", 255, 57);
+	const WorldRegion* emberglenRegion = worldRegionAt("overworld", 241, 50);
+	const WorldRegion* oldRoadRegion = worldRegionAt("overworld", 310, 44);
+	const WorldRegion* cinderrailRegion = worldRegionAt("overworld", 367, 57);
 	seamlessWorldReady = seamlessWorldReady && glasswaterRegion != NULL &&
 		rootmazeRegion != NULL &&
 		watershedRegion != NULL &&
@@ -1220,7 +1220,9 @@ bool Application::exerciseOverworldMovementSmoke()
 		glasswaterRegion->id == "glasswater" &&
 		rootmazeRegion->id == "rootmaze" &&
 		watershedRegion->id == "watershed_crossroads" &&
+		watershedRegion->width == 128 && watershedRegion->height == 72 &&
 		emberglenRegion->id == "emberglen" && oldRoadRegion->id == "old_road" &&
+		oldRoadRegion->width == 96 && oldRoadRegion->height == 48 &&
 		cinderrailRegion->id == "cinderrail";
 	for (size_t i = 0; i < mWorldPortals.size(); ++i)
 	{
@@ -1262,19 +1264,21 @@ bool Application::exerciseOverworldMovementSmoke()
 			reachable.count(std::make_pair(96, 61)) != 0 &&
 			reachable.count(std::make_pair(47, 107)) != 0 &&
 			reachable.count(std::make_pair(95, 97)) != 0 &&
-			reachable.count(std::make_pair(159, 53)) != 0 &&
-			reachable.count(std::make_pair(160, 53)) != 0 &&
-			reachable.count(std::make_pair(195, 47)) != 0 &&
-			reachable.count(std::make_pair(196, 47)) != 0 &&
-			reachable.count(std::make_pair(243, 48)) != 0 &&
-			reachable.count(std::make_pair(244, 48)) != 0;
+			reachable.count(std::make_pair(223, 53)) != 0 &&
+			reachable.count(std::make_pair(224, 53)) != 0 &&
+			reachable.count(std::make_pair(259, 47)) != 0 &&
+			reachable.count(std::make_pair(260, 47)) != 0 &&
+			reachable.count(std::make_pair(355, 48)) != 0 &&
+			reachable.count(std::make_pair(356, 48)) != 0;
 	}
 	const char* regionalNpcs[] = { "rook", "kipp", "ansa", "holt",
-		"neris", "pell", "iri", "sol", "oren", "fern", "toma", "moss" };
+		"neris", "pell", "iri", "sol", "oren", "fern", "toma", "moss",
+		"tern_ford", "vale_reed", "cairn", "mara_flintway" };
 	const char* expectedRegions[] = { "old_road", "cinderrail", "cinderrail", "cinderrail",
 		"glasswater", "glasswater", "glasswater", "glasswater",
-		"rootmaze", "rootmaze", "rootmaze", "rootmaze" };
-	for (size_t expected = 0; expected < 12; ++expected)
+		"rootmaze", "rootmaze", "rootmaze", "rootmaze",
+		"watershed_crossroads", "watershed_crossroads", "old_road", "old_road" };
+	for (size_t expected = 0; expected < 16; ++expected)
 	{
 		bool found = false;
 		for (size_t i = 0; i < mNpcs.size(); ++i)
@@ -1291,26 +1295,26 @@ bool Application::exerciseOverworldMovementSmoke()
 	}
 	int savedStoryStage = mStoryStage;
 	mCurrentWorldArea = overworldArea;
-	mPlayerX = 195;
+	mPlayerX = 259;
 	mPlayerY = 47;
-	mVisualX = 195.f;
+	mVisualX = 259.f;
 	mVisualY = 47.f;
 	mStoryStage = 0;
 	tryMove(1, 0);
-	bool roadGateReady = mPlayerX == 195;
+	bool roadGateReady = mPlayerX == 259;
 	mStoryStage = 4;
 	tryMove(1, 0);
-	roadGateReady = roadGateReady && mPlayerX == 196;
-	mPlayerX = 160;
+	roadGateReady = roadGateReady && mPlayerX == 260;
+	mPlayerX = 224;
 	mPlayerY = 53;
-	mVisualX = 160.f;
+	mVisualX = 224.f;
 	mVisualY = 53.f;
 	mStoryStage = 0;
 	tryMove(-1, 0);
-	bool watershedGateReady = mPlayerX == 160;
+	bool watershedGateReady = mPlayerX == 224;
 	mStoryStage = 4;
 	tryMove(-1, 0);
-	watershedGateReady = watershedGateReady && mPlayerX == 159;
+	watershedGateReady = watershedGateReady && mPlayerX == 223;
 	mStoryStage = savedStoryStage;
 	mCurrentWorldArea = savedArea;
 	mPlayerX = savedPortalPlayerX;
@@ -1471,6 +1475,10 @@ bool Application::exerciseMenuScreensSmoke()
 	int savedBuilderArea = mCurrentWorldArea;
 	int savedBuilderCameraX = mWorldBuilderCameraX;
 	int savedBuilderCameraY = mWorldBuilderCameraY;
+	int savedBuilderTileSize = mWorldBuilderTileSize;
+	int savedBuilderListScroll = mWorldBuilderListScroll;
+	int savedMouseX = mMouseX;
+	int savedMouseY = mMouseY;
 	int builderArea = worldAreaIndex("overworld");
 	if (builderArea < 0) return false;
 	mScreen = Screen::WorldBuilder;
@@ -1478,6 +1486,8 @@ bool Application::exerciseMenuScreensSmoke()
 	mWorldBuilderTab = WorldBuilderTab::Tiles;
 	mWorldBuilderCameraX = 10;
 	mWorldBuilderCameraY = 10;
+	mWorldBuilderTileSize = TILE;
+	mWorldBuilderListScroll = 0;
 	mWorldBuilderMoveUp = mWorldBuilderMoveDown = false;
 	mWorldBuilderMoveLeft = mWorldBuilderMoveRight = false;
 	mWorldBuilderPanAccumulator = 0;
@@ -1501,15 +1511,40 @@ bool Application::exerciseMenuScreensSmoke()
 	handleWorldBuilderEvent(pan);
 	bool wasdHeld = mWorldBuilderCameraY == 13 &&
 		mWorldBuilderTab == WorldBuilderTab::Tiles;
+	mWorldBuilderCameraX = 10;
+	mWorldBuilderCameraY = 10;
+	mMouseX = MAP_X + MAP_VIEW_WIDTH / 2;
+	mMouseY = MAP_Y + MAP_VIEW_HEIGHT / 2;
+	SDL_Event zoom = {};
+	zoom.type = SDL_MOUSEWHEEL;
+	zoom.wheel.y = 1;
+	handleWorldBuilderEvent(zoom);
+	bool zoomedIn = mWorldBuilderTileSize == 64 &&
+		mWorldBuilderCameraX == 13 && mWorldBuilderCameraY == 12;
+	renderWorldBuilder();
+	zoom.wheel.y = -1;
+	handleWorldBuilderEvent(zoom);
+	bool zoomedOut = mWorldBuilderTileSize == TILE;
+	mMouseX = 1100;
+	mMouseY = 300;
+	zoom.wheel.y = -1;
+	handleWorldBuilderEvent(zoom);
+	bool panelWheelStillScrolls = mWorldBuilderTileSize == TILE &&
+		mWorldBuilderListScroll == 2;
 	mWorldBuilderMoveUp = mWorldBuilderMoveDown = false;
 	mWorldBuilderMoveLeft = mWorldBuilderMoveRight = false;
 	mWorldBuilderPanAccumulator = 0;
 	mWorldBuilderCameraX = savedBuilderCameraX;
 	mWorldBuilderCameraY = savedBuilderCameraY;
+	mWorldBuilderTileSize = savedBuilderTileSize;
+	mWorldBuilderListScroll = savedBuilderListScroll;
+	mMouseX = savedMouseX;
+	mMouseY = savedMouseY;
 	mWorldBuilderTab = savedBuilderTab;
 	mCurrentWorldArea = savedBuilderArea;
 	mScreen = savedScreen;
-	if (!arrowHeld || !wasdHeld) return false;
+	if (!arrowHeld || !wasdHeld || !zoomedIn || !zoomedOut ||
+		!panelWheelStillScrolls) return false;
 
 	mPendingRewardCardId = getCardIdFromName("Aqua Hulcus");
 	mPendingRewardGold = 100;

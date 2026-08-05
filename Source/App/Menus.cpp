@@ -150,7 +150,7 @@ void Application::renderPauseMenu()
 	int acquiredCrests = 0;
 	for (int i = 0; i < CREST_COUNT; ++i)
 		if (hasCrest(CRESTS[i].id)) ++acquiredCrests;
-	drawText("ARENA CRESTS  " + std::to_string(acquiredCrests) + "/" +
+	drawText("CIRCUIT CRESTS  " + std::to_string(acquiredCrests) + "/" +
 		std::to_string(CREST_COUNT), 88, 139, color(139, 169, 213), 15);
 	for (int i = 0; i < CREST_COUNT; ++i)
 	{

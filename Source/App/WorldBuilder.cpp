@@ -30,6 +30,9 @@ namespace
 	const int BUILDER_TILE_ROWS = 14;
 	const int BUILDER_VISIBLE_TILES = BUILDER_TILE_ROWS * 2;
 	const Uint32 BUILDER_PAN_INTERVAL = 80;
+	const int BUILDER_ZOOM_LEVELS[] = { 24, 32, 48, 64, 96 };
+	const int BUILDER_ZOOM_LEVEL_COUNT = sizeof(BUILDER_ZOOM_LEVELS) /
+		sizeof(BUILDER_ZOOM_LEVELS[0]);
 	const WorldTileId TILE_TYPES[] = { WorldTiles::Grass, WorldTiles::Path,
 		WorldTiles::Water, WorldTiles::House, WorldTiles::Tree, WorldTiles::Forest,
 		WorldTiles::WoodWall, WorldTiles::Door, WorldTiles::WoodFloor, WorldTiles::Counter,
@@ -71,33 +74,54 @@ namespace
 		return true;
 	}
 
-	void clampMapCamera(const std::vector<std::string>& map, int& cameraX, int& cameraY)
+	int builderViewportColumns(int tileSize)
 	{
-		cameraX = std::max(0, std::min(std::max(0, (int)map[0].size() - MAP_VIEW_COLUMNS),
-			cameraX));
-		cameraY = std::max(0, std::min(std::max(0, (int)map.size() - MAP_VIEW_ROWS),
-			cameraY));
+		return MAP_VIEW_WIDTH / tileSize;
+	}
+
+	int builderViewportRows(int tileSize)
+	{
+		return MAP_VIEW_HEIGHT / tileSize;
+	}
+
+	int builderMapOriginX(int columns, int tileSize)
+	{
+		return MAP_X + std::max(0, MAP_VIEW_WIDTH - columns * tileSize) / 2;
+	}
+
+	int builderMapOriginY(int rows, int tileSize)
+	{
+		return MAP_Y + std::max(0, MAP_VIEW_HEIGHT - rows * tileSize) / 2;
+	}
+
+	void clampMapCamera(const std::vector<std::string>& map, int& cameraX, int& cameraY,
+		int tileSize)
+	{
+		cameraX = std::max(0, std::min(std::max(0,
+			(int)map[0].size() - builderViewportColumns(tileSize)), cameraX));
+		cameraY = std::max(0, std::min(std::max(0,
+			(int)map.size() - builderViewportRows(tileSize)), cameraY));
 	}
 
 	void centerMapCamera(const std::vector<std::string>& map, int x, int y,
-		int& cameraX, int& cameraY)
+		int& cameraX, int& cameraY, int tileSize)
 	{
-		cameraX = x - MAP_VIEW_COLUMNS / 2;
-		cameraY = y - MAP_VIEW_ROWS / 2;
-		clampMapCamera(map, cameraX, cameraY);
+		cameraX = x - builderViewportColumns(tileSize) / 2;
+		cameraY = y - builderViewportRows(tileSize) / 2;
+		clampMapCamera(map, cameraX, cameraY, tileSize);
 	}
 
 	bool mapCellAt(int x, int y, const std::vector<std::string>& map,
-		int cameraX, int cameraY, int& cellX, int& cellY)
+		int cameraX, int cameraY, int tileSize, int& cellX, int& cellY)
 	{
 		if (map.empty() || map[0].empty()) return false;
 		if (x < MAP_X || x >= MAP_X + MAP_VIEW_WIDTH || y < MAP_Y ||
 			y >= MAP_Y + MAP_VIEW_HEIGHT) return false;
-		int originX = mapOriginX((int)map[0].size()) - cameraX * TILE;
-		int originY = mapOriginY((int)map.size()) - cameraY * TILE;
+		int originX = builderMapOriginX((int)map[0].size(), tileSize) - cameraX * tileSize;
+		int originY = builderMapOriginY((int)map.size(), tileSize) - cameraY * tileSize;
 		if (x < originX || y < originY) return false;
-		cellX = (x - originX) / TILE;
-		cellY = (y - originY) / TILE;
+		cellX = (x - originX) / tileSize;
+		cellY = (y - originY) / tileSize;
 		return cellY >= 0 && cellY < (int)map.size() && cellX >= 0 &&
 			cellX < (int)map[cellY].size();
 	}
@@ -432,7 +456,7 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 	mVisualX = (float)startX;
 	mVisualY = (float)startY;
 	centerMapCamera(currentMap(), startX, startY, mWorldBuilderCameraX,
-		mWorldBuilderCameraY);
+		mWorldBuilderCameraY, mWorldBuilderTileSize);
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 	{
 		mNpcs[i].mapId = npcPositions[i].map;
@@ -709,7 +733,43 @@ void Application::panWorldBuilder(int dx, int dy)
 {
 	mWorldBuilderCameraX += dx;
 	mWorldBuilderCameraY += dy;
-	clampMapCamera(currentMap(), mWorldBuilderCameraX, mWorldBuilderCameraY);
+	clampMapCamera(currentMap(), mWorldBuilderCameraX, mWorldBuilderCameraY,
+		mWorldBuilderTileSize);
+}
+
+void Application::zoomWorldBuilder(int direction, int anchorX, int anchorY)
+{
+	int currentLevel = 0;
+	for (int level = 0; level < BUILDER_ZOOM_LEVEL_COUNT; ++level)
+		if (BUILDER_ZOOM_LEVELS[level] == mWorldBuilderTileSize) currentLevel = level;
+	int nextLevel = std::max(0, std::min(BUILDER_ZOOM_LEVEL_COUNT - 1,
+		currentLevel + direction));
+	if (nextLevel == currentLevel) return;
+
+	const std::vector<std::string>& map = currentMap();
+	if (anchorX < MAP_X || anchorX >= MAP_X + MAP_VIEW_WIDTH ||
+		anchorY < MAP_Y || anchorY >= MAP_Y + MAP_VIEW_HEIGHT)
+	{
+		anchorX = MAP_X + MAP_VIEW_WIDTH / 2;
+		anchorY = MAP_Y + MAP_VIEW_HEIGHT / 2;
+	}
+	int oldOriginX = builderMapOriginX((int)map[0].size(), mWorldBuilderTileSize) -
+		mWorldBuilderCameraX * mWorldBuilderTileSize;
+	int oldOriginY = builderMapOriginY((int)map.size(), mWorldBuilderTileSize) -
+		mWorldBuilderCameraY * mWorldBuilderTileSize;
+	float worldX = (anchorX - oldOriginX) / (float)mWorldBuilderTileSize;
+	float worldY = (anchorY - oldOriginY) / (float)mWorldBuilderTileSize;
+	mWorldBuilderTileSize = BUILDER_ZOOM_LEVELS[nextLevel];
+	int newBaseX = builderMapOriginX((int)map[0].size(), mWorldBuilderTileSize);
+	int newBaseY = builderMapOriginY((int)map.size(), mWorldBuilderTileSize);
+	mWorldBuilderCameraX = (int)std::round(worldX -
+		(anchorX - newBaseX) / (float)mWorldBuilderTileSize);
+	mWorldBuilderCameraY = (int)std::round(worldY -
+		(anchorY - newBaseY) / (float)mWorldBuilderTileSize);
+	clampMapCamera(map, mWorldBuilderCameraX, mWorldBuilderCameraY,
+		mWorldBuilderTileSize);
+	mWorldBuilderPainting = false;
+	mWorldBuilderDragging = false;
 }
 
 void Application::updateWorldBuilder(Uint32 deltaTime)
@@ -766,6 +826,18 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 			else showWorldBuilderNotice("Save failed: " + error, true);
 			return;
 		}
+		if (key == SDLK_EQUALS || key == SDLK_KP_PLUS)
+		{
+			zoomWorldBuilder(1, MAP_X + MAP_VIEW_WIDTH / 2,
+				MAP_Y + MAP_VIEW_HEIGHT / 2);
+			return;
+		}
+		if (key == SDLK_MINUS || key == SDLK_KP_MINUS)
+		{
+			zoomWorldBuilder(-1, MAP_X + MAP_VIEW_WIDTH / 2,
+				MAP_Y + MAP_VIEW_HEIGHT / 2);
+			return;
+		}
 		int dx, dy;
 		if (worldBuilderMovementKey(key, dx, dy))
 		{
@@ -802,6 +874,13 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 	}
 	if (event.type == SDL_MOUSEWHEEL)
 	{
+		if (mMouseX >= MAP_X && mMouseX < MAP_X + MAP_VIEW_WIDTH &&
+			mMouseY >= MAP_Y && mMouseY < MAP_Y + MAP_VIEW_HEIGHT)
+		{
+			if (event.wheel.y != 0)
+				zoomWorldBuilder(event.wheel.y > 0 ? 1 : -1, mMouseX, mMouseY);
+			return;
+		}
 		if (mWorldBuilderTab == WorldBuilderTab::Tiles)
 		{
 			int maximum = std::max(0, TILE_TYPE_COUNT - BUILDER_VISIBLE_TILES);
@@ -827,8 +906,10 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		int x, y;
 		logicalMouse(event.motion.x, event.motion.y, x, y);
 		int cellX, cellY;
+		mMouseX = x;
+		mMouseY = y;
 		if (mapCellAt(x, y, currentMap(), mWorldBuilderCameraX,
-			mWorldBuilderCameraY, cellX, cellY))
+			mWorldBuilderCameraY, mWorldBuilderTileSize, cellX, cellY))
 		{
 			if (mWorldBuilderPainting) paintWorldBuilderTile(cellX, cellY);
 			else if (mWorldBuilderDragging) placeWorldBuilderSelection(cellX, cellY);
@@ -838,6 +919,8 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 	if (event.type != SDL_MOUSEBUTTONDOWN || event.button.button != SDL_BUTTON_LEFT) return;
 	int x, y;
 	logicalMouse(event.button.x, event.button.y, x, y);
+	mMouseX = x;
+	mMouseY = y;
 	if (contains(BUILDER_SAVE, x, y))
 	{
 		std::string error;
@@ -898,7 +981,7 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 				{
 					mCurrentWorldArea = map;
 					centerMapCamera(currentMap(), mNpcs[selected].x, mNpcs[selected].y,
-						mWorldBuilderCameraX, mWorldBuilderCameraY);
+						mWorldBuilderCameraX, mWorldBuilderCameraY, mWorldBuilderTileSize);
 				}
 			}
 			else if (mWorldBuilderTab == WorldBuilderTab::Shards &&
@@ -911,14 +994,14 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 					mCurrentWorldArea = map;
 					centerMapCamera(currentMap(), mMercerStock.shards[selected].x,
 						mMercerStock.shards[selected].y, mWorldBuilderCameraX,
-						mWorldBuilderCameraY);
+						mWorldBuilderCameraY, mWorldBuilderTileSize);
 				}
 			}
 			return;
 		}
 		int cellX, cellY;
 		if (!mapCellAt(x, y, currentMap(), mWorldBuilderCameraX,
-			mWorldBuilderCameraY, cellX, cellY)) return;
+			mWorldBuilderCameraY, mWorldBuilderTileSize, cellX, cellY)) return;
 		if (mWorldBuilderTab == WorldBuilderTab::Tiles)
 		{
 			mWorldBuilderPainting = true;
@@ -1290,25 +1373,143 @@ void Application::drawWorldBuilderTileIcon(WorldTileId type, const SDL_Rect& rec
 	outlineRect(rect, 8, 14, 22, 255, 1);
 }
 
+void Application::drawWorldBuilderScaledTileDetail(WorldTileId type, const SDL_Rect& rect)
+{
+	const int unit = std::max(1, rect.w / 12);
+	const int inset = std::max(2, rect.w / 10);
+	const int centerX = rect.x + rect.w / 2;
+	const int centerY = rect.y + rect.h / 2;
+	if (type == WorldTiles::Water)
+	{
+		fillRect({ rect.x + inset, rect.y + rect.h / 3, rect.w - inset * 2,
+			unit }, 92, 189, 210, 210);
+		fillRect({ rect.x + inset * 2, rect.y + rect.h * 2 / 3,
+			std::max(unit, rect.w - inset * 3), unit }, 63, 161, 194, 210);
+	}
+	else if (type == WorldTiles::Path || type == WorldTiles::OldRoadPath ||
+		type == WorldTiles::CinderrailPath || type == WorldTiles::WatershedPath ||
+		type == WorldTiles::GlasswaterPaving || type == WorldTiles::RootmazePath)
+	{
+		fillRect({ rect.x + inset, rect.y + inset, rect.w / 3, rect.h / 4 },
+			190, 165, 110, 170);
+		fillRect({ centerX, centerY, rect.w / 3, rect.h / 4 }, 89, 94, 76, 130);
+	}
+	else if (type == WorldTiles::Tree || type == WorldTiles::Forest)
+	{
+		fillRect({ centerX - unit, centerY, unit * 2, rect.h / 2 - inset }, 85, 48, 26);
+		fillRect({ rect.x + inset, rect.y + inset / 2, rect.w - inset * 2,
+			rect.h * 2 / 3 }, 41, 116, 49);
+	}
+	else if (type == WorldTiles::TimberBridge || type == WorldTiles::GlasswaterDock ||
+		type == WorldTiles::RootmazeBridge)
+	{
+		for (int slat = rect.x + unit; slat < rect.x + rect.w; slat += unit * 3)
+			fillRect({ slat, rect.y + inset, unit * 2, rect.h - inset * 2 }, 132, 83, 45);
+		fillRect({ rect.x, rect.y + inset, rect.w, unit }, 65, 70, 43);
+		fillRect({ rect.x, rect.y + rect.h - inset - unit, rect.w, unit }, 65, 70, 43);
+	}
+	else if (type == WorldTiles::Rail || type == WorldTiles::RailCrossing)
+	{
+		for (int tie = rect.x + unit; tie < rect.x + rect.w; tie += unit * 3)
+			fillRect({ tie, rect.y + inset, unit, rect.h - inset * 2 }, 106, 75, 49);
+		fillRect({ rect.x, rect.y + rect.h / 4, rect.w, unit }, 165, 172, 173);
+		fillRect({ rect.x, rect.y + rect.h * 3 / 4, rect.w, unit }, 165, 172, 173);
+	}
+	else if (type == WorldTiles::TimberRoof || type == WorldTiles::IndustrialRoof ||
+		type == WorldTiles::MarbleRoof || type == WorldTiles::GlasswaterRoof ||
+		type == WorldTiles::RootmazeRoof)
+	{
+		for (int course = rect.y + inset; course < rect.y + rect.h; course += unit * 3)
+			fillRect({ rect.x + unit, course, rect.w - unit * 2, unit }, 50, 48, 42, 180);
+		fillRect({ rect.x, rect.y + rect.h - unit * 2, rect.w, unit * 2 }, 55, 44, 38);
+	}
+	else if (type == WorldTiles::WoodWall || type == WorldTiles::IndustrialBrick ||
+		type == WorldTiles::GlasswaterWall || type == WorldTiles::RootmazeWall ||
+		type == WorldTiles::House)
+	{
+		outlineRect({ rect.x + inset, rect.y + inset, rect.w - inset * 2,
+			rect.h - inset * 2 }, 66, 48, 39, 220, unit);
+		fillRect({ rect.x + rect.w / 4, centerY - unit, rect.w / 6, unit * 3 },
+			72, 132, 151);
+		fillRect({ rect.x + rect.w * 3 / 5, centerY - unit, rect.w / 6, unit * 3 },
+			72, 132, 151);
+	}
+	else if (type == WorldTiles::Door || type == WorldTiles::CinderrailDoor ||
+		type == WorldTiles::GlasswaterDoor || type == WorldTiles::RootmazeDoor)
+	{
+		fillRect({ rect.x + rect.w / 4, rect.y + inset, rect.w / 2,
+			rect.h - inset }, 74, 61, 43);
+		fillRect({ rect.x + rect.w * 2 / 3, centerY, unit, unit }, 231, 184, 73);
+	}
+	else if (type == WorldTiles::DuelSand || type == WorldTiles::CinderrailDuelSand ||
+		type == WorldTiles::GlasswaterArena || type == WorldTiles::RootmazeArena)
+	{
+		outlineRect({ rect.x + inset, rect.y + inset, rect.w - inset * 2,
+			rect.h - inset * 2 }, 225, 210, 132, 230, unit);
+		fillRect({ centerX - unit / 2, rect.y + inset * 2, unit,
+			rect.h - inset * 4 }, 93, 112, 95, 180);
+	}
+	else if (type == WorldTiles::RootmazeRoot)
+	{
+		fillRect({ rect.x + inset, rect.y + unit, unit * 2, rect.h - unit * 2 }, 112, 76, 43);
+		fillRect({ centerX, rect.y, unit * 2, rect.h }, 63, 48, 34);
+		fillRect({ rect.x + rect.w - inset - unit, rect.y + inset, unit,
+			rect.h - inset }, 101, 72, 42);
+	}
+	else if (type == WorldTiles::OldRoadWaystone || type == WorldTiles::WatershedMarker ||
+		type == WorldTiles::GlasswaterMarker || type == WorldTiles::RootmazeMarker)
+	{
+		fillRect({ centerX - unit, rect.y + inset, unit * 2, rect.h - inset * 2 }, 73, 61, 48);
+		fillRect({ rect.x + inset, rect.y + inset, rect.w - inset * 2, unit * 3 },
+			203, 171, 69);
+	}
+	else if (type == WorldTiles::Bonfire || type == WorldTiles::Furnace)
+	{
+		fillRect({ centerX - unit * 2, centerY, unit * 4, rect.h / 3 }, 225, 70, 28);
+		fillRect({ centerX - unit, centerY - unit * 2, unit * 2, unit * 4 }, 255, 177, 48);
+	}
+	else if (type == WorldTiles::MetalGrate || type == WorldTiles::Marble)
+	{
+		fillRect({ centerX - unit / 2, rect.y + inset, unit, rect.h - inset * 2 }, 70, 81, 85, 160);
+		fillRect({ rect.x + inset, centerY - unit / 2, rect.w - inset * 2, unit }, 70, 81, 85, 160);
+	}
+	else
+	{
+		fillRect({ rect.x + rect.w / 4, rect.y + rect.h * 2 / 3, unit, unit * 2 },
+			105, 174, 72, 180);
+		fillRect({ rect.x + rect.w * 2 / 3, rect.y + rect.h / 3, unit, unit * 2 },
+			88, 155, 69, 180);
+	}
+}
+
 void Application::renderWorldBuilder()
 {
 	fillRect({ 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT }, 12, 18, 29);
 	drawText("WORLD BUILDER", 32, 13, color(244, 207, 103), 25);
 	drawText(mWorldAreas[mCurrentWorldArea].name, 320, 17, color(189, 207, 232), 18, 360);
-	drawText(mWorldBuilderDirty ? "UNSAVED CHANGES" : "SAVED", 795, 19,
+	drawText("ZOOM " + std::to_string(mWorldBuilderTileSize * 100 / TILE) + "%",
+		690, 19, color(143, 189, 231), 14);
+	drawText(mWorldBuilderDirty ? "UNSAVED CHANGES" : "SAVED", 810, 19,
 		mWorldBuilderDirty ? color(244, 139, 88) : color(105, 218, 139), 14);
 	const std::vector<std::string>& map = currentMap();
-	int mapX = mapOriginX((int)map[0].size()) - mWorldBuilderCameraX * TILE;
-	int mapY = mapOriginY((int)map.size()) - mWorldBuilderCameraY * TILE;
+	const int tileSize = mWorldBuilderTileSize;
+	const int viewportColumns = builderViewportColumns(tileSize);
+	const int viewportRows = builderViewportRows(tileSize);
+	int mapX = builderMapOriginX((int)map[0].size(), tileSize) -
+		mWorldBuilderCameraX * tileSize;
+	int mapY = builderMapOriginY((int)map.size(), tileSize) -
+		mWorldBuilderCameraY * tileSize;
 	TileBounds visibleTiles = visibleTileBounds((float)mWorldBuilderCameraX,
-		(float)mWorldBuilderCameraY, (int)map[0].size(), (int)map.size());
+		(float)mWorldBuilderCameraY, (int)map[0].size(), (int)map.size(),
+		viewportColumns, viewportRows);
 	SDL_Rect mapViewport = { MAP_X, MAP_Y, MAP_VIEW_WIDTH, MAP_VIEW_HEIGHT };
 	SDL_RenderSetClipRect(mRenderer, &mapViewport);
 	for (int row = visibleTiles.top; row < visibleTiles.bottom; ++row)
 	{
 		for (int column = visibleTiles.left; column < visibleTiles.right; ++column)
 		{
-			SDL_Rect tile = { mapX + (int)column * TILE, mapY + (int)row * TILE, TILE, TILE };
+			SDL_Rect tile = { mapX + (int)column * tileSize,
+				mapY + (int)row * tileSize, tileSize, tileSize };
 			WorldTileId type = WorldTiles::fromGlyph(map[row][column]);
 			if (type == WorldTiles::Path) fillRect(tile, 162, 132, 76);
 			else if (type == WorldTiles::OldRoadPath) fillRect(tile, 124, 112, 88);
@@ -1366,6 +1567,8 @@ void Application::renderWorldBuilder()
 			else if (type == WorldTiles::RootmazeDoor) fillRect(tile, 126, 89, 50);
 			else if (type == WorldTiles::RootmazeArena) fillRect(tile, 105, 154, 76);
 			else fillRect(tile, 61, 139, 61);
+			if (tileSize == TILE)
+			{
 			if (type == WorldTiles::Water)
 				fillRect({ tile.x + 7, tile.y + 17, 28, 3 }, 92, 189, 210, 190);
 			else if (type == WorldTiles::CinderrailRubble)
@@ -1702,6 +1905,8 @@ void Application::renderWorldBuilder()
 				fillRect({ tile.x + 10, tile.y + 10, 7, 4 }, 62, 146, 77);
 				fillRect({ tile.x + 30, tile.y + 10, 7, 4 }, 202, 151, 63);
 			}
+			}
+			else drawWorldBuilderScaledTileDetail(type, tile);
 			outlineRect(tile, 10, 20, 27, 100, 1);
 		}
 	}
@@ -1709,38 +1914,63 @@ void Application::renderWorldBuilder()
 	if (currentMapId() == mWorldStartMap &&
 		visibleTiles.contains(mWorldStartX, mWorldStartY))
 	{
-		fillRect({ mapX + mWorldStartX * TILE + 13, mapY + mWorldStartY * TILE + 12,
-			23, 25 }, 24, 66, 137, 235);
-		drawText("P", mapX + mWorldStartX * TILE + 19, mapY + mWorldStartY * TILE + 16,
-			color(215, 232, 255), 14);
+		int startX = mapX + mWorldStartX * tileSize;
+		int startY = mapY + mWorldStartY * tileSize;
+		int inset = std::max(2, tileSize / 4);
+		fillRect({ startX + inset, startY + inset, tileSize - inset * 2,
+			tileSize - inset * 2 }, 24, 66, 137, 235);
+		if (tileSize >= 32)
+			drawText("P", startX + tileSize / 2 - 5, startY + tileSize / 2 - 9,
+				color(215, 232, 255), std::min(16, tileSize / 3));
 	}
 	for (size_t i = 0; i < mWorldPortals.size(); ++i)
 		if (mWorldPortals[i].fromMap == currentMapId() &&
 			visibleTiles.contains(mWorldPortals[i].fromX, mWorldPortals[i].fromY))
-			outlineRect({ mapX + mWorldPortals[i].fromX * TILE + 4,
-				mapY + mWorldPortals[i].fromY * TILE + 4, TILE - 8, TILE - 8 },
-				91, 222, 232, 255, 3);
+		{
+			int inset = std::max(2, tileSize / 12);
+			outlineRect({ mapX + mWorldPortals[i].fromX * tileSize + inset,
+				mapY + mWorldPortals[i].fromY * tileSize + inset,
+				tileSize - inset * 2, tileSize - inset * 2 },
+				91, 222, 232, 255, std::max(2, tileSize / 24));
+		}
 	for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
 	{
 		const MercerShard& shard = mMercerStock.shards[i];
 		if (shard.mapId != currentMapId()) continue;
 		if (!visibleTiles.contains(shard.x, shard.y)) continue;
-		int x = mapX + shard.x * TILE;
-		int y = mapY + shard.y * TILE;
-		fillRect({ x + 18, y + 9, 14, 30 }, 47, 25, 71, 230);
-		fillRect({ x + 13, y + 15, 24, 18 }, 146, 87, 211, 250);
-		fillRect({ x + 19, y + 19, 12, 10 }, 231, 193, 255, 255);
+		int x = mapX + shard.x * tileSize;
+		int y = mapY + shard.y * tileSize;
+		int unit = std::max(1, tileSize / 12);
+		fillRect({ x + tileSize / 2 - unit * 2, y + tileSize / 5,
+			unit * 4, tileSize * 3 / 5 }, 47, 25, 71, 230);
+		fillRect({ x + tileSize / 4, y + tileSize / 3,
+			tileSize / 2, tileSize / 3 }, 146, 87, 211, 250);
+		fillRect({ x + tileSize * 2 / 5, y + tileSize * 2 / 5,
+			tileSize / 5, tileSize / 5 }, 231, 193, 255, 255);
 		if ((int)i == mWorldBuilderSelectedShard && mWorldBuilderTab == WorldBuilderTab::Shards)
-			outlineRect({ x + 2, y + 2, TILE - 4, TILE - 4 }, 246, 211, 99, 255, 3);
+			outlineRect({ x + 2, y + 2, tileSize - 4, tileSize - 4 },
+				246, 211, 99, 255, std::max(2, tileSize / 16));
 	}
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 	{
 		if (mNpcs[i].mapId != currentMapId()) continue;
 		if (!visibleTiles.contains(mNpcs[i].x, mNpcs[i].y)) continue;
-		drawCharacter((float)mNpcs[i].x, (float)mNpcs[i].y, mNpcs[i].appearance, false, false);
+		int npcX = mapX + mNpcs[i].x * tileSize;
+		int npcY = mapY + mNpcs[i].y * tileSize;
+		if (tileSize >= TILE)
+			drawCharacter((float)mNpcs[i].x, (float)mNpcs[i].y,
+				mNpcs[i].appearance, false, false);
+		else
+		{
+			int inset = std::max(3, tileSize / 5);
+			fillRect({ npcX + inset, npcY + inset, tileSize - inset * 2,
+				tileSize - inset * 2 }, 213, 137, 78, 255);
+			outlineRect({ npcX + inset, npcY + inset, tileSize - inset * 2,
+				tileSize - inset * 2 }, 62, 35, 31, 255, 1);
+		}
 		if ((int)i == mWorldBuilderSelectedNpc && mWorldBuilderTab == WorldBuilderTab::Npcs)
-			outlineRect({ mapX + mNpcs[i].x * TILE + 2, mapY + mNpcs[i].y * TILE + 2,
-				TILE - 4, TILE - 4 }, 246, 211, 99, 255, 3);
+			outlineRect({ npcX + 2, npcY + 2, tileSize - 4, tileSize - 4 },
+				246, 211, 99, 255, std::max(2, tileSize / 16));
 	}
 	SDL_RenderSetClipRect(mRenderer, NULL);
 
@@ -1814,9 +2044,9 @@ void Application::renderWorldBuilder()
 	outlineRect(BUILDER_SAVE, 207, 161, 66, 255, 2);
 	drawText("SAVE TO LUA   Ctrl+S", BUILDER_SAVE.x + 29, BUILDER_SAVE.y + 12,
 		color(245, 226, 181), 14);
-	drawText("T/N/R: tabs  •  Arrows/WASD: pan  •  Tiles: paint  •  Entities: select and place",
+	drawText("T/N/R: tabs  •  Arrows/WASD: pan  •  Wheel over map or +/-: zoom",
 		32, 650, color(180, 196, 219), 14, 930);
-	drawText("P marks the player start; cyan outlines mark portals. PageUp/PageDown changes maps.",
+	drawText("Tiles: paint  •  Entities: place  •  P: start  •  PageUp/PageDown: maps",
 		32, 676, color(142, 173, 217), 13);
 	if (!mWorldBuilderNotice.empty() && SDL_GetTicks() < mWorldBuilderNoticeUntil)
 	{

@@ -17,7 +17,7 @@ An asterisk marks an optional town. Optional towns are short offshoots: the play
                          |                    /     \                    |
                          +-------------------/       \-------------------+
                                              \       /
-                 Reedwake*                 Confluence Arena -------- Hollow Archive
+             Lilyreed Village*               Dragon Keep ----------- Hollow Archive
                      |                      /     |    \
               Glasswater Port -------------/      |     \------------- Stormbreak Plateau -- Cloudrest*
                     /  \                          |
@@ -37,10 +37,10 @@ The diagram is schematic. Exact terrain may bend these roads, but the connection
 | Connector region | Exits |
 | --- | --- |
 | Watershed Crossroads | Emberglen, Glasswater Port, Rootmaze Commons |
-| Ribbonway Crossroads | Confluence Arena, Mirror Arena, Ribbonfair |
-| Sunmirror Causeway | Confluence Arena, Mirror Arena, Sunspire Cloister |
+| Ribbonway Crossroads | Dragon Keep, Mirror Arena, Ribbonfair |
+| Sunmirror Causeway | Dragon Keep, Mirror Arena, Sunspire Cloister |
 
-Each row is one playable connecting area with three seamless exits. It is not shorthand for three pairwise connector regions. Ribbonway Crossroads and Sunmirror Causeway deliberately provide two different routes between Confluence and Mirror: the former is the lively Ribbonfair-side route, while the latter is the warded Sunspire-side route.
+Each row is one playable connecting area with three seamless exits. It is not shorthand for three pairwise connector regions. Ribbonway Crossroads and Sunmirror Causeway deliberately provide two different routes between Dragon Keep and Mirror: the former is the lively Ribbonfair-side route, while the latter is the warded Sunspire-side route.
 
 ## Road network
 
@@ -48,25 +48,25 @@ The adjacency list is authoritative for the planned topology when the ASCII spac
 
 | Destination | Direct road connections |
 | --- | --- |
-| Emberglen | Glasswater Port, Rootmaze Commons, Cinderrail Foundry, Gloam Quarry, Confluence Arena |
-| Glasswater Port | Emberglen, Rootmaze Commons, Reedwake |
+| Emberglen | Glasswater Port, Rootmaze Commons, Cinderrail Foundry, Gloam Quarry, Dragon Keep |
+| Glasswater Port | Emberglen, Rootmaze Commons, Lilyreed Village |
 | Rootmaze Commons | Emberglen, Glasswater Port, Cinderrail Foundry, Honeyreach |
 | Cinderrail Foundry | Emberglen, Rootmaze Commons, Gloam Quarry, Clayhearth |
-| Confluence Arena | Emberglen, Mirror Arena, Stormbreak Plateau, Sunspire Cloister, Ribbonfair, Hollow Archive |
-| Mirror Arena | Confluence Arena, Stormbreak Plateau, Sunspire Cloister, Ribbonfair, Crown Gate |
-| Stormbreak Plateau | Confluence Arena, Mirror Arena, Cloudrest |
+| Dragon Keep | Emberglen, Mirror Arena, Stormbreak Plateau, Sunspire Cloister, Ribbonfair, Hollow Archive |
+| Mirror Arena | Dragon Keep, Stormbreak Plateau, Sunspire Cloister, Ribbonfair, Crown Gate |
+| Stormbreak Plateau | Dragon Keep, Mirror Arena, Cloudrest |
 | Gloam Quarry | Emberglen, Cinderrail Foundry, Lanternfen |
-| Sunspire Cloister | Confluence Arena, Mirror Arena |
+| Sunspire Cloister | Dragon Keep, Mirror Arena |
 | Crown Gate | Mirror Arena |
-| Hollow Archive | Confluence Arena |
-| Reedwake | Glasswater Port |
+| Hollow Archive | Dragon Keep |
+| Lilyreed Village | Glasswater Port |
 | Honeyreach | Rootmaze Commons |
 | Clayhearth | Cinderrail Foundry |
 | Cloudrest | Stormbreak Plateau |
 | Lanternfen | Gloam Quarry |
-| Ribbonfair | Confluence Arena, Mirror Arena |
+| Ribbonfair | Dragon Keep, Mirror Arena |
 
-These cross-links create loops around Emberglen and Confluence. A player leaving Stormbreak can travel directly to Mirror, return through Confluence, or continue all the way back to Emberglen without using a menu or one-way transition. Gloam is a separate southern branch reached through Emberglen or Cinderrail.
+These cross-links create loops around Emberglen and Dragon Keep. A player leaving Stormbreak can travel directly to Mirror, return through Dragon Keep, or continue all the way back to Emberglen without using a menu or one-way transition. Gloam is a separate southern branch reached through Emberglen or Cinderrail.
 
 ## Progression gates
 
@@ -78,23 +78,23 @@ Emberglen contains the story setup and Dawn Crest. The nearby roads are initiall
 
 Glasswater, Rootmaze, and Cinderrail may be completed in any order. Their local roads form a loop around Emberglen, and the player may return to Mercer between any two objectives.
 
-Reedwake, Honeyreach, and Clayhearth open with their neighboring routes but remain optional.
+Lilyreed Village, Honeyreach, and Clayhearth open with their neighboring routes but remain optional.
 
 ### Crest 5 and the outer-road gate
 
-Confluence is physically connected to Emberglen from the beginning, but its relay checkpoint blocks travel into the outer regions. After the player holds the Tidal, Verdant, and Forge Crests and completes the midpoint Hollow scene, Kestrel offers the Confluence match.
+Dragon Keep is physically connected to Emberglen from the beginning, but its relay checkpoint blocks travel into the outer regions. After the player holds the Tidal, Verdant, and Forge Crests and completes the midpoint Hollow scene, Kestrel offers the Confluence Crest match.
 
-Winning restores the Confluence relay and permanently opens the outer network toward Stormbreak, Gloam Quarry, Mirror Arena, and Sunspire. Gloam is reached through Emberglen or Cinderrail rather than by a direct road from Confluence or Stormbreak. Opening the network does not close or replace any earlier road.
+Winning restores the Confluence relay and permanently opens the outer network toward Stormbreak, Gloam Quarry, Mirror Arena, and Sunspire. Gloam is reached through Emberglen or Cinderrail rather than by a direct road from Dragon Keep or Stormbreak. Opening the network does not close or replace any earlier road.
 
 ### Crests 6–8
 
-Stormbreak, Gloam Quarry, and Mirror Arena may be completed in any order. Stormbreak and Mirror have direct cross-links to Confluence and each other, while Gloam branches from Emberglen and Cinderrail. The persistent central roads keep all three objectives accessible without imposing an order.
+Stormbreak, Gloam Quarry, and Mirror Arena may be completed in any order. Stormbreak and Mirror have direct cross-links to Dragon Keep and each other, while Gloam branches from Emberglen and Cinderrail. The persistent central roads keep all three objectives accessible without imposing an order.
 
 Cloudrest, Lanternfen, and Ribbonfair open with their neighboring routes but remain optional. Sunspire is a required Hollow-story region with no Crest.
 
 ### Hollow finale, Crest 9, and Championship
 
-The Hollow Archive entrance branches from Confluence. After the Hollow finale, the player can freely leave the restored Archive, return anywhere in the world, prepare at Mercer's shop, and then travel to Crown Gate through Mirror Arena.
+The Hollow Archive entrance branches from Dragon Keep. After the Hollow finale, the player can freely leave the restored Archive, return anywhere in the world, prepare at Mercer's shop, and then travel to Crown Gate through Mirror Arena.
 
 Caelum's Unity match is the final Crest objective. Crown Gate remains connected afterward, and the Grand Championship does not remove access to the rest of the overworld.
 
@@ -106,10 +106,10 @@ Caelum's Unity match is the final Crest objective. Crown Gate remains connected 
 | Glasswater Port | Tidal Crest and Water Seal | Yes, order-independent |
 | Cinderrail Foundry | Forge Crest and Fire Seal | Yes, order-independent |
 | Rootmaze Commons | Verdant Crest and Nature Seal | Yes, order-independent |
-| Reedwake | Fishing and ferry side town | No |
+| Lilyreed Village | Fishing and ferry side town | No |
 | Honeyreach | Orchard festival side town | No |
 | Clayhearth | Pottery and cosmetics side town | No |
-| Confluence Arena | Fifth Crest and permanent outer-road gate | Yes |
+| Dragon Keep | Fifth Crest and permanent outer-road gate | Yes |
 | Stormbreak Plateau | Tempest Crest | Yes, order-independent |
 | Gloam Quarry | Ashen Crest and Darkness Seal | Yes, order-independent |
 | Mirror Arena | Mirror Crest | Yes, order-independent |

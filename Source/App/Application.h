@@ -184,7 +184,9 @@ private:
 	void updateWorldBuilder(Uint32 deltaTime);
 	void renderWorldBuilder();
 	void panWorldBuilder(int dx, int dy);
+	void zoomWorldBuilder(int direction, int anchorX, int anchorY);
 	void drawWorldBuilderTileIcon(WorldTileId type, const SDL_Rect& rect);
+	void drawWorldBuilderScaledTileDetail(WorldTileId type, const SDL_Rect& rect);
 	void paintWorldBuilderTile(int x, int y);
 	void placeWorldBuilderSelection(int x, int y);
 	bool worldBuilderCanPlace(int x, int y, int ignoredNpc, int ignoredShard) const;
@@ -340,6 +342,7 @@ private:
 	int mWorldBuilderListScroll;
 	int mWorldBuilderCameraX;
 	int mWorldBuilderCameraY;
+	int mWorldBuilderTileSize;
 	bool mWorldBuilderMoveUp;
 	bool mWorldBuilderMoveDown;
 	bool mWorldBuilderMoveLeft;

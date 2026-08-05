@@ -4,7 +4,7 @@
 
 Gloam Quarry should feel like a working settlement built downward through generations of black-stone excavation. Its streets occupy broad terraces cut into the quarry walls, with switchback roads, ember-lit lifts, carved records, canvas ash screens, and warm communal interiors contrasting against the dark stone.
 
-The town is a required second-tier region containing the Ashen Crest and Darkness Resonance Seal. It connects directly to Emberglen, Cinderrail Foundry, and the optional wetland town of Lanternfen. Confluence controls when the outer network opens, but there is no direct road from Confluence or Stormbreak to Gloam.
+The town is a required second-tier region containing the Ashen Crest and Darkness Resonance Seal. It connects directly to Emberglen, Cinderrail Foundry, and the optional wetland town of Lanternfen. Dragon Keep's Confluence relay controls when the outer network opens, but there is no direct road from Dragon Keep or Stormbreak to Gloam.
 
 Gloam must not be presented as evil, cursed, or permanently miserable because it specializes in Darkness cards. It is a practical town with loud meals, experienced workers, teasing children, and strict safety customs. Solemnity belongs to the memorial work and the honest accounting of loss, not every ordinary conversation.
 

@@ -316,6 +316,7 @@ void Application::renderOverworld()
 	const std::vector<std::string>& map = currentMap();
 	const WorldRegion* cinderrailRegion = NULL;
 	const WorldRegion* watershedRegion = NULL;
+	const WorldRegion* oldRoadRegion = NULL;
 	const WorldRegion* glasswaterRegion = NULL;
 	const WorldRegion* rootmazeRegion = NULL;
 	for (size_t region = 0; region < mWorldRegions.size(); ++region)
@@ -324,6 +325,8 @@ void Application::renderOverworld()
 		if (mWorldRegions[region].id == "cinderrail") cinderrailRegion = &mWorldRegions[region];
 		else if (mWorldRegions[region].id == "watershed_crossroads")
 			watershedRegion = &mWorldRegions[region];
+		else if (mWorldRegions[region].id == "old_road")
+			oldRoadRegion = &mWorldRegions[region];
 		else if (mWorldRegions[region].id == "glasswater")
 			glasswaterRegion = &mWorldRegions[region];
 		else if (mWorldRegions[region].id == "rootmaze")
@@ -932,21 +935,49 @@ void Application::renderOverworld()
 	}
 	if (watershedRegion != NULL)
 	{
-		if (visibleTiles.intersects(watershedRegion->x + 25, watershedRegion->y + 18,
-			watershedRegion->x + 43, watershedRegion->y + 19))
-			drawText("WATERSHED CROSSROADS", mapX + (watershedRegion->x + 25) * TILE,
-				mapY + (watershedRegion->y + 18) * TILE + 12,
+		if (visibleTiles.intersects(watershedRegion->x + 51, watershedRegion->y + 34,
+			watershedRegion->x + 70, watershedRegion->y + 35))
+			drawText("WATERSHED CROSSROADS", mapX + (watershedRegion->x + 51) * TILE,
+				mapY + (watershedRegion->y + 34) * TILE + 12,
 				color(237, 220, 157), 12, 18 * TILE);
-		if (visibleTiles.intersects(watershedRegion->x + 1, watershedRegion->y + 6,
-			watershedRegion->x + 9, watershedRegion->y + 7))
+		if (visibleTiles.intersects(watershedRegion->x + 1, watershedRegion->y + 19,
+			watershedRegion->x + 9, watershedRegion->y + 21))
 			drawText("GLASSWATER", mapX + (watershedRegion->x + 1) * TILE,
-				mapY + (watershedRegion->y + 6) * TILE + 12,
+				mapY + (watershedRegion->y + 19) * TILE + 12,
 				color(112, 192, 229), 12, 8 * TILE);
-		if (visibleTiles.intersects(watershedRegion->x + 1, watershedRegion->y + 30,
-			watershedRegion->x + 9, watershedRegion->y + 31))
+		if (visibleTiles.intersects(watershedRegion->x + 1, watershedRegion->y + 42,
+			watershedRegion->x + 9, watershedRegion->y + 44))
 			drawText("ROOTMAZE", mapX + (watershedRegion->x + 1) * TILE,
-				mapY + (watershedRegion->y + 30) * TILE + 12,
+				mapY + (watershedRegion->y + 42) * TILE + 12,
 				color(122, 206, 115), 12, 8 * TILE);
+		if (visibleTiles.intersects(watershedRegion->x + 55, watershedRegion->y + 24,
+			watershedRegion->x + 67, watershedRegion->y + 26))
+			drawText("TOLL SHELTER", mapX + (watershedRegion->x + 55) * TILE,
+				mapY + (watershedRegion->y + 24) * TILE + 12,
+				color(211, 185, 129), 11, 12 * TILE);
+		if (visibleTiles.intersects(watershedRegion->x + 109, watershedRegion->y + 34,
+			watershedRegion->x + 127, watershedRegion->y + 36))
+			drawText("EMBERGLEN", mapX + (watershedRegion->x + 109) * TILE,
+				mapY + (watershedRegion->y + 34) * TILE + 12,
+				color(225, 178, 91), 12, 10 * TILE);
+	}
+	if (oldRoadRegion != NULL)
+	{
+		if (visibleTiles.intersects(oldRoadRegion->x + 35, oldRoadRegion->y + 23,
+			oldRoadRegion->x + 51, oldRoadRegion->y + 25))
+			drawText("THE OLD ROAD", mapX + (oldRoadRegion->x + 35) * TILE,
+				mapY + (oldRoadRegion->y + 23) * TILE + 12,
+				color(215, 197, 157), 12, 14 * TILE);
+		if (visibleTiles.intersects(oldRoadRegion->x + 59, oldRoadRegion->y + 35,
+			oldRoadRegion->x + 76, oldRoadRegion->y + 37))
+			drawText("WAYFARER CAMP", mapX + (oldRoadRegion->x + 59) * TILE,
+				mapY + (oldRoadRegion->y + 35) * TILE + 12,
+				color(234, 173, 91), 11, 14 * TILE);
+		if (visibleTiles.intersects(oldRoadRegion->x + 8, oldRoadRegion->y + 6,
+			oldRoadRegion->x + 23, oldRoadRegion->y + 8))
+			drawText("ABANDONED CUT", mapX + (oldRoadRegion->x + 8) * TILE,
+				mapY + (oldRoadRegion->y + 6) * TILE + 12,
+				color(176, 169, 151), 11, 14 * TILE);
 	}
 	if (cinderrailRegion != NULL)
 	{
@@ -1058,16 +1089,29 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 	bool completed, bool walking)
 {
 	const std::vector<std::string>& map = currentMap();
-	float cameraX = mScreen == Screen::WorldBuilder ? (float)mWorldBuilderCameraX :
-		overworldCameraX();
-	float cameraY = mScreen == Screen::WorldBuilder ? (float)mWorldBuilderCameraY :
-		overworldCameraY();
-	int viewportColumns = mScreen == Screen::WorldBuilder ? MAP_VIEW_COLUMNS :
-		OVERWORLD_VIEW_COLUMNS;
-	int x = mapOriginX((int)map[0].size(), viewportColumns) +
-		(int)std::round((gridX - cameraX) * TILE);
-	int y = mapOriginY((int)map.size()) +
-		(int)std::round((gridY - cameraY) * TILE);
+	const bool worldBuilder = mScreen == Screen::WorldBuilder;
+	float cameraX = worldBuilder ? (float)mWorldBuilderCameraX : overworldCameraX();
+	float cameraY = worldBuilder ? (float)mWorldBuilderCameraY : overworldCameraY();
+	int x;
+	int y;
+	if (worldBuilder)
+	{
+		int baseX = MAP_X + std::max(0,
+			MAP_VIEW_WIDTH - (int)map[0].size() * mWorldBuilderTileSize) / 2;
+		int baseY = MAP_Y + std::max(0,
+			MAP_VIEW_HEIGHT - (int)map.size() * mWorldBuilderTileSize) / 2;
+		x = baseX + (int)std::round((gridX - cameraX) * mWorldBuilderTileSize) +
+			(mWorldBuilderTileSize - TILE) / 2;
+		y = baseY + (int)std::round((gridY - cameraY) * mWorldBuilderTileSize) +
+			(mWorldBuilderTileSize - TILE) / 2;
+	}
+	else
+	{
+		x = mapOriginX((int)map[0].size(), OVERWORLD_VIEW_COLUMNS) +
+			(int)std::round((gridX - cameraX) * TILE);
+		y = mapOriginY((int)map.size()) +
+			(int)std::round((gridY - cameraY) * TILE);
+	}
 	int stride = walking && (SDL_GetTicks() / 110) % 2 == 0 ? 2 : (walking ? -2 : 0);
 	int bob = walking && (SDL_GetTicks() / 110) % 2 == 0 ? -1 : 0;
 	fillRect({ x + 9, y + 39, 31, 6 }, 8, 14, 18, 100);
