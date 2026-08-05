@@ -3,6 +3,7 @@
 #include "AppSupport.h"
 #include "Landmarks.h"
 #include "SpriteSheetRenderer.h"
+#include "WorldTileRenderer.h"
 
 #include <algorithm>
 #include <cmath>
@@ -856,6 +857,7 @@ void Application::renderOverworld()
 			else if (tile == WorldTiles::CaveEntrance) fillRect(tileRect, 78, 70, 62);
 			else if (tile == WorldTiles::TreeStump) fillRect(tileRect, 61, 139, 61);
 			else fillRect(tileRect, 61, 139, 61);
+			mWorldTileRenderer->drawTerrain(tile, tileRect);
 
 			if (tile == WorldTiles::Water)
 			{
@@ -1379,6 +1381,7 @@ void Application::renderOverworld()
 				else
 					fillRect({ tileRect.x + 13, tileRect.y + 4, 24, 4 }, 202, 158, 57);
 			}
+			mWorldTileRenderer->drawDecorationTile(tile, tileRect);
 		}
 	}
 	if (cinderrailRegion != NULL)

@@ -2,6 +2,7 @@
 
 #include "AppSupport.h"
 #include "LuaInclude.h"
+#include "WorldTileRenderer.h"
 
 #include <algorithm>
 #include <cerrno>
@@ -1306,6 +1307,7 @@ void Application::drawWorldBuilderTileIcon(WorldTileId type, const SDL_Rect& rec
 			type == WorldTiles::WoodFloor ? 91 : 53,
 			type == WorldTiles::WoodFloor ? 49 : 31);
 	else fillRect(rect, 61, 139, 61);
+	mWorldTileRenderer->drawTerrain(type, rect);
 
 	const int x = rect.x;
 	const int y = rect.y;
@@ -1633,6 +1635,7 @@ void Application::drawWorldBuilderTileIcon(WorldTileId type, const SDL_Rect& rec
 			fillRect({ x + bar, y + 3, 3, h - 6 }, 202, 158, 57);
 	}
 
+	mWorldTileRenderer->drawDecorationTile(type, rect);
 	outlineRect(rect, 8, 14, 22, 255, 1);
 }
 
@@ -1902,6 +1905,7 @@ void Application::renderWorldBuilder()
 			else if (type == WorldTiles::CaveEntrance) fillRect(tile, 78, 70, 62);
 			else if (type == WorldTiles::TreeStump) fillRect(tile, 61, 139, 61);
 			else fillRect(tile, 61, 139, 61);
+			mWorldTileRenderer->drawTerrain(type, tile);
 			SDL_Rect displayedTile = tile;
 			mWorldBuilderTileScaleActive = tileSize != TILE;
 			mWorldBuilderTileScaleDestination = displayedTile;
@@ -2303,6 +2307,7 @@ void Application::renderWorldBuilder()
 			}
 			}
 			mWorldBuilderTileScaleActive = false;
+			mWorldTileRenderer->drawDecorationTile(type, displayedTile);
 			outlineRect(displayedTile, 10, 20, 27, 100, 1);
 		}
 	}

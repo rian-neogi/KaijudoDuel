@@ -5,6 +5,7 @@
 #include "Game/Card.h"
 #include "Landmarks.h"
 #include "SpriteSheetRenderer.h"
+#include "WorldTileRenderer.h"
 
 #include <algorithm>
 #include <cmath>
@@ -1119,6 +1120,13 @@ bool Application::exerciseOverworldMovementSmoke()
 		!SpriteSheetRenderer::characterSourceRect(
 			"Resources/Graphics/Characters/Actor1.png", 8, 0, 1, false, 0,
 			384, 256, spriteFrame);
+	SDL_Rect atlasTile;
+	spriteSheetsReady = spriteSheetsReady && WorldTileRenderer::atlasSourceRect(
+		16, 8, 32, 256, 512, atlasTile) && atlasTile.x == 0 && atlasTile.y == 64 &&
+		atlasTile.w == 32 && atlasTile.h == 32;
+	spriteSheetsReady = spriteSheetsReady && WorldTileRenderer::atlasSourceRect(
+		199, 16, 32, 512, 512, atlasTile) && atlasTile.x == 224 && atlasTile.y == 384 &&
+		!WorldTileRenderer::atlasSourceRect(256, 16, 32, 512, 512, atlasTile);
 	int savedPlayerX = mPlayerX;
 	int savedPlayerY = mPlayerY;
 	float savedVisualX = mVisualX;

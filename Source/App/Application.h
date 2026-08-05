@@ -19,6 +19,7 @@
 class SoundManager;
 class AssetManager;
 class SpriteSheetRenderer;
+class WorldTileRenderer;
 
 class Application
 {
@@ -341,6 +342,7 @@ private:
 	SDL_Texture* mCardBackTexture;
 	AssetManager* mAssets;
 	SpriteSheetRenderer* mSpriteSheets;
+	WorldTileRenderer* mWorldTileRenderer;
 	SoundManager* mSoundManager;
 	std::map<int, SDL_Texture*> mCardTextures;
 	std::map<std::string, SDL_Texture*> mCrestTextures;

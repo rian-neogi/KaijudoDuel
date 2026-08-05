@@ -5,6 +5,7 @@
 #include "Game/Card.h"
 #include "SoundManager.h"
 #include "SpriteSheetRenderer.h"
+#include "WorldTileRenderer.h"
 
 #include <algorithm>
 #include <cmath>
@@ -19,7 +20,8 @@ namespace
 
 Application::Application(bool worldBuilder)
 	: mWindow(NULL), mRenderer(NULL), mBoardTexture(NULL), mCardBackTexture(NULL),
-	  mAssets(NULL), mSpriteSheets(NULL), mSoundManager(NULL), mRunning(false),
+	  mAssets(NULL), mSpriteSheets(NULL), mWorldTileRenderer(NULL), mSoundManager(NULL),
+	  mRunning(false),
 	  mScreen(Screen::MainMenu), mMainMenuSelection(0), mLoadGameSelection(0),
 	  mLoadGameScroll(0), mPauseMenuOpen(false), mPauseMenuSelection(0), mCurrentWorldArea(0),
 	  mOpeningPortal(-1), mPortalAnimationStarted(0),
@@ -134,6 +136,7 @@ bool Application::initialize()
 
 	mAssets = new AssetManager(mRenderer);
 	mSpriteSheets = new SpriteSheetRenderer(mRenderer, mAssets);
+	mWorldTileRenderer = new WorldTileRenderer(mRenderer, mAssets);
 	mBoardTexture = mAssets->texture("Resources/Textures/duel-board.png");
 	if (mBoardTexture == NULL)
 		std::cerr << "Board texture unavailable; using fallback colors: " << IMG_GetError() << std::endl;
@@ -161,6 +164,8 @@ void Application::shutdown()
 	mSoundManager = NULL;
 	delete mSpriteSheets;
 	mSpriteSheets = NULL;
+	delete mWorldTileRenderer;
+	mWorldTileRenderer = NULL;
 	mBoardTexture = NULL;
 	mCardBackTexture = NULL;
 	delete mAssets;

@@ -42,6 +42,7 @@ set(GAME_SOURCES
 	Source/App/Story.cpp
 	Source/App/WorldBuilder.cpp
 	Source/App/WorldObject.cpp
+	Source/App/WorldTileRenderer.cpp
     Source/CRandom.cpp
     Source/LuaFunctions.cpp
 	Source/LuaTrace.cpp
