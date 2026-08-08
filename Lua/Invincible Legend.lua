@@ -104,10 +104,7 @@ Cards["Kuukai, Finder of Karma"] = {
 	HandleMessage = function(id) --test
 		Abils.Evolution(id,"Mecha Thunder")
 		Abils.cantAttackPlayers(id)
-
-		if(getMessageType()=="post creaturebattle" and getMessageInt("blocked")==1 and getMessageInt("defender")==id and getCardZone(id)==ZONE_BATTLE) then
-			untapCard(id)
-		end
+		Abils.untapAfterBlock(id)
 	end
 }
 

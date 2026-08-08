@@ -8,678 +8,117 @@
     "Maps/world_map.json"
   ],
   "regions": [
-    {
-      "id": "glasswater",
-      "name": "Glasswater Port",
-      "map": "overworld",
-      "kind": "town",
-      "x": 288,
-      "y": 665,
-      "width": 96,
-      "height": 48
-    },
-    {
-      "id": "rootmaze",
-      "name": "Rootmaze Commons",
-      "map": "overworld",
-      "kind": "town",
-      "x": 288,
-      "y": 717,
-      "width": 96,
-      "height": 56
-    },
-    {
-      "id": "watershed_crossroads",
-      "name": "Watershed Crossroads",
-      "map": "overworld",
-      "kind": "connector",
-      "x": 384,
-      "y": 683,
-      "width": 128,
-      "height": 72
-    },
-    {
-      "id": "emberglen",
-      "name": "Emberglen",
-      "map": "overworld",
-      "kind": "town",
-      "x": 512,
-      "y": 700,
-      "width": 36,
-      "height": 26
-    },
-    {
-      "id": "old_road",
-      "name": "The Old Road",
-      "map": "overworld",
-      "kind": "connector",
-      "x": 548,
-      "y": 688,
-      "width": 96,
-      "height": 48
-    },
-    {
-      "id": "cinderrail",
-      "name": "Cinderrail Foundry",
-      "map": "overworld",
-      "kind": "town",
-      "x": 644,
-      "y": 697,
-      "width": 52,
-      "height": 36
-    },
-    {
-      "id": "blackstone_road",
-      "name": "Blackstone Road",
-      "map": "overworld",
-      "kind": "connector",
-      "x": 488,
-      "y": 755,
-      "width": 96,
-      "height": 95
-    }
+    { "id": "glasswater", "name": "Glasswater Port", "map": "overworld", "kind": "town", "x": 288, "y": 665, "width": 96, "height": 48 },
+    { "id": "rootmaze", "name": "Rootmaze Commons", "map": "overworld", "kind": "town", "x": 288, "y": 717, "width": 96, "height": 56 },
+    { "id": "watershed_crossroads", "name": "Watershed Crossroads", "map": "overworld", "kind": "connector", "x": 384, "y": 683, "width": 128, "height": 72 },
+    { "id": "emberglen", "name": "Emberglen", "map": "overworld", "kind": "town", "x": 512, "y": 700, "width": 36, "height": 26 },
+    { "id": "old_road", "name": "The Old Road", "map": "overworld", "kind": "connector", "x": 548, "y": 688, "width": 96, "height": 48 },
+    { "id": "cinderrail", "name": "Cinderrail Foundry", "map": "overworld", "kind": "town", "x": 644, "y": 697, "width": 52, "height": 36 },
+    { "id": "blackstone_road", "name": "Blackstone Road", "map": "overworld", "kind": "connector", "x": 488, "y": 755, "width": 96, "height": 95 }
   ],
-  "start": {
-    "map": "overworld",
-    "x": 529,
-    "y": 715
-  },
+  "start": { "map": "overworld", "x": 529, "y": 715 },
   "portals": [
-    {
-      "from": {
-        "map": "overworld",
-        "x": 542,
-        "y": 710
-      },
-      "to": {
-        "map": "mercers_house",
-        "x": 5,
-        "y": 6
-      }
-    },
-    {
-      "from": {
-        "map": "mercers_house",
-        "x": 5,
-        "y": 7
-      },
-      "to": {
-        "map": "overworld",
-        "x": 542,
-        "y": 711
-      }
-    },
-    {
-      "from": {
-        "map": "overworld",
-        "x": 517,
-        "y": 706
-      },
-      "to": {
-        "map": "rook_mira_home",
-        "x": 5,
-        "y": 6
-      }
-    },
-    {
-      "from": {
-        "map": "rook_mira_home",
-        "x": 5,
-        "y": 7
-      },
-      "to": {
-        "map": "overworld",
-        "x": 517,
-        "y": 707
-      }
-    }
+    { "from": { "map": "overworld", "x": 542, "y": 710 }, "to": { "map": "mercers_house", "x": 5, "y": 6 } },
+    { "from": { "map": "mercers_house", "x": 5, "y": 7 }, "to": { "map": "overworld", "x": 542, "y": 711 } },
+    { "from": { "map": "overworld", "x": 517, "y": 706 }, "to": { "map": "rook_mira_home", "x": 5, "y": 6 } },
+    { "from": { "map": "rook_mira_home", "x": 5, "y": 7 }, "to": { "map": "overworld", "x": 517, "y": 707 } }
   ],
   "entities": {
     "npcs": [
-      {
-        "id": "mira",
-        "map": "rook_mira_home",
-        "x": 5,
-        "y": 2
-      },
-      {
-        "id": "marin",
-        "map": "overworld",
-        "x": 524,
-        "y": 699
-      },
-      {
-        "id": "rook",
-        "map": "overworld",
-        "x": 572,
-        "y": 709
-      },
-      {
-        "id": "aurelia",
-        "map": "overworld",
-        "x": 529,
-        "y": 689
-      },
-      {
-        "id": "flint",
-        "map": "overworld",
-        "x": 521,
-        "y": 734
-      },
-      {
-        "id": "nyx",
-        "map": "overworld",
-        "x": 538,
-        "y": 751
-      },
-      {
-        "id": "tidal",
-        "map": "overworld",
-        "x": 536,
-        "y": 722
-      },
-      {
-        "id": "briar",
-        "map": "overworld",
-        "x": 525,
-        "y": 731
-      },
-      {
-        "id": "mercer",
-        "map": "mercers_house",
-        "x": 5,
-        "y": 2
-      },
-      {
-        "id": "veiled_one",
-        "map": "overworld",
-        "x": 529,
-        "y": 710
-      },
-      {
-        "id": "pip",
-        "map": "overworld",
-        "x": 677,
-        "y": 713
-      },
-      {
-        "id": "noma",
-        "map": "overworld",
-        "x": 655,
-        "y": 703
-      },
-      {
-        "id": "bram",
-        "map": "overworld",
-        "x": 679,
-        "y": 718
-      },
-      {
-        "id": "elia",
-        "map": "overworld",
-        "x": 686,
-        "y": 714
-      },
-      {
-        "id": "tomas",
-        "map": "overworld",
-        "x": 656,
-        "y": 727
-      },
-      {
-        "id": "senn",
-        "map": "overworld",
-        "x": 671,
-        "y": 728
-      },
-      {
-        "id": "kipp",
-        "map": "overworld",
-        "x": 655,
-        "y": 722
-      },
-      {
-        "id": "ansa",
-        "map": "overworld",
-        "x": 691,
-        "y": 717
-      },
-      {
-        "id": "holt",
-        "map": "overworld",
-        "x": 678,
-        "y": 722
-      },
-      {
-        "id": "neris",
-        "map": "overworld",
-        "x": 374,
-        "y": 692
-      },
-      {
-        "id": "pell",
-        "map": "overworld",
-        "x": 310,
-        "y": 685
-      },
-      {
-        "id": "iri",
-        "map": "overworld",
-        "x": 357,
-        "y": 689
-      },
-      {
-        "id": "sol",
-        "map": "overworld",
-        "x": 338,
-        "y": 693
-      },
-      {
-        "id": "oren",
-        "map": "overworld",
-        "x": 338,
-        "y": 743
-      },
-      {
-        "id": "fern",
-        "map": "overworld",
-        "x": 350,
-        "y": 743
-      },
-      {
-        "id": "toma",
-        "map": "overworld",
-        "x": 327,
-        "y": 760
-      },
-      {
-        "id": "moss",
-        "map": "overworld",
-        "x": 312,
-        "y": 769
-      },
-      {
-        "id": "crossroad-duelist-1",
-        "map": "overworld",
-        "x": 437,
-        "y": 712
-      },
-      {
-        "id": "crossroad-duelist-2",
-        "map": "overworld",
-        "x": 418,
-        "y": 699
-      },
-      {
-        "id": "crossroad-duelist-3",
-        "map": "overworld",
-        "x": 492,
-        "y": 743
-      },
-      {
-        "id": "crossroad-duelist-4",
-        "map": "overworld",
-        "x": 445,
-        "y": 694
-      },
-      {
-        "id": "crossroad-duelist-5",
-        "map": "overworld",
-        "x": 398,
-        "y": 746
-      },
-      {
-        "id": "crossroad-duelist-6",
-        "map": "overworld",
-        "x": 493,
-        "y": 688
-      },
-      {
-        "id": "crossroad-duelist-7",
-        "map": "overworld",
-        "x": 490,
-        "y": 708
-      },
-      {
-        "id": "crossroad-duelist-8",
-        "map": "overworld",
-        "x": 425,
-        "y": 751
-      },
-      {
-        "id": "crossroad-duelist-9",
-        "map": "overworld",
-        "x": 451,
-        "y": 685
-      },
-      {
-        "id": "crossroad-duelist-10",
-        "map": "overworld",
-        "x": 395,
-        "y": 691
-      },
-      {
-        "id": "old-road-duelist-1",
-        "map": "overworld",
-        "x": 621,
-        "y": 732
-      },
-      {
-        "id": "old-road-duelist-2",
-        "map": "overworld",
-        "x": 577,
-        "y": 731
-      },
-      {
-        "id": "old-road-duelist-3",
-        "map": "overworld",
-        "x": 628,
-        "y": 708
-      },
-      {
-        "id": "old-road-duelist-4",
-        "map": "overworld",
-        "x": 617,
-        "y": 694
-      },
-      {
-        "id": "old-road-duelist-5",
-        "map": "overworld",
-        "x": 554,
-        "y": 690
-      },
-      {
-        "id": "old-road-duelist-6",
-        "map": "overworld",
-        "x": 597,
-        "y": 721
-      },
-      {
-        "id": "old-road-duelist-7",
-        "map": "overworld",
-        "x": 607,
-        "y": 715
-      },
-      {
-        "id": "old-road-duelist-8",
-        "map": "overworld",
-        "x": 582,
-        "y": 699
-      },
-      {
-        "id": "old-road-duelist-9",
-        "map": "overworld",
-        "x": 600,
-        "y": 692
-      },
-      {
-        "id": "old-road-duelist-10",
-        "map": "overworld",
-        "x": 591,
-        "y": 726
-      }
+      { "id": "ansa", "map": "overworld", "x": 691, "y": 717 },
+      { "id": "aurelia", "map": "overworld", "x": 529, "y": 689 },
+      { "id": "bram", "map": "overworld", "x": 679, "y": 718 },
+      { "id": "briar", "map": "overworld", "x": 525, "y": 731 },
+      { "id": "crossroad-duelist-1", "map": "overworld", "x": 437, "y": 712 },
+      { "id": "crossroad-duelist-10", "map": "overworld", "x": 395, "y": 691 },
+      { "id": "crossroad-duelist-2", "map": "overworld", "x": 418, "y": 699 },
+      { "id": "crossroad-duelist-3", "map": "overworld", "x": 492, "y": 743 },
+      { "id": "crossroad-duelist-4", "map": "overworld", "x": 445, "y": 694 },
+      { "id": "crossroad-duelist-5", "map": "overworld", "x": 398, "y": 746 },
+      { "id": "crossroad-duelist-6", "map": "overworld", "x": 493, "y": 688 },
+      { "id": "crossroad-duelist-7", "map": "overworld", "x": 490, "y": 708 },
+      { "id": "crossroad-duelist-8", "map": "overworld", "x": 425, "y": 751 },
+      { "id": "crossroad-duelist-9", "map": "overworld", "x": 451, "y": 685 },
+      { "id": "elia", "map": "overworld", "x": 686, "y": 714 },
+      { "id": "fern", "map": "overworld", "x": 350, "y": 743 },
+      { "id": "flint", "map": "overworld", "x": 521, "y": 734 },
+      { "id": "holt", "map": "overworld", "x": 678, "y": 722 },
+      { "id": "iri", "map": "overworld", "x": 357, "y": 689 },
+      { "id": "kipp", "map": "overworld", "x": 655, "y": 722 },
+      { "id": "marin", "map": "overworld", "x": 524, "y": 699 },
+      { "id": "mercer", "map": "mercers_house", "x": 5, "y": 2 },
+      { "id": "mira", "map": "rook_mira_home", "x": 5, "y": 2 },
+      { "id": "moss", "map": "overworld", "x": 312, "y": 769 },
+      { "id": "neris", "map": "overworld", "x": 374, "y": 692 },
+      { "id": "noma", "map": "overworld", "x": 655, "y": 703 },
+      { "id": "nyx", "map": "overworld", "x": 538, "y": 751 },
+      { "id": "old-road-duelist-1", "map": "overworld", "x": 621, "y": 732 },
+      { "id": "old-road-duelist-10", "map": "overworld", "x": 591, "y": 726 },
+      { "id": "old-road-duelist-2", "map": "overworld", "x": 577, "y": 731 },
+      { "id": "old-road-duelist-3", "map": "overworld", "x": 628, "y": 708 },
+      { "id": "old-road-duelist-4", "map": "overworld", "x": 617, "y": 694 },
+      { "id": "old-road-duelist-5", "map": "overworld", "x": 554, "y": 690 },
+      { "id": "old-road-duelist-6", "map": "overworld", "x": 597, "y": 721 },
+      { "id": "old-road-duelist-7", "map": "overworld", "x": 607, "y": 715 },
+      { "id": "old-road-duelist-8", "map": "overworld", "x": 582, "y": 699 },
+      { "id": "old-road-duelist-9", "map": "overworld", "x": 600, "y": 692 },
+      { "id": "oren", "map": "overworld", "x": 338, "y": 743 },
+      { "id": "pell", "map": "overworld", "x": 310, "y": 685 },
+      { "id": "pip", "map": "overworld", "x": 677, "y": 713 },
+      { "id": "rook", "map": "overworld", "x": 572, "y": 709 },
+      { "id": "senn", "map": "overworld", "x": 671, "y": 728 },
+      { "id": "sol", "map": "overworld", "x": 338, "y": 693 },
+      { "id": "tidal", "map": "overworld", "x": 536, "y": 722 },
+      { "id": "toma", "map": "overworld", "x": 327, "y": 760 },
+      { "id": "tomas", "map": "overworld", "x": 656, "y": 727 },
+      { "id": "veiled_one", "map": "overworld", "x": 529, "y": 710 }
     ],
     "objects": [
-      {
-        "id": "glasswater_tideglass_sign",
-        "map": "overworld",
-        "x": 335,
-        "y": 687
-      },
-      {
-        "id": "glasswater_quay_sign",
-        "map": "overworld",
-        "x": 308,
-        "y": 683
-      },
-      {
-        "id": "glasswater_ledger_sign",
-        "map": "overworld",
-        "x": 362,
-        "y": 685
-      },
-      {
-        "id": "glasswater_watershed_sign",
-        "map": "overworld",
-        "x": 374,
-        "y": 701
-      },
-      {
-        "id": "rootmaze_common_sign",
-        "map": "overworld",
-        "x": 336,
-        "y": 734
-      },
-      {
-        "id": "rootmaze_market_sign",
-        "map": "overworld",
-        "x": 353,
-        "y": 728
-      },
-      {
-        "id": "rootmaze_heartroot_sign",
-        "map": "overworld",
-        "x": 303,
-        "y": 737
-      },
-      {
-        "id": "rootmaze_arena_sign",
-        "map": "overworld",
-        "x": 303,
-        "y": 756
-      },
-      {
-        "id": "rootmaze_southroot_sign",
-        "map": "overworld",
-        "x": 338,
-        "y": 755
-      },
-      {
-        "id": "rootmaze_northwater_sign",
-        "map": "overworld",
-        "x": 374,
-        "y": 725
-      },
-      {
-        "id": "watershed_crossroads_sign",
-        "map": "overworld",
-        "x": 435,
-        "y": 717
-      },
-      {
-        "id": "watershed_glasswater_sign",
-        "map": "overworld",
-        "x": 388,
-        "y": 702
-      },
-      {
-        "id": "watershed_rootmaze_sign",
-        "map": "overworld",
-        "x": 388,
-        "y": 725
-      },
-      {
-        "id": "watershed_shelter_sign",
-        "map": "overworld",
-        "x": 439,
-        "y": 707
-      },
-      {
-        "id": "watershed_emberglen_sign",
-        "map": "overworld",
-        "x": 493,
-        "y": 717
-      },
-      {
-        "id": "old_road_junction_sign",
-        "map": "overworld",
-        "x": 583,
-        "y": 711
-      },
-      {
-        "id": "old_road_camp_sign",
-        "map": "overworld",
-        "x": 607,
-        "y": 723
-      },
-      {
-        "id": "old_road_cut_sign",
-        "map": "overworld",
-        "x": 556,
-        "y": 694
-      },
-      {
-        "id": "old_road_wayfarer_chest",
-        "map": "overworld",
-        "x": 570,
-        "y": 700
-      },
-      {
-        "id": "blackstone_checkpoint_sign",
-        "map": "overworld",
-        "x": 533,
-        "y": 752
-      },
-      {
-        "id": "cinderrail_station_sign",
-        "map": "overworld",
-        "x": 650,
-        "y": 703
-      },
-      {
-        "id": "cinderrail_square_sign",
-        "map": "overworld",
-        "x": 668,
-        "y": 710
-      },
-      {
-        "id": "cinderrail_foundry_sign",
-        "map": "overworld",
-        "x": 688,
-        "y": 708
-      },
-      {
-        "id": "cinderrail_arena_sign",
-        "map": "overworld",
-        "x": 688,
-        "y": 721
-      }
+      { "id": "blackstone_checkpoint_sign", "map": "overworld", "x": 533, "y": 752 },
+      { "id": "cinderrail_arena_sign", "map": "overworld", "x": 688, "y": 721 },
+      { "id": "cinderrail_foundry_sign", "map": "overworld", "x": 688, "y": 708 },
+      { "id": "cinderrail_square_sign", "map": "overworld", "x": 668, "y": 710 },
+      { "id": "cinderrail_station_sign", "map": "overworld", "x": 650, "y": 703 },
+      { "id": "glasswater_ledger_sign", "map": "overworld", "x": 362, "y": 685 },
+      { "id": "glasswater_quay_sign", "map": "overworld", "x": 308, "y": 683 },
+      { "id": "glasswater_tideglass_sign", "map": "overworld", "x": 335, "y": 687 },
+      { "id": "glasswater_watershed_sign", "map": "overworld", "x": 374, "y": 701 },
+      { "id": "old_road_camp_sign", "map": "overworld", "x": 607, "y": 723 },
+      { "id": "old_road_cut_sign", "map": "overworld", "x": 556, "y": 694 },
+      { "id": "old_road_junction_sign", "map": "overworld", "x": 583, "y": 711 },
+      { "id": "old_road_wayfarer_chest", "map": "overworld", "x": 570, "y": 700 },
+      { "id": "rootmaze_arena_sign", "map": "overworld", "x": 303, "y": 756 },
+      { "id": "rootmaze_common_sign", "map": "overworld", "x": 336, "y": 734 },
+      { "id": "rootmaze_heartroot_sign", "map": "overworld", "x": 303, "y": 737 },
+      { "id": "rootmaze_market_sign", "map": "overworld", "x": 353, "y": 728 },
+      { "id": "rootmaze_northwater_sign", "map": "overworld", "x": 374, "y": 725 },
+      { "id": "rootmaze_southroot_sign", "map": "overworld", "x": 338, "y": 755 },
+      { "id": "watershed_crossroads_sign", "map": "overworld", "x": 435, "y": 717 },
+      { "id": "watershed_emberglen_sign", "map": "overworld", "x": 493, "y": 717 },
+      { "id": "watershed_glasswater_sign", "map": "overworld", "x": 388, "y": 702 },
+      { "id": "watershed_rootmaze_sign", "map": "overworld", "x": 388, "y": 725 },
+      { "id": "watershed_shelter_sign", "map": "overworld", "x": 439, "y": 707 }
     ],
     "shards": [
-      {
-        "id": "living_dead",
-        "map": "overworld",
-        "x": 540,
-        "y": 751
-      },
-      {
-        "id": "ghost",
-        "map": "overworld",
-        "x": 551,
-        "y": 730
-      },
-      {
-        "id": "chimera",
-        "map": "overworld",
-        "x": 553,
-        "y": 699
-      },
-      {
-        "id": "parasite_worm",
-        "map": "overworld",
-        "x": 552,
-        "y": 696
-      },
-      {
-        "id": "human",
-        "map": "overworld",
-        "x": 552,
-        "y": 701
-      },
-      {
-        "id": "armoroid",
-        "map": "overworld",
-        "x": 629,
-        "y": 696
-      },
-      {
-        "id": "rock_beast",
-        "map": "overworld",
-        "x": 562,
-        "y": 690
-      },
-      {
-        "id": "machine_eater",
-        "map": "overworld",
-        "x": 567,
-        "y": 733
-      },
-      {
-        "id": "dragonoid",
-        "map": "overworld",
-        "x": 631,
-        "y": 733
-      },
-      {
-        "id": "fire",
-        "map": "overworld",
-        "x": 553,
-        "y": 703
-      },
-      {
-        "id": "giant_insect",
-        "map": "overworld",
-        "x": 396,
-        "y": 744
-      },
-      {
-        "id": "colony_beetle",
-        "map": "overworld",
-        "x": 507,
-        "y": 711
-      },
-      {
-        "id": "horned_beast",
-        "map": "overworld",
-        "x": 507,
-        "y": 723
-      },
-      {
-        "id": "beast_folk",
-        "map": "overworld",
-        "x": 490,
-        "y": 745
-      },
-      {
-        "id": "tree_folk",
-        "map": "overworld",
-        "x": 552,
-        "y": 719
-      },
-      {
-        "id": "fish",
-        "map": "overworld",
-        "x": 394,
-        "y": 694
-      },
-      {
-        "id": "cyber_lord",
-        "map": "overworld",
-        "x": 538,
-        "y": 712
-      },
-      {
-        "id": "cyber_virus",
-        "map": "overworld",
-        "x": 493,
-        "y": 691
-      },
-      {
-        "id": "liquid_people",
-        "map": "overworld",
-        "x": 508,
-        "y": 722
-      }
+      { "id": "armoroid", "map": "overworld", "x": 629, "y": 696 },
+      { "id": "beast_folk", "map": "overworld", "x": 490, "y": 745 },
+      { "id": "chimera", "map": "overworld", "x": 553, "y": 699 },
+      { "id": "colony_beetle", "map": "overworld", "x": 507, "y": 711 },
+      { "id": "cyber_lord", "map": "overworld", "x": 538, "y": 712 },
+      { "id": "cyber_virus", "map": "overworld", "x": 493, "y": 691 },
+      { "id": "dragonoid", "map": "overworld", "x": 631, "y": 733 },
+      { "id": "fire", "map": "overworld", "x": 553, "y": 703 },
+      { "id": "fish", "map": "overworld", "x": 394, "y": 694 },
+      { "id": "ghost", "map": "overworld", "x": 551, "y": 730 },
+      { "id": "giant_insect", "map": "overworld", "x": 396, "y": 744 },
+      { "id": "horned_beast", "map": "overworld", "x": 507, "y": 723 },
+      { "id": "human", "map": "overworld", "x": 552, "y": 701 },
+      { "id": "liquid_people", "map": "overworld", "x": 508, "y": 722 },
+      { "id": "living_dead", "map": "overworld", "x": 540, "y": 751 },
+      { "id": "machine_eater", "map": "overworld", "x": 567, "y": 733 },
+      { "id": "parasite_worm", "map": "overworld", "x": 552, "y": 696 },
+      { "id": "rock_beast", "map": "overworld", "x": 562, "y": 690 },
+      { "id": "tree_folk", "map": "overworld", "x": 552, "y": 719 }
     ]
   }
 }

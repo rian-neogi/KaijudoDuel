@@ -10,6 +10,7 @@
 #include <cstring>
 #include <fstream>
 #include <map>
+#include <set>
 #include <sstream>
 #include <tuple>
 
@@ -73,6 +74,35 @@ namespace
 		else if (name == "foreground") layer = RtpRenderLayer::Foreground;
 		else return false;
 		return true;
+	}
+
+	void normalizeLargeTreeSpacing(WorldMap& map)
+	{
+		std::set<std::pair<int, int> > acceptedAnchors;
+		for (std::map<std::tuple<int, int, int>, RtpTileReference>::iterator tile =
+			map.tileLayers.begin(); tile != map.tileLayers.end();)
+		{
+			std::map<std::tuple<int, int, int>, RtpTileReference>::iterator current =
+				tile++;
+			if (std::get<2>(current->first) != (int)RtpRenderLayer::Decoration)
+				continue;
+			int footprintWidth = 0;
+			int footprintHeight = 0;
+			if (!RtpTilesetRenderer::treeAutotileFootprint(current->second,
+				footprintWidth, footprintHeight) || footprintWidth != 2) continue;
+			int y = std::get<0>(current->first);
+			int x = std::get<1>(current->first);
+			bool overlaps = x < footprintWidth - 1 || y < footprintHeight - 1;
+			for (int horizontalSide = -1; horizontalSide <= 1;
+				horizontalSide += 2)
+				if (acceptedAnchors.count(std::make_pair(x + horizontalSide, y)) != 0)
+				{
+					overlaps = true;
+					break;
+				}
+			if (overlaps) map.tileLayers.erase(current);
+			else acceptedAnchors.insert(std::make_pair(x, y));
+		}
 	}
 
 	std::string jsonEscape(const std::string& value)
@@ -221,6 +251,7 @@ bool CatalogMapStorage::loadMap(const std::string& path, WorldMap& map,
 				error = "catalog map '" + path + "' has an invalid palette entry";
 				return false;
 			}
+			index = RtpTilesetRenderer::canonicalTileIndex(family, sheet, index);
 			palette.push_back(RtpTileReference(family, sheet, index, layer,
 				(Uint8)tint[0], (Uint8)tint[1], (Uint8)tint[2]));
 		}
@@ -268,6 +299,7 @@ bool CatalogMapStorage::loadMap(const std::string& path, WorldMap& map,
 				return false;
 			}
 		}
+		normalizeLargeTreeSpacing(loaded);
 		boost::optional<ptree&> tags = root.get_child_optional("tags");
 		if (tags)
 			for (ptree::const_iterator tag = tags->begin(); tag != tags->end(); ++tag)

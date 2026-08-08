@@ -4,6 +4,7 @@
 #include "AppSupport.h"
 #include "CatalogMapStorage.h"
 #include "Game/Card.h"
+#include "Game/Deck.h"
 #include "Landmarks.h"
 #include "RtpTilesetRenderer.h"
 #include "SpriteSheetRenderer.h"
@@ -13,8 +14,10 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <dirent.h>
 #include <iostream>
 #include <set>
+#include <sys/stat.h>
 
 using namespace AppSupport;
 
@@ -23,6 +26,39 @@ namespace
 	constexpr Uint32 DOOR_OPEN_DURATION = 400;
 	const SDL_Rect GRAVEYARD_NEXT = { 700, 590, 145, 42 };
 	const SDL_Rect SETTINGS_BUTTON = { 890, 502, 300, 58 };
+
+	bool collectDeckFiles(const std::string& directory, std::vector<std::string>& files)
+	{
+		DIR* folder = opendir(directory.c_str());
+		if (folder == NULL)
+		{
+			std::cerr << "Unable to open bundled deck directory '" << directory << "'." << std::endl;
+			return false;
+		}
+		bool valid = true;
+		for (dirent* entry = readdir(folder); entry != NULL; entry = readdir(folder))
+		{
+			std::string name = entry->d_name;
+			if (name == "." || name == "..") continue;
+			std::string path = directory + "/" + name;
+			struct stat status;
+			if (lstat(path.c_str(), &status) != 0)
+			{
+				std::cerr << "Unable to inspect bundled deck path '" << path << "'." << std::endl;
+				valid = false;
+			}
+			else if (S_ISDIR(status.st_mode))
+			{
+				if (!collectDeckFiles(path, files)) valid = false;
+			}
+			else if (S_ISREG(status.st_mode))
+			{
+				files.push_back(path);
+			}
+		}
+		closedir(folder);
+		return valid;
+	}
 }
 
 int Application::runSmokeTests()
@@ -55,6 +91,11 @@ int Application::runSmokeTests()
 			std::cerr << "Save menu smoke test failed." << std::endl;
 			return 2;
 		}
+		if (!exerciseBundledDecksSmoke())
+		{
+			std::cerr << "Bundled deck smoke test failed." << std::endl;
+			return 2;
+		}
 		if (!exerciseOverworldMovementSmoke())
 		{
 			std::cerr << "Overworld movement smoke test failed." << std::endl;
@@ -63,6 +104,11 @@ int Application::runSmokeTests()
 		if (!exerciseStorySmoke())
 		{
 			std::cerr << "Act I story smoke test failed." << std::endl;
+			return 2;
+		}
+		if (!exerciseUntapAfterBlockSmoke())
+		{
+			std::cerr << "Untap-after-block smoke test failed." << std::endl;
 			return 2;
 		}
 		ensurePlayerDataLoaded();
@@ -343,6 +389,43 @@ int Application::runSmokeTests()
 	return 0;
 }
 
+bool Application::exerciseBundledDecksSmoke()
+{
+	std::vector<std::string> deckFiles;
+	bool valid = collectDeckFiles("Decks", deckFiles);
+	int lukiaLex = getCardIdFromName("Lukia Lex, Pinnacle Guardian");
+	int bronzeArmTribe = getCardIdFromName("Bronze-Arm Tribe");
+	bool flexibleNamesReady = lukiaLex >= 0 && bronzeArmTribe >= 0 &&
+		getDeckCardIdFromName("lukia lex pinnacle guardian") == lukiaLex &&
+		getDeckCardIdFromName("LUKIA LEX,,, PINNACLE GUARDIAN") == lukiaLex &&
+		getDeckCardIdFromName("Lukia Lex,Pinnacle Guardian") == lukiaLex &&
+		getDeckCardIdFromName("bronze arm tribe") == bronzeArmTribe &&
+		getDeckCardIdFromName("BRONZE - ARM TRIBE") == bronzeArmTribe &&
+		getDeckCardIdFromName("Lukia Lex. Pinnacle Guardian") < 0;
+	if (!flexibleNamesReady)
+	{
+		std::cerr << "Flexible deck card-name matching smoke test failed." << std::endl;
+		valid = false;
+	}
+	std::sort(deckFiles.begin(), deckFiles.end());
+	if (deckFiles.empty())
+	{
+		std::cerr << "No bundled deck files were found beneath Decks/." << std::endl;
+		return false;
+	}
+
+	for (size_t deck = 0; deck < deckFiles.size(); ++deck)
+	{
+		std::vector<int> cardIds;
+		if (!loadDeckCardIds(deckFiles[deck], cardIds, 40))
+		{
+			std::cerr << "Invalid bundled deck: " << deckFiles[deck] << std::endl;
+			valid = false;
+		}
+	}
+	return valid;
+}
+
 bool Application::exerciseMultiCivilizationSmoke()
 {
 	std::lock_guard<std::mutex> lock(gMutex);
@@ -412,6 +495,44 @@ bool Application::exerciseMultiCivilizationSmoke()
 		test.dispatchAllMessages();
 		valid = valid && test.mCardList[tappedDual]->mZone == ZONE_MANA &&
 			test.mCardList[tappedDual]->mIsTapped;
+	}
+	ActiveDuel = savedActiveDuel;
+	return valid;
+}
+
+bool Application::exerciseUntapAfterBlockSmoke()
+{
+	int spiralGrassId = getCardIdFromName("Spiral Grass");
+	int attackerId = getCardIdFromName("Deadly Fighter Braid Claw");
+	if (spiralGrassId < 0 || attackerId < 0) return false;
+
+	Duel* savedActiveDuel = ActiveDuel;
+	bool valid = true;
+	for (int blocked = 0; blocked <= 1; ++blocked)
+	{
+		Duel test;
+		test.mIsSimulation = true;
+		ActiveDuel = &test;
+
+		Card* blocker = new Card(0, spiralGrassId, 0);
+		Card* attacker = new Card(1, attackerId, 1);
+		test.mCardList.push_back(blocker);
+		test.mCardList.push_back(attacker);
+		test.mBattlezones[0].addCard(blocker);
+		test.mBattlezones[1].addCard(attacker);
+		blocker->mZone = ZONE_BATTLE;
+		attacker->mZone = ZONE_BATTLE;
+		blocker->tap();
+
+		Message battle("creaturebattle");
+		battle.addValue("attacker", attacker->mUniqueId);
+		battle.addValue("defender", blocker->mUniqueId);
+		battle.addValue("blocked", blocked);
+		test.dispatchMessage(battle);
+		test.dispatchAllMessages();
+
+		valid = valid && blocker->mZone == ZONE_BATTLE &&
+			blocker->mIsTapped == (blocked == 0);
 	}
 	ActiveDuel = savedActiveDuel;
 	return valid;
@@ -1118,6 +1239,29 @@ bool Application::exerciseOverworldMovementSmoke()
 	std::string emptyWorldError;
 	worldDataReady = worldDataReady && !emptyWorld.validateStructure(emptyWorldError) &&
 		!emptyWorldError.empty();
+	for (size_t mapIndex = 0; mapIndex < mWorld.maps.size(); ++mapIndex)
+	{
+		std::set<std::pair<int, int> > largeTreeAnchors;
+		for (std::map<std::tuple<int, int, int>, RtpTileReference>::const_iterator tile =
+			mWorld.maps[mapIndex].tileLayers.begin();
+			tile != mWorld.maps[mapIndex].tileLayers.end(); ++tile)
+		{
+			worldDataReady = worldDataReady && tile->second.index ==
+				RtpTilesetRenderer::canonicalTileIndex(tile->second.family,
+					tile->second.sheet, tile->second.index);
+			int treeWidth = 0;
+			int treeHeight = 0;
+			if (!RtpTilesetRenderer::treeAutotileFootprint(tile->second,
+				treeWidth, treeHeight) || treeWidth != 2) continue;
+			int y = std::get<0>(tile->first);
+			int x = std::get<1>(tile->first);
+			for (int horizontalSide = -1; horizontalSide <= 1;
+				horizontalSide += 2)
+				worldDataReady = worldDataReady && largeTreeAnchors.count(
+					std::make_pair(x + horizontalSide, y)) == 0;
+			largeTreeAnchors.insert(std::make_pair(x, y));
+		}
+	}
 	bool npcAppearancesReady = true;
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 	{
@@ -1182,6 +1326,30 @@ bool Application::exerciseOverworldMovementSmoke()
 		RtpTilesetRenderer::inferredLayer(RtpTileReference(
 			RtpTilesetFamily::Dungeon, RtpTileSheet::C, 31)) ==
 			RtpRenderLayer::Foreground;
+	const RtpTilesetFamily tilesetFamilies[] = { RtpTilesetFamily::Dungeon,
+		RtpTilesetFamily::Inside, RtpTilesetFamily::Outside,
+		RtpTilesetFamily::World };
+	for (int family = 0; family < 4 && fullTilesetReady; ++family)
+	{
+		for (int tile = 0; tile < 16; ++tile)
+			fullTilesetReady = fullTilesetReady &&
+				RtpTilesetRenderer::inferredLayer(RtpTileReference(
+					tilesetFamilies[family], RtpTileSheet::A1, tile)) ==
+					(tile >= 1 && tile <= 3 ? RtpRenderLayer::Decoration :
+						RtpRenderLayer::Ground);
+		for (int tile = 0; tile < 32; ++tile)
+			fullTilesetReady = fullTilesetReady &&
+				RtpTilesetRenderer::inferredLayer(RtpTileReference(
+					tilesetFamilies[family], RtpTileSheet::A2, tile)) ==
+					(tile % 8 >= 4 ? RtpRenderLayer::Decoration :
+						RtpRenderLayer::Ground);
+		RtpTileCollision overlayCollision = family == 3 ? RtpTileCollision::Ignore :
+			RtpTileCollision::Blocked;
+		fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::collision(
+			RtpTileReference(tilesetFamilies[family], RtpTileSheet::A1, 1)) ==
+			overlayCollision && RtpTilesetRenderer::collision(RtpTileReference(
+				tilesetFamilies[family], RtpTileSheet::A2, 4)) == overlayCollision;
+	}
 	SDL_Rect tilesetTarget = { 0, 0, 32, 32 };
 	for (size_t sheet = 0; sheet < sheets.size() && fullTilesetReady; ++sheet)
 	{
@@ -1229,19 +1397,77 @@ bool Application::exerciseOverworldMovementSmoke()
 	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::paletteTileSource(
 		RtpTileSheet::B, 128, regularTile) && regularTile.x == 256 &&
 		regularTile.y == 0 && regularTile.w == 32 && regularTile.h == 32;
-	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::isWallOpening(
-		RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::B, 67,
-			RtpRenderLayer::Decoration)) &&
-		!RtpTilesetRenderer::isWallOpening(RtpTileReference(
-			RtpTilesetFamily::Outside, RtpTileSheet::B, 225,
-			RtpRenderLayer::Decoration));
+	fullTilesetReady = fullTilesetReady &&
+		RtpTilesetRenderer::canonicalTileIndex(RtpTilesetFamily::Outside,
+			RtpTileSheet::B, 94) == 93 &&
+		RtpTilesetRenderer::canonicalTileIndex(RtpTilesetFamily::Outside,
+			RtpTileSheet::B, 123) == 112 &&
+		RtpTilesetRenderer::canonicalTileIndex(RtpTilesetFamily::Outside,
+			RtpTileSheet::B, 139) == 128 &&
+		RtpTilesetRenderer::canonicalTileIndex(RtpTilesetFamily::Outside,
+			RtpTileSheet::B, 165) == 157 &&
+		RtpTilesetRenderer::canonicalTileIndex(RtpTilesetFamily::Outside,
+			RtpTileSheet::B, 177) == 168 &&
+		RtpTilesetRenderer::canonicalTileIndex(RtpTilesetFamily::Outside,
+			RtpTileSheet::B, 180) == 172 &&
+		RtpTilesetRenderer::canonicalTileIndex(RtpTilesetFamily::Outside,
+			RtpTileSheet::B, 102) == 102;
+	const int treeAutotiles[] = { 93, 112, 128, 157, 168, 172 };
+	const char* treeNames[] = { "Tree", "Large Tree", "Large Snowy Tree",
+		"Snowy Tree", "Spooky Tree", "Palm Tree" };
+	SDL_Rect treeTarget = { 96, 96, 32, 32 };
+	for (int tree = 0; tree < 6 && fullTilesetReady; ++tree)
+	{
+		RtpTileReference reference(RtpTilesetFamily::Outside, RtpTileSheet::B,
+			treeAutotiles[tree], RtpRenderLayer::Decoration);
+		int treeWidth = 0;
+		int treeHeight = 0;
+		const char* name = RtpTilesetRenderer::treeAutotileName(reference.family,
+			reference.sheet, reference.index);
+		fullTilesetReady = RtpTilesetRenderer::isTreeAutotile(reference) &&
+			RtpTilesetRenderer::treeAutotileFootprint(reference, treeWidth, treeHeight) &&
+			treeWidth == (tree == 1 || tree == 2 ? 2 : 1) && treeHeight == 2 &&
+			name != NULL && std::string(name) == treeNames[tree] &&
+			rtpTiles.draw(reference, 0, treeTarget) &&
+			rtpTiles.draw(reference, RtpTilesetRenderer::West, treeTarget) &&
+			rtpTiles.drawTreeLayer(reference, RtpRenderLayer::Decoration, treeTarget) &&
+			rtpTiles.drawTreeLayer(reference, RtpRenderLayer::Foreground, treeTarget) &&
+			!rtpTiles.drawTreeLayer(reference, RtpRenderLayer::Ground, treeTarget);
+	}
+	RtpTileReference largeTree(RtpTilesetFamily::Outside, RtpTileSheet::B, 112,
+		RtpRenderLayer::Decoration);
+	RtpTileReference largeSnowyTree(RtpTilesetFamily::Outside, RtpTileSheet::B, 128,
+		RtpRenderLayer::Decoration);
+	RtpTileReference smallTree(RtpTilesetFamily::Outside, RtpTileSheet::B, 93,
+		RtpRenderLayer::Decoration);
+	fullTilesetReady = fullTilesetReady &&
+		RtpTilesetRenderer::largeTreeAnchorsConflict(
+			largeTree, 10, 10, largeSnowyTree, 11, 10) &&
+		!RtpTilesetRenderer::largeTreeAnchorsConflict(
+			largeTree, 10, 10, largeSnowyTree, 11, 11) &&
+		!RtpTilesetRenderer::largeTreeAnchorsConflict(
+			largeTree, 10, 10, largeSnowyTree, 12, 10) &&
+		!RtpTilesetRenderer::largeTreeAnchorsConflict(
+			largeTree, 10, 10, largeSnowyTree, 10, 11) &&
+		!RtpTilesetRenderer::largeTreeAnchorsConflict(
+			largeTree, 10, 10, largeSnowyTree, 11, 12) &&
+		!RtpTilesetRenderer::largeTreeAnchorsConflict(
+			largeTree, 10, 10, smallTree, 11, 10);
 	fullTilesetReady = fullTilesetReady && RtpTilesetRenderer::collision(
 		RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::A1, 0)) ==
 		RtpTileCollision::Blocked && RtpTilesetRenderer::collision(
 		RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::A2, 0)) ==
 		RtpTileCollision::Walkable && RtpTilesetRenderer::collision(
+		RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::A2, 3)) ==
+		RtpTileCollision::Walkable && RtpTilesetRenderer::collision(
+		RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::A2, 4)) ==
+		RtpTileCollision::Blocked && RtpTilesetRenderer::collision(
 		RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::A2, 21)) ==
 		RtpTileCollision::Blocked && RtpTilesetRenderer::collision(
+		RtpTileReference(RtpTilesetFamily::Inside, RtpTileSheet::A2, 7)) ==
+		RtpTileCollision::Blocked && RtpTilesetRenderer::collision(
+		RtpTileReference(RtpTilesetFamily::World, RtpTileSheet::A2, 4)) ==
+		RtpTileCollision::Ignore && RtpTilesetRenderer::collision(
 		RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::A3, 8)) ==
 		RtpTileCollision::Blocked && RtpTilesetRenderer::collision(
 		RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::A4, 0)) ==
@@ -2083,6 +2309,8 @@ bool Application::exerciseMenuScreensSmoke()
 	int savedBuilderTileCategory = mWorldBuilderTileCategory;
 	int savedBuilderTileSheet = mWorldBuilderTileSheet;
 	int savedBuilderCatalogTile = mWorldBuilderCatalogTile;
+	int savedBuilderBrushSize = mWorldBuilderBrushSize;
+	bool savedBuilderShowGrid = mWorldBuilderShowGrid;
 	int savedBuilderSelectedNpc = mWorldBuilderSelectedNpc;
 	int savedBuilderSelectedObject = mWorldBuilderSelectedObject;
 	bool savedBuilderDirty = mWorldBuilderDirty;
@@ -2101,6 +2329,19 @@ bool Application::exerciseMenuScreensSmoke()
 	mWorldBuilderMoveUp = mWorldBuilderMoveDown = false;
 	mWorldBuilderMoveLeft = mWorldBuilderMoveRight = false;
 	mWorldBuilderPanAccumulator = 0;
+	SDL_Event toggleGridKey = {};
+	toggleGridKey.type = SDL_KEYDOWN;
+	toggleGridKey.key.keysym.sym = SDLK_g;
+	handleWorldBuilderEvent(toggleGridKey);
+	bool gridToggleReady = mWorldBuilderShowGrid != savedBuilderShowGrid;
+	SDL_Event toggleGridButton = {};
+	toggleGridButton.type = SDL_MOUSEBUTTONDOWN;
+	toggleGridButton.button.button = SDL_BUTTON_LEFT;
+	toggleGridButton.button.x = 1200;
+	toggleGridButton.button.y = 40;
+	handleWorldBuilderEvent(toggleGridButton);
+	gridToggleReady = gridToggleReady &&
+		mWorldBuilderShowGrid == savedBuilderShowGrid;
 	int portraitNpc = 0;
 	int portraitArea = worldAreaIndex(mNpcs[portraitNpc].mapId);
 	if (portraitArea < 0) return false;
@@ -2179,17 +2420,166 @@ bool Application::exerciseMenuScreensSmoke()
 		mWorld.maps[builderArea].tileLayers;
 	int catalogTestX = -1;
 	int catalogTestY = -1;
-	for (int row = 0; row < (int)currentMap().size() && catalogTestX < 0; ++row)
-		for (int column = 0; column + 1 < (int)currentMap()[row].size(); ++column)
+	for (int row = 1; row + 1 < (int)currentMap().size() && catalogTestX < 0; ++row)
+		for (int column = 1; column + 3 < (int)currentMap()[row].size(); ++column)
 			if (!worldBuilderRequiresWalkable(column, row) &&
-				!worldBuilderRequiresWalkable(column + 1, row))
+				!worldBuilderRequiresWalkable(column + 1, row) &&
+				!worldBuilderRequiresWalkable(column + 2, row) &&
+				!worldBuilderRequiresWalkable(column + 3, row) &&
+				!worldBuilderRequiresWalkable(column + 1, row + 1))
 			{
 				catalogTestX = column;
 				catalogTestY = row;
 				break;
 			}
 	if (catalogTestX < 0) return false;
+	std::map<std::tuple<int, int, int>, RtpTileReference>& connectionLayers =
+		mWorld.maps[builderArea].tileLayers;
+	connectionLayers.erase(std::make_tuple(catalogTestY, catalogTestX,
+		(int)RtpRenderLayer::Ground));
+	connectionLayers.erase(std::make_tuple(catalogTestY, catalogTestX + 1,
+		(int)RtpRenderLayer::Ground));
+	connectionLayers.erase(std::make_tuple(catalogTestY, catalogTestX + 1,
+		(int)RtpRenderLayer::Decoration));
+	RtpTileReference wallTile(RtpTilesetFamily::Outside, RtpTileSheet::A3, 8,
+		RtpRenderLayer::Ground);
+	connectionLayers.insert(std::make_pair(std::make_tuple(catalogTestY,
+		catalogTestX, (int)RtpRenderLayer::Ground), wallTile));
+	connectionLayers.insert(std::make_pair(std::make_tuple(catalogTestY,
+		catalogTestX + 1, (int)RtpRenderLayer::Decoration),
+		RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::B, 67,
+			RtpRenderLayer::Decoration)));
+	bool wallOpeningConnectionsRemoved =
+		(worldTileConnections(mWorld.maps[builderArea], catalogTestX, catalogTestY,
+			RtpRenderLayer::Ground) & RtpTilesetRenderer::East) == 0;
+	connectionLayers.insert(std::make_pair(std::make_tuple(catalogTestY,
+		catalogTestX + 1, (int)RtpRenderLayer::Ground), wallTile));
+	wallOpeningConnectionsRemoved = wallOpeningConnectionsRemoved &&
+		(worldTileConnections(mWorld.maps[builderArea], catalogTestX, catalogTestY,
+			RtpRenderLayer::Ground) & RtpTilesetRenderer::East) != 0;
+	mWorld.maps[builderArea].tileLayers = savedTileLayers;
+	int brushTestX = -1;
+	int brushTestY = -1;
+	for (int row = 2; row + 2 < (int)currentMap().size() && brushTestX < 0; ++row)
+		for (int column = 2; column + 2 < (int)currentMap()[row].size(); ++column)
+		{
+			bool freeArea = true;
+			for (int y = row - 1; y <= row + 1 && freeArea; ++y)
+				for (int x = column - 1; x <= column + 1; ++x)
+					if (worldBuilderRequiresWalkable(x, y)) freeArea = false;
+			if (freeArea)
+			{
+				brushTestX = column;
+				brushTestY = row;
+				break;
+			}
+		}
+	if (brushTestX < 0) return false;
+	clearWorldBuilderUndoHistory();
+	mWorldBuilderTab = WorldBuilderTab::Tiles;
 	mWorldBuilderTileCategory = 2;
+	mWorldBuilderTileSheet = (int)RtpTileSheet::A2;
+	mWorldBuilderCatalogTile = 1;
+	mWorld.maps[builderArea].tileLayers.erase(std::make_tuple(catalogTestY,
+		catalogTestX, (int)RtpRenderLayer::Ground));
+	mWorld.maps[builderArea].tileLayers.erase(std::make_tuple(catalogTestY,
+		catalogTestX + 1, (int)RtpRenderLayer::Ground));
+	bool dirtyBeforeUndoTest = mWorldBuilderDirty;
+	beginWorldBuilderUndoAction();
+	paintWorldBuilderTile(catalogTestX, catalogTestY);
+	paintWorldBuilderTile(catalogTestX + 1, catalogTestY);
+	commitWorldBuilderUndoAction();
+	bool undoReady = mWorldBuilderUndoHistory.size() == 1 &&
+		worldTileLayer(mWorld.maps[builderArea], catalogTestX, catalogTestY,
+			RtpRenderLayer::Ground) != NULL &&
+		worldTileLayer(mWorld.maps[builderArea], catalogTestX + 1, catalogTestY,
+			RtpRenderLayer::Ground) != NULL;
+	SDL_Event undoClick = {};
+	undoClick.type = SDL_MOUSEBUTTONDOWN;
+	undoClick.button.button = SDL_BUTTON_LEFT;
+	undoClick.button.x = 1050;
+	undoClick.button.y = 740;
+	handleWorldBuilderEvent(undoClick);
+	undoReady = undoReady && mWorldBuilderUndoHistory.empty() &&
+		mWorldBuilderDirty == dirtyBeforeUndoTest &&
+		worldTileLayer(mWorld.maps[builderArea], catalogTestX, catalogTestY,
+			RtpRenderLayer::Ground) == NULL &&
+		worldTileLayer(mWorld.maps[builderArea], catalogTestX + 1, catalogTestY,
+			RtpRenderLayer::Ground) == NULL;
+	paintWorldBuilderTile(catalogTestX, catalogTestY);
+	std::string undoNpcMap = mNpcs[0].mapId;
+	int undoNpcX = mNpcs[0].x;
+	int undoNpcY = mNpcs[0].y;
+	mWorldBuilderTab = WorldBuilderTab::Npcs;
+	mWorldBuilderSelectedNpc = 0;
+	beginWorldBuilderUndoAction();
+	placeWorldBuilderSelection(catalogTestX, catalogTestY);
+	commitWorldBuilderUndoAction();
+	SDL_Event undoKey = {};
+	undoKey.type = SDL_KEYDOWN;
+	undoKey.key.keysym.sym = SDLK_z;
+	undoKey.key.keysym.mod = KMOD_CTRL;
+	handleWorldBuilderEvent(undoKey);
+	undoReady = undoReady && mWorldBuilderUndoHistory.empty() &&
+		mNpcs[0].mapId == undoNpcMap && mNpcs[0].x == undoNpcX &&
+		mNpcs[0].y == undoNpcY;
+	mWorldBuilderTab = WorldBuilderTab::Tiles;
+	mWorldBuilderTileCategory = 2;
+	mWorldBuilderTileSheet = (int)RtpTileSheet::A2;
+	mWorldBuilderCatalogTile = 1;
+	mWorldBuilderBrushSize = 1;
+	SDL_Event increaseBrush = {};
+	increaseBrush.type = SDL_MOUSEBUTTONDOWN;
+	increaseBrush.button.button = SDL_BUTTON_LEFT;
+	increaseBrush.button.x = 1230;
+	increaseBrush.button.y = 660;
+	handleWorldBuilderEvent(increaseBrush);
+	SDL_Event increaseBrushKey = {};
+	increaseBrushKey.type = SDL_KEYDOWN;
+	increaseBrushKey.key.keysym.sym = SDLK_RIGHTBRACKET;
+	handleWorldBuilderEvent(increaseBrushKey);
+	bool brushAreaReady = mWorldBuilderBrushSize == 3 &&
+		worldBuilderBrushResizable();
+	applyWorldBuilderBrushStroke(-1, -1, brushTestX, brushTestY, false);
+	for (int y = brushTestY - 1; y <= brushTestY + 1; ++y)
+		for (int x = brushTestX - 1; x <= brushTestX + 1; ++x)
+		{
+			const RtpTileReference* brushed = worldTileLayer(
+				mWorld.maps[builderArea], x, y, RtpRenderLayer::Ground);
+			brushAreaReady = brushAreaReady && brushed != NULL &&
+				brushed->family == RtpTilesetFamily::Outside &&
+				brushed->sheet == RtpTileSheet::A2 && brushed->index == 1;
+		}
+	applyWorldBuilderBrushStroke(-1, -1, brushTestX, brushTestY, true);
+	for (int y = brushTestY - 1; y <= brushTestY + 1; ++y)
+		for (int x = brushTestX - 1; x <= brushTestX + 1; ++x)
+			brushAreaReady = brushAreaReady && worldTileLayer(
+				mWorld.maps[builderArea], x, y, RtpRenderLayer::Ground) == NULL;
+	mWorldBuilderTileCategory = 0;
+	mWorldBuilderTileSheet = (int)RtpTileSheet::C;
+	mWorldBuilderCatalogTile = 31;
+	handleWorldBuilderEvent(increaseBrush);
+	handleWorldBuilderEvent(increaseBrushKey);
+	brushAreaReady = brushAreaReady && !worldBuilderBrushResizable() &&
+		mWorldBuilderBrushSize == 3;
+	mWorldBuilderTileCategory = 2;
+	mWorldBuilderTileSheet = (int)RtpTileSheet::B;
+	mWorldBuilderCatalogTile = 94;
+	applyWorldBuilderBrushStroke(-1, -1, brushTestX, brushTestY, false);
+	for (int y = brushTestY - 1; y <= brushTestY + 1; ++y)
+		for (int x = brushTestX - 1; x <= brushTestX + 1; ++x)
+		{
+			const RtpTileReference* brushedTree = worldTileLayer(
+				mWorld.maps[builderArea], x, y, RtpRenderLayer::Decoration);
+			brushAreaReady = brushAreaReady && brushedTree != NULL &&
+				brushedTree->index == 93;
+		}
+	applyWorldBuilderBrushStroke(-1, -1, brushTestX, brushTestY, true);
+	for (int y = brushTestY - 1; y <= brushTestY + 1; ++y)
+		for (int x = brushTestX - 1; x <= brushTestX + 1; ++x)
+			brushAreaReady = brushAreaReady && worldTileLayer(
+				mWorld.maps[builderArea], x, y, RtpRenderLayer::Decoration) == NULL;
+	mWorldBuilderBrushSize = 1;
 	mWorldBuilderTileSheet = (int)RtpTileSheet::A2;
 	mWorldBuilderCatalogTile = 1;
 	paintWorldBuilderTile(catalogTestX, catalogTestY);
@@ -2228,6 +2618,57 @@ bool Application::exerciseMenuScreensSmoke()
 			RtpRenderLayer::Foreground) == NULL &&
 		worldTileLayer(mWorld.maps[builderArea], catalogTestX, catalogTestY,
 			RtpRenderLayer::Ground) != NULL;
+	mWorldBuilderTileCategory = 2;
+	mWorldBuilderTileSheet = (int)RtpTileSheet::B;
+	mWorldBuilderCatalogTile = 94;
+	applyWorldBuilderBrushStroke(catalogTestX, catalogTestY,
+		catalogTestX + 3, catalogTestY, false);
+	const RtpTileReference* paintedTree = worldTileLayer(mWorld.maps[builderArea],
+		catalogTestX, catalogTestY, RtpRenderLayer::Decoration);
+	bool forestStrokeReady = true;
+	for (int offset = 0; offset < 4; ++offset)
+	{
+		const RtpTileReference* strokeTree = worldTileLayer(mWorld.maps[builderArea],
+			catalogTestX + offset, catalogTestY, RtpRenderLayer::Decoration);
+		forestStrokeReady = forestStrokeReady && strokeTree != NULL &&
+			strokeTree->index == 93;
+	}
+	catalogPaintingReady = catalogPaintingReady && paintedTree != NULL &&
+		paintedTree->index == 93 && forestStrokeReady &&
+		(worldTileConnections(mWorld.maps[builderArea], catalogTestX, catalogTestY,
+			RtpRenderLayer::Decoration) & RtpTilesetRenderer::East) != 0 &&
+		(worldTileConnections(mWorld.maps[builderArea], catalogTestX + 3, catalogTestY,
+			RtpRenderLayer::Decoration) & RtpTilesetRenderer::West) != 0;
+	for (int rowOffset = 0; rowOffset < 2; ++rowOffset)
+		for (int offset = 0; offset < 4; ++offset)
+			mWorld.maps[builderArea].tileLayers.erase(std::make_tuple(
+				catalogTestY + rowOffset, catalogTestX + offset,
+				(int)RtpRenderLayer::Decoration));
+	mWorldBuilderCatalogTile = 113;
+	applyWorldBuilderBrushStroke(catalogTestX, catalogTestY,
+		catalogTestX + 3, catalogTestY, false);
+	bool largeTreeSpacingReady = true;
+	for (int offset = 0; offset < 4; ++offset)
+	{
+		const RtpTileReference* strokeTree = worldTileLayer(mWorld.maps[builderArea],
+			catalogTestX + offset, catalogTestY, RtpRenderLayer::Decoration);
+		largeTreeSpacingReady = largeTreeSpacingReady &&
+			(offset % 2 == 0 ? strokeTree != NULL && strokeTree->index == 112 :
+				strokeTree == NULL);
+	}
+	mWorldBuilderCatalogTile = 129;
+	paintWorldBuilderTile(catalogTestX + 1, catalogTestY);
+	largeTreeSpacingReady = largeTreeSpacingReady &&
+		worldTileLayer(mWorld.maps[builderArea], catalogTestX + 1, catalogTestY,
+			RtpRenderLayer::Decoration) == NULL;
+	mWorldBuilderCatalogTile = 113;
+	paintWorldBuilderTile(catalogTestX + 1, catalogTestY + 1);
+	const RtpTileReference* verticallyPackedTree = worldTileLayer(
+		mWorld.maps[builderArea], catalogTestX + 1, catalogTestY + 1,
+		RtpRenderLayer::Decoration);
+	largeTreeSpacingReady = largeTreeSpacingReady && verticallyPackedTree != NULL &&
+		verticallyPackedTree->index == 112;
+	catalogPaintingReady = catalogPaintingReady && largeTreeSpacingReady;
 	SDL_Event categoryClick = {};
 	categoryClick.type = SDL_MOUSEBUTTONDOWN;
 	categoryClick.button.button = SDL_BUTTON_LEFT;
@@ -2336,6 +2777,8 @@ bool Application::exerciseMenuScreensSmoke()
 	mWorldBuilderTileCategory = savedBuilderTileCategory;
 	mWorldBuilderTileSheet = savedBuilderTileSheet;
 	mWorldBuilderCatalogTile = savedBuilderCatalogTile;
+	mWorldBuilderBrushSize = savedBuilderBrushSize;
+	mWorldBuilderShowGrid = savedBuilderShowGrid;
 	mWorldBuilderSelectedNpc = savedBuilderSelectedNpc;
 	mWorldBuilderSelectedObject = savedBuilderSelectedObject;
 	mWorld.maps[builderArea].tileLayers = savedTileLayers;
@@ -2347,6 +2790,8 @@ bool Application::exerciseMenuScreensSmoke()
 	mScreen = savedScreen;
 	if (!npcDoubleClickReady || !objectDoubleClickReady || !shardListedAsObject ||
 		!npcBuilderViewReady || !tilePaletteReady || !catalogPaintingReady ||
+		!brushAreaReady || !wallOpeningConnectionsRemoved || !undoReady ||
+		!gridToggleReady ||
 		!arrowHeld || !wasdHeld ||
 		!zoomedOut || !maximumZoomRendered || !scaledPanReady ||
 		!minimumZoomRendered || !panelWheelPreservesSheetLayout) return false;

@@ -78,6 +78,49 @@ namespace
 
 	const int SHEET_COUNT = sizeof(SHEETS) / sizeof(SHEETS[0]);
 
+	struct TreeAutotileDescriptor
+	{
+		int canonicalIndex;
+		int sourceX;
+		int sourceY;
+		int sourceWidth;
+		int members[8];
+		int memberCount;
+		const char* name;
+	};
+
+	const TreeAutotileDescriptor TREE_AUTOTILES[] = {
+		{ 93, 160, 352, 32, { 93, 94, 101 }, 3, "Tree" },
+		{ 112, 0, 448, 64,
+			{ 112, 113, 114, 115, 120, 121, 122, 123 }, 8, "Large Tree" },
+		{ 128, 256, 0, 64,
+			{ 128, 129, 130, 131, 136, 137, 138, 139 }, 8, "Large Snowy Tree" },
+		{ 157, 416, 96, 32, { 157, 158, 165 }, 3, "Snowy Tree" },
+		{ 168, 256, 160, 32,
+			{ 168, 169, 176, 177 }, 4, "Spooky Tree" },
+		{ 172, 384, 160, 32, { 172, 173, 180 }, 3, "Palm Tree" }
+	};
+
+	const int TREE_AUTOTILE_COUNT = sizeof(TREE_AUTOTILES) /
+		sizeof(TREE_AUTOTILES[0]);
+
+	const TreeAutotileDescriptor* treeAutotileForMember(int tileIndex)
+	{
+		for (int tree = 0; tree < TREE_AUTOTILE_COUNT; ++tree)
+			for (int member = 0; member < TREE_AUTOTILES[tree].memberCount; ++member)
+				if (TREE_AUTOTILES[tree].members[member] == tileIndex)
+					return &TREE_AUTOTILES[tree];
+		return NULL;
+	}
+
+	const TreeAutotileDescriptor* treeAutotileForCanonical(int tileIndex)
+	{
+		for (int tree = 0; tree < TREE_AUTOTILE_COUNT; ++tree)
+			if (TREE_AUTOTILES[tree].canonicalIndex == tileIndex)
+				return &TREE_AUTOTILES[tree];
+		return NULL;
+	}
+
 	bool renderQuarter(SDL_Renderer* renderer, SDL_Texture* texture,
 		const SDL_Rect& source, const SDL_Rect& destination)
 	{
@@ -96,10 +139,56 @@ bool RtpTilesetRenderer::draw(const RtpTileReference& tile, unsigned int connect
 {
 	const RtpSheetDescriptor* sheet = descriptor(tile.family, tile.sheet);
 	if (sheet == NULL || tile.index < 0 || tile.index >= sheet->tileCount) return false;
+	if (isTreeAutotile(tile))
+		return drawTreeAutotile(tile, destination);
 	if (tile.sheet == RtpTileSheet::A1 || tile.sheet == RtpTileSheet::A2 ||
 		tile.sheet == RtpTileSheet::A3 || tile.sheet == RtpTileSheet::A4)
 		return drawAutotile(tile, *sheet, connections, destination, animationFrame);
 	return drawRegular(tile, *sheet, destination);
+}
+
+bool RtpTilesetRenderer::drawTreeAutotile(const RtpTileReference& tile,
+	const SDL_Rect& destination, bool drawCanopy, bool drawBase)
+{
+	if (tile.family != RtpTilesetFamily::Outside || tile.sheet != RtpTileSheet::B ||
+		mAssets == NULL || mRenderer == NULL || (!drawCanopy && !drawBase)) return false;
+	const TreeAutotileDescriptor* tree = treeAutotileForCanonical(tile.index);
+	const RtpSheetDescriptor* sheet = descriptor(tile.family, tile.sheet);
+	if (tree == NULL || sheet == NULL) return false;
+	SDL_Texture* texture = mAssets->texture(sheet->imagePath, true);
+	if (texture == NULL) return false;
+
+	int columns = tree->sourceWidth / 32;
+	SDL_Rect topSource = { tree->sourceX, tree->sourceY, tree->sourceWidth, 32 };
+	SDL_Rect bottomSource = { tree->sourceX, tree->sourceY + 32,
+		tree->sourceWidth, 32 };
+	SDL_Rect topTarget = { destination.x - (columns - 1) * destination.w,
+		destination.y - destination.h, columns * destination.w, destination.h };
+	SDL_Rect bottomTarget = { topTarget.x, destination.y, topTarget.w, destination.h };
+	if (topSource.x < 0 || bottomSource.x < 0 || topSource.y < 0 ||
+		topSource.x + topSource.w > sheet->width ||
+		bottomSource.x + bottomSource.w > sheet->width ||
+		bottomSource.y + bottomSource.h > sheet->height) return false;
+	SDL_SetTextureColorMod(texture, tile.red, tile.green, tile.blue);
+	bool rendered = true;
+	if (drawCanopy)
+		rendered = SDL_RenderCopy(mRenderer, texture, &topSource, &topTarget) == 0;
+	if (drawBase)
+		rendered = SDL_RenderCopy(mRenderer, texture, &bottomSource, &bottomTarget) == 0 &&
+			rendered;
+	SDL_SetTextureColorMod(texture, 255, 255, 255);
+	return rendered;
+}
+
+bool RtpTilesetRenderer::drawTreeLayer(const RtpTileReference& tile,
+	RtpRenderLayer layer, const SDL_Rect& destination)
+{
+	if (!isTreeAutotile(tile)) return false;
+	if (layer == RtpRenderLayer::Decoration)
+		return drawTreeAutotile(tile, destination, false, true);
+	if (layer == RtpRenderLayer::Foreground)
+		return drawTreeAutotile(tile, destination, true, false);
+	return false;
 }
 
 bool RtpTilesetRenderer::drawLayer(const std::vector<RtpTileReference>& tiles,
@@ -292,14 +381,6 @@ bool RtpTilesetRenderer::loadTileNames(RtpTilesetFamily family, RtpTileSheet she
 	return true;
 }
 
-bool RtpTilesetRenderer::isWallOpening(const RtpTileReference& tile)
-{
-	std::string name;
-	if (!metadataName(tile, name)) return false;
-	return name == "Entrance" || name == "Entrance (Top Half)" ||
-		name == "Gate" || name.find("(Gate)") != std::string::npos;
-}
-
 bool RtpTilesetRenderer::metadataName(const RtpTileReference& tile,
 	std::string& name)
 {
@@ -328,7 +409,7 @@ RtpTileCollision RtpTilesetRenderer::collision(const RtpTileReference& tile)
 	if (!metadataName(tile, name)) return RtpTileCollision::Blocked;
 	if (name.empty() || name == "Transparent") return RtpTileCollision::Ignore;
 	if (tile.sheet == RtpTileSheet::A2)
-		return name.find("Hole") == 0 || name.find("Pit") == 0 ?
+		return inferredLayer(tile) == RtpRenderLayer::Decoration ?
 			RtpTileCollision::Blocked : RtpTileCollision::Walkable;
 	if (tile.sheet == RtpTileSheet::A5)
 	{
@@ -374,6 +455,12 @@ bool RtpTilesetRenderer::validateAllAssets(std::string& error)
 
 RtpRenderLayer RtpTilesetRenderer::inferredLayer(const RtpTileReference& tile)
 {
+	if (tile.sheet == RtpTileSheet::A1)
+		return tile.index >= 1 && tile.index <= 3 ?
+			RtpRenderLayer::Decoration : RtpRenderLayer::Ground;
+	if (tile.sheet == RtpTileSheet::A2)
+		return tile.index >= 0 && tile.index % 8 >= 4 ?
+			RtpRenderLayer::Decoration : RtpRenderLayer::Ground;
 	if (tile.sheet != RtpTileSheet::B && tile.sheet != RtpTileSheet::C)
 		return RtpRenderLayer::Ground;
 	std::string name;
@@ -382,6 +469,59 @@ RtpRenderLayer RtpTilesetRenderer::inferredLayer(const RtpTileReference& tile)
 		name.find("Foreground") != std::string::npos))
 		return RtpRenderLayer::Foreground;
 	return RtpRenderLayer::Decoration;
+}
+
+int RtpTilesetRenderer::canonicalTileIndex(RtpTilesetFamily family,
+	RtpTileSheet sheet, int tileIndex)
+{
+	if (family != RtpTilesetFamily::Outside || sheet != RtpTileSheet::B)
+		return tileIndex;
+	const TreeAutotileDescriptor* tree = treeAutotileForMember(tileIndex);
+	return tree == NULL ? tileIndex : tree->canonicalIndex;
+}
+
+bool RtpTilesetRenderer::isTreeAutotile(const RtpTileReference& tile)
+{
+	return tile.family == RtpTilesetFamily::Outside &&
+		tile.sheet == RtpTileSheet::B &&
+		treeAutotileForCanonical(tile.index) != NULL;
+}
+
+bool RtpTilesetRenderer::treeAutotileFootprint(const RtpTileReference& tile,
+	int& width, int& height)
+{
+	width = 0;
+	height = 0;
+	if (!isTreeAutotile(tile)) return false;
+	const TreeAutotileDescriptor* tree = treeAutotileForCanonical(tile.index);
+	if (tree == NULL) return false;
+	width = tree->sourceWidth / 32;
+	height = 2;
+	return true;
+}
+
+bool RtpTilesetRenderer::largeTreeAnchorsConflict(
+	const RtpTileReference& first, int firstX, int firstY,
+	const RtpTileReference& second, int secondX, int secondY)
+{
+	int firstWidth = 0;
+	int firstHeight = 0;
+	int secondWidth = 0;
+	int secondHeight = 0;
+	if (!treeAutotileFootprint(first, firstWidth, firstHeight) ||
+		!treeAutotileFootprint(second, secondWidth, secondHeight) ||
+		firstWidth != 2 || secondWidth != 2) return false;
+	int columnDistance = firstX > secondX ? firstX - secondX : secondX - firstX;
+	int rowDistance = firstY > secondY ? firstY - secondY : secondY - firstY;
+	return columnDistance == 1 && rowDistance == 0;
+}
+
+const char* RtpTilesetRenderer::treeAutotileName(RtpTilesetFamily family,
+	RtpTileSheet sheet, int tileIndex)
+{
+	if (family != RtpTilesetFamily::Outside || sheet != RtpTileSheet::B) return NULL;
+	const TreeAutotileDescriptor* tree = treeAutotileForMember(tileIndex);
+	return tree == NULL ? NULL : tree->name;
 }
 
 bool RtpTilesetRenderer::regularTileSource(RtpTileSheet sheet, int tileIndex,

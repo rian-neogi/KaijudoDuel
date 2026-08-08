@@ -36,6 +36,8 @@ public:
 	// Catalog-only API used by converted maps and world objects.
 	bool drawCatalog(const RtpTileReference& tile, unsigned int connections,
 		const SDL_Rect& destination, unsigned int animationFrame = 0);
+	bool drawCatalogTreeLayer(const RtpTileReference& tile, RtpRenderLayer layer,
+		const SDL_Rect& destination);
 	bool drawSignpost(const SDL_Rect& destination);
 	bool drawChest(const SDL_Rect& destination, bool opened);
 	bool drawShard(const SDL_Rect& destination);

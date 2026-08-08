@@ -180,6 +180,26 @@ five decks.
   foreground, decoration, ground order. If no layer supplies collision, the
   cell is blocked. Do not add a separate collision grid or rely on deprecated
   glyph collision.
+- Infer A1 logical indices 1 through 3 as decoration and all other A1 indices
+  as ground. Infer A2 one-based columns 5 through 8 as decoration and columns
+  1 through 4 as ground for every row and tileset family. Other A-series tiles
+  remain ground unless an explicit rule says otherwise. All non-World A1 tiles
+  and all non-World A2 decoration categories are collision-blocking.
+- Outside B tree groups are logical tree autotiles. Painting any component of
+  Tree, Large Tree, Snowy Tree, Large Snowy Tree, Spooky Tree, or Palm Tree
+  stores its canonical blocked trunk tile. Render every tree atomically with
+  its complete primary canopy and base. Treat other cells in each source group
+  only as brush-selection aliases; never render their forest-fill fragments,
+  partial canopies, bases, bushes, half-trees, or quarter-trees.
+  Native map loading canonicalizes raw component indices from older maps. Keep
+  2-by-2 tree trunk anchors at least two cells apart when they are on the same
+  row. Vertically adjacent anchors in the same or neighboring columns are valid
+  and use the tileset's packed-tree artwork. Loading removes later row-major
+  anchors that violate only the same-row horizontal spacing. Render each tree's
+  base during the decoration pass and its canopy during the foreground pass so
+  foliage obscures characters while the blocked anchor remains in decoration.
+  Tile-paint and erase drags interpolate all crossed cells so zoomed-out strokes
+  remain continuous.
 - Use map `tags` for gameplay semantics that cannot be inferred from artwork.
   Keep tag IDs stable once saves or story logic reference them. The current
   `blackstone_gate` tag marks the relay gate, which stays blocked until the
@@ -240,6 +260,8 @@ five decks.
 - Overworld and World Builder rendering must iterate only the bounds returned by
   `visibleTileBounds`, including its one-tile margin. Do not restore full-map
   tile loops as the exterior grows toward 1024 by 1024 tiles.
+- Render player and NPC shadows after ground but before decoration. Character
+  sprites remain above decoration, and foreground remains above characters.
 - Card and board assets are loaded with paths relative to the repository root.
 - Opponent hands and shields stay face-down. Do not reveal them through hover
   hitboxes or previews.

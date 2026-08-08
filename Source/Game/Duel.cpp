@@ -3,7 +3,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <sstream>
 #include <thread>
 
 std::mutex gMutex;
@@ -2161,68 +2160,16 @@ bool Duel::loadDeck(const std::string& path, int player)
 {
 	constexpr int MINIMUM_DECK_CARDS = 10;
 	mDecks[player].mCards.clear();
+	std::vector<int> cardIds;
 	std::string resolvedPath;
-	if (!resolveDeckPath(path, resolvedPath))
-	{
-		fprintf(stderr, "Unable to find deck '%s' directly or beneath Decks/.\n", path.c_str());
+	if (!loadDeckCardIds(path, cardIds, MINIMUM_DECK_CARDS, &resolvedPath))
 		return false;
-	}
-	std::ifstream file(resolvedPath.c_str());
-
-	std::string line;
-	int lineNumber = 0;
-	int cardCount = 0;
-	while (std::getline(file, line))
+	for (size_t copy = 0; copy < cardIds.size(); ++copy)
 	{
-		++lineNumber;
-		line = deckLineWithoutComment(line);
-		if (!line.empty() && line.back() == '\r') line.pop_back();
-		size_t first = line.find_first_not_of(" \t");
-		if (first == std::string::npos) continue;
-
-		std::istringstream input(line.substr(first));
-		int count = 0;
-		if (!(input >> count) || count <= 0)
-		{
-			fprintf(stderr, "Invalid card count in '%s' at line %d.\n",
-				resolvedPath.c_str(), lineNumber);
-			return false;
-		}
-		std::string name;
-		std::getline(input, name);
-		first = name.find_first_not_of(" \t");
-		if (first == std::string::npos)
-		{
-			fprintf(stderr, "Missing card name in '%s' at line %d.\n",
-				resolvedPath.c_str(), lineNumber);
-			return false;
-		}
-		name.erase(0, first);
-		size_t last = name.find_last_not_of(" \t");
-		name.erase(last + 1);
-		int cardId = getCardIdFromName(name);
-		if (cardId < 0)
-		{
-			fprintf(stderr, "Unknown card '%s' in '%s' at line %d.\n",
-				name.c_str(), resolvedPath.c_str(), lineNumber);
-			return false;
-		}
-		for (int copy = 0; copy < count; ++copy)
-		{
-			Card* card = new Card(mNextUniqueId, cardId, player);
-			mCardList.push_back(card);
-			mDecks[player].addCard(card);
-			++mNextUniqueId;
-		}
-		cardCount += count;
-	}
-
-	if (cardCount < MINIMUM_DECK_CARDS)
-	{
-		fprintf(stderr,
-			"Deck '%s' has %d cards; at least %d are required for opening shields and hand.\n",
-			resolvedPath.c_str(), cardCount, MINIMUM_DECK_CARDS);
-		return false;
+		Card* card = new Card(mNextUniqueId, cardIds[copy], player);
+		mCardList.push_back(card);
+		mDecks[player].addCard(card);
+		++mNextUniqueId;
 	}
 	mDeckNames[player] = resolvedPath;
 	return true;
@@ -2252,7 +2199,7 @@ bool Duel::loadDeck(const std::string& path, int player)
 
 void Duel::startDuel()
 {
-	mTurn = 0;
+	mTurn = (int)mRandomGen.Random(2);
 	mTurnPhase = TURN_PHASE_MANA;
 	mManaUsed = 0;
 	mShieldBreakersThisTurn[0].clear();

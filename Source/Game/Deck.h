@@ -3,9 +3,13 @@
 #include "Hand.h"
 
 #include <string>
+#include <vector>
 
 bool resolveDeckPath(const std::string& requestedPath, std::string& resolvedPath);
 std::string deckLineWithoutComment(const std::string& line);
+int getDeckCardIdFromName(const std::string& name);
+bool loadDeckCardIds(const std::string& requestedPath, std::vector<int>& cardIds,
+	int minimumCards, std::string* resolvedPath = NULL);
 
 class Deck : public Zone
 {

@@ -157,7 +157,7 @@ void Application::ensurePlayerDataLoaded()
 			int count = 0;
 			std::string name;
 			if (!parseDeckLine(line, count, name)) continue;
-			int cardId = getCardIdFromName(name);
+			int cardId = getDeckCardIdFromName(name);
 			if (cardId >= 0 && cardId < (int)mCollectionCounts.size())
 			{
 				mCollectionCounts[cardId] = count;
@@ -179,7 +179,7 @@ void Application::ensurePlayerDataLoaded()
 			int count = 0;
 			std::string name;
 			if (!parseDeckLine(line, count, name)) continue;
-			int cardId = getCardIdFromName(name);
+			int cardId = getDeckCardIdFromName(name);
 			if (cardId >= 0) deck.cards[cardId] += count;
 		}
 		mPlayerDecks.push_back(deck);
@@ -232,7 +232,7 @@ void Application::ensurePlayerDataLoaded()
 				int count = 0;
 				std::string name;
 				if (!parseDeckLine(starterLine, count, name)) continue;
-				int cardId = getCardIdFromName(name);
+				int cardId = getDeckCardIdFromName(name);
 				if (cardId >= 0 && cardId < (int)mCollectionCounts.size())
 					mCollectionCounts[cardId] += count;
 			}
@@ -466,7 +466,7 @@ bool Application::awardDeckReward(const std::string& sourcePath,
 		int count = 0;
 		std::string cardName;
 		if (!parseDeckLine(line, count, cardName)) continue;
-		int cardId = getCardIdFromName(cardName);
+		int cardId = getDeckCardIdFromName(cardName);
 		if (cardId < 0 || cardId >= (int)mCollectionCounts.size())
 		{
 			error = "The abandoned deck contains an unknown card: " + cardName;

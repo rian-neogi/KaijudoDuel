@@ -20,18 +20,28 @@ namespace
 	const SDL_Rect BUILDER_PANEL = { 1008, 18, 256, 764 };
 	const SDL_Rect BUILDER_PREVIOUS_MAP = { 1022, 61, 32, 34 };
 	const SDL_Rect BUILDER_NEXT_MAP = { 1218, 61, 32, 34 };
+	const SDL_Rect BUILDER_GRID = { 1162, 27, 88, 25 };
 	const SDL_Rect BUILDER_TILES_TAB = { 1022, 105, 70, 35 };
 	const SDL_Rect BUILDER_NPCS_TAB = { 1096, 105, 70, 35 };
 	const SDL_Rect BUILDER_OBJECTS_TAB = { 1170, 105, 80, 35 };
-	const SDL_Rect BUILDER_SAVE = { 1022, 724, 228, 44 };
+	const SDL_Rect BUILDER_UNDO = { 1022, 724, 91, 44 };
+	const SDL_Rect BUILDER_SAVE = { 1119, 724, 131, 44 };
 	const int BUILDER_LIST_Y = 151;
 	const int BUILDER_LIST_ROW = 39;
 	const int BUILDER_LIST_ROWS = 13;
 	const int BUILDER_CATEGORY_Y = 151;
 	const int BUILDER_SHEET_Y = 219;
-	const SDL_Rect BUILDER_TILESET_VIEW = { 1022, 257, 228, 428 };
+	const SDL_Rect BUILDER_TILESET_VIEW = { 1022, 257, 228, 388 };
+	const SDL_Rect BUILDER_BRUSH_DECREASE = { 1022, 651, 34, 34 };
+	const SDL_Rect BUILDER_BRUSH_LABEL = { 1060, 651, 152, 34 };
+	const SDL_Rect BUILDER_BRUSH_INCREASE = { 1216, 651, 34, 34 };
 	const SDL_Rect BUILDER_TILE_INFO = { 1022, 690, 228, 25 };
 	const Uint32 BUILDER_PAN_INTERVAL = 80;
+	const int BUILDER_MAX_BRUSH_SIZE = 9;
+	const int BUILDER_MAX_UNDO_ACTIONS = 100;
+	const int BUILDER_UNDO_NPC = 1;
+	const int BUILDER_UNDO_OBJECT = 2;
+	const int BUILDER_UNDO_SHARD = 3;
 	const int BUILDER_ZOOM_PERCENTAGES[] = {
 		10, 20, 30, 40, 50, 60, 70, 80, 90, 100
 	};
@@ -182,6 +192,8 @@ namespace
 
 	std::string catalogTileName(RtpTilesetFamily family, RtpTileSheet sheet, int index)
 	{
+		const char* treeName = RtpTilesetRenderer::treeAutotileName(family, sheet, index);
+		if (treeName != NULL) return treeName;
 		static std::map<std::pair<int, int>, std::vector<std::string> > cache;
 		std::pair<int, int> key((int)family, (int)sheet);
 		if (cache.count(key) == 0)
@@ -371,6 +383,7 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 	loadedWorld.shardPositions.swap(shardPositions);
 	if (!loadedWorld.validateStructure(error)) return false;
 	loadedWorld.swap(mWorld);
+	clearWorldBuilderUndoHistory();
 	mCurrentWorldArea = worldAreaIndex(mWorld.start.mapId);
 	mPlayerX = mWorld.start.x;
 	mPlayerY = mWorld.start.y;
@@ -788,6 +801,7 @@ bool Application::loadDeprecatedLuaWorldMap(const std::string& path, std::string
 	loadedWorld.start = { startMap, startX, startY };
 	if (!loadedWorld.validateStructure(error)) return false;
 	mWorld.swap(loadedWorld);
+	clearWorldBuilderUndoHistory();
 	mCurrentWorldArea = worldAreaIndex(startMap);
 	mPlayerX = startX;
 	mPlayerY = startY;
@@ -909,6 +923,183 @@ void Application::showWorldBuilderNotice(const std::string& notice, bool error)
 	mWorldBuilderNoticeUntil = SDL_GetTicks() + 4500;
 }
 
+bool Application::worldBuilderBrushResizable() const
+{
+	RtpTilesetFamily family = tilesetFamily(mWorldBuilderTileCategory);
+	RtpTileSheet sheet = (RtpTileSheet)mWorldBuilderTileSheet;
+	const RtpSheetDescriptor* descriptor = RtpTilesetRenderer::descriptor(family, sheet);
+	if (descriptor == NULL || mWorldBuilderCatalogTile < 0 ||
+		mWorldBuilderCatalogTile >= descriptor->tileCount) return false;
+	RtpTileReference tile(family, sheet,
+		RtpTilesetRenderer::canonicalTileIndex(family, sheet,
+			mWorldBuilderCatalogTile));
+	tile.layer = RtpTilesetRenderer::inferredLayer(tile);
+	return tile.layer == RtpRenderLayer::Ground ||
+		RtpTilesetRenderer::isTreeAutotile(tile);
+}
+
+void Application::beginWorldBuilderUndoAction()
+{
+	if (mWorldBuilderUndoPending) return;
+	mWorldBuilderPendingUndo = WorldBuilderUndoAction();
+	mWorldBuilderPendingUndo.dirtyBefore = mWorldBuilderDirty;
+	mWorldBuilderUndoPending = true;
+}
+
+void Application::recordWorldBuilderTileUndo(int x, int y, RtpRenderLayer layer)
+{
+	if (!mWorldBuilderUndoPending) return;
+	std::tuple<int, int, int, int> undoKey(mCurrentWorldArea, y, x, (int)layer);
+	if (!mWorldBuilderPendingUndo.tileKeys.insert(undoKey).second) return;
+	std::map<std::tuple<int, int, int>, RtpTileReference>& layers =
+		mWorld.maps[mCurrentWorldArea].tileLayers;
+	std::map<std::tuple<int, int, int>, RtpTileReference>::const_iterator previous =
+		layers.find(std::make_tuple(y, x, (int)layer));
+	bool hadTile = previous != layers.end();
+	mWorldBuilderPendingUndo.tiles.push_back({ mCurrentWorldArea, x, y, (int)layer,
+		hadTile, hadTile ? previous->second : RtpTileReference(
+			RtpTilesetFamily::Outside, RtpTileSheet::A1, 0, layer) });
+}
+
+void Application::recordWorldBuilderEntityUndo(int kind, int index,
+	const std::string& mapId, int x, int y)
+{
+	if (!mWorldBuilderUndoPending || mWorldBuilderPendingUndo.entityKind != 0) return;
+	mWorldBuilderPendingUndo.entityKind = kind;
+	mWorldBuilderPendingUndo.entityIndex = index;
+	mWorldBuilderPendingUndo.entityMapId = mapId;
+	mWorldBuilderPendingUndo.entityX = x;
+	mWorldBuilderPendingUndo.entityY = y;
+}
+
+void Application::commitWorldBuilderUndoAction()
+{
+	if (!mWorldBuilderUndoPending) return;
+	auto sameTile = [](const RtpTileReference& first,
+		const RtpTileReference& second) -> bool
+	{
+		return first.family == second.family && first.sheet == second.sheet &&
+			first.index == second.index && first.layer == second.layer &&
+			first.red == second.red && first.green == second.green &&
+			first.blue == second.blue;
+	};
+	std::vector<WorldBuilderTileUndo> changedTiles;
+	for (size_t index = 0; index < mWorldBuilderPendingUndo.tiles.size(); ++index)
+	{
+		const WorldBuilderTileUndo& undo = mWorldBuilderPendingUndo.tiles[index];
+		if (undo.mapIndex < 0 || undo.mapIndex >= (int)mWorld.maps.size()) continue;
+		const std::map<std::tuple<int, int, int>, RtpTileReference>& layers =
+			mWorld.maps[undo.mapIndex].tileLayers;
+		std::map<std::tuple<int, int, int>, RtpTileReference>::const_iterator current =
+			layers.find(std::make_tuple(undo.y, undo.x, undo.layer));
+		bool hasTile = current != layers.end();
+		if (hasTile != undo.hadTile ||
+			(hasTile && !sameTile(current->second, undo.tile)))
+			changedTiles.push_back(undo);
+	}
+	mWorldBuilderPendingUndo.tiles.swap(changedTiles);
+	mWorldBuilderPendingUndo.tileKeys.clear();
+	bool entityChanged = false;
+	int kind = mWorldBuilderPendingUndo.entityKind;
+	int entity = mWorldBuilderPendingUndo.entityIndex;
+	if (kind == BUILDER_UNDO_NPC && entity >= 0 && entity < (int)mNpcs.size())
+		entityChanged = mNpcs[entity].mapId != mWorldBuilderPendingUndo.entityMapId ||
+			mNpcs[entity].x != mWorldBuilderPendingUndo.entityX ||
+			mNpcs[entity].y != mWorldBuilderPendingUndo.entityY;
+	else if (kind == BUILDER_UNDO_OBJECT && entity >= 0 &&
+		entity < (int)mWorldObjects.size())
+		entityChanged = mWorldObjects[entity].mapId !=
+			mWorldBuilderPendingUndo.entityMapId ||
+			mWorldObjects[entity].x != mWorldBuilderPendingUndo.entityX ||
+			mWorldObjects[entity].y != mWorldBuilderPendingUndo.entityY;
+	else if (kind == BUILDER_UNDO_SHARD && entity >= 0 &&
+		entity < (int)mMercerStock.shards.size())
+		entityChanged = mMercerStock.shards[entity].mapId !=
+			mWorldBuilderPendingUndo.entityMapId ||
+			mMercerStock.shards[entity].x != mWorldBuilderPendingUndo.entityX ||
+			mMercerStock.shards[entity].y != mWorldBuilderPendingUndo.entityY;
+	if (mWorldBuilderPendingUndo.tiles.empty() && !entityChanged)
+	{
+		mWorldBuilderPendingUndo = WorldBuilderUndoAction();
+		mWorldBuilderUndoPending = false;
+		return;
+	}
+	if (!entityChanged) mWorldBuilderPendingUndo.entityKind = 0;
+	mWorldBuilderUndoHistory.push_back(mWorldBuilderPendingUndo);
+	if ((int)mWorldBuilderUndoHistory.size() > BUILDER_MAX_UNDO_ACTIONS)
+		mWorldBuilderUndoHistory.erase(mWorldBuilderUndoHistory.begin());
+	mWorldBuilderPendingUndo = WorldBuilderUndoAction();
+	mWorldBuilderUndoPending = false;
+}
+
+void Application::undoWorldBuilder()
+{
+	commitWorldBuilderUndoAction();
+	mWorldBuilderPainting = false;
+	mWorldBuilderErasing = false;
+	mWorldBuilderLastBrushX = -1;
+	mWorldBuilderLastBrushY = -1;
+	mWorldBuilderDragging = false;
+	if (mWorldBuilderUndoHistory.empty()) return;
+	WorldBuilderUndoAction undo = mWorldBuilderUndoHistory.back();
+	mWorldBuilderUndoHistory.pop_back();
+	for (size_t index = 0; index < undo.tiles.size(); ++index)
+	{
+		const WorldBuilderTileUndo& tile = undo.tiles[index];
+		if (tile.mapIndex < 0 || tile.mapIndex >= (int)mWorld.maps.size()) continue;
+		std::map<std::tuple<int, int, int>, RtpTileReference>& layers =
+			mWorld.maps[tile.mapIndex].tileLayers;
+		std::tuple<int, int, int> key(tile.y, tile.x, tile.layer);
+		layers.erase(key);
+		if (tile.hadTile) layers.insert(std::make_pair(key, tile.tile));
+	}
+	if (undo.entityKind == BUILDER_UNDO_NPC && undo.entityIndex >= 0 &&
+		undo.entityIndex < (int)mNpcs.size())
+	{
+		Npc& npc = mNpcs[undo.entityIndex];
+		npc.mapId = undo.entityMapId;
+		npc.setPosition(undo.entityX, undo.entityY);
+	}
+	else if (undo.entityKind == BUILDER_UNDO_OBJECT && undo.entityIndex >= 0 &&
+		undo.entityIndex < (int)mWorldObjects.size())
+	{
+		WorldObject& object = mWorldObjects[undo.entityIndex];
+		object.mapId = undo.entityMapId;
+		object.x = undo.entityX;
+		object.y = undo.entityY;
+	}
+	else if (undo.entityKind == BUILDER_UNDO_SHARD && undo.entityIndex >= 0 &&
+		undo.entityIndex < (int)mMercerStock.shards.size())
+	{
+		MercerShard& shard = mMercerStock.shards[undo.entityIndex];
+		shard.mapId = undo.entityMapId;
+		shard.x = undo.entityX;
+		shard.y = undo.entityY;
+	}
+	mWorldBuilderDirty = undo.dirtyBefore;
+	showWorldBuilderNotice("Undid the last editor action.");
+}
+
+void Application::clearWorldBuilderUndoHistory()
+{
+	mWorldBuilderPendingUndo = WorldBuilderUndoAction();
+	mWorldBuilderUndoPending = false;
+	mWorldBuilderUndoHistory.clear();
+}
+
+void Application::applyWorldBuilderBrush(int x, int y, bool erasing)
+{
+	int brushSize = worldBuilderBrushResizable() ? mWorldBuilderBrushSize : 1;
+	int firstX = x - (brushSize - 1) / 2;
+	int firstY = y - (brushSize - 1) / 2;
+	for (int brushY = firstY; brushY < firstY + brushSize; ++brushY)
+		for (int brushX = firstX; brushX < firstX + brushSize; ++brushX)
+		{
+			if (erasing) eraseWorldBuilderTile(brushX, brushY);
+			else paintWorldBuilderTile(brushX, brushY);
+		}
+}
+
 bool Application::worldBuilderCanPlace(int x, int y, int ignoredNpc, int ignoredObject) const
 {
 	if (!isWalkable(x, y) ||
@@ -937,17 +1128,50 @@ void Application::paintWorldBuilderTile(int x, int y)
 	const RtpSheetDescriptor* descriptor = RtpTilesetRenderer::descriptor(family, sheet);
 	if (descriptor == NULL || mWorldBuilderCatalogTile < 0 ||
 		mWorldBuilderCatalogTile >= descriptor->tileCount) return;
-	RtpTileReference tile(family, sheet, mWorldBuilderCatalogTile);
+	int canonicalIndex = RtpTilesetRenderer::canonicalTileIndex(family, sheet,
+		mWorldBuilderCatalogTile);
+	RtpTileReference tile(family, sheet, canonicalIndex);
 	tile.layer = RtpTilesetRenderer::inferredLayer(tile);
+	int footprintWidth = 0;
+	int footprintHeight = 0;
+	if (RtpTilesetRenderer::treeAutotileFootprint(tile, footprintWidth,
+		footprintHeight) &&
+		(x < footprintWidth - 1 || y < footprintHeight - 1))
+	{
+		showWorldBuilderNotice("A complete tree does not fit at the map edge.", true);
+		return;
+	}
 	std::tuple<int, int, int> key(y, x, (int)tile.layer);
 	std::map<std::tuple<int, int, int>, RtpTileReference>& layers =
 		mWorld.maps[mCurrentWorldArea].tileLayers;
+	if (footprintWidth == 2)
+	{
+		for (int checkY = y - 1; checkY <= y + 1; ++checkY)
+			for (int checkX = x - 1; checkX <= x + 1; ++checkX)
+			{
+				if ((checkX == x && checkY == y) || checkX < 0 || checkY < 0 ||
+					checkX >= (int)map[0].size() || checkY >= (int)map.size()) continue;
+				std::map<std::tuple<int, int, int>, RtpTileReference>::const_iterator other =
+					layers.find(std::make_tuple(checkY, checkX,
+						(int)RtpRenderLayer::Decoration));
+				if (other != layers.end() &&
+					RtpTilesetRenderer::largeTreeAnchorsConflict(tile, x, y,
+						other->second, checkX, checkY))
+				{
+					showWorldBuilderNotice(
+						"Large tree trunks must be at least two tiles apart horizontally.",
+						true);
+					return;
+				}
+			}
+	}
 	std::map<std::tuple<int, int, int>, RtpTileReference>::iterator existing =
 		layers.find(key);
 	if (existing != layers.end() && existing->second.family == tile.family &&
 		existing->second.sheet == tile.sheet && existing->second.index == tile.index) return;
 	bool hadExisting = existing != layers.end();
 	RtpTileReference previous = hadExisting ? existing->second : tile;
+	recordWorldBuilderTileUndo(x, y, tile.layer);
 	if (existing != layers.end()) layers.erase(existing);
 	layers.insert(std::make_pair(key, tile));
 	if (worldBuilderRequiresWalkable(x, y) &&
@@ -967,14 +1191,18 @@ void Application::eraseWorldBuilderTile(int x, int y)
 	if (y < 0 || y >= (int)map.size() || x < 0 || x >= (int)map[y].size()) return;
 	std::map<std::tuple<int, int, int>, RtpTileReference>& layers =
 		mWorld.maps[mCurrentWorldArea].tileLayers;
-	RtpTileReference selected(tilesetFamily(mWorldBuilderTileCategory),
-		(RtpTileSheet)mWorldBuilderTileSheet, mWorldBuilderCatalogTile);
+	RtpTilesetFamily selectedFamily = tilesetFamily(mWorldBuilderTileCategory);
+	RtpTileSheet selectedSheet = (RtpTileSheet)mWorldBuilderTileSheet;
+	RtpTileReference selected(selectedFamily, selectedSheet,
+		RtpTilesetRenderer::canonicalTileIndex(selectedFamily, selectedSheet,
+			mWorldBuilderCatalogTile));
 	selected.layer = RtpTilesetRenderer::inferredLayer(selected);
 	std::tuple<int, int, int> key(y, x, (int)selected.layer);
 	std::map<std::tuple<int, int, int>, RtpTileReference>::iterator existing =
 		layers.find(key);
 	if (existing == layers.end()) return;
 	RtpTileReference previous = existing->second;
+	recordWorldBuilderTileUndo(x, y, selected.layer);
 	layers.erase(existing);
 	if (worldBuilderRequiresWalkable(x, y) &&
 		!worldTileWalkable(mWorld.maps[mCurrentWorldArea], x, y))
@@ -984,6 +1212,31 @@ void Application::eraseWorldBuilderTile(int x, int y)
 		return;
 	}
 	mWorldBuilderDirty = true;
+}
+
+void Application::applyWorldBuilderBrushStroke(int fromX, int fromY,
+	int toX, int toY, bool erasing)
+{
+	if (fromX < 0 || fromY < 0)
+	{
+		applyWorldBuilderBrush(toX, toY, erasing);
+		return;
+	}
+	int x = fromX;
+	int y = fromY;
+	int dx = std::abs(toX - fromX);
+	int stepX = fromX < toX ? 1 : -1;
+	int dy = -std::abs(toY - fromY);
+	int stepY = fromY < toY ? 1 : -1;
+	int error = dx + dy;
+	for (;;)
+	{
+		applyWorldBuilderBrush(x, y, erasing);
+		if (x == toX && y == toY) break;
+		int doubledError = error * 2;
+		if (doubledError >= dy) { error += dy; x += stepX; }
+		if (doubledError <= dx) { error += dx; y += stepY; }
+	}
 }
 
 bool Application::worldBuilderRequiresWalkable(int x, int y) const
@@ -1033,50 +1286,48 @@ unsigned int Application::worldTileConnections(const WorldMap& area, int x, int 
 {
 	const RtpTileReference* tile = worldTileLayer(area, x, y, layer);
 	if (tile == NULL) return 0;
-	auto hasWallOpening = [&](int checkX, int checkY) -> bool
-	{
-		const RtpTileReference* decoration = worldTileLayer(area, checkX, checkY,
-			RtpRenderLayer::Decoration);
-		const RtpTileReference* foreground = worldTileLayer(area, checkX, checkY,
-			RtpRenderLayer::Foreground);
-		return (decoration != NULL && RtpTilesetRenderer::isWallOpening(*decoration)) ||
-			(foreground != NULL && RtpTilesetRenderer::isWallOpening(*foreground));
-	};
-	auto matches = [&](int checkX, int checkY, bool allowWallOpening) -> bool
+	auto matches = [&](int checkX, int checkY) -> bool
 	{
 		const RtpTileReference* other = worldTileLayer(area, checkX, checkY, layer);
-		if (other != NULL && other->family == tile->family &&
+		return other != NULL && other->family == tile->family &&
 			other->sheet == tile->sheet && other->index == tile->index &&
 			other->red == tile->red && other->green == tile->green &&
-			other->blue == tile->blue) return true;
-		bool wallAutotile = tile->sheet == RtpTileSheet::A3 ||
-			(tile->sheet == RtpTileSheet::A4 && (tile->index / 8) % 2 == 1);
-		bool opening = (other != NULL && RtpTilesetRenderer::isWallOpening(*other)) ||
-			hasWallOpening(checkX, checkY);
-		return allowWallOpening && wallAutotile && opening;
+			other->blue == tile->blue;
 	};
 	unsigned int connections = 0;
-	if (matches(x, y - 1, true)) connections |= RtpTilesetRenderer::North;
-	if (matches(x + 1, y, true)) connections |= RtpTilesetRenderer::East;
-	if (matches(x, y + 1, true)) connections |= RtpTilesetRenderer::South;
-	if (matches(x - 1, y, true)) connections |= RtpTilesetRenderer::West;
-	if (matches(x - 1, y - 1, false)) connections |= RtpTilesetRenderer::NorthWest;
-	if (matches(x + 1, y - 1, false)) connections |= RtpTilesetRenderer::NorthEast;
-	if (matches(x + 1, y + 1, false)) connections |= RtpTilesetRenderer::SouthEast;
-	if (matches(x - 1, y + 1, false)) connections |= RtpTilesetRenderer::SouthWest;
+	if (matches(x, y - 1)) connections |= RtpTilesetRenderer::North;
+	if (matches(x + 1, y)) connections |= RtpTilesetRenderer::East;
+	if (matches(x, y + 1)) connections |= RtpTilesetRenderer::South;
+	if (matches(x - 1, y)) connections |= RtpTilesetRenderer::West;
+	if (matches(x - 1, y - 1)) connections |= RtpTilesetRenderer::NorthWest;
+	if (matches(x + 1, y - 1)) connections |= RtpTilesetRenderer::NorthEast;
+	if (matches(x + 1, y + 1)) connections |= RtpTilesetRenderer::SouthEast;
+	if (matches(x - 1, y + 1)) connections |= RtpTilesetRenderer::SouthWest;
 	return connections;
 }
 
 bool Application::drawWorldTileLayer(const WorldMap& area, int x, int y,
 	RtpRenderLayer layer, const SDL_Rect& destination)
 {
+	bool rendered = false;
+	if (layer == RtpRenderLayer::Foreground)
+	{
+		const RtpTileReference* tree = worldTileLayer(area, x, y,
+			RtpRenderLayer::Decoration);
+		if (tree != NULL && RtpTilesetRenderer::isTreeAutotile(*tree))
+			rendered = mWorldTileRenderer->drawCatalogTreeLayer(*tree, layer,
+				destination);
+	}
 	const RtpTileReference* tile = worldTileLayer(area, x, y, layer);
-	if (tile == NULL) return false;
+	if (tile == NULL) return rendered;
 	if (mScreen != Screen::WorldBuilder && layer == RtpRenderLayer::Decoration &&
 		area.hasTag(x, y, "blackstone_gate") && hasCrest("confluence")) return false;
+	if (RtpTilesetRenderer::isTreeAutotile(*tile))
+		return mWorldTileRenderer->drawCatalogTreeLayer(*tile, layer, destination) ||
+			rendered;
 	return mWorldTileRenderer->drawCatalog(*tile,
 		worldTileConnections(area, x, y, layer), destination,
-		SDL_GetTicks() / 420);
+		SDL_GetTicks() / 420) || rendered;
 }
 
 void Application::placeWorldBuilderSelection(int x, int y)
@@ -1091,6 +1342,8 @@ void Application::placeWorldBuilderSelection(int x, int y)
 		}
 		Npc& npc = mNpcs[mWorldBuilderSelectedNpc];
 		if (npc.mapId == currentMapId() && npc.x == x && npc.y == y) return;
+		recordWorldBuilderEntityUndo(BUILDER_UNDO_NPC, mWorldBuilderSelectedNpc,
+			npc.mapId, npc.x, npc.y);
 		npc.mapId = currentMapId();
 		npc.setPosition(x, y);
 		mWorldBuilderDirty = true;
@@ -1107,6 +1360,8 @@ void Application::placeWorldBuilderSelection(int x, int y)
 		{
 			WorldObject& object = mWorldObjects[mWorldBuilderSelectedObject];
 			if (object.mapId == currentMapId() && object.x == x && object.y == y) return;
+			recordWorldBuilderEntityUndo(BUILDER_UNDO_OBJECT,
+				mWorldBuilderSelectedObject, object.mapId, object.x, object.y);
 			object.mapId = currentMapId();
 			object.x = x;
 			object.y = y;
@@ -1116,6 +1371,8 @@ void Application::placeWorldBuilderSelection(int x, int y)
 			int shardIndex = mWorldBuilderSelectedObject - (int)mWorldObjects.size();
 			MercerShard& shard = mMercerStock.shards[shardIndex];
 			if (shard.mapId == currentMapId() && shard.x == x && shard.y == y) return;
+			recordWorldBuilderEntityUndo(BUILDER_UNDO_SHARD, shardIndex,
+				shard.mapId, shard.x, shard.y);
 			shard.mapId = currentMapId();
 			shard.x = x;
 			shard.y = y;
@@ -1126,6 +1383,7 @@ void Application::placeWorldBuilderSelection(int x, int y)
 
 bool Application::saveWorldBuilder(std::string& error)
 {
+	commitWorldBuilderUndoAction();
 	mWorld.npcPositions.clear();
 	for (size_t index = 0; index < mNpcs.size(); ++index)
 		mWorld.npcPositions[mNpcs[index].id] = {
@@ -1144,6 +1402,7 @@ bool Application::saveWorldBuilder(std::string& error)
 		};
 	if (!WorldStorage::save("World/World.json", mWorld, error)) return false;
 	mWorldBuilderDirty = false;
+	clearWorldBuilderUndoHistory();
 	return true;
 }
 
@@ -1185,7 +1444,11 @@ void Application::zoomWorldBuilder(int direction, int anchorX, int anchorY)
 		(anchorY - newBaseY) / (float)mWorldBuilderTileSize;
 	clampMapCamera(map, mWorldBuilderCameraX, mWorldBuilderCameraY,
 		mWorldBuilderTileSize);
+	commitWorldBuilderUndoAction();
 	mWorldBuilderPainting = false;
+	mWorldBuilderErasing = false;
+	mWorldBuilderLastBrushX = -1;
+	mWorldBuilderLastBrushY = -1;
 	mWorldBuilderDragging = false;
 }
 
@@ -1211,9 +1474,15 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 	if (event.type == SDL_WINDOWEVENT &&
 		event.window.event == SDL_WINDOWEVENT_FOCUS_LOST)
 	{
+		commitWorldBuilderUndoAction();
 		mWorldBuilderMoveUp = mWorldBuilderMoveDown = false;
 		mWorldBuilderMoveLeft = mWorldBuilderMoveRight = false;
 		mWorldBuilderPanAccumulator = 0;
+		mWorldBuilderPainting = false;
+		mWorldBuilderErasing = false;
+		mWorldBuilderLastBrushX = -1;
+		mWorldBuilderLastBrushY = -1;
+		mWorldBuilderDragging = false;
 		return;
 	}
 	if (event.type == SDL_KEYUP)
@@ -1236,11 +1505,32 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 			mRunning = false;
 			return;
 		}
+		if (key == SDLK_z && (event.key.keysym.mod & KMOD_CTRL))
+		{
+			undoWorldBuilder();
+			return;
+		}
 		if (key == SDLK_s && (event.key.keysym.mod & KMOD_CTRL))
 		{
 			std::string error;
 			if (saveWorldBuilder(error)) showWorldBuilderNotice("Catalog maps saved.");
 			else showWorldBuilderNotice("Save failed: " + error, true);
+			return;
+		}
+		if (key == SDLK_g)
+		{
+			mWorldBuilderShowGrid = !mWorldBuilderShowGrid;
+			return;
+		}
+		if (key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET)
+		{
+			if (mWorldBuilderTab == WorldBuilderTab::Tiles &&
+				worldBuilderBrushResizable())
+			{
+				int direction = key == SDLK_LEFTBRACKET ? -1 : 1;
+				mWorldBuilderBrushSize = std::max(1, std::min(
+					BUILDER_MAX_BRUSH_SIZE, mWorldBuilderBrushSize + direction));
+			}
 			return;
 		}
 		if (key == SDLK_EQUALS || key == SDLK_KP_PLUS)
@@ -1318,8 +1608,11 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 	if (event.type == SDL_MOUSEBUTTONUP &&
 		(event.button.button == SDL_BUTTON_LEFT || event.button.button == SDL_BUTTON_RIGHT))
 	{
+		commitWorldBuilderUndoAction();
 		mWorldBuilderPainting = false;
 		mWorldBuilderErasing = false;
+		mWorldBuilderLastBrushX = -1;
+		mWorldBuilderLastBrushY = -1;
 		mWorldBuilderDragging = false;
 		return;
 	}
@@ -1333,9 +1626,19 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		if (mapCellAt(x, y, currentMap(), mWorldBuilderCameraX,
 			mWorldBuilderCameraY, mWorldBuilderTileSize, cellX, cellY))
 		{
-			if (mWorldBuilderPainting) paintWorldBuilderTile(cellX, cellY);
-			else if (mWorldBuilderErasing) eraseWorldBuilderTile(cellX, cellY);
+			if (mWorldBuilderPainting || mWorldBuilderErasing)
+			{
+				applyWorldBuilderBrushStroke(mWorldBuilderLastBrushX,
+					mWorldBuilderLastBrushY, cellX, cellY, mWorldBuilderErasing);
+				mWorldBuilderLastBrushX = cellX;
+				mWorldBuilderLastBrushY = cellY;
+			}
 			else if (mWorldBuilderDragging) placeWorldBuilderSelection(cellX, cellY);
+		}
+		else if (mWorldBuilderPainting || mWorldBuilderErasing)
+		{
+			mWorldBuilderLastBrushX = -1;
+			mWorldBuilderLastBrushY = -1;
 		}
 		return;
 	}
@@ -1346,6 +1649,16 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 	logicalMouse(event.button.x, event.button.y, x, y);
 	mMouseX = x;
 	mMouseY = y;
+	if (contains(BUILDER_GRID, x, y))
+	{
+		mWorldBuilderShowGrid = !mWorldBuilderShowGrid;
+		return;
+	}
+	if (contains(BUILDER_UNDO, x, y))
+	{
+		undoWorldBuilder();
+		return;
+	}
 	if (contains(BUILDER_SAVE, x, y))
 	{
 		std::string error;
@@ -1384,6 +1697,17 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 	{
 		if (mWorldBuilderTab == WorldBuilderTab::Tiles)
 		{
+			if (contains(BUILDER_BRUSH_DECREASE, x, y) ||
+				contains(BUILDER_BRUSH_INCREASE, x, y))
+			{
+				if (worldBuilderBrushResizable())
+				{
+					int direction = contains(BUILDER_BRUSH_DECREASE, x, y) ? -1 : 1;
+					mWorldBuilderBrushSize = std::max(1, std::min(
+						BUILDER_MAX_BRUSH_SIZE, mWorldBuilderBrushSize + direction));
+				}
+				return;
+			}
 			for (int category = 0; category < TILE_CATEGORY_COUNT; ++category)
 			{
 				if (!contains(tileCategoryRect(category), x, y)) continue;
@@ -1417,7 +1741,9 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 				int tile = catalogTileAt(*sheet, catalogSheetRect(*sheet), x, y);
 				if (tile >= 0)
 				{
-					mWorldBuilderCatalogTile = tile;
+					mWorldBuilderCatalogTile = RtpTilesetRenderer::canonicalTileIndex(
+						tilesetFamily(mWorldBuilderTileCategory),
+						(RtpTileSheet)mWorldBuilderTileSheet, tile);
 					return;
 				}
 			}
@@ -1470,20 +1796,24 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 			mWorldBuilderCameraY, mWorldBuilderTileSize, cellX, cellY)) return;
 		if (mWorldBuilderTab == WorldBuilderTab::Tiles)
 		{
+			beginWorldBuilderUndoAction();
 			if (event.button.button == SDL_BUTTON_RIGHT)
 			{
 				mWorldBuilderErasing = true;
-				eraseWorldBuilderTile(cellX, cellY);
+				applyWorldBuilderBrush(cellX, cellY, true);
 			}
 			else
 			{
 				mWorldBuilderPainting = true;
-				paintWorldBuilderTile(cellX, cellY);
+				applyWorldBuilderBrush(cellX, cellY, false);
 			}
+			mWorldBuilderLastBrushX = cellX;
+			mWorldBuilderLastBrushY = cellY;
 			return;
 		}
 		if (mWorldBuilderTab == WorldBuilderTab::Npcs)
 		{
+			beginWorldBuilderUndoAction();
 			int hit = -1;
 			for (size_t i = 0; i < mNpcs.size(); ++i)
 				if (mNpcs[i].mapId == currentMapId() && mNpcs[i].x == cellX &&
@@ -1493,6 +1823,7 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		}
 		else
 		{
+			beginWorldBuilderUndoAction();
 			int hit = -1;
 			for (size_t i = 0; i < mWorldObjects.size(); ++i)
 				if (mWorldObjects[i].mapId == currentMapId() &&
@@ -1635,10 +1966,7 @@ void Application::renderWorldBuilder()
 				type, map, column, row, tile);
 			if (mWorldTileRenderer->canDrawDecoration(type)) continue;
 			if (texturedTerrain)
-			{
-				outlineRect(tile, 10, 20, 27, 100, 1);
 				continue;
-			}
 			SDL_Rect displayedTile = tile;
 			mWorldBuilderTileScaleActive = tileSize != TILE;
 			mWorldBuilderTileScaleDestination = displayedTile;
@@ -2043,7 +2371,6 @@ void Application::renderWorldBuilder()
 			}
 			}
 			mWorldBuilderTileScaleActive = false;
-			outlineRect(displayedTile, 10, 20, 27, 100, 1);
 		}
 	}
 	const WorldMap& builderArea = mWorld.maps[mCurrentWorldArea];
@@ -2052,9 +2379,12 @@ void Application::renderWorldBuilder()
 		{
 			SDL_Rect tileRect = { mapX + x * tileSize, mapY + y * tileSize,
 				tileSize, tileSize };
-			if (drawWorldTileLayer(builderArea, x, y, RtpRenderLayer::Ground, tileRect))
-				outlineRect(tileRect, 10, 20, 27, 100, 1);
+			drawWorldTileLayer(builderArea, x, y, RtpRenderLayer::Ground, tileRect);
 		}
+	for (size_t i = 0; i < mNpcs.size(); ++i)
+		if (mNpcs[i].mapId == currentMapId() &&
+			visibleTiles.contains(mNpcs[i].x, mNpcs[i].y))
+			drawCharacterShadow((float)mNpcs[i].x, (float)mNpcs[i].y);
 	for (int y = visibleTiles.top; y < visibleTiles.bottom; ++y)
 	{
 		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
@@ -2066,7 +2396,6 @@ void Application::renderWorldBuilder()
 			SDL_Rect tileRect = { mapX + x * tileSize, mapY + y * tileSize,
 				tileSize, tileSize };
 			mWorldTileRenderer->drawDecoration(tile, tileRect);
-			outlineRect(tileRect, 10, 20, 27, 100, 1);
 		}
 	}
 	for (int y = visibleTiles.top; y < visibleTiles.bottom; ++y)
@@ -2074,10 +2403,14 @@ void Application::renderWorldBuilder()
 		{
 			SDL_Rect tileRect = { mapX + x * tileSize, mapY + y * tileSize,
 				tileSize, tileSize };
-			if (drawWorldTileLayer(builderArea, x, y,
-				RtpRenderLayer::Decoration, tileRect))
-				outlineRect(tileRect, 10, 20, 27, 100, 1);
+			drawWorldTileLayer(builderArea, x, y,
+				RtpRenderLayer::Decoration, tileRect);
 		}
+	if (mWorldBuilderShowGrid)
+		for (int y = visibleTiles.top; y < visibleTiles.bottom; ++y)
+			for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
+				outlineRect({ mapX + x * tileSize, mapY + y * tileSize,
+					tileSize, tileSize }, 10, 20, 27, 100, 1);
 
 	if (currentMapId() == mWorld.start.mapId &&
 		visibleTiles.contains(mWorld.start.x, mWorld.start.y))
@@ -2218,6 +2551,14 @@ void Application::renderWorldBuilder()
 	fillRect(BUILDER_PANEL, 20, 28, 44, 248);
 	outlineRect(BUILDER_PANEL, 184, 140, 60, 255, 2);
 	drawText("EDIT WORLD", 1027, 32, color(240, 205, 108), 21);
+	fillRect(BUILDER_GRID, mWorldBuilderShowGrid ? 61 : 34,
+		mWorldBuilderShowGrid ? 72 : 43, mWorldBuilderShowGrid ? 54 : 61, 245);
+	outlineRect(BUILDER_GRID, mWorldBuilderShowGrid ? 207 : 91,
+		mWorldBuilderShowGrid ? 161 : 108, mWorldBuilderShowGrid ? 73 : 132, 255, 1);
+	drawText(mWorldBuilderShowGrid ? "GRID ON" : "GRID OFF",
+		BUILDER_GRID.x + 11, BUILDER_GRID.y + 7,
+		color(mWorldBuilderShowGrid ? 242 : 155, mWorldBuilderShowGrid ? 224 : 166,
+			mWorldBuilderShowGrid ? 174 : 185), 9, 72);
 	fillRect(BUILDER_PREVIOUS_MAP, 37, 47, 67, 245);
 	fillRect(BUILDER_NEXT_MAP, 37, 47, 67, 245);
 	outlineRect(BUILDER_PREVIOUS_MAP, 113, 139, 176, 255, 2);
@@ -2291,6 +2632,26 @@ void Application::renderWorldBuilder()
 			if (hoveredTile >= 0) mWorldBuilderHoveredTileName =
 				catalogTileName(family, selectedSheet, hoveredTile);
 		}
+		bool brushResizable = worldBuilderBrushResizable();
+		int displayedBrushSize = brushResizable ? mWorldBuilderBrushSize : 1;
+		fillRect(BUILDER_BRUSH_DECREASE, brushResizable ? 43 : 29,
+			brushResizable ? 55 : 35, brushResizable ? 73 : 48, 245);
+		fillRect(BUILDER_BRUSH_LABEL, 27, 37, 53, 245);
+		fillRect(BUILDER_BRUSH_INCREASE, brushResizable ? 43 : 29,
+			brushResizable ? 55 : 35, brushResizable ? 73 : 48, 245);
+		outlineRect(BUILDER_BRUSH_DECREASE, brushResizable ? 116 : 67,
+			brushResizable ? 143 : 78, brushResizable ? 174 : 96, 255, 1);
+		outlineRect(BUILDER_BRUSH_LABEL, 88, 112, 143, 255, 1);
+		outlineRect(BUILDER_BRUSH_INCREASE, brushResizable ? 116 : 67,
+			brushResizable ? 143 : 78, brushResizable ? 174 : 96, 255, 1);
+		drawText("-", 1034, 659, color(brushResizable ? 229 : 113,
+			brushResizable ? 235 : 126, brushResizable ? 245 : 145), 14);
+		drawText("BRUSH  " + std::to_string(displayedBrushSize) + " x " +
+			std::to_string(displayedBrushSize), 1072, 661,
+			color(brushResizable ? 224 : 130, brushResizable ? 232 : 143,
+				brushResizable ? 243 : 162), 11, 132);
+		drawText("+", 1227, 659, color(brushResizable ? 229 : 113,
+			brushResizable ? 235 : 126, brushResizable ? 245 : 145), 14);
 		fillRect(BUILDER_TILE_INFO, 27, 37, 53, 245);
 		outlineRect(BUILDER_TILE_INFO, 88, 112, 143, 255, 1);
 		std::string tileLabel = mWorldBuilderHoveredTileName.empty() ?
@@ -2381,14 +2742,25 @@ void Application::renderWorldBuilder()
 			color(166, 184, 211), 10, 224);
 	}
 
+	bool canUndo = !mWorldBuilderUndoHistory.empty();
+	fillRect(BUILDER_UNDO, canUndo ? 66 : 35, canUndo ? 64 : 43,
+		canUndo ? 48 : 58, 250);
+	outlineRect(BUILDER_UNDO, canUndo ? 197 : 91, canUndo ? 158 : 104,
+		canUndo ? 72 : 125, 255, 2);
+	drawText("UNDO", BUILDER_UNDO.x + 24, BUILDER_UNDO.y + 7,
+		color(canUndo ? 245 : 135, canUndo ? 226 : 145, canUndo ? 181 : 162), 12);
+	drawText("Ctrl+Z", BUILDER_UNDO.x + 24, BUILDER_UNDO.y + 24,
+		color(canUndo ? 201 : 112, canUndo ? 211 : 124, canUndo ? 225 : 143), 8);
 	fillRect(BUILDER_SAVE, mWorldBuilderDirty ? 74 : 45, mWorldBuilderDirty ? 76 : 55,
 		mWorldBuilderDirty ? 43 : 67, 250);
 	outlineRect(BUILDER_SAVE, 207, 161, 66, 255, 2);
-	drawText("SAVE TO LUA   Ctrl+S", BUILDER_SAVE.x + 29, BUILDER_SAVE.y + 12,
-		color(245, 226, 181), 14);
-	drawText("T/N/O: tabs  •  Arrows/WASD: pan  •  Wheel over map or +/-: zoom",
+	drawText("SAVE", BUILDER_SAVE.x + 15, BUILDER_SAVE.y + 8,
+		color(245, 226, 181), 13);
+	drawText("Ctrl+S", BUILDER_SAVE.x + 75, BUILDER_SAVE.y + 11,
+		color(201, 211, 225), 9);
+	drawText("T/N/O: tabs  •  G: grid  •  Arrows/WASD: pan  •  Wheel or +/-: zoom  •  [ / ]: brush",
 		32, 650, color(180, 196, 219), 14, 930);
-	drawText("Tiles: paint  •  Entities: place  •  P: start  •  PageUp/PageDown: maps",
+	drawText("Tiles: paint  •  Entities: place  •  Ctrl+Z: undo  •  PageUp/PageDown: maps",
 		32, 676, color(142, 173, 217), 13);
 	if (!mWorldBuilderNotice.empty() && SDL_GetTicks() < mWorldBuilderNoticeUntil)
 	{

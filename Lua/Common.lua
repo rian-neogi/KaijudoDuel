@@ -326,6 +326,13 @@ Abils.destroyAfterBattle = function(id)
 	end
 end
 
+Abils.untapAfterBlock = function(id)
+	if(getMessageType()=="post creaturebattle" and getMessageInt("blocked")==1 and
+		getMessageInt("defender")==id and getCardZone(id)==ZONE_BATTLE) then
+		untapCard(id)
+	end
+end
+
 Abils.returnAfterDestroyed = function(id)
 	if(getMessageType()=="mod creaturedestroy") then
 		if(getMessageInt("creature")==id and getCardZone(id)==ZONE_BATTLE) then

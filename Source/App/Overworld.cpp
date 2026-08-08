@@ -1399,6 +1399,12 @@ void Application::renderOverworld()
 		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
 			drawWorldTileLayer(worldArea, x, y, RtpRenderLayer::Ground,
 				{ mapX + x * TILE, mapY + y * TILE, TILE, TILE });
+	for (size_t i = 0; i < mNpcs.size(); ++i)
+		if (npcVisible((int)i) && mNpcs[i].mapId == currentMapId() &&
+			visibleTiles.contains((int)std::floor(mNpcs[i].visualX),
+				(int)std::floor(mNpcs[i].visualY)))
+			drawCharacterShadow(mNpcs[i].visualX, mNpcs[i].visualY);
+	drawCharacterShadow(mVisualX, mVisualY);
 	for (int y = visibleTiles.top; y < visibleTiles.bottom; ++y)
 	{
 		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
@@ -1601,6 +1607,38 @@ void Application::drawCharacter(float gridX, float gridY, CharacterAppearance ap
 		spriteSheet, spriteIndex);
 }
 
+void Application::drawCharacterShadow(float gridX, float gridY)
+{
+	if (mAssets == NULL) return;
+	const std::vector<std::string>& map = currentMap();
+	const bool worldBuilder = mScreen == Screen::WorldBuilder;
+	float cameraX = worldBuilder ? (float)mWorldBuilderCameraX : overworldCameraX();
+	float cameraY = worldBuilder ? (float)mWorldBuilderCameraY : overworldCameraY();
+	int tileSize = worldBuilder ? mWorldBuilderTileSize : TILE;
+	int x;
+	int y;
+	if (worldBuilder)
+	{
+		int baseX = MAP_X + std::max(0,
+			MAP_VIEW_WIDTH - (int)map[0].size() * tileSize) / 2;
+		int baseY = MAP_Y + std::max(0,
+			MAP_VIEW_HEIGHT - (int)map.size() * tileSize) / 2;
+		x = baseX + (int)std::round((gridX - cameraX) * tileSize);
+		y = baseY + (int)std::round((gridY - cameraY) * tileSize);
+	}
+	else
+	{
+		x = mapOriginX((int)map[0].size(), OVERWORLD_VIEW_COLUMNS) +
+			(int)std::round((gridX - cameraX) * TILE);
+		y = mapOriginY((int)map.size()) +
+			(int)std::round((gridY - cameraY) * TILE);
+	}
+	SDL_Rect destination = { x, y + std::max(1,
+		(int)std::round(6.f * tileSize / (float)TILE)), tileSize, tileSize };
+	SDL_Texture* shadow = mAssets->texture(CHARACTER_SHADOW, true);
+	if (shadow != NULL) SDL_RenderCopy(mRenderer, shadow, NULL, &destination);
+}
+
 void Application::drawCharacterSprite(int x, int y, CharacterAppearance appearance,
 	bool completed, bool walking, int facingX, int facingY,
 	const std::string& spriteSheet, int spriteIndex)
@@ -1610,11 +1648,6 @@ void Application::drawCharacterSprite(int x, int y, CharacterAppearance appearan
 	CharacterSpriteDefinition sprite = spriteSheet.empty() || spriteIndex < 0 ?
 		characterSprite(appearance) : CharacterSpriteDefinition{ spriteSheet, spriteIndex };
 	SDL_Rect spriteDestination = worldBuilderTileRect({ x, y, TILE, TILE });
-	SDL_Rect shadowDestination = spriteDestination;
-	shadowDestination.y += std::max(1,
-		(int)std::round(6.f * spriteDestination.h / (float)TILE));
-	SDL_Texture* shadow = mAssets == NULL ? NULL : mAssets->texture(CHARACTER_SHADOW, true);
-	if (shadow != NULL) SDL_RenderCopy(mRenderer, shadow, NULL, &shadowDestination);
 	if (mSpriteSheets != NULL && mSpriteSheets->drawCharacter(sprite, facingX, facingY,
 		walking, SDL_GetTicks(), spriteDestination))
 	{

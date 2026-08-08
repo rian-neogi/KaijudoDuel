@@ -27,6 +27,8 @@ public:
 
 	bool draw(const RtpTileReference& tile, unsigned int connections,
 		const SDL_Rect& destination, unsigned int animationFrame = 0);
+	bool drawTreeLayer(const RtpTileReference& tile, RtpRenderLayer layer,
+		const SDL_Rect& destination);
 	bool drawLayer(const std::vector<RtpTileReference>& tiles, RtpRenderLayer layer,
 		unsigned int connections, const SDL_Rect& destination,
 		unsigned int animationFrame = 0);
@@ -37,9 +39,18 @@ public:
 		RtpTileSheet sheet);
 	static bool loadTileNames(RtpTilesetFamily family, RtpTileSheet sheet,
 		std::vector<std::string>& names, std::string& error);
-	static bool isWallOpening(const RtpTileReference& tile);
 	static RtpTileCollision collision(const RtpTileReference& tile);
 	static RtpRenderLayer inferredLayer(const RtpTileReference& tile);
+	static int canonicalTileIndex(RtpTilesetFamily family, RtpTileSheet sheet,
+		int tileIndex);
+	static bool isTreeAutotile(const RtpTileReference& tile);
+	static bool treeAutotileFootprint(const RtpTileReference& tile,
+		int& width, int& height);
+	static bool largeTreeAnchorsConflict(const RtpTileReference& first,
+		int firstX, int firstY, const RtpTileReference& second,
+		int secondX, int secondY);
+	static const char* treeAutotileName(RtpTilesetFamily family,
+		RtpTileSheet sheet, int tileIndex);
 	static bool regularTileSource(RtpTileSheet sheet, int tileIndex,
 		int textureWidth, int textureHeight, SDL_Rect& source);
 	static bool paletteTileSource(RtpTileSheet sheet, int tileIndex,
@@ -75,6 +86,8 @@ private:
 	bool drawAutotile(const RtpTileReference& tile, const RtpSheetDescriptor& sheet,
 		unsigned int connections, const SDL_Rect& destination,
 		unsigned int animationFrame);
+	bool drawTreeAutotile(const RtpTileReference& tile,
+		const SDL_Rect& destination, bool drawCanopy = true, bool drawBase = true);
 	static bool autotileOrigin(const RtpTileReference& tile,
 		unsigned int animationFrame, int& sourceX, int& sourceY,
 		AutotileFormat& format);

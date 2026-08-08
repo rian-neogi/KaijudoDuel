@@ -51,6 +51,26 @@ private:
 		Npcs,
 		Objects
 	};
+	struct WorldBuilderTileUndo
+	{
+		int mapIndex;
+		int x;
+		int y;
+		int layer;
+		bool hadTile;
+		RtpTileReference tile;
+	};
+	struct WorldBuilderUndoAction
+	{
+		std::vector<WorldBuilderTileUndo> tiles;
+		std::set<std::tuple<int, int, int, int> > tileKeys;
+		int entityKind = 0;
+		int entityIndex = -1;
+		std::string entityMapId;
+		int entityX = -1;
+		int entityY = -1;
+		bool dirtyBefore = false;
+	};
 	enum class StoryScene
 	{
 		None,
@@ -153,6 +173,7 @@ private:
 	void handleSettingsEvent(const SDL_Event& event);
 	void renderSettings();
 	bool exerciseMenuScreensSmoke();
+	bool exerciseBundledDecksSmoke();
 	bool exerciseOverworldMovementSmoke();
 	bool exerciseStorySmoke();
 	void initializeStory();
@@ -206,8 +227,19 @@ private:
 	void drawWorldBuilderNpcPortrait(const Npc& npc, const SDL_Rect& rect);
 	int worldBuilderHoveredNpc() const;
 	SDL_Rect worldBuilderTileRect(const SDL_Rect& rect) const;
+	bool worldBuilderBrushResizable() const;
+	void beginWorldBuilderUndoAction();
+	void recordWorldBuilderTileUndo(int x, int y, RtpRenderLayer layer);
+	void recordWorldBuilderEntityUndo(int kind, int index,
+		const std::string& mapId, int x, int y);
+	void commitWorldBuilderUndoAction();
+	void undoWorldBuilder();
+	void clearWorldBuilderUndoHistory();
+	void applyWorldBuilderBrush(int x, int y, bool erasing);
 	void paintWorldBuilderTile(int x, int y);
 	void eraseWorldBuilderTile(int x, int y);
+	void applyWorldBuilderBrushStroke(int fromX, int fromY, int toX, int toY,
+		bool erasing);
 	bool worldBuilderRequiresWalkable(int x, int y) const;
 	const RtpTileReference* worldTileLayer(const WorldMap& area, int x, int y,
 		RtpRenderLayer layer) const;
@@ -245,6 +277,7 @@ private:
 	bool exerciseMultiCivilizationSmoke();
 	bool exerciseRaceQuerySmoke();
 	bool exerciseCrypticTotemSmoke();
+	bool exerciseUntapAfterBlockSmoke();
 	bool exerciseBinaryChoiceSmoke();
 	bool exerciseActionLabelSmoke();
 	bool beginMandatorySacrificeAiSmoke(const std::string& cardName, int& summonedCard, int& sacrifice);
@@ -284,6 +317,7 @@ private:
 	void drawCharacter(float gridX, float gridY, CharacterAppearance appearance,
 		bool completed, bool walking = false, int facingX = 0, int facingY = 1,
 		const std::string& spriteSheet = "", int spriteIndex = -1);
+	void drawCharacterShadow(float gridX, float gridY);
 	void drawCharacterSprite(int x, int y, CharacterAppearance appearance,
 		bool completed, bool walking = false, int facingX = 0, int facingY = 1,
 		const std::string& spriteSheet = "", int spriteIndex = -1);
@@ -389,6 +423,8 @@ private:
 	int mWorldBuilderTileCategory;
 	int mWorldBuilderTileSheet;
 	int mWorldBuilderCatalogTile;
+	int mWorldBuilderBrushSize;
+	bool mWorldBuilderShowGrid;
 	std::string mWorldBuilderHoveredTileName;
 	int mWorldBuilderSelectedNpc;
 	int mWorldBuilderSelectedObject;
@@ -405,7 +441,12 @@ private:
 	Uint32 mWorldBuilderPanAccumulator;
 	bool mWorldBuilderPainting;
 	bool mWorldBuilderErasing;
+	int mWorldBuilderLastBrushX;
+	int mWorldBuilderLastBrushY;
 	bool mWorldBuilderDragging;
+	bool mWorldBuilderUndoPending;
+	WorldBuilderUndoAction mWorldBuilderPendingUndo;
+	std::vector<WorldBuilderUndoAction> mWorldBuilderUndoHistory;
 	bool mWorldBuilderDirty;
 	bool mWorldBuilderNoticeError;
 	std::string mWorldBuilderNotice;

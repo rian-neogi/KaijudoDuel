@@ -53,9 +53,28 @@ cell has no tile on that layer. Every other palette element has this form:
   provides the sheet.
 - `index` is the zero-based logical tile index within the sheet. Autotile
   sheets use logical autotile blocks rather than raw 32-pixel image cells.
+- Outside B tree artwork is also logical. The World Builder canonicalizes the
+  component images for Tree, Large Tree, Snowy Tree, Large Snowy Tree, Spooky
+  Tree, and Palm Tree into one paintable tile per family. Matching horizontal
+  source cells act as aliases for the logical brush, but only the complete
+  primary canopy-and-base stamp is rendered. Seamless forest-fill fragments,
+  partial canopies, quarters, and bush cells are never rendered as tree
+  variants. The stored cell is the blocked trunk anchor for an atomic full tree
+  sprite. Loading canonicalizes older raw tree-component indices so legacy base
+  or canopy entries cannot remain half-trees. Large and large snowy trees occupy
+  a 2-by-2 footprint. Trunks on the same row must be at least two cells apart.
+  Trunks on adjacent rows may share a column or use neighboring columns so the
+  tileset artwork can pack vertically and diagonally. Loading removes later
+  row-major anchors that violate only the same-row horizontal spacing.
 - `layer` must match the layer that references this palette entry. Layer choice
-  is inferred by the World Builder: A-series tiles use ground, ordinary B/C
-  tiles use decoration, and metadata-marked front pieces use foreground.
+  is inferred by the World Builder. A1 indices 1 through 3 use decoration for
+  deep water and its surface features; other A1 indices use ground. A2 uses
+  ground for one-based columns 1 through 4 and decoration for columns 5 through
+  8 in every logical row. Other A-series tiles use ground, ordinary B/C tiles
+  use decoration, and metadata-marked front pieces use foreground.
+- Logical tree anchors remain stored in decoration. Their base row renders in
+  the decoration pass, while their canopy row renders in the foreground
+  pass so characters can walk visually behind the foliage.
 - `tint` contains red, green, and blue texture multipliers from 0 through 255.
   `[255,255,255]` leaves the source art unchanged. Tint support remains part of
   the native format even though the migrated overworld palette is neutral.
@@ -92,7 +111,10 @@ behavior. If no layer supplies collision, the cell is blocked. Consequently,
 an entirely empty cell is not walkable.
 
 Collision rules come from tileset family, sheet, tile index, and tile metadata.
-Changing a visual tile can therefore change pathability.
+Changing a visual tile can therefore change pathability. Non-World A1 tiles
+are blocked. A2 ground categories in columns 1 through 4 are walkable, while
+A2 decoration categories in columns 5 through 8 are blocked. World-family
+tiles ignore collision because they are not used on player-walkable maps.
 
 ## Tags
 
