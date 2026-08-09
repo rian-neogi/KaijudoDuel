@@ -1,12 +1,14 @@
 #include "Application.h"
 
-#include "AI/HeuristicBot.h"
+#include "AI/AiDriver.h"
 #include "AppSupport.h"
 #include "Game/Card.h"
 
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <set>
 
 using namespace AppSupport;
@@ -46,6 +48,30 @@ namespace
 			identity += ';';
 		}
 		return identity;
+	}
+
+	void printMctsStatistics(const MctsResult& result, Uint32 elapsed,
+		const std::string& committedAction, bool usedFallback)
+	{
+		std::ostringstream output;
+		output << std::fixed << std::setprecision(3)
+			<< "AI MCTS: rollouts=" << result.iterationsCompleted
+			<< ", attempted=" << result.iterationsCompleted + result.failedIterations
+			<< ", failed=" << result.failedIterations
+			<< ", elapsed=" << elapsed << "ms"
+			<< ", timed-out=" << (result.timeBudgetExpired ? "yes" : "no")
+			<< ", root-eval=" << result.meanValue
+			<< ", root-actions=" << result.rootChildren.size();
+		if (result.hasPlan)
+		{
+			Message selectedAction = result.plan.action;
+			output << ", selected=" << selectedAction.getType()
+				<< ", selected-eval=" << result.selectedMeanValue
+				<< ", selected-visits=" << result.selectedVisits;
+		}
+		if (usedFallback)
+			output << ", fallback=" << committedAction;
+		std::cout << output.str() << std::endl;
 	}
 }
 
@@ -93,6 +119,10 @@ bool Application::startDuelWithDecks(const std::string& playerDeck,
 	mActionLogOpen = false;
 	mActionLogScroll = 0;
 	mNextAiMove = SDL_GetTicks() + 700;
+	delete mAiSearch;
+	mAiSearch = NULL;
+	mAiSearchStartedAt = 0;
+	mAiCreaturePowers.clear();
 	mDuelResult = -1;
 	mDuelResultAt = 0;
 	mDialogueNpc = -1;
@@ -105,9 +135,22 @@ bool Application::startDuelWithDecks(const std::string& playerDeck,
 
 void Application::stopDuel()
 {
-	if (mDuel == NULL) return;
+	if (mDuel == NULL)
+	{
+		delete mAiSearch;
+		mAiSearch = NULL;
+		mAiSearchStartedAt = 0;
+		mAiCreaturePowers.clear();
+		return;
+	}
 	mDuel->stopInputLoop();
 	if (mDuelThread.joinable()) mDuelThread.join();
+	delete mAiSearch;
+	mAiSearch = NULL;
+	mAiSearchStartedAt = 0;
+	mDuel->mAiThinking = false;
+	mDuel->mAiThinkingPlayer = -1;
+	mAiCreaturePowers.clear();
 	delete mDuel;
 	mDuel = NULL;
 	ActiveDuel = NULL;
@@ -403,24 +446,125 @@ void Application::updateDuel(Uint32 deltaTime)
 	{
 		std::lock_guard<std::mutex> lock(gMutex);
 		winner = mDuel->mWinner;
-		if (winner == -1 && mDuel->getPlayerToMove() == 1 && now >= mNextAiMove && !mDuel->mMsgMngr.hasMoreMessages())
+		int playerToMove = mDuel->getPlayerToMove();
+		bool aiBoundary = winner == -1 && playerToMove == 1 &&
+			!mDuel->mMsgMngr.hasMoreMessages();
+		if (mAiSearch != NULL)
 		{
-			std::vector<Message> moves = mDuel->getPossibleMoves();
-			Uint32 nextMoveDelay = AI_MOVE_DELAY_MS;
-			if (!moves.empty())
+			if (mAiSearch->isFinished())
 			{
+				MctsResult result;
+				mAiSearch->finish(result);
+				Uint32 finishedAt = SDL_GetTicks();
+				Uint32 elapsed = finishedAt - mAiSearchStartedAt;
+				delete mAiSearch;
+				mAiSearch = NULL;
+				mAiSearchStartedAt = 0;
+				mDuel->mAiThinking = false;
+				mDuel->mAiThinkingPlayer = -1;
+				mAiCreaturePowers.clear();
+
 				const std::string personality = mActiveNpc >= 0 ?
 					mNpcs[mActiveNpc].aiPersonality : "balanced";
-				HeuristicBot rival(1, personality);
-				Message move = rival.chooseMove(*mDuel, moves);
-				if (move.getType() == "manatap") nextMoveDelay = AI_MANA_TAP_DELAY_MS;
-				mDuel->handleInterfaceInput(move);
+				AiDecisionOutcome decision;
+				if (result.hasPlan && commitDecisionPlan(*mDuel, result.plan) ==
+					DecisionPlanCommitStatus::Committed)
+				{
+					decision.source = AiDecisionSource::Mcts;
+					decision.action = result.plan.action;
+				}
+				else
+					decision = playHeuristicDecision(*mDuel, 1, personality);
+				bool usedFallback = decision.source == AiDecisionSource::Heuristic;
+				printMctsStatistics(result, elapsed, decision.action.getType(), usedFallback);
+				Uint32 delay = decision.action.getType() == "manatap" ?
+					AI_MANA_TAP_DELAY_MS : AI_MOVE_DELAY_MS;
+				mNextAiMove = finishedAt + delay;
 			}
-			mNextAiMove = now + nextMoveDelay;
+		}
+		else if (aiBoundary && now >= mNextAiMove)
+		{
+			const std::string personality = mActiveNpc >= 0 ?
+				mNpcs[mActiveNpc].aiPersonality : "balanced";
+			AiDecisionOutcome shieldTarget = playRandomShieldTarget(*mDuel, 1);
+			if (shieldTarget.source == AiDecisionSource::ShieldRandom)
+			{
+				std::cout << "AI random shield target: selected=" <<
+					shieldTarget.action.getType() << std::endl;
+				mNextAiMove = now + AI_MOVE_DELAY_MS;
+			}
+			else
+			{
+				AiDecisionOutcome manaAction = playHeuristicManaPayment(*mDuel, 1, personality);
+				if (manaAction.source == AiDecisionSource::None)
+					manaAction = playHeuristicManaPlacement(*mDuel, 1, personality);
+				if (manaAction.source == AiDecisionSource::ManaHeuristic)
+				{
+					std::cout << "AI mana heuristic: selected=" <<
+						manaAction.action.getType() << std::endl;
+					mNextAiMove = now + (manaAction.action.getType() == "manatap" ?
+						AI_MANA_TAP_DELAY_MS : AI_MOVE_DELAY_MS);
+				}
+				else
+				{
+					AiDecisionOutcome forced = playForcedAiDecision(*mDuel, 1);
+					if (forced.source == AiDecisionSource::Forced)
+					{
+						std::cout << "AI MCTS: rollouts=0, attempted=0, reason=single-root-action"
+							<< ", selected=" << forced.action.getType() << std::endl;
+						Uint32 delay = forced.action.getType() == "manatap" ?
+							AI_MANA_TAP_DELAY_MS : AI_MOVE_DELAY_MS;
+						mNextAiMove = now + delay;
+					}
+					else
+					{
+						if (mDuel->isCloneable())
+						{
+							mAiCreaturePowers.resize(mDuel->mCardList.size());
+							for (size_t card = 0; card < mDuel->mCardList.size(); ++card)
+								mAiCreaturePowers[card] = mDuel->mCardList[card]->mPower;
+							for (int player = 0; player < 2; ++player)
+							{
+								for (std::vector<Card*>::const_iterator card =
+									mDuel->mBattlezones[player].mCards.begin();
+									card != mDuel->mBattlezones[player].mCards.end(); ++card)
+								{
+									mAiCreaturePowers[(*card)->mUniqueId] =
+										mDuel->getCreaturePower((*card)->mUniqueId);
+								}
+							}
+
+							mDuel->mAiThinkingPlayer = playerToMove;
+							mDuel->mAiThinking = true;
+							mAiSearch = new BackgroundMctsSearch(1, liveMctsConfig());
+							if (mAiSearch->start(*mDuel))
+								mAiSearchStartedAt = now;
+							else
+							{
+								delete mAiSearch;
+								mAiSearch = NULL;
+								mDuel->mAiThinking = false;
+								mDuel->mAiThinkingPlayer = -1;
+								mAiCreaturePowers.clear();
+							}
+						}
+						if (mAiSearch == NULL)
+						{
+							AiDecisionOutcome decision = playHeuristicDecision(*mDuel, 1, personality);
+							if (decision.source != AiDecisionSource::None)
+								std::cout << "AI MCTS: unavailable at transient choice; fallback=" <<
+									decision.action.getType() << std::endl;
+							Uint32 delay = decision.action.getType() == "manatap" ?
+								AI_MANA_TAP_DELAY_MS : AI_MOVE_DELAY_MS;
+							mNextAiMove = now + delay;
+						}
+					}
+				}
+			}
 		}
 
 		bool canChoose = winner == -1 && mAutoChooseOnlyAction &&
-			mDuel->getPlayerToMove() == 0 && !mDuel->mMsgMngr.hasMoreMessages() &&
+			playerToMove == 0 && !mDuel->mMsgMngr.hasMoreMessages() &&
 			!mActionLogOpen && mOpenGraveyardPlayer < 0 && mDraggingCard < 0;
 		if (canChoose)
 		{
@@ -495,6 +639,7 @@ void Application::playAction(const Message& message)
 {
 	if (mDuel == NULL || mDuelResult != -1) return;
 	std::lock_guard<std::mutex> lock(gMutex);
+	if (mDuel->mAiThinking.load()) return;
 	if (mDuel->getPlayerToMove() == 0)
 	{
 		Message action = message;
@@ -508,6 +653,7 @@ void Application::playCard(const Message& message)
 {
 	if (mDuel == NULL || mDuelResult != -1) return;
 	std::lock_guard<std::mutex> lock(gMutex);
+	if (mDuel->mAiThinking.load()) return;
 	if (mDuel->getPlayerToMove() != 0) return;
 
 	Message action = message;
@@ -538,6 +684,7 @@ void Application::beginDrag(int cardId, const SDL_Rect& origin, int mouseX, int 
 {
 	if (mDuel == NULL) return;
 	std::lock_guard<std::mutex> lock(gMutex);
+	if (mDuel->mAiThinking.load()) return;
 	if (cardId < 0 || cardId >= (int)mDuel->mCardList.size()) return;
 	Card* card = mDuel->mCardList[cardId];
 	if (card->mOwner != 0 || (card->mZone != ZONE_HAND && card->mZone != ZONE_BATTLE)) return;
@@ -577,6 +724,7 @@ bool Application::findDragAction(const std::string& type, int cardId, int target
 {
 	if (mDuel == NULL) return false;
 	std::lock_guard<std::mutex> lock(gMutex);
+	if (mDuel->mAiThinking.load()) return false;
 	std::vector<Message> moves = mDuel->getPossibleMoves();
 	for (size_t i = 0; i < moves.size(); ++i)
 	{
@@ -615,6 +763,7 @@ bool Application::findClickAction(int cardId, Message& result)
 {
 	if (mDuel == NULL || mDuelResult != -1) return false;
 	std::lock_guard<std::mutex> lock(gMutex);
+	if (mDuel->mAiThinking.load()) return false;
 	if (mDuel->getPlayerToMove() != 0) return false;
 
 	std::vector<Message> moves = mDuel->getPossibleMoves();
@@ -1112,7 +1261,8 @@ void Application::renderDuel()
 	else if (mDuel->mCastingCard != -1) phase = "Choose mana to tap";
 	if (!phase.empty()) drawText(phase, 1010, 119, color(245, 199, 91), 15, 238);
 
-	if (mDuel->getPlayerToMove() == 0 && mDuelResult == -1)
+	int playerToMove = mDuel->getPlayerToMove();
+	if (playerToMove == 0 && mDuelResult == -1)
 	{
 		std::vector<Message> actions = visibleActions();
 		int maxScroll = std::max(0, (int)actions.size() - 8);

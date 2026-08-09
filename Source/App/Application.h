@@ -23,6 +23,7 @@ class SoundManager;
 class AssetManager;
 class SpriteSheetRenderer;
 class WorldTileRenderer;
+class BackgroundMctsSearch;
 
 class Application
 {
@@ -174,6 +175,12 @@ private:
 	void renderSettings();
 	bool exerciseMenuScreensSmoke();
 	bool exerciseDuelCloneSmoke();
+	bool exerciseSimulationChoiceSmoke();
+	bool exerciseDecisionPlanSmoke();
+	bool exerciseMctsSmoke();
+	bool exerciseLiveDecisionPlanSmoke();
+	bool exerciseAiDriverSmoke();
+	bool exerciseBackgroundMctsSmoke();
 	bool exerciseBundledDecksSmoke();
 	bool exerciseOverworldMovementSmoke();
 	bool exerciseStorySmoke();
@@ -464,6 +471,9 @@ private:
 	bool mActionLogOpen;
 	int mActionLogScroll;
 	Uint32 mNextAiMove;
+	BackgroundMctsSearch* mAiSearch;
+	Uint32 mAiSearchStartedAt;
+	std::vector<int> mAiCreaturePowers;
 	int mDuelResult;
 	Uint32 mDuelResultAt;
 	int mRewardCardId;

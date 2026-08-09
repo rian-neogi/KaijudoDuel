@@ -3,7 +3,7 @@ It would be great if the player could access 4 copies of every card in the game 
 
 From each set, I will separate the cards into various tiers. I will make sure that there are the same amount of cards per tier in each civilization.
 
-Mercer has his stock that builds as the player collects shards. Each town has its own civilization-specific shop. Also, each duelist gives a card reward upon defeat.
+Mercer has his stock that builds as the player collects shards. His stock is in MercerStock.md. Each town has its own civilization-specific shop. Also, each duelist gives a card reward upon defeat.
 
 ## Town Shops
 
@@ -37,7 +37,7 @@ Picora's Wrench
 Kamikaze, Chainsaw Warrior
 Missile Boy
 Chaotic Skyterror
-Pippie Kuppie
+Cratersaur
 Magmarex
 Cannoneer Bargon
 Mega Detonator
@@ -221,16 +221,132 @@ Smash Horn Q
 
 There will be three shops in this city. One shop sells dragons, another sells Angel Commands, and another sells Demon Commands.
 
-Dragon Shop:
+Dragon Shop, first inventory:
 Bolzard Dragon
-Boltail Dragon
-Scarlet Skyterror
-
-Gatling Skyterror
+Galklife Dragon
+Bruiser Dragon
+Gazarias Dragon
+Garkago Dragon
+Gaulezal Dragon
+Uberdragon Jabaha
 Magmadragon Melgars
+Necrodragon Zalva
+Necrodragon Giland
+Necrodragon Galbazeek
+Terradraon Regarion
+Terradragon Cusdalf
+Terradragon Gamiratar
+Furious Onslaught
+Phantom Dragon's Flame
 
+Dragon Shop, more cards after beating Kestrel:
+Bazagazeal Dragon
+Bolgash Dragon
+Terradragon Dakma Balgarow
+Terradragon Arque Delacerna
+Dracodance Totem
+Rollicking Totem
+Kachua, Keeper of the Icegate
+Kryston, Lair Delver
+Pippie Kuppie
+Mechadragon's Breath
+Bakkra Horn, the Silent
+Super Terradragon, Bailas Gale
+
+Demon Shop:
+Gamil, Knight of Hatred
+Gnarvash, Merchant of Blood
+Photocide, Lord of the Wastes
+Vashuna, Sword Dancer
+Gajirabute, Vile Centurion
+Deathliger, Lion of Chaos
+Zagaan, Knight of Darkness
+
+Angel Shop:
+Ethel, Star Sea Elemental
+Aeris, Flight Elemental
+Mihail, Celestial Elemental
+Rimuel, Cloudbreak Elemental
+Miar, Comet Elemental
+Gariel, Elemental of Sunbeams
+Syforce, Aurora Elemental
+Siri, Glory Elemental
+Elixia, Pureblade Elemental
+Hanusa, Radiance Elemental
+Urth, Purifying Elemental
+Dracobarrier
+Wave Lance
 
 ### Cloudrest Peak
 
-The place has Wave striker cards.
+The place has Wave striker cards:
+Asra, Vizier of Safety
+Jagila, Hidden Pillager
+Steamroller Mutant
+Eviscerating Warrior Lumez
+Ninja Pumpkin
+Uncanny Turnip
+Revival Soldier
+Merlee, the Oracle
+Aqua Trickster
+Bonfire Lizard
+Macho Melon
+Hazaria, Duke of Thorns
+
+
+## Special Cards
+
+Certain cards can only be accessed upon defeating opponents or in secrets. These are:
+
+Crimson Hammer/Comet Missile: 4 early opponents give out this card
+
+Bronze-Arm Tribe/Faerie Life: 4 early opponents
+
+Aqua Hulcus/Energy Stream: 4 early opponents
+
+Ghost Touch/Horrid Worm: 4 mid-tier opponents
+
+Spiral Gate/Aqua Surfer: Mid-tier opponents
+
+Diamond Cutter/Holy Awe: Mid-tier
+
+Bolshack Dragon/Metalwing Skyterror: Mid-tier opponents
+
+Cocco Lupia/Totto Pipicchi: Various opponents in Dragon Keep
+
+Bolmeteus Steel Dragon/Twin-Cannon Skyterror: Special opponents in Dragon Keep
+
+Future Slash/Apocalypse Vise/Lost Soul: special opp
+
+Magmadragon Jagalzor: Special opponents in Dragon Keep
+
+Trox, General of Destruction: Special opponents
+
+Balloom, Master of Death/Alcadeias, Lord of Spirits: Special opponents
+
+Stallob/Death Cruzer: special battles
+
+Sirius, Firmament Elemental: Special opp
+
+Sword of Malevolent Death/Benevolent Life: An NPC gives you either one of the two, after a philosophical riddle
+
+Uberdragon Bajula: Secret opponent in Dragon Keep after beating Kestrel
+
+Ultimate Dragon: Drops from Kestrel
+
+Billion-degree Dragon: Secret opponent in Dragon Keep after beating Kestrel
+
+Kuukai: Special drop
+
+Ailzonius: special opponent
+
+Super Necrodragon, Abzo Dolba: Special opponent in Dragon Keep
+
+All vortex evolutions are special opponents, and so are all multi-race evolutions
+
+Multi-color spells are special opponents
+
+Cranium Clamp: You get only 1 copy in a special place in Act III
+
+Bombazar, Dragon of Destiny: Only 1 copy in a secret location after beating Caelum Rhos
 

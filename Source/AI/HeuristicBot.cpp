@@ -83,6 +83,46 @@ Message HeuristicBot::chooseMove(Duel& duel, const std::vector<Message>& moves) 
 	return moves.front();
 }
 
+bool HeuristicBot::chooseManaPlacement(Duel& duel, const std::vector<Message>& moves,
+	Message& result) const
+{
+	if (duel.mTurnPhase != TURN_PHASE_MANA || duel.mManaUsed != 0 ||
+		duel.mCastingCard != -1 || duel.mIsChoiceActive || duel.mAttackphase != PHASE_NONE)
+		return false;
+	double bestScore = -std::numeric_limits<double>::infinity();
+	bool found = false;
+	for (std::vector<Message>::const_iterator move = moves.begin(); move != moves.end(); ++move)
+	{
+		if (messageType(*move) != "cardmana") continue;
+		double score = scoreMove(duel, *move);
+		if (!found || score > bestScore)
+		{
+			result = *move;
+			bestScore = score;
+			found = true;
+		}
+	}
+	// Keep the same threshold used by chooseMove: below this value, retaining
+	// the card is preferable and MCTS may choose among the non-mana actions.
+	return found && bestScore >= 5.0;
+}
+
+int HeuristicBot::chooseManaPayment(Duel& duel, const std::vector<int>& options) const
+{
+	int selected = -1;
+	double bestScore = -std::numeric_limits<double>::infinity();
+	for (std::vector<int>::const_iterator option = options.begin(); option != options.end(); ++option)
+	{
+		double score = scoreManaPayment(duel, *option);
+		if (selected < 0 || score > bestScore || (score == bestScore && *option < selected))
+		{
+			selected = *option;
+			bestScore = score;
+		}
+	}
+	return selected;
+}
+
 double HeuristicBot::cardValue(Duel& duel, int cardId, bool allowLuaQueries) const
 {
 	if (cardId < 0 || cardId >= (int)duel.mCardList.size()) return 0.0;
@@ -167,6 +207,55 @@ double HeuristicBot::scoreManaCharge(Duel& duel, int cardId) const
 		if ((missingCivilizations & (1 << civ)) != 0) score += 12.0;
 	int manaAfterCharge = manaCount + 1;
 	if (card->mManaCost > manaAfterCharge + 2) score += 5.0;
+	return score;
+}
+
+double HeuristicBot::scoreManaPayment(Duel& duel, int cardId) const
+{
+	if (cardId < 0 || cardId >= (int)duel.mCardList.size())
+		return -std::numeric_limits<double>::infinity();
+	Card* selected = duel.mCardList[cardId];
+	if (selected->mOwner != mPlayer || selected->mZone != ZONE_MANA || selected->mIsTapped)
+		return -std::numeric_limits<double>::infinity();
+
+	int remainingCivilizations[CIV_DARKNESS + 1] = {};
+	for (std::vector<Card*>::const_iterator mana = duel.mManazones[mPlayer].mCards.begin();
+		mana != duel.mManazones[mPlayer].mCards.end(); ++mana)
+	{
+		if ((*mana)->mIsTapped || (*mana)->mUniqueId == cardId ||
+			std::find(duel.mCastingManaCards.begin(), duel.mCastingManaCards.end(),
+				(*mana)->mUniqueId) != duel.mCastingManaCards.end()) continue;
+		for (int civilization = CIV_LIGHT; civilization <= CIV_DARKNESS; ++civilization)
+			if (((*mana)->mCivilizations & (1 << civilization)) != 0)
+				remainingCivilizations[civilization]++;
+	}
+
+	double score = 0.0;
+	for (int civilization = CIV_LIGHT; civilization <= CIV_DARKNESS; ++civilization)
+	{
+		if (remainingCivilizations[civilization] > 0) score += 30.0;
+		score += std::min(3, remainingCivilizations[civilization]) * 3.0;
+	}
+
+	// Preserve the civilization combinations needed by cards that could still
+	// be cast later this turn. This is intentionally a cheap payment policy;
+	// legality remains enforced by Duel::canTapManaForCasting.
+	for (std::vector<Card*>::const_iterator card = duel.mHands[mPlayer].mCards.begin();
+		card != duel.mHands[mPlayer].mCards.end(); ++card)
+	{
+		if ((*card)->mUniqueId == duel.mCastingCard) continue;
+		bool covered = true;
+		for (int civilization = CIV_LIGHT; civilization <= CIV_DARKNESS; ++civilization)
+		{
+			if (((*card)->mCivilizations & (1 << civilization)) != 0 &&
+				remainingCivilizations[civilization] == 0)
+			{
+				covered = false;
+				break;
+			}
+		}
+		if (covered) score += 2.0 + std::min(8, (*card)->mManaCost) * 0.25;
+	}
 	return score;
 }
 

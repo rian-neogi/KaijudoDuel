@@ -1253,7 +1253,7 @@ Cards["Proclamation of Death"] = {
 	shieldtrigger = 1,
 
 	OnCast = function(id)
-		local ch = createChoice("Choose a creature in your battlezone",0,id,getOpponet(getCardOwner(id)),Checks.InOppBattle)
+		local ch = createChoice("Choose a creature in your battlezone",0,id,getOpponent(getCardOwner(id)),Checks.InOppBattle)
 	    if(ch>=0) then
             destroyCreature(ch)
         end

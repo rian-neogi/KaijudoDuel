@@ -131,7 +131,12 @@ static int setModifierStateInt(lua_State* L)
 
 static int createChoice(lua_State* L)
 {
+	// A choice may be created from inside a message callback after that callback
+	// queued more work. Drain the work, but preserve the outer callback's message
+	// context when the nested dispatch returns.
+	Message outerMessage = ActiveDuel->mCurrentMessage;
 	ActiveDuel->dispatchAllMessages(); //first resolve all pending messages
+	ActiveDuel->mCurrentMessage = outerMessage;
 	//lua_pushvalue(L, -1);
 	assert(L == LuaCards);
 	lua_pushvalue(L, 5);
@@ -143,12 +148,7 @@ static int createChoice(lua_State* L)
 	ActiveDuel->checkChoiceValid();
 	
 	if (ActiveDuel->mIsChoiceActive)
-	{
-		ActiveDuel->mLuaCallbackSuspended = true;
-		int choice = ActiveDuel->waitForChoice();
-		ActiveDuel->mLuaCallbackSuspended = false;
-		lua_pushinteger(L, choice);
-	}
+		lua_pushinteger(L, ActiveDuel->resolveChoice());
 	else
 		lua_pushinteger(L, RETURN_NOVALID);
 	return 1;
@@ -168,7 +168,9 @@ static int createChoice(lua_State* L)
 
 static int createChoiceNoCheck(lua_State* L)
 {
+	Message outerMessage = ActiveDuel->mCurrentMessage;
 	ActiveDuel->dispatchAllMessages(); //first resolve all pending messages
+	ActiveDuel->mCurrentMessage = outerMessage;
 	//lua_pushvalue(L, -1);
 	lua_pushvalue(L, 5);
 	int vref = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -190,12 +192,7 @@ static int createChoiceNoCheck(lua_State* L)
 	//luaL_unref(L, LUA_REGISTRYINDEX, ref);
 	//return 1;
 	if (ActiveDuel->mIsChoiceActive)
-	{
-		ActiveDuel->mLuaCallbackSuspended = true;
-		int choice = ActiveDuel->waitForChoice();
-		ActiveDuel->mLuaCallbackSuspended = false;
-		lua_pushinteger(L, choice);
-	}
+		lua_pushinteger(L, ActiveDuel->resolveChoice());
 	else
 		lua_pushinteger(L, RETURN_NOVALID);
 	return 1;

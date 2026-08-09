@@ -4,6 +4,7 @@
 
 #include <fstream>
 #include <atomic>
+#include <functional>
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
@@ -23,6 +24,8 @@ struct MsgHistoryItem
 class Duel
 {
 public:
+	typedef std::function<int(const Duel&)> ChoiceResolver;
+
 	Deck mDecks[2];
 	Hand mHands[2];
 	ManaZone mManazones[2];
@@ -37,6 +40,8 @@ public:
 	bool mIsSimulation;
 	std::atomic<bool> mInputLoopRunning;
 	std::atomic<bool> mLuaCallbackSuspended;
+	std::atomic<bool> mAiThinking;
+	std::atomic<int> mAiThinkingPlayer;
 	std::vector<MsgHistoryItem> mMessageHistory;
 	std::vector<Message> mMoveHistory;
 	std::vector<int> mMovePlayers;
@@ -66,6 +71,9 @@ public:
 	int mChoicePlayer;
 	bool mIsChoiceActive;
 	std::vector<int> mChoiceValidCards;
+	ChoiceResolver mChoiceResolver;
+	int mChoiceResolverAnswersRemaining;
+	bool mSimulationChoiceFailed;
 	bool mZeroPowerCheckPending;
 	int mRaceQueryDepth;
 
@@ -107,6 +115,11 @@ public:
 	void loopInput();
 	void stopInputLoop();
 	int waitForChoice();
+	int resolveChoice();
+	void setChoiceResolver(const ChoiceResolver& resolver, int answersRemaining = -1);
+	void clearChoiceResolver();
+	bool hasSimulationChoiceFailure() const;
+	void clearSimulationChoiceFailure();
 
 	//For AI
 	int getPlayerToMove();
@@ -117,7 +130,9 @@ public:
 	//Other
 	void addChoice(std::string info, int skip, int card, int player, int validref, int actionref);
 	void checkChoiceValid();
-	int choiceCanBeSelected(int sid);
+	int choiceCanBeSelected(int sid) const;
+	bool selectChoice(int sid, bool sendMessage);
+	void cancelChoice();
 
 	//void undoSelection();
 	void resetAttack();
@@ -189,5 +204,18 @@ public:
 };
 
 extern Duel* ActiveDuel;
+
+class ActiveDuelGuard
+{
+public:
+	explicit ActiveDuelGuard(Duel& duel);
+	~ActiveDuelGuard();
+
+	ActiveDuelGuard(const ActiveDuelGuard&) = delete;
+	ActiveDuelGuard& operator=(const ActiveDuelGuard&) = delete;
+
+private:
+	Duel* mPrevious;
+};
 
 extern std::mutex gMutex;

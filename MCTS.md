@@ -1,8 +1,10 @@
 # Monte Carlo Tree Search design
 
-This document describes the intended MCTS architecture. The Lua state migration
-and stable-boundary `Duel` cloning described below are implemented, but the MCTS
-search and simulation choice resolver are not yet implemented.
+This document describes the intended MCTS architecture. The Lua state migration,
+stable-boundary `Duel` cloning, scoped active-duel switching, synchronous
+choice resolution, and complete decision-plan enumeration described
+below are implemented. The initial single-threaded, full-information MCTS tree,
+live-game plan commitment, and AI-driver integration are also implemented.
 
 ## Core Lua invariant
 
@@ -57,19 +59,28 @@ Sequential MCTS needs one process-wide Lua VM and two C++ duel instances:
 
 Before calling Lua, the engine points `ActiveDuel` at the duel being operated
 on. Each Lua bridge function consequently reads and writes that duel's C++
-state. An RAII guard should switch `ActiveDuel` for a simulation and restore the
-previous pointer on every success and error path.
+state. `ActiveDuelGuard` switches `ActiveDuel` for a scoped simulation call and
+restores the previous pointer on every exit path. Guards may be nested. A caller
+must have exclusive ownership of the shared Lua VM for the complete guarded
+operation. Live operations establish that through the duel lock; the background
+search receives exclusive ownership while the live duel is explicitly frozen.
 
 The Lua VM is not reset between rollouts. At a stable boundary it retains rule
 definitions and Lua function objects, but no mutable state whose value defines
 the game position. Restoring the simulation `Duel`, including its RNG and rule
 state, therefore restores the semantic game state.
 
-The shared VM must be used serially. A rollout must not run while rendering,
-the live input loop, or another worker is executing Lua. The existing `gMutex`
-rule still applies to the live duel. If parallel rollouts are added later, each
-worker will need its own Lua VM and execution context, or the global bridge
-architecture will need to be replaced.
+The shared VM is used serially. At a stable AI boundary, the main thread caches
+the effective powers needed by rendering, captures the search root, and marks
+the live duel as AI-thinking. The live input loop then stops dispatching rules,
+and gameplay input that could query Lua is disabled. A single background worker
+may use `LuaCards` and switch `ActiveDuel` among its private simulations without
+holding the live-duel mutex. Rendering continues from the frozen live C++ state
+and cached powers. The worker returns only a plan and statistics; the main
+thread joins it, restores live Lua ownership, validates the plan, and commits it.
+
+Parallel rollouts would still require one Lua VM per worker or a replacement for
+the global bridge architecture.
 
 ## Modifiers and read-only closures
 
@@ -102,31 +113,87 @@ first UI click. A decision plan can contain:
 
 ```text
 primary action      cast, summon, charge mana, attack, tap ability, or end turn
-payment             mana cards and evolution bait, when applicable
+payment             mana-card IDs, when applicable
 choices             targets and button answers produced while resolving it
 ```
 
 For example, casting Crimson Hammer and selecting its target is one decision
 plan. A spell with two related targets contains both choices in the same plan.
+`DecisionPlan::action` stores the complete primary engine message, so evolution
+bait IDs are already part of a card-play action. `manaCards` stores a canonical
+ascending list of the unique IDs tapped to pay for it. Each ordered
+`DecisionChoice` stores both the player who owns the choice and the selected
+card or button value.
 
-During simulation, `createChoice` must use a synchronous simulation resolver.
-It validates and supplies the next choice without entering the live input loop.
-Lua then continues the same `OnCast` or `HandleMessage` invocation. Temporary
-locals connecting the first and second choices remain valid until that callback
-returns, after which they disappear normally.
+`enumerateDecisionPlans` begins with every primary message returned by
+`Duel::getPossibleMoves`. It replays each partial plan on a fresh clone of the
+same root. Execution reports one of four outcomes:
+
+- `Complete`: the action and all of its payment and choices resolved at a stable
+  boundary.
+- `NeedsMana`: the cast is still awaiting payment, together with the legal next
+  mana-card IDs.
+- `NeedsChoice`: Lua requested another answer, together with its owning player
+  and current legal buttons/cards.
+- `Illegal`: the primary action, a supplied payment, or a supplied choice no
+  longer matches the replayed position.
+
+Enumeration extends a `NeedsMana` or `NeedsChoice` prefix once for every legal
+answer and replays each child from the root. This restart is essential: probing
+a missing Lua choice returns from the current `OnCast`, so that particular
+scratch duel is deliberately discarded. Replaying the prefix re-enters
+`OnCast`, supplies all earlier answers synchronously, and reaches the next
+choice with its Lua locals reconstructed normally.
+
+Mana payment order has no gameplay meaning in the current rules. Restricting
+payments to ascending card IDs therefore enumerates every legal payment set
+once rather than enumerating all permutations. Every intermediate tap is still
+checked through `Duel::getPossibleMoves` and `canTapManaForCasting`, so
+multi-civilization coverage is enforced by the engine rather than duplicated
+in the AI layer.
+
+During simulation, `createChoice` uses the `Duel`'s synchronous simulation
+resolver. The resolver sees the active choice and its validated card list and
+supplies the next planned selection without entering the live input loop. The
+engine validates the answer, releases the transient `Choice`, and continues the
+same `OnCast` or `HandleMessage` invocation. Temporary locals connecting the
+first and second choices remain valid until that callback returns, after which
+they disappear normally.
+
+If a callback queued engine messages before requesting its next choice,
+`createChoice` drains those messages first and then restores the outer callback's
+`mCurrentMessage`. The nested effects remain applied to the `Duel`, while later
+code in the same callback continues to observe the message that invoked it.
+
+Simulation selections do not enqueue the UI-only `choiceselect` message. No Lua
+rule reacts to that message; omitting it also prevents re-entering the Lua VM if
+a callback immediately creates a second choice. A missing resolver or illegal
+answer returns `RETURN_QUIT`, cleans up the choice, and sets a sticky simulation
+choice-failure flag. The rollout executor must discard such a plan. Restoring a
+root clears the failure flag while preserving the simulation duel's configured
+resolver.
 
 The tree does not recursively launch another rollout while Lua is on the stack.
-When a choice is encountered, tree traversal selects or expands a choice child,
-returns that answer synchronously, and lets the current action finish. A
-different target is explored on a later iteration after restoring the root.
+Complete plans are enumerated first and organized into a trie. Its first level
+groups the primary action and canonical mana payment. Each later level is one
+ordered choice and records the player who owns it. A complete plan is stored
+only at a leaf. Tree traversal chooses a leaf, replays it synchronously, and
+reaches the next stable C++ position.
 
-If control passes to the opposing player, their decision is a separate tree or
-rollout-policy decision. In the real game, an AI plan supplies only choices
-owned by the AI; a human-owned choice returns control to the UI.
+Choice-trie nodes owned by the root player maximize the root-perspective value;
+nodes owned by the opponent minimize it. The AI therefore cannot improve a
+spell's score by selecting a cooperative answer on the opponent's behalf. This
+works without treating an unresolved Lua callback as a clonable MCTS state.
 
-Before committing the selected plan to the live duel, every payment and choice
-must be validated again. If the live state does not match the plan, the engine
-must discard it and search again or use a legal fallback.
+`commitDecisionPlan` preflights the complete selected leaf on a simulation
+clone. If valid, it queues the primary action and exact mana payment on the live
+duel. It installs a bounded resolver containing only the leading choices owned
+by the AI actor. Those answers resolve synchronously on the normal duel thread.
+The resolver clears itself after its final expected answer. If the next choice
+belongs to the human, no simulated answer is submitted: the existing live
+choice wait and UI take over. Any later AI choice following that human answer
+is handled as a new live AI decision rather than assuming the simulated human
+branch occurred.
 
 ## Snapshot contract
 
@@ -144,22 +211,29 @@ must discard it and search again or use a legal fallback.
 - message history and the current message.
 
 `isCloneable` and `copyFrom` reject positions with an active `Choice`, a
-suspended callback, a non-empty message queue, a pending zero-power pass, an
-active race query, a non-empty Lua call stack, or invalid card unique IDs. This
-enforces the stable-boundary invariant instead of pretending to copy a live Lua
-stack. A failed copy leaves the destination unchanged.
+suspended callback, a failed simulation choice, a non-empty message queue, a
+pending zero-power pass, an active race query, a non-empty Lua call stack, or
+invalid card unique IDs. This enforces the stable-boundary invariant instead of
+pretending to copy a live Lua stack. A failed copy leaves the destination
+unchanged.
 
-`mIsSimulation` and `mInputLoopRunning` are deliberately not copied. They are
-execution-context settings, not game-position data: the reusable rollout duel
-must remain a simulation with no live input loop even when its root came from a
-live duel. Deck RNG pointers are rebound to the destination RNG after its full
-generator state is copied.
+`mIsSimulation`, `mInputLoopRunning`, and the choice resolver are
+deliberately not copied. They are execution-context settings, not game-position
+data: the reusable rollout duel must remain a simulation with no live input
+loop and retain its resolver even when its root came from a live duel. The
+choice-failure flag is cleared on a successful restore. Deck RNG pointers are
+rebound to the destination RNG after its full generator state is copied.
 
-## Hidden information
+## Hidden information (deferred)
 
-The AI must not inspect the actual identities or order of cards hidden from it.
-Copying the live duel verbatim and evaluating the opponent's real hand or shield
-contents would make the AI cheat.
+The first MCTS implementation will intentionally use full information. This is
+useful for validating action execution, tree behavior, and evaluation, but it
+means that version of the AI may use the real contents of hidden zones.
+
+Before the MCTS becomes the fair production opponent, it must not inspect the
+actual identities or order of cards hidden from it. Copying the live duel
+verbatim and evaluating the opponent's real hand or shield contents would make
+the AI cheat.
 
 Each rollout should therefore use a determinization consistent with the AI's
 observations:
@@ -182,7 +256,8 @@ opponent would know its own hand.
 At an AI decision boundary:
 
 1. Capture the observable root and initialize the root node.
-2. For each iteration, restore the simulation duel and sample hidden state.
+2. For each iteration, restore the simulation duel. The initial full-information
+   implementation skips hidden-state sampling.
 3. Select children using UCT or another exploration policy.
 4. Expand one legal decision plan not yet represented at that node.
 5. Continue with a rollout policy until a terminal state or depth/time limit.
@@ -190,6 +265,70 @@ At an AI decision boundary:
 7. Backpropagate the result through every visited node.
 8. Commit the legal root plan with the strongest visit evidence to the live
    duel.
+
+`MctsSearch` implements steps 1 through 7 with deterministic
+iteration and decision-depth budgets. Its configurable inputs are the iteration
+count, maximum complete decisions per simulation, UCT exploration constant, and
+search seed. Every iteration creates a simulation duel, restores the root, and
+replays the selected `DecisionPlan` path instead of storing Lua execution state
+inside tree nodes.
+
+Each stable node lazily enumerates all complete plans for its reconstructed
+position and builds its action-and-choice trie. UCT runs at every trie level.
+Nodes controlled by the root player maximize the root-perspective mean value;
+nodes controlled by the opponent negate that exploitation term and therefore
+minimize the same value. A leaf expands to the next stable `Duel` node. This
+handles choices embedded inside one Lua callback, several consecutive decisions
+by one player, and combat responses that temporarily pass control.
+
+The initial rollout policy chooses uniformly at each action and choice-trie
+level, rather than weighting an option by how many complete leaves happen to
+exist beneath it. A
+terminal win is `1`, a loss is `-1`, and a depth-limited position receives a
+bounded material evaluation based on shields, hand size, mana, deck reserve,
+and modifier-aware battle-zone creature value. The same root and seed reproduce
+the same search. The selected root plan is the child with the most visits, with
+mean value as a deterministic tie-breaker.
+
+The live AI driver attempts at most 64 iterations with a maximum rollout depth
+of 12 complete decisions and a 1500-millisecond wall-clock budget.
+`BackgroundMctsSearch` runs the persistent `MctsSession` on a worker thread
+while the UI continues rendering the frozen live duel. Effective
+creature powers are refreshed before every background search, rather than only
+once per turn, so summons and continuous effects from earlier AI actions are
+visible at the next stable boundary. Before cloning or starting the worker, the
+driver checks the engine's root move list. If it contains exactly one legal
+action, that action is queued immediately and the terminal reports zero
+rollouts. Deadline checks also occur during complete-plan enumeration and
+between simulation steps, so an expensive partially enumerated iteration can
+stop without being counted as failed. The best visited root plan is returned
+when time expires. If no plan was visited, the position is not cloneable, or
+the selected plan fails validation, the driver queues one action from
+`HeuristicBot` instead. This is especially important for legacy suspended
+choices, which are intentionally not MCTS roots.
+
+Mana placement and payment are heuristic rather than MCTS branches. At a live
+mana-placement boundary, `HeuristicBot` either charges its highest-scoring card
+immediately or declines to charge; declined `cardmana` actions are excluded from
+that search. During plan enumeration, a cast follows one deterministic legal
+payment sequence that attempts to preserve untapped civilization coverage and
+the civilization combinations needed by other cards in hand. Standalone live
+payment boundaries, including those reached through the heuristic fallback,
+are also completed by this policy without starting MCTS. Spell targets and
+other ordered choices remain tree decisions. Shield selection during an attack
+is an exception: the live AI chooses uniformly among the legal shields through
+the Duel RNG, and simulated target nodes expose one seeded random shield rather
+than allowing MCTS to optimize against face-down shield identities.
+
+When a session completes, the terminal reports completed and attempted
+rollouts, failed rollouts, elapsed wall time, whether the budget expired, the
+root evaluation, number of root actions, selected action, selected action
+evaluation, and visit count.
+Evaluations are normalized to `[-1, 1]` from the AI's perspective.
+
+This first tree deliberately has no transposition table, persistent tree reuse,
+general heuristic rollout policy, or hidden-information determinization. Those
+remain later refinements.
 
 Opponent nodes invert the value or otherwise optimize for the opponent. Chance
 outcomes are produced only through the simulation duel's cloned RNG. Search
@@ -215,17 +354,26 @@ references have correct C++ ownership.
 
 ## Implementation order
 
-1. Introduce an `ActiveDuel` RAII guard and serialize all access to the Lua VM.
-2. Define the `DecisionPlan` representation and enumerate legal plans without
-   inspecting opposing hidden identities.
-3. Add the synchronous simulation choice resolver and stable-boundary checks.
-4. Add determinization for hidden zones.
-5. Implement selection, expansion, rollout, evaluation, and backpropagation.
-6. Commit selected plans through the same validated live-game action path used
-   by ordinary input.
-7. Add deterministic card-specific tests for multi-choice spells, modifier
-   creation/destruction, extra turns, shield triggers, and repeated rollouts.
+1. Define the `DecisionPlan` representation and enumerate legal full-information
+   plans, including payments and ordered choices. **Implemented.**
+2. Implement selection, expansion, rollout, evaluation, and backpropagation.
+   **Implemented for the initial full-information tree.**
+3. Commit selected plans through a validated live-game action path that mirrors
+   the simulation executor while preserving normal UI behavior. **Implemented.**
+4. Integrate selected plans with the AI turn driver and retain a legal fallback.
+   **Implemented with a bounded live budget and `HeuristicBot` fallback.**
+5. Add deterministic card-specific tests for modifier creation/destruction,
+   extra turns, shield triggers, and repeated rollouts. Cloning, synchronous
+   multi-choice resolution, canonical exhaustive mana enumeration, heuristic
+   MCTS mana payment, bounded search, dependent ordered choices, and context
+   restoration already have engine-level smoke coverage.
+6. Add determinization for hidden zones and remove hidden identities from tree
+   policy and evaluation before treating MCTS as a fair production opponent.
 
-The first implementation should remain single-threaded. Parallelism can be
-considered only after the single-VM version is deterministic and its state
-isolation tests pass.
+`executeDecisionPlan` remains simulation-only and validates the primary action,
+every mana tap, the owner and value of every choice, and the final stable
+boundary. `commitDecisionPlan` uses that executor for preflight, then queues the
+validated action on a live AI-controlled duel without setting simulation mode.
+
+Only one search worker may own the shared Lua VM. Parallel rollouts can be
+considered only after each worker has an independent VM and execution context.

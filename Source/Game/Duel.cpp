@@ -34,6 +34,8 @@ Duel::Duel()
 {
 	mInputLoopRunning = true;
 	mLuaCallbackSuspended = false;
+	mAiThinking = false;
+	mAiThinkingPlayer = -1;
 	mTurn = 0;
 	mTurnPhase = TURN_PHASE_MANA;
 	mManaUsed = 0;
@@ -122,6 +124,8 @@ Duel::Duel()
 	mChoice = NULL;
 	mChoiceCard = -1;
 	mChoicePlayer = -1;
+	mChoiceResolverAnswersRemaining = -1;
+	mSimulationChoiceFailed = false;
 	mZeroPowerCheckPending = false;
 	mRaceQueryDepth = 0;
 
@@ -145,7 +149,7 @@ bool Duel::isCloneable() const
 {
 	if (mLuaCallbackSuspended.load() || mChoice != NULL || mIsChoiceActive ||
 		!mChoiceValidCards.empty() || !mMsgMngr.messages.empty() ||
-		mZeroPowerCheckPending || mRaceQueryDepth != 0)
+		mSimulationChoiceFailed || mZeroPowerCheckPending || mRaceQueryDepth != 0)
 		return false;
 	if (LuaCards == NULL || lua_gettop(LuaCards) != 0)
 		return false;
@@ -234,6 +238,7 @@ bool Duel::copyFrom(const Duel& duel)
 	// Execution mode belongs to the destination context, not to the game position.
 	// In particular, restoring a live root must not turn a simulation duel live.
 	mLuaCallbackSuspended.store(false);
+	mSimulationChoiceFailed = false;
 	mMessageHistory = duel.mMessageHistory;
 	mMoveHistory = duel.mMoveHistory;
 	mMovePlayers = duel.mMovePlayers;
@@ -775,6 +780,11 @@ void Duel::undoMessage(Message& msg)
 
 int Duel::getPlayerToMove()
 {
+	// The background search owns the shared Lua VM. PHASE_TARGET normally asks
+	// card scripts who chooses the shields, so UI queries must use the decision
+	// owner captured immediately before the search started.
+	if (mAiThinking.load())
+		return mAiThinkingPlayer.load();
 	if (mIsChoiceActive)
 		return mChoicePlayer;
 	if (mAttackphase == PHASE_BLOCK || mAttackphase == PHASE_TRIGGER)
@@ -787,6 +797,10 @@ int Duel::getPlayerToMove()
 std::vector<Message> Duel::getPossibleMoves()
 {
 	std::vector<Message> moves(0);
+	// Enumerating moves invokes many Lua-backed rule queries. Only simulation
+	// copies may do that while the background worker owns LuaCards.
+	if (mAiThinking.load())
+		return moves;
 	if (mLuaCallbackSuspended && !mIsChoiceActive)
 		return moves;
 	int player = getPlayerToMove();
@@ -1153,7 +1167,7 @@ int Duel::handleInterfaceInput(Message& msg)
 				if (mShields[mDefender].mCards.size() == 0)
 				{
 					mWinner = getOpponent(mDefender);
-					printf("Winner: %d\n", mWinner);
+					if (!mIsSimulation) printf("Winner: %d\n", mWinner);
 				}
 				else
 				{
@@ -1248,20 +1262,7 @@ int Duel::handleInterfaceInput(Message& msg)
 	else if (type == "choiceselect")
 	{
 		int sid = msg.getInt("selection");
-		bool legalButton = mChoice != NULL &&
-			((sid == RETURN_BUTTON1 && mChoice->mButtonCount >= 1) ||
-			 (sid == RETURN_BUTTON2 && mChoice->mButtonCount >= 2));
-		if ((sid >= 0 && choiceCanBeSelected(sid) == 1) || legalButton)
-		{
-			Choice* completedChoice = mChoice;
-			mChoice = NULL;
-			resetChoice();
-			if (completedChoice != NULL)
-			{
-				delete completedChoice;
-				mMsgMngr.sendMessage(msg);
-			}
-		}
+		selectChoice(sid, true);
 	}
 	else if (type == "creatureusetapability")
 	{
@@ -1303,9 +1304,11 @@ void Duel::loopInput()
 {
 	while (mInputLoopRunning)
 	{
-		gMutex.lock();
-		dispatchAllMessages();
-		gMutex.unlock();
+		if (!mAiThinking.load())
+		{
+			std::lock_guard<std::mutex> lock(gMutex);
+			if (!mAiThinking.load()) dispatchAllMessages();
+		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 }
@@ -1341,6 +1344,65 @@ int Duel::waitForChoice()
 	//gMutex.lock();
 	//printf("break\n");
 	return mInputLoopRunning ? choice : RETURN_QUIT;
+}
+
+int Duel::resolveChoice()
+{
+	if (!mIsChoiceActive || mChoice == NULL)
+		return RETURN_NOVALID;
+
+	if (mChoiceResolver)
+	{
+		int choice = mChoiceResolver(*this);
+		if (choice != RETURN_NOTHING && selectChoice(choice, false))
+		{
+			if (mChoiceResolverAnswersRemaining > 0 &&
+				--mChoiceResolverAnswersRemaining == 0)
+				clearChoiceResolver();
+			return choice;
+		}
+		if (mIsSimulation)
+		{
+			mSimulationChoiceFailed = true;
+			cancelChoice();
+			return RETURN_QUIT;
+		}
+		clearChoiceResolver();
+	}
+
+	if (!mIsSimulation)
+	{
+		mLuaCallbackSuspended = true;
+		int choice = waitForChoice();
+		mLuaCallbackSuspended = false;
+		return choice;
+	}
+
+	mSimulationChoiceFailed = true;
+	cancelChoice();
+	return RETURN_QUIT;
+}
+
+void Duel::setChoiceResolver(const ChoiceResolver& resolver, int answersRemaining)
+{
+	mChoiceResolver = resolver;
+	mChoiceResolverAnswersRemaining = answersRemaining;
+}
+
+void Duel::clearChoiceResolver()
+{
+	mChoiceResolver = ChoiceResolver();
+	mChoiceResolverAnswersRemaining = -1;
+}
+
+bool Duel::hasSimulationChoiceFailure() const
+{
+	return mSimulationChoiceFailed;
+}
+
+void Duel::clearSimulationChoiceFailure()
+{
+	mSimulationChoiceFailed = false;
 }
 
 //void Duel::parseMessages(unsigned int deltatime)
@@ -1475,11 +1537,7 @@ void Duel::probeBattleZonePower()
 
 void Duel::addChoice(std::string info, int skip, int card, int player, int validref, int actionref)
 {
-	if (mChoice != NULL)
-	{
-		delete mChoice;
-		mChoice = NULL;
-	}
+	cancelChoice();
 	mChoice = new Choice(info, skip, validref, actionref);
 	mChoiceCard = card;
 	mChoicePlayer = player;
@@ -1487,9 +1545,40 @@ void Duel::addChoice(std::string info, int skip, int card, int player, int valid
 	//cout << "choice set: " << CardList.at(choiceCard)->Name << ": " << info << endl;
 }
 
-int Duel::choiceCanBeSelected(int sid)
+int Duel::choiceCanBeSelected(int sid) const
 {
 	return std::find(mChoiceValidCards.begin(), mChoiceValidCards.end(), sid) != mChoiceValidCards.end();
+}
+
+bool Duel::selectChoice(int sid, bool sendMessage)
+{
+	bool legalButton = mChoice != NULL &&
+		((sid == RETURN_BUTTON1 && mChoice->mButtonCount >= 1) ||
+		 (sid == RETURN_BUTTON2 && mChoice->mButtonCount >= 2));
+	if (mChoice == NULL || !((sid >= 0 && choiceCanBeSelected(sid) == 1) || legalButton))
+		return false;
+
+	Choice* completedChoice = mChoice;
+	mChoice = NULL;
+	resetChoice();
+	delete completedChoice;
+	if (sendMessage)
+	{
+		Message selected("choiceselect");
+		selected.addValue("selection", sid);
+		mMsgMngr.sendMessage(selected);
+	}
+	return true;
+}
+
+void Duel::cancelChoice()
+{
+	if (mChoice != NULL)
+	{
+		delete mChoice;
+		mChoice = NULL;
+	}
+	resetChoice();
 }
 
 void Duel::checkChoiceValid()
@@ -2400,6 +2489,7 @@ void Duel::clearCards()
 	mShieldBreakersThisTurn[0].clear();
 	mShieldBreakersThisTurn[1].clear();
 	mLuaRuleState.clear();
+	mSimulationChoiceFailed = false;
 	mZeroPowerCheckPending = false;
 	mRaceQueryDepth = 0;
 }
@@ -2466,6 +2556,16 @@ bool Duel::hasCreatureBrokenShieldThisTurn(int uid) const
 int Duel::getCardsDrawnThisTurn(int player) const
 {
 	return player == 0 || player == 1 ? mCardsDrawnThisTurn[player] : 0;
+}
+
+ActiveDuelGuard::ActiveDuelGuard(Duel& duel) : mPrevious(ActiveDuel)
+{
+	ActiveDuel = &duel;
+}
+
+ActiveDuelGuard::~ActiveDuelGuard()
+{
+	ActiveDuel = mPrevious;
 }
 
 void Duel::resetChoice()

@@ -25,7 +25,10 @@ endif()
 
 set(GAME_SOURCES
     Source/Main.cpp
+	Source/AI/AiDriver.cpp
+	Source/AI/DecisionPlan.cpp
 	Source/AI/HeuristicBot.cpp
+	Source/AI/Mcts.cpp
     Source/App/Application.cpp
 	Source/App/AssetManager.cpp
 	Source/App/CardRenderer.cpp

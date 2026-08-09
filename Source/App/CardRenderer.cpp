@@ -124,7 +124,12 @@ void Application::drawCard(Card* card, const SDL_Rect& rect, bool faceUp, bool s
 		{
 			SDL_Rect powerBadge = { bounds.x + bounds.w - 27, bounds.y + bounds.h - 23, 25, 21 };
 			fillRect(powerBadge, 18, 25, 35, 225);
-			int power = mDuel->mLuaCallbackSuspended ? card->mPower : mDuel->getCreaturePower(card->mUniqueId);
+			int power = card->mPower;
+			if (mDuel->mAiThinking.load() && card->mUniqueId >= 0 &&
+				card->mUniqueId < (int)mAiCreaturePowers.size())
+				power = mAiCreaturePowers[card->mUniqueId];
+			else if (!mDuel->mLuaCallbackSuspended)
+				power = mDuel->getCreaturePower(card->mUniqueId);
 			drawText(std::to_string(power), powerBadge.x + 3, powerBadge.y + 2,
 				color(255, 242, 197), 11);
 		}
@@ -362,7 +367,12 @@ void Application::renderHoverPreview()
 	}
 	if (card->mType == TYPE_CREATURE && card->mZone == ZONE_BATTLE)
 	{
-		int power = mDuel->mLuaCallbackSuspended ? card->mPower : mDuel->getCreaturePower(card->mUniqueId);
+		int power = card->mPower;
+		if (mDuel->mAiThinking.load() && card->mUniqueId >= 0 &&
+			card->mUniqueId < (int)mAiCreaturePowers.size())
+			power = mAiCreaturePowers[card->mUniqueId];
+		else if (!mDuel->mLuaCallbackSuspended)
+			power = mDuel->getCreaturePower(card->mUniqueId);
 		SDL_Rect badge = { bounds.x + bounds.w - 58, bounds.y + bounds.h - 43, 50, 34 };
 		fillRect(badge, 17, 23, 34, 235);
 		drawText(std::to_string(power), badge.x + 7, badge.y + 5, color(255, 242, 197), 17);

@@ -63,9 +63,8 @@ Aura Blast
 
 Each shard gives 10 extra cards in his stock. Lets have 20 shards in Act I-II and 10 more shards in Act III. Total: 300 cards.
 
-#### Act I/II Shards
 
-Furnace Shard:
+Furnace Shard: (found early, in Old Road)
 Armored Cannon, Balbaro
 Rothus, the Traveler
 Explosive Dude Joe
@@ -74,7 +73,7 @@ Snip Striker Bullraizer
 Blasto, Explosive Soldier
 Wild Racer Chief Garan
 Spastic Missile
-Phantom Dragon's Flame
+Cyclone Panic
 Magma Gazer
 
 Blazing Shard:
@@ -102,7 +101,7 @@ Kipo's Contraption
 Energy Charger
 Otherworldly Warrior Naglu
 
-Nightmare Shard:
+Nightmare Shard: (found between Gloam Quarry and Cinderrail)
 Horrid Worm
 Chaos Worm
 Amber Piercer
@@ -140,17 +139,17 @@ Gigandura
 Spinal Parasite
 
 
-Growth Shard:
+Growth Shard: (found early, in Crossroads)
 Barkwhip, the Smasher
 Charmilia, the Enticer
 Slumber Shell
 Brood Shell
 Launch Locust
-Carbonite Scarab
 Coliseum Shell
 Solid Horn
 Mystic Inscription
 Muscle Charger
+Aurora of Reversal
 
 
 Mountain Shard: (Giants)
@@ -162,143 +161,157 @@ Silvermoon Trailblazer
 Xeno Mantis
 Fortress Shell
 Sword Butterfly
-Aurora of Reversal
+Carbonite Scarab
 Cannon Shell
 
 Earthquake Shard: (Act III)
 Spinning Totem
 Whispering Totem
 Whip Scorpion
+Stinger Horn, the Delver
+Tangle Fist, the Weaver
+Senia, Orchard Avenger
+Legacy Shell
+Scowling Tomato
+Thirst for the Hunt
+Shaman Broccoli
 
 
 
-Protector Shard:
+Protector Shard: (found early, in Old Road)
+Laguna, Lightning Enforcer
+Raza Vega, Thunder Guardian
+Dia Nork, Moonlight Guardian
+Szubs Kin, Twilight Guardian
+Reusol, the Oracle
+Senatine Jade Tree
+Larba Geer, the Immaculate
+Alek, Solidity Enforcer
+Kanesill, the Explorer
+Logic Cube
 
-Solar Shard:
+Solar Shard: (Seekers)
+Gran Gure, Space Guardian
+Ra Vu, Seeker of Lightning
+Ur Pale, Seeker of Sunlight
+Aless, the Oracle
+Fu Reil, Seeker of Storms
+Re Bil, Seeker of Archery
+Dava Torey, Seeker of Clouds
+Telitol, the Explorer
+Glory Snow
+Rain of Arrows
+
+Heaven Shard: (Act III)
+Razorpine Tree
+Vess, the Oracle
+Yuluk, the Oracle
+Laveil, Seeker of Catastrophe
+Gandar, Seeker of Explosions
+Pulsar Tree
+Rom, Vizier of Tendrils
+Solar Grass
+Lazer Whip
+Justice Jamming
+
+
+Aqua Shard: (found early, in Crossroads)
+Prowling Elephish
+Pokolul
+Aeropica
+Aqua Rider
+Raptor Fish
+Madrillon Fish
+Steam Star
+Aqua Agent
+Titanium Cluster
+Crystal Paladin
 
 Deep Shard: (Leviathans)
 King Benthos
 King Depthcon
+King Mazelan
+Aqua Grappler
+Aqua Ranger
+Mystic Dreamscape
+Midnight Crawler
+Impossible Tunnel
+Kelp Candle
+Marching Motherboard
 
-Knowledge Shard:
-
-
-#### Act III Shards
-
-
-### Living Dead Shard
-
-Wandering Braineater
-Writhing Bone Ghoul
-Skeleton Soldier, the Defiled
-Bone Assassin, the Ripper
-Dark Reversal
-
-### Ghost Shard
-
-Night Master, Shadow of Decay
-Dark Raven, Shadow of Grief
-Black Feather, Shadow of Rage
-Gray Balloon, Shadow of Greed
-Ghost Touch
-
-### Chimera Shard
-
-Gigagiele
-Gigaberos
-Gigastand
-Terror Pit
-
-### Parasite Worm Shard
-
-Stinger Worm
-Poison Worm
-Horrid Worm
-Death Smoke
+Knowledge Shard: (Act III, Water cards that deal with information)
+Vikorakys
+Grape Globbo
+Lalicious
+Miracle Quest
+Kyuroro
+Candy Cluster
+Submarine Project
+Scout Cluster
+Tekorax
+Zeppelin Crawler
 
 
-### Human Shard
+Additional non-mono-color shards in Act III:
 
-Immortal Baron, Vorg
-Mini Titan Gett
-Fatal Attacker Horvath
+Rainbow Shard: (Multi-color cards)
+Electro explorer Syrion
+Estol, Vizier of Aqua
+Melnia, the Aqua Shadow
+Aqua Skydiver
+Techno Totem
+Soderlight, the Cold Blade
+Tagtapp, the Retaliator
+Sea Mutant Dormel
+Spectral Horn Glitalis
+Buzz Betocchi
 
-### Armoloid Shard
+Fury Shard: (Wave Striker, and utility abilities)
+Saliva Worm
+Lamiel, Destiny Enforcer
+Klujadras
+Skyscraper Shell
+Flame Trooper Goliac
+Sky Crusher, the Agitator
+Spinning Totem
+Gachack, Mechanical Doll
+Heavyweight Dragon
+Tra Rion, Penumbra Guardian
 
-Rothus, the Traveler
+Eternal Shard: (Silent skills, utility abilities etc)
+Gankloak, Rogue Commando
+Lockdown Lizard
+Hustle Berry
+Venom Capsule
+Kejila, Hidden Horror
+Minelord Skyterror
+Vorg's Engine
+Kaemira, the Oracle
+Milporo
+Charge Whipper
 
+Colossal Shard: (Some very strong cards)
+Ten-Ton Crunch
+Jabaha's Automaton
+Gigaslug
+Evil Incarnate
+Radioactive Horn, the Strange
+Fever Nuts
+Cosmic Darts
+Kilstine, Nebula Elemental
+Warped Lunatron
+Lucky Ball
 
-### Rock Beast Shard
-
-Meteosaur
-
-### Machine Eater Shard
-
-Nomad Hero Gigio
-Magma Gazer
-Crimson Hammer
-
-### Dragonoid Shard
-
-Onslaughter Triceps
-Deadly Fighter Braid Claw
-Fire Sweeper Burning Hellion
-Explosive Fighter Ucarn
-Burning Power
-
-### Fire Shard
-
-### Giant Insect Shard
-
-Red-Eye Scorpion
-
-### Colony Beetle Shard
-
-Tower Shell
-
-### Horned Beast Shard
-
-Rumbling Terahorn
-
-### Beast Folk Shard
-
-Golden-Wing Striker
-Mighty Shouter
-Burning Mane
-Ultimate Force
-
-### Tree Folk Shard
-
-Coiling Vines
-Thorny Mandra
-Poisonous Dahlia
-Essence Elf
-
-### Fish Shard
-
-Saucer-Head Shark
-Seamine
-Illusionary Merfold
-Phantom Fish
-Scissor Eye
-
-### Cyber Lord Shard
-
-Corile
-Hypersquid Walter
-Teleportation
-
-### Cyber Virus Shard
-
-Candy Drop
-Faerie Child
-Spiral Gate
-
-### Liquid People Shard
-
-Aqua Shooter
-Aqua Bouncer
-Aqua Surfer
-Recon Operation
+Imperial Shard: (Some more strong cards)
+Roulette of Ruin
+Royal Durian
+Rainbow Gate
+Morbid Medicine
+Hypersprint Warior Uzesol
+Muramasa's Knife
+Supersonic Jetpack
+Rapid Reincarnation
+Wind Axe, the Warrior Savage
+Obsidian Scarab
 
 
