@@ -328,6 +328,8 @@ Stallob/Death Cruzer: special battles
 
 Sirius, Firmament Elemental: Special opp
 
+Q-tronix Hypermind/Gargantua/Omnistrain: Two duelists in Cinderrail and adjacent areas give out these cards. Omnistrain is more of a secret card.
+
 Sword of Malevolent Death/Benevolent Life: An NPC gives you either one of the two, after a philosophical riddle
 
 Uberdragon Bajula: Secret opponent in Dragon Keep after beating Kestrel

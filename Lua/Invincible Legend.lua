@@ -712,8 +712,10 @@ Cards["Motorcycle Mutant"] = {
 	HandleMessage = function(id)
 		Abils.cantAttack(id)
 
-		if(getMessageType()=="post cardmove") then
-			if(getCardOwner(getMessageInt("card"))==getCardOwner(id) and getMessageInt("to")==ZONE_BATTLE) then
+		if(getMessageType()=="post cardmove" and getCardZone(id)==ZONE_BATTLE) then
+			local movedCard = getMessageInt("card")
+			if(movedCard~=id and getCardType(movedCard)==TYPE_CREATURE and
+				getCardOwner(movedCard)==getCardOwner(id) and getMessageInt("to")==ZONE_BATTLE) then
 				destroyCreature(id)
 			end
 		end

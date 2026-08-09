@@ -1,5 +1,6 @@
 #include "Application.h"
 
+#include "AI/AiScoring.h"
 #include "AI/AiDriver.h"
 #include "AI/DecisionPlan.h"
 #include "AI/HeuristicBot.h"
@@ -109,6 +110,11 @@ int Application::runSmokeTests()
 		if (!exerciseDecisionPlanSmoke())
 		{
 			std::cerr << "Decision-plan smoke test failed." << std::endl;
+			return 2;
+		}
+		if (!exerciseMotorcycleMutantSmoke())
+		{
+			std::cerr << "Motorcycle Mutant smoke test failed." << std::endl;
 			return 2;
 		}
 		if (!exerciseMctsSmoke())
@@ -947,6 +953,48 @@ bool Application::exerciseDecisionPlanSmoke()
 	return valid;
 }
 
+bool Application::exerciseMotorcycleMutantSmoke()
+{
+	std::lock_guard<std::mutex> lock(gMutex);
+	int mutantCardId = getCardIdFromName("Motorcycle Mutant");
+	int creatureCardId = getCardIdFromName("Deadly Fighter Braid Claw");
+	if (mutantCardId < 0 || creatureCardId < 0) return false;
+
+	Duel duel;
+	duel.mIsSimulation = true;
+	duel.mInputLoopRunning = false;
+	auto addCard = [&duel](int cardId, int zone) -> int
+	{
+		int uid = (int)duel.mCardList.size();
+		Card* card = new Card(uid, cardId, 0);
+		duel.mCardList.push_back(card);
+		duel.getZone(0, zone)->addCard(card);
+		card->mZone = zone;
+		duel.mNextUniqueId = uid + 1;
+		return uid;
+	};
+
+	int mutant = addCard(mutantCardId, ZONE_HAND);
+	int otherCreature = addCard(creatureCardId, ZONE_HAND);
+	auto summon = [&duel](int card)
+	{
+		Message move("cardmove");
+		move.addValue("card", card);
+		move.addValue("from", ZONE_HAND);
+		move.addValue("to", ZONE_BATTLE);
+		move.addValue("evobait", -1);
+		duel.mMsgMngr.sendMessage(move);
+		duel.dispatchAllMessages();
+	};
+
+	ActiveDuelGuard activeGuard(duel);
+	summon(mutant);
+	bool survivedOwnSummon = duel.mCardList[mutant]->mZone == ZONE_BATTLE;
+	summon(otherCreature);
+	return survivedOwnSummon && duel.mCardList[mutant]->mZone == ZONE_GRAVEYARD &&
+		duel.mCardList[otherCreature]->mZone == ZONE_BATTLE && duel.mMsgMngr.messages.empty();
+}
+
 bool Application::exerciseMctsSmoke()
 {
 	std::lock_guard<std::mutex> lock(gMutex);
@@ -1040,6 +1088,10 @@ bool Application::exerciseMctsSmoke()
 	{
 		Duel root;
 		int attacker = prepareDuel(root, true);
+		// Keep the safety case meaningful under the power/1000 + breaker*2
+		// evaluator: attacking must sacrifice a materially valuable creature.
+		root.mCardList[attacker]->mPower = 7000;
+		root.mBattlezones[1].mCards.front()->mPower = 8000;
 		MctsSearch search(0, config);
 		MctsResult result = search.search(root);
 		bool caseValid = result.hasPlan && result.failedIterations == 0 &&
@@ -1111,6 +1163,46 @@ bool Application::exerciseMctsSmoke()
 		valid = valid && result.failedIterations == 0 && foundSpell &&
 			root.mCardList[lowValue]->mZone == ZONE_BATTLE &&
 			root.mCardList[highValue]->mZone == ZONE_BATTLE;
+	}
+
+	{
+		Duel root;
+		root.mInputLoopRunning = false;
+		root.mTurn = 0;
+		root.mTurnPhase = TURN_PHASE_MAIN;
+		for (int copy = 0; copy < 6; ++copy)
+		{
+			for (int player = 0; player < 2; ++player)
+			{
+				int uid = (int)root.mCardList.size();
+				Card* card = new Card(uid, attackerId, player);
+				root.mCardList.push_back(card);
+				root.mDecks[player].addCard(card);
+				card->mZone = ZONE_DECK;
+				root.mNextUniqueId = uid + 1;
+			}
+		}
+		MctsConfig horizonConfig;
+		horizonConfig.iterations = 16;
+		horizonConfig.maxDepth = 48;
+		horizonConfig.seed = 15485863U;
+		MctsSearch search(0, horizonConfig);
+		MctsResult result = search.search(root);
+		bool horizonCase = result.hasPlan && result.plan.action.getType() == "endturn" &&
+			result.iterationsCompleted == horizonConfig.iterations &&
+			result.failedIterations == 0 &&
+			result.turnHorizonCutoffs == horizonConfig.iterations &&
+			result.forcedMovesApplied > horizonConfig.iterations;
+		if (!horizonCase)
+		{
+			std::cerr << "Turn-horizon MCTS case: plan=" <<
+				(result.hasPlan ? result.plan.action.getType() : "none") <<
+				", completed=" << result.iterationsCompleted << ", failed=" <<
+				result.failedIterations << ", cutoffs=" << result.turnHorizonCutoffs <<
+				", forced=" << result.forcedMovesApplied <<
+				std::endl;
+		}
+		valid = valid && horizonCase;
 	}
 
 	{
@@ -2101,60 +2193,78 @@ bool Application::exerciseHeuristicBlockChoiceSmoke()
 
 bool Application::exerciseHeuristicManaConservationSmoke()
 {
-	if (mDuel == NULL) return false;
-	std::lock_guard<std::mutex> lock(gMutex);
-	std::vector<Card*> ownedCards;
-	int maximumDeckCost = 0;
-	for (size_t i = 0; i < mDuel->mCardList.size(); ++i)
+	int cardId = getCardIdFromName("Burning Mane");
+	if (cardId < 0) return false;
+	Duel duel;
+	duel.mInputLoopRunning = false;
+	duel.mTurn = 0;
+	duel.mTurnPhase = TURN_PHASE_MANA;
+	auto addCard = [&duel, cardId](int zone, int cost, int civilizations) -> int
 	{
-		Card* card = mDuel->mCardList[i];
-		if (card->mOwner != 1) continue;
-		ownedCards.push_back(card);
-		maximumDeckCost = std::max(maximumDeckCost, card->mManaCost);
-	}
-	if (ownedCards.size() < 7 || maximumDeckCost <= 0 ||
-		maximumDeckCost > (int)ownedCards.size()) return false;
+		int uid = static_cast<int>(duel.mCardList.size());
+		Card* card = new Card(uid, cardId, 0);
+		card->mManaCost = cost;
+		card->mCivilizations = civilizations;
+		duel.mCardList.push_back(card);
+		duel.getZone(0, zone)->addCard(card);
+		card->mZone = zone;
+		duel.mNextUniqueId = uid + 1;
+		return uid;
+	};
 
-	std::vector<Card*> savedMana = mDuel->mManazones[1].mCards;
-	std::vector<Card*> savedHand = mDuel->mHands[1].mCards;
-	int savedTurn = mDuel->mTurn;
-	int savedAttackPhase = mDuel->mAttackphase;
-	int savedCastingCard = mDuel->mCastingCard;
-	bool savedChoiceActive = mDuel->mIsChoiceActive;
+	addCard(ZONE_MANA, 1, 1 << CIV_LIGHT);
+	addCard(ZONE_MANA, 1, 1 << CIV_LIGHT);
+	int expensive = addCard(ZONE_HAND, 7, 1 << CIV_LIGHT);
+	int cheapNewCivilization = addCard(ZONE_HAND, 2, 1 << CIV_NATURE);
+	int thirdHandCard = addCard(ZONE_HAND, 5, 1 << CIV_FIRE);
+	int creature = addCard(ZONE_BATTLE, 1, 1 << CIV_NATURE);
+	duel.mCardList[creature]->mPower = 7000;
+	duel.mCardList[creature]->mBreaker = 2;
 
-	Card* candidate = ownedCards.front();
-	Message charge("cardmana");
-	charge.addValue("card", candidate->mUniqueId);
-	Message endTurn("endturn");
-	HeuristicBot rival(1);
-
-	mDuel->mManazones[1].mCards.assign(ownedCards.begin(), ownedCards.begin() +
-		std::min(3, std::max(0, maximumDeckCost - 1)));
-	mDuel->mHands[1].mCards.assign(ownedCards.begin(), ownedCards.begin() + 7);
-	double fullHandScore = rival.scoreMove(*mDuel, charge);
-	mDuel->mHands[1].mCards.assign(ownedCards.begin(), ownedCards.begin() + 2);
-	double scarceHandScore = rival.scoreMove(*mDuel, charge);
-
-	mDuel->mManazones[1].mCards.assign(ownedCards.begin(),
-		ownedCards.begin() + maximumDeckCost);
-	double cappedManaScore = rival.scoreMove(*mDuel, charge);
-	mDuel->mTurn = 1;
-	mDuel->mAttackphase = PHASE_NONE;
-	mDuel->mCastingCard = -1;
-	mDuel->mIsChoiceActive = false;
+	Message expensiveCharge("cardmana");
+	expensiveCharge.addValue("card", expensive);
+	Message cheapCharge("cardmana");
+	cheapCharge.addValue("card", cheapNewCivilization);
 	std::vector<Message> moves;
-	moves.push_back(charge);
-	moves.push_back(endTurn);
-	Message selected = rival.chooseMove(*mDuel, moves);
+	moves.push_back(cheapCharge);
+	moves.push_back(expensiveCharge);
+	HeuristicBot bot(0);
+	Message placement;
+	bool found = bot.chooseManaPlacement(duel, moves, placement);
+	double expensiveDelta = AiScoring::manaPlacementDelta(duel, 0, expensive);
+	double cheapDelta = AiScoring::manaPlacementDelta(duel, 0, cheapNewCivilization);
+	double battleValue = AiScoring::battleCreatureValue(duel, creature);
+	double manaValue = AiScoring::manaZoneValue(duel, 0);
+	double unaffordableValue = AiScoring::handCardValue(*duel.mCardList[expensive], 0);
+	double affordableValue = AiScoring::handCardValue(*duel.mCardList[cheapNewCivilization], 2);
+	bool valid = found && messageInt(placement, "card") == expensive &&
+		expensiveDelta > cheapDelta && std::abs(battleValue - 11.0) < 0.0001 &&
+		std::abs(manaValue - 4.1) < 0.0001 &&
+		std::abs(unaffordableValue - 1.0) < 0.0001 &&
+		std::abs(affordableValue - 1.5) < 0.0001;
 
-	mDuel->mManazones[1].mCards = savedMana;
-	mDuel->mHands[1].mCards = savedHand;
-	mDuel->mTurn = savedTurn;
-	mDuel->mAttackphase = savedAttackPhase;
-	mDuel->mCastingCard = savedCastingCard;
-	mDuel->mIsChoiceActive = savedChoiceActive;
-	return fullHandScore > scarceHandScore + 30.0 && cappedManaScore < 5.0 &&
-		selected.getType() == "endturn";
+	for (int mana = 0; mana < 5; ++mana)
+		addCard(ZONE_MANA, 1, 1 << CIV_LIGHT);
+	Card* removedFromHand = duel.mCardList[thirdHandCard];
+	duel.mHands[0].removeCard(removedFromHand);
+	duel.mGraveyards[0].addCard(removedFromHand);
+	removedFromHand->mZone = ZONE_GRAVEYARD;
+	Message boundaryPlacement;
+	bool placesAtMaximumCost = bot.chooseManaPlacement(duel, moves, boundaryPlacement);
+
+	addCard(ZONE_MANA, 1, 1 << CIV_LIGHT);
+	Message scarcePlacement;
+	bool placesAboveMaximumWithScarceHand =
+		bot.chooseManaPlacement(duel, moves, scarcePlacement);
+
+	duel.mGraveyards[0].removeCard(removedFromHand);
+	duel.mHands[0].addCard(removedFromHand);
+	removedFromHand->mZone = ZONE_HAND;
+	Message fullHandPlacement;
+	bool placesAboveMaximumWithThreeCards =
+		bot.chooseManaPlacement(duel, moves, fullHandPlacement);
+	return valid && placesAtMaximumCost && !placesAboveMaximumWithScarceHand &&
+		placesAboveMaximumWithThreeCards;
 }
 
 bool Application::beginMandatorySacrificeAiSmoke(

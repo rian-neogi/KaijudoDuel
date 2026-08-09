@@ -281,14 +281,25 @@ minimize the same value. A leaf expands to the next stable `Duel` node. This
 handles choices embedded inside one Lua callback, several consecutive decisions
 by one player, and combat responses that temporarily pass control.
 
+If enumeration produces exactly one complete `DecisionPlan`, the tree executes
+it directly and continues to the next stable state without creating a UCT
+branch. Rollouts use the same forced-plan path. A single primary action with
+multiple legal target or choice completions is not forced: those completions
+remain separate choice-trie branches. Forced moves still consume the decision
+depth budget as protection against malformed rules that could otherwise loop.
+
 The initial rollout policy chooses uniformly at each action and choice-trie
 level, rather than weighting an option by how many complete leaves happen to
 exist beneath it. A
 terminal win is `1`, a loss is `-1`, and a depth-limited position receives a
-bounded material evaluation based on shields, hand size, mana, deck reserve,
-and modifier-aware battle-zone creature value. The same root and seed reproduce
-the same search. The selected root plan is the child with the most visits, with
-mean value as a deterministic tie-breaker.
+bounded material evaluation. A battle-zone creature is worth its effective
+power divided by 1000 plus twice its effective breaker count. Mana is worth two
+points per card plus 0.1 per distinct civilization represented. A hand card is
+worth `1 + 0.25 * cost - 0.5 * missing mana`, floored at one point. Shields and
+the small deck-reserve term remain part of the evaluation so that breaking a
+shield is not mistaken for helping the defender merely because it adds a hand
+card. The same root and seed reproduce the same search. The selected root plan
+is the child with the most visits, with mean value as a deterministic tie-breaker.
 
 The live AI driver attempts at most 64 iterations with a maximum rollout depth
 of 12 complete decisions and a 1500-millisecond wall-clock budget.
@@ -308,22 +319,33 @@ the selected plan fails validation, the driver queues one action from
 choices, which are intentionally not MCTS roots.
 
 Mana placement and payment are heuristic rather than MCTS branches. At a live
-mana-placement boundary, `HeuristicBot` either charges its highest-scoring card
-immediately or declines to charge; declined `cardmana` actions are excluded from
-that search. During plan enumeration, a cast follows one deterministic legal
-payment sequence that attempts to preserve untapped civilization coverage and
-the civilization combinations needed by other cards in hand. Standalone live
-payment boundaries, including those reached through the heuristic fallback,
-are also completed by this policy without starting MCTS. Spell targets and
-other ordered choices remain tree decisions. Shield selection during an attack
-is an exception: the live AI chooses uniformly among the legal shields through
-the Duel RNG, and simulated target nodes expose one seeded random shield rather
-than allowing MCTS to optimize against face-down shield identities.
+mana-placement boundary, `HeuristicBot` charges the legal hand card with the
+largest full evaluation delta: the mana-zone increase minus the hand-score
+drop, including the improved affordability of cards that remain in hand. During
+plan enumeration, a cast follows one deterministic legal payment sequence that
+attempts to preserve untapped civilization coverage and the civilization
+combinations needed by other cards in hand. Standalone live payment boundaries,
+including those reached through the heuristic fallback, are also completed by
+this policy without starting MCTS. Spell targets and other ordered choices
+remain tree decisions. Shield selection during an attack is an exception: the
+live AI chooses uniformly among the legal shields through the Duel RNG, and
+simulated target nodes expose one seeded random shield rather than allowing MCTS
+to optimize against face-down shield identities.
+
+Rollouts also have a turn horizon. From a normal AI-turn root they simulate the
+remainder of that AI turn and the opponent's complete following turn, then
+evaluate immediately when the actual turn returns to the AI, before choosing an
+action in the AI's second turn. The tracker observes `Duel::mTurn`, not merely
+`getPlayerToMove`, so temporary control passed to a blocker, shield-trigger
+owner, or spell-choice owner does not look like a turn transition. Immediate
+extra turns remain inside the horizon because the opponent's following turn has
+not occurred yet. The maximum decision depth remains as a secondary safety cap.
 
 When a session completes, the terminal reports completed and attempted
 rollouts, failed rollouts, elapsed wall time, whether the budget expired, the
-root evaluation, number of root actions, selected action, selected action
-evaluation, and visit count.
+number of turn-horizon cutoffs, the root evaluation, number of root actions,
+number of forced moves applied, selected action, selected action evaluation,
+and visit count.
 Evaluations are normalized to `[-1, 1]` from the AI's perspective.
 
 This first tree deliberately has no transposition table, persistent tree reuse,

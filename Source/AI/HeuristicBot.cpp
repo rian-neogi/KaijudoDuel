@@ -1,5 +1,7 @@
 #include "HeuristicBot.h"
 
+#include "AiScoring.h"
+
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -8,6 +10,8 @@
 
 namespace
 {
+	const size_t LOW_HAND_CARD_COUNT = 2;
+
 	std::string messageType(const Message& message)
 	{
 		std::map<std::string, std::string>::const_iterator found = message.map.find("msgtype");
@@ -38,7 +42,6 @@ Message HeuristicBot::chooseMove(Duel& duel, const std::vector<Message>& moves) 
 {
 	if (moves.empty()) return Message();
 	int preferredPriority = 3;
-	bool skipManaCharge = false;
 	bool ordinaryTurn = !duel.mIsChoiceActive && duel.mAttackphase == PHASE_NONE &&
 		duel.mCastingCard == -1 && duel.getPlayerToMove() == mPlayer;
 	auto movePriority = [](const std::string& type)
@@ -50,14 +53,8 @@ Message HeuristicBot::chooseMove(Duel& duel, const std::vector<Message>& moves) 
 	};
 	if (ordinaryTurn)
 	{
-		double bestManaScore = -std::numeric_limits<double>::infinity();
-		for (size_t i = 0; i < moves.size(); ++i)
-			if (messageType(moves[i]) == "cardmana")
-				bestManaScore = std::max(bestManaScore, scoreMove(duel, moves[i]));
-		skipManaCharge = bestManaScore < 5.0;
 		for (size_t i = 0; i < moves.size(); ++i)
 		{
-			if (skipManaCharge && messageType(moves[i]) == "cardmana") continue;
 			preferredPriority = std::min(preferredPriority, movePriority(messageType(moves[i])));
 		}
 	}
@@ -67,7 +64,6 @@ Message HeuristicBot::chooseMove(Duel& duel, const std::vector<Message>& moves) 
 	double bestScore = -std::numeric_limits<double>::infinity();
 	for (size_t i = 0; i < moves.size(); ++i)
 	{
-		if (skipManaCharge && messageType(moves[i]) == "cardmana") continue;
 		if (ordinaryTurn && movePriority(messageType(moves[i])) != preferredPriority) continue;
 		if (fallbackIndex == moves.size()) fallbackIndex = i;
 		double score = scoreMove(duel, moves[i]);
@@ -89,6 +85,19 @@ bool HeuristicBot::chooseManaPlacement(Duel& duel, const std::vector<Message>& m
 	if (duel.mTurnPhase != TURN_PHASE_MANA || duel.mManaUsed != 0 ||
 		duel.mCastingCard != -1 || duel.mIsChoiceActive || duel.mAttackphase != PHASE_NONE)
 		return false;
+	if (duel.mHands[mPlayer].mCards.size() <= LOW_HAND_CARD_COUNT)
+	{
+		int maximumDeckCost = 0;
+		for (std::vector<Card*>::const_iterator card = duel.mCardList.begin();
+			card != duel.mCardList.end(); ++card)
+		{
+			if ((*card)->mOwner == mPlayer)
+				maximumDeckCost = std::max(maximumDeckCost, (*card)->mManaCost);
+		}
+		if (maximumDeckCost > 0 &&
+			duel.mManazones[mPlayer].mCards.size() > static_cast<size_t>(maximumDeckCost))
+			return false;
+	}
 	double bestScore = -std::numeric_limits<double>::infinity();
 	bool found = false;
 	for (std::vector<Message>::const_iterator move = moves.begin(); move != moves.end(); ++move)
@@ -102,9 +111,7 @@ bool HeuristicBot::chooseManaPlacement(Duel& duel, const std::vector<Message>& m
 			found = true;
 		}
 	}
-	// Keep the same threshold used by chooseMove: below this value, retaining
-	// the card is preferable and MCTS may choose among the non-mana actions.
-	return found && bestScore >= 5.0;
+	return found;
 }
 
 int HeuristicBot::chooseManaPayment(Duel& duel, const std::vector<int>& options) const
@@ -178,36 +185,7 @@ double HeuristicBot::scoreChoice(Duel& duel, int selection) const
 
 double HeuristicBot::scoreManaCharge(Duel& duel, int cardId) const
 {
-	if (cardId < 0 || cardId >= (int)duel.mCardList.size()) return -1000.0;
-	Card* card = duel.mCardList[cardId];
-	int manaCount = (int)duel.mManazones[mPlayer].mCards.size();
-	int handAfterCharge = std::max(0, (int)duel.mHands[mPlayer].mCards.size() - 1);
-	int maximumDeckCost = 0;
-	for (size_t i = 0; i < duel.mCardList.size(); ++i)
-		if (duel.mCardList[i]->mOwner == mPlayer)
-			maximumDeckCost = std::max(maximumDeckCost, duel.mCardList[i]->mManaCost);
-
-	double score = 72.0 - manaCount * 4.5;
-	if (manaCount > 4) score -= (manaCount - 4) * 5.0;
-	if (handAfterCharge < 3) score -= (4 - handAfterCharge) * 18.0;
-	else if (handAfterCharge >= 6) score += 5.0;
-	if (maximumDeckCost > 0 && manaCount >= maximumDeckCost)
-		score -= 90.0 + (manaCount - maximumDeckCost) * 18.0;
-	score -= cardValue(duel, cardId, false) * 2.0;
-	int copiesInHand = 0;
-	for (size_t i = 0; i < duel.mHands[mPlayer].mCards.size(); ++i)
-		if (duel.mHands[mPlayer].mCards[i]->mCardId == card->mCardId) ++copiesInHand;
-	if (copiesInHand > 1) score += (copiesInHand - 1) * 4.0;
-
-	int civilizationsInMana = 0;
-	for (size_t i = 0; i < duel.mManazones[mPlayer].mCards.size(); ++i)
-		civilizationsInMana |= duel.mManazones[mPlayer].mCards[i]->mCivilizations;
-	int missingCivilizations = card->mCivilizations & ~civilizationsInMana;
-	for (int civ = CIV_LIGHT; civ <= CIV_DARKNESS; ++civ)
-		if ((missingCivilizations & (1 << civ)) != 0) score += 12.0;
-	int manaAfterCharge = manaCount + 1;
-	if (card->mManaCost > manaAfterCharge + 2) score += 5.0;
-	return score;
+	return AiScoring::manaPlacementDelta(duel, mPlayer, cardId);
 }
 
 double HeuristicBot::scoreManaPayment(Duel& duel, int cardId) const

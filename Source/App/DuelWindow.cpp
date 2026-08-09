@@ -60,6 +60,8 @@ namespace
 			<< ", failed=" << result.failedIterations
 			<< ", elapsed=" << elapsed << "ms"
 			<< ", timed-out=" << (result.timeBudgetExpired ? "yes" : "no")
+			<< ", turn-cutoffs=" << result.turnHorizonCutoffs
+			<< ", forced-moves=" << result.forcedMovesApplied
 			<< ", root-eval=" << result.meanValue
 			<< ", root-actions=" << result.rootChildren.size();
 		if (result.hasPlan)

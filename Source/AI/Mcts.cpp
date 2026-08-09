@@ -1,5 +1,7 @@
 #include "Mcts.h"
 
+#include "AiScoring.h"
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -36,10 +38,45 @@ namespace
 		int visits;
 		double valueSum;
 		bool initialized;
+		bool hasForcedPlan;
+		DecisionPlan forcedPlan;
+		std::unique_ptr<MctsNode> forcedChild;
 		std::unique_ptr<PlanNode> plans;
 
-		MctsNode() : player(-1), visits(0), valueSum(0.0), initialized(false)
+		MctsNode()
+			: player(-1), visits(0), valueSum(0.0), initialized(false),
+			  hasForcedPlan(false)
 		{
+		}
+	};
+
+	struct TurnHorizon
+	{
+		int rootPlayer;
+		bool aiTurnSeen;
+		bool opponentTurnSeenAfterAi;
+		bool cutoff;
+
+		TurnHorizon(const Duel& root, int player)
+			: rootPlayer(player), aiTurnSeen(root.mTurn == player),
+			  opponentTurnSeenAfterAi(false), cutoff(false)
+		{
+		}
+
+		void observe(const Duel& position)
+		{
+			if (cutoff) return;
+			if (!aiTurnSeen)
+			{
+				if (position.mTurn == rootPlayer) aiTurnSeen = true;
+				return;
+			}
+			if (!opponentTurnSeenAfterAi)
+			{
+				if (position.mTurn != rootPlayer) opponentTurnSeenAfterAi = true;
+				return;
+			}
+			if (position.mTurn == rootPlayer) cutoff = true;
 		}
 	};
 
@@ -122,37 +159,12 @@ namespace
 		return true;
 	}
 
-	double creatureValue(Duel& duel, Card* card)
-	{
-		int uid = card->mUniqueId;
-		double value = 5.0 + std::max(0, duel.getCreaturePower(uid)) / 700.0;
-		value += std::max(1, duel.getCreatureBreaker(uid)) * 1.5;
-		if (duel.getCreatureIsBlocker(uid)) value += 1.5;
-		if (!card->mIsTapped) value += 0.35;
-		return value;
-	}
-
-	double playerValue(Duel& duel, int player)
-	{
-		double value = duel.mShields[player].mCards.size() * 6.0;
-		value += duel.mHands[player].mCards.size() * 1.75;
-		value += duel.mManazones[player].mCards.size() * 1.1;
-		value += duel.mDecks[player].mCards.size() * 0.05;
-		for (std::vector<Card*>::const_iterator card = duel.mBattlezones[player].mCards.begin();
-			card != duel.mBattlezones[player].mCards.end(); ++card)
-		{
-			if ((*card)->mType == TYPE_CREATURE)
-				value += creatureValue(duel, *card);
-		}
-		return value;
-	}
-
 	double evaluate(Duel& duel, int rootPlayer)
 	{
 		if (duel.mWinner == rootPlayer) return 1.0;
 		if (duel.mWinner == 1 - rootPlayer) return -1.0;
-		ActiveDuelGuard activeGuard(duel);
-		double difference = playerValue(duel, rootPlayer) - playerValue(duel, 1 - rootPlayer);
+		double difference = AiScoring::playerValue(duel, rootPlayer) -
+			AiScoring::playerValue(duel, 1 - rootPlayer);
 		return std::tanh(difference / 24.0);
 	}
 
@@ -174,9 +186,16 @@ namespace
 		options.shouldStop = shouldStop;
 		std::vector<DecisionPlan> plans = enumerateDecisionPlans(position, options);
 		if (shouldStop && shouldStop()) return false;
+		node.player = player;
+		if (plans.size() == 1)
+		{
+			node.hasForcedPlan = true;
+			node.forcedPlan = plans.front();
+			node.initialized = true;
+			return true;
+		}
 		std::unique_ptr<PlanNode> plansRoot(new PlanNode());
 		if (!buildPlanTree(plans, player, *plansRoot, shouldStop)) return false;
-		node.player = player;
 		node.plans = std::move(plansRoot);
 		node.initialized = true;
 		return true;
@@ -256,9 +275,10 @@ namespace
 	}
 
 	bool rollout(Duel& position, int& depth, int maxDepth, std::mt19937& random,
-		const std::function<bool()>& shouldStop, bool& stopped)
+		const std::function<bool()>& shouldStop, bool& stopped, TurnHorizon& horizon,
+		int& forcedMovesApplied)
 	{
-		while (position.mWinner == -1 && depth < maxDepth)
+		while (position.mWinner == -1 && depth < maxDepth && !horizon.cutoff)
 		{
 			if (shouldStop && shouldStop())
 			{
@@ -287,20 +307,30 @@ namespace
 				player = position.getPlayerToMove();
 			}
 			DecisionPlan selected;
-			if (!selectRandomPlan(plans, player, random, selected, shouldStop) ||
-				!executeCompletePlan(position, selected))
+			bool forced = plans.size() == 1;
+			if (forced)
+				selected = plans.front();
+			else if (!selectRandomPlan(plans, player, random, selected, shouldStop))
 			{
 				if (shouldStop && shouldStop()) stopped = true;
 				return false;
 			}
+			if (!executeCompletePlan(position, selected))
+			{
+				if (shouldStop && shouldStop()) stopped = true;
+				return false;
+			}
+			if (forced) forcedMovesApplied++;
 			++depth;
+			horizon.observe(position);
 		}
 		return true;
 	}
 
 	bool runIteration(Duel& root, MctsNode& rootNode, int rootPlayer,
 		const MctsConfig& config, std::mt19937& random,
-		const std::function<bool()>& shouldStop, bool& stopped)
+		const std::function<bool()>& shouldStop, bool& stopped, bool& horizonCutoff,
+		int& forcedMovesApplied)
 	{
 		if (shouldStop && shouldStop())
 		{
@@ -316,14 +346,34 @@ namespace
 		std::vector<PlanNode*> planPath;
 		MctsNode* node = &rootNode;
 		statePath.push_back(node);
+		TurnHorizon horizon(root, rootPlayer);
 		int depth = 0;
-		while (position.mWinner == -1 && depth < config.maxDepth)
+		while (position.mWinner == -1 && depth < config.maxDepth && !horizon.cutoff)
 		{
 			if (!initializeNode(*node, position, shouldStop, random))
 			{
 				if (shouldStop && shouldStop()) stopped = true;
 				if (stopped) return false;
 				break;
+			}
+			if (node->hasForcedPlan)
+			{
+				if (!executeCompletePlan(position, node->forcedPlan)) return false;
+				forcedMovesApplied++;
+				++depth;
+				horizon.observe(position);
+				if (shouldStop && shouldStop())
+				{
+					stopped = true;
+					return false;
+				}
+				if (position.mWinner != -1 || depth >= config.maxDepth || horizon.cutoff)
+					break;
+				if (node->forcedChild == NULL)
+					node->forcedChild.reset(new MctsNode());
+				node = node->forcedChild.get();
+				statePath.push_back(node);
+				continue;
 			}
 			if (node->plans == NULL ||
 				node->plans->children.empty())
@@ -333,11 +383,13 @@ namespace
 				random, planPath);
 			if (leaf == NULL || !executeCompletePlan(position, leaf->plan)) return false;
 			++depth;
+			horizon.observe(position);
 			if (shouldStop && shouldStop())
 			{
 				stopped = true;
 				return false;
 			}
+			if (horizon.cutoff) break;
 
 			if (leaf->stateChild == NULL)
 			{
@@ -355,7 +407,10 @@ namespace
 			statePath.push_back(node);
 		}
 
-		if (!rollout(position, depth, config.maxDepth, random, shouldStop, stopped)) return false;
+		if (!rollout(position, depth, config.maxDepth, random, shouldStop, stopped, horizon,
+			forcedMovesApplied))
+			return false;
+		horizonCutoff = horizon.cutoff;
 		double reward = evaluate(position, rootPlayer);
 		for (std::vector<MctsNode*>::iterator visited = statePath.begin();
 			visited != statePath.end(); ++visited)
@@ -399,13 +454,29 @@ namespace
 	}
 
 	MctsResult collectResult(const MctsNode& rootNode, int rootPlayer,
-		int iterationsCompleted, int failedIterations, bool timeBudgetExpired)
+		int iterationsCompleted, int failedIterations, bool timeBudgetExpired,
+		int turnHorizonCutoffs, int forcedMovesApplied)
 	{
 		MctsResult result;
 		result.iterationsCompleted = iterationsCompleted;
 		result.failedIterations = failedIterations;
 		result.timeBudgetExpired = timeBudgetExpired;
+		result.turnHorizonCutoffs = turnHorizonCutoffs;
+		result.forcedMovesApplied = forcedMovesApplied;
 		result.meanValue = meanValue(rootNode);
+		if (rootNode.hasForcedPlan && rootNode.visits > 0)
+		{
+			MctsChildStatistics statistics;
+			statistics.plan = rootNode.forcedPlan;
+			statistics.visits = rootNode.visits;
+			statistics.meanValue = meanValue(rootNode);
+			result.rootChildren.push_back(statistics);
+			result.hasPlan = true;
+			result.plan = rootNode.forcedPlan;
+			result.selectedVisits = rootNode.visits;
+			result.selectedMeanValue = meanValue(rootNode);
+			return result;
+		}
 		const PlanNode* bestAction = NULL;
 		if (rootNode.plans != NULL)
 		{
@@ -453,7 +524,7 @@ MctsChildStatistics::MctsChildStatistics() : visits(0), meanValue(0.0)
 
 MctsResult::MctsResult()
 	: hasPlan(false), iterationsCompleted(0), failedIterations(0), timeBudgetExpired(false),
-	  meanValue(0.0),
+	  turnHorizonCutoffs(0), forcedMovesApplied(0), meanValue(0.0),
 	  selectedVisits(0), selectedMeanValue(0.0)
 {
 }
@@ -467,13 +538,16 @@ struct MctsSession::Impl
 	std::mt19937 random;
 	int iterationsCompleted;
 	int failedIterations;
+	int turnHorizonCutoffs;
+	int forcedMovesApplied;
 	bool started;
 	std::chrono::steady_clock::time_point deadline;
 	bool hasDeadline;
 
 	Impl(int player, const MctsConfig& searchConfig)
 		: rootPlayer(player), config(searchConfig), random(searchConfig.seed),
-		  iterationsCompleted(0), failedIterations(0), started(false), hasDeadline(false)
+		  iterationsCompleted(0), failedIterations(0), turnHorizonCutoffs(0),
+		  forcedMovesApplied(0), started(false), hasDeadline(false)
 	{
 		root.mIsSimulation = true;
 		root.mInputLoopRunning = false;
@@ -531,9 +605,16 @@ bool MctsSession::advance(int iterationBudget)
 	{
 		if (mImpl->timeExpired()) break;
 		bool stopped = false;
+		bool horizonCutoff = false;
+		int forcedMovesApplied = 0;
 		if (runIteration(mImpl->root, mImpl->rootNode, mImpl->rootPlayer,
-			mImpl->config, mImpl->random, shouldStop, stopped))
+			mImpl->config, mImpl->random, shouldStop, stopped, horizonCutoff,
+			forcedMovesApplied))
+		{
 			mImpl->iterationsCompleted++;
+			if (horizonCutoff) mImpl->turnHorizonCutoffs++;
+			mImpl->forcedMovesApplied += forcedMovesApplied;
+		}
 		else if (!stopped)
 			mImpl->failedIterations++;
 		else
@@ -560,7 +641,8 @@ MctsResult MctsSession::result() const
 	int attempted = mImpl->iterationsCompleted + mImpl->failedIterations;
 	return collectResult(mImpl->rootNode, mImpl->rootPlayer,
 		mImpl->iterationsCompleted, mImpl->failedIterations,
-		mImpl->timeExpired() && attempted < mImpl->config.iterations);
+		mImpl->timeExpired() && attempted < mImpl->config.iterations,
+		mImpl->turnHorizonCutoffs, mImpl->forcedMovesApplied);
 }
 
 MctsSearch::MctsSearch(int rootPlayer, const MctsConfig& config)

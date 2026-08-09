@@ -730,7 +730,7 @@ Cards["Deathliger, Lion of Chaos"] = {
 	blocker = 0,
 
 	power = 9000,
-	breaker = 1,
+	breaker = 2,
 
 	HandleMessage = function(id)
 	end

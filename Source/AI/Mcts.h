@@ -35,6 +35,8 @@ struct MctsResult
 	int iterationsCompleted;
 	int failedIterations;
 	bool timeBudgetExpired;
+	int turnHorizonCutoffs;
+	int forcedMovesApplied;
 	double meanValue;
 	int selectedVisits;
 	double selectedMeanValue;

@@ -177,6 +177,7 @@ private:
 	bool exerciseDuelCloneSmoke();
 	bool exerciseSimulationChoiceSmoke();
 	bool exerciseDecisionPlanSmoke();
+	bool exerciseMotorcycleMutantSmoke();
 	bool exerciseMctsSmoke();
 	bool exerciseLiveDecisionPlanSmoke();
 	bool exerciseAiDriverSmoke();

@@ -41,8 +41,8 @@ AiDecisionOutcome playHeuristicDecision(Duel& duel, int player,
 // engine action. Returns None without changing the duel otherwise.
 AiDecisionOutcome playForcedAiDecision(Duel& duel, int player);
 
-// Charges one card when the mana-placement heuristic recommends doing so.
-// Returns None when placement should be skipped or is not currently available.
+// Charges the legal hand card with the largest mana-and-hand evaluation delta.
+// Returns None when mana placement is not currently available.
 AiDecisionOutcome playHeuristicManaPlacement(Duel& duel, int player,
 	const std::string& personality);
 
