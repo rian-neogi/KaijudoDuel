@@ -1070,7 +1070,7 @@ Cards["Future Slash"] = {
 	price_tier = 2,
 	shieldtrigger = 0,
 
-	OnCast = function(id) --test
+	OnCast = function(id)
 		local owner = getCardOwner(id)
 		local opponent = getOpponent(owner)
 		local valid = function(cid,sid)
@@ -1652,6 +1652,22 @@ Cards["Rumblesaur Q"] = {
 Cards["Spastic Missile"] = {
 	price_tier = 2,
 	shieldtrigger = 0,
+
+	HandleMessage = function(id)
+		if(getMessageType()=="get cardaicancast" and getMessageInt("card")==id) then
+			local opponent = getOpponent(getCardOwner(id))
+			local canDestroy = 0
+			local size = getZoneSize(opponent,ZONE_BATTLE)
+			for i=0,(size-1) do
+				local creature = getCardAt(opponent,ZONE_BATTLE,i)
+				if(getCreaturePower(creature)<=3000) then
+					canDestroy = 1
+					break
+				end
+			end
+			if(canDestroy==0) then setMessageInt("cancast",0) end
+		end
+	end,
 
 	OnCast = function(id)
 		local valid = function(cid,sid)

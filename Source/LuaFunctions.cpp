@@ -144,7 +144,10 @@ static int createChoice(lua_State* L)
 	//lua_pushvalue(L, 6);
 	//int aref = luaL_ref(L, LUA_REGISTRYINDEX);
 	//cout << "ref: " << vref << " " << aref << endl;
-	ActiveDuel->addChoice(lua_tostring(L, 1), lua_tointeger(L, 2), lua_tointeger(L, 3), lua_tointeger(L, 4), vref, -1);
+	int aiPreferredSelection = lua_gettop(L) >= 6 && lua_isnumber(L, 6) ?
+		static_cast<int>(lua_tointeger(L, 6)) : RETURN_NOTHING;
+	ActiveDuel->addChoice(lua_tostring(L, 1), lua_tointeger(L, 2), lua_tointeger(L, 3),
+		lua_tointeger(L, 4), vref, -1, aiPreferredSelection);
 	ActiveDuel->checkChoiceValid();
 	
 	if (ActiveDuel->mIsChoiceActive)
@@ -177,7 +180,10 @@ static int createChoiceNoCheck(lua_State* L)
 	//lua_pushvalue(L, 6);
 	//int aref = luaL_ref(L, LUA_REGISTRYINDEX);
 	//cout << "ref: " << vref << " " << aref << endl;
-	ActiveDuel->addChoice(lua_tostring(L, 1), lua_tointeger(L, 2), lua_tointeger(L, 3), lua_tointeger(L, 4), vref, -1);
+	int aiPreferredSelection = lua_gettop(L) >= 6 && lua_isnumber(L, 6) ?
+		static_cast<int>(lua_tointeger(L, 6)) : RETURN_NOTHING;
+	ActiveDuel->addChoice(lua_tostring(L, 1), lua_tointeger(L, 2), lua_tointeger(L, 3),
+		lua_tointeger(L, 4), vref, -1, aiPreferredSelection);
 	//ActiveDuel->checkChoiceValid();
 	//if (ActiveDuel->isChoiceActive) //if choice is still active
 	//{
@@ -383,6 +389,7 @@ static int destroyModifier(lua_State* L)
 	Message msg("modifierdestroy");
 	msg.addValue("card", lua_tointeger(L, 1));
 	msg.addValue("modifier", modifier);
+	msg.addValue("funcref", card->mModifiers[modifier]->mFuncRef);
 	ActiveDuel->mMsgMngr.sendMessage(msg);
 	
 	return 0;

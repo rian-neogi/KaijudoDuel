@@ -102,6 +102,11 @@ int Application::runSmokeTests()
 			std::cerr << "Duel clone smoke test failed." << std::endl;
 			return 2;
 		}
+		if (!exerciseModifierDestroySmoke())
+		{
+			std::cerr << "Modifier destruction smoke test failed." << std::endl;
+			return 2;
+		}
 		if (!exerciseSimulationChoiceSmoke())
 		{
 			std::cerr << "Simulation choice smoke test failed." << std::endl;
@@ -115,6 +120,11 @@ int Application::runSmokeTests()
 		if (!exerciseMotorcycleMutantSmoke())
 		{
 			std::cerr << "Motorcycle Mutant smoke test failed." << std::endl;
+			return 2;
+		}
+		if (!exerciseAvalancheGiantSmoke())
+		{
+			std::cerr << "Avalanche Giant smoke test failed." << std::endl;
 			return 2;
 		}
 		if (!exerciseMctsSmoke())
@@ -630,6 +640,60 @@ bool Application::exerciseDuelCloneSmoke()
 	return valid;
 }
 
+bool Application::exerciseModifierDestroySmoke()
+{
+	std::lock_guard<std::mutex> lock(gMutex);
+	int creatureId = getCardIdFromName("Deadly Fighter Braid Claw");
+	if (creatureId < 0 || LuaCards == NULL || lua_gettop(LuaCards) != 0) return false;
+
+	Duel duel;
+	duel.mIsSimulation = true;
+	duel.mInputLoopRunning = false;
+	Card* card = new Card(0, creatureId, 0);
+	duel.mCardList.push_back(card);
+	duel.mBattlezones[0].addCard(card);
+	card->mZone = ZONE_BATTLE;
+	duel.mNextUniqueId = 1;
+
+	int stackTop = lua_gettop(LuaCards);
+	auto addModifier = [card, stackTop](bool expires) -> Modifier*
+	{
+		const char* script = expires ?
+			"return function(cid, mid) "
+			"if getMessageType() == 'post modifier-expiry-test' then "
+			"destroyModifier(cid, mid) end end" :
+			"return function(cid, mid) end";
+		if (luaL_loadstring(LuaCards, script) != LUA_OK ||
+			lua_pcall(LuaCards, 0, 1, 0) != LUA_OK || !lua_isfunction(LuaCards, -1))
+		{
+			lua_settop(LuaCards, stackTop);
+			return static_cast<Modifier*>(NULL);
+		}
+		Modifier* modifier = new Modifier(luaL_ref(LuaCards, LUA_REGISTRYINDEX));
+		card->mModifiers.push_back(modifier);
+		return modifier;
+	};
+
+	Modifier* firstExpired = addModifier(true);
+	Modifier* retained = addModifier(false);
+	Modifier* lastExpired = addModifier(true);
+	if (firstExpired == NULL || retained == NULL || lastExpired == NULL)
+	{
+		lua_settop(LuaCards, stackTop);
+		return false;
+	}
+
+	Message expire("modifier-expiry-test");
+	duel.mMsgMngr.sendMessage(expire);
+	{
+		ActiveDuelGuard activeGuard(duel);
+		duel.dispatchAllMessages();
+	}
+	bool valid = card->mModifiers.size() == 1 && card->mModifiers[0] == retained &&
+		duel.mMsgMngr.messages.empty() && lua_gettop(LuaCards) == stackTop;
+	return valid;
+}
+
 bool Application::exerciseSimulationChoiceSmoke()
 {
 	std::lock_guard<std::mutex> lock(gMutex);
@@ -767,7 +831,10 @@ bool Application::exerciseDecisionPlanSmoke()
 	int lunarChargerId = getCardIdFromName("Lunar Charger");
 	int fireCreatureId = getCardIdFromName("Deadly Fighter Braid Claw");
 	int natureCreatureId = getCardIdFromName("Bronze-Arm Tribe");
-	if (hammerId < 0 || lunarChargerId < 0 || fireCreatureId < 0 || natureCreatureId < 0)
+	int slashChargerId = getCardIdFromName("Slash Charger");
+	int spasticMissileId = getCardIdFromName("Spastic Missile");
+	if (hammerId < 0 || lunarChargerId < 0 || fireCreatureId < 0 || natureCreatureId < 0 ||
+		slashChargerId < 0 || spasticMissileId < 0)
 		return false;
 
 	bool valid = true;
@@ -950,6 +1017,158 @@ bool Application::exerciseDecisionPlanSmoke()
 		valid = valid && chargerPlans.size() == expected.size() && sequences == expected &&
 			root.mCardList[charger]->mZone == ZONE_HAND;
 	}
+
+	{
+		Duel root;
+		root.mIsSimulation = true;
+		root.mInputLoopRunning = false;
+		root.mTurn = 0;
+		root.mTurnPhase = TURN_PHASE_MAIN;
+		auto addCard = [&root](int cardId, int owner, int zone) -> int
+		{
+			int uid = (int)root.mCardList.size();
+			Card* card = new Card(uid, cardId, owner);
+			root.mCardList.push_back(card);
+			root.getZone(owner, zone)->addCard(card);
+			card->mZone = zone;
+			root.mNextUniqueId = uid + 1;
+			return uid;
+		};
+
+		int charger = addCard(slashChargerId, 0, ZONE_HAND);
+		for (int mana = 0; mana < 3; ++mana)
+			addCard(slashChargerId, 0, ZONE_MANA);
+		int ownDeckCard = addCard(natureCreatureId, 0, ZONE_DECK);
+		int opponentDeckCard = addCard(fireCreatureId, 1, ZONE_DECK);
+
+		DecisionPlanEnumerationOptions allChoiceOptions;
+		allChoiceOptions.heuristicMana = true;
+		std::vector<DecisionPlan> allPlans = enumerateDecisionPlans(root, allChoiceOptions);
+		int ownDeckPlans = 0;
+		int opponentDeckPlans = 0;
+		for (std::vector<DecisionPlan>::const_iterator plan = allPlans.begin();
+			plan != allPlans.end(); ++plan)
+		{
+			std::map<std::string, std::string>::const_iterator card = plan->action.map.find("card");
+			if (card == plan->action.map.end() || std::atoi(card->second.c_str()) != charger ||
+				plan->choices.size() != 2)
+				continue;
+			if (plan->choices[0].selection == RETURN_BUTTON2 &&
+				plan->choices[1].selection == ownDeckCard)
+				ownDeckPlans++;
+			if (plan->choices[0].selection == RETURN_BUTTON1 &&
+				plan->choices[1].selection == opponentDeckCard)
+				opponentDeckPlans++;
+		}
+
+		DecisionPlanEnumerationOptions aiOptions;
+		aiOptions.heuristicMana = true;
+		aiOptions.heuristicCardPlay = true;
+		aiOptions.heuristicChoices = true;
+		std::vector<DecisionPlan> aiPlans = enumerateDecisionPlans(root, aiOptions);
+		int aiChargerPlans = 0;
+		for (std::vector<DecisionPlan>::const_iterator plan = aiPlans.begin();
+			plan != aiPlans.end(); ++plan)
+		{
+			std::map<std::string, std::string>::const_iterator card = plan->action.map.find("card");
+			if (card == plan->action.map.end() || std::atoi(card->second.c_str()) != charger)
+				continue;
+			aiChargerPlans++;
+			valid = valid && plan->choices.size() == 2 &&
+				plan->choices[0].selection == RETURN_BUTTON1 &&
+				plan->choices[1].selection == opponentDeckCard;
+			Duel result;
+			result.mIsSimulation = true;
+			result.mInputLoopRunning = false;
+			valid = valid && result.copyFrom(root) &&
+				executeDecisionPlan(result, *plan).status == DecisionPlanStatus::Complete &&
+				result.mCardList[ownDeckCard]->mZone == ZONE_DECK &&
+				result.mCardList[opponentDeckCard]->mZone == ZONE_GRAVEYARD;
+		}
+		bool slashChargerCase = ownDeckPlans == 1 && opponentDeckPlans == 1 &&
+			aiChargerPlans == 1;
+		if (!slashChargerCase)
+		{
+			std::cerr << "Slash Charger plan case: own=" << ownDeckPlans <<
+				", opponent=" << opponentDeckPlans << ", ai=" << aiChargerPlans << std::endl;
+		}
+		valid = valid && slashChargerCase;
+	}
+
+	{
+		Duel root;
+		root.mIsSimulation = true;
+		root.mInputLoopRunning = false;
+		root.mTurn = 0;
+		root.mTurnPhase = TURN_PHASE_MAIN;
+		auto addCard = [&root](int cardId, int owner, int zone) -> int
+		{
+			int uid = (int)root.mCardList.size();
+			Card* card = new Card(uid, cardId, owner);
+			root.mCardList.push_back(card);
+			root.getZone(owner, zone)->addCard(card);
+			card->mZone = zone;
+			root.mNextUniqueId = uid + 1;
+			return uid;
+		};
+
+		int missile = addCard(spasticMissileId, 0, ZONE_HAND);
+		for (int mana = 0; mana < 3; ++mana)
+			addCard(fireCreatureId, 0, ZONE_MANA);
+		bool legallyCastable = false;
+		bool aiCastableWithoutTarget = true;
+		Message fallback;
+		{
+			ActiveDuelGuard activeGuard(root);
+			legallyCastable = root.getCardCanCast(missile) == 1;
+			aiCastableWithoutTarget = root.getCardAiCanCast(missile) == 1;
+			HeuristicBot bot(0);
+			fallback = bot.chooseMove(root, root.getPossibleMoves());
+		}
+
+		DecisionPlanEnumerationOptions aiOptions;
+		aiOptions.heuristicMana = true;
+		aiOptions.heuristicCardPlay = true;
+		aiOptions.heuristicChoices = true;
+		std::vector<DecisionPlan> emptyBoardPlans = enumerateDecisionPlans(root, aiOptions);
+		bool plannedWithoutTarget = false;
+		for (std::vector<DecisionPlan>::const_iterator plan = emptyBoardPlans.begin();
+			plan != emptyBoardPlans.end(); ++plan)
+		{
+			std::map<std::string, std::string>::const_iterator card = plan->action.map.find("card");
+			if (card != plan->action.map.end() && std::atoi(card->second.c_str()) == missile)
+				plannedWithoutTarget = true;
+		}
+
+		int target = addCard(fireCreatureId, 1, ZONE_BATTLE);
+		bool aiCastableWithTarget = false;
+		{
+			ActiveDuelGuard activeGuard(root);
+			aiCastableWithTarget = root.getCardAiCanCast(missile) == 1;
+		}
+		std::vector<DecisionPlan> targetedPlans = enumerateDecisionPlans(root, aiOptions);
+		bool plannedWithTarget = false;
+		for (std::vector<DecisionPlan>::const_iterator plan = targetedPlans.begin();
+			plan != targetedPlans.end(); ++plan)
+		{
+			std::map<std::string, std::string>::const_iterator card = plan->action.map.find("card");
+			if (card != plan->action.map.end() && std::atoi(card->second.c_str()) == missile &&
+				plan->choices.size() == 1 && plan->choices[0].selection == target)
+				plannedWithTarget = true;
+		}
+		bool spasticMissileCase = legallyCastable && !aiCastableWithoutTarget &&
+			fallback.getType() != "cardplay" && !plannedWithoutTarget &&
+			aiCastableWithTarget && plannedWithTarget;
+		if (!spasticMissileCase)
+		{
+			std::cerr << "Spastic Missile AI case: legal=" << legallyCastable <<
+				", ai-empty=" << aiCastableWithoutTarget << ", fallback=" <<
+				fallback.getType() << ", planned-empty=" << plannedWithoutTarget <<
+				", ai-target=" << aiCastableWithTarget << ", planned-target=" <<
+				plannedWithTarget << std::endl;
+		}
+		valid = valid && spasticMissileCase;
+	}
 	return valid;
 }
 
@@ -995,12 +1214,55 @@ bool Application::exerciseMotorcycleMutantSmoke()
 		duel.mCardList[otherCreature]->mZone == ZONE_BATTLE && duel.mMsgMngr.messages.empty();
 }
 
+bool Application::exerciseAvalancheGiantSmoke()
+{
+	std::lock_guard<std::mutex> lock(gMutex);
+	int giantCardId = getCardIdFromName("Avalanche Giant");
+	int creatureCardId = getCardIdFromName("Deadly Fighter Braid Claw");
+	if (giantCardId < 0 || creatureCardId < 0) return false;
+
+	Duel duel;
+	duel.mIsSimulation = true;
+	duel.mInputLoopRunning = false;
+	auto addCard = [&duel](int cardId, int owner, int zone) -> int
+	{
+		int uid = static_cast<int>(duel.mCardList.size());
+		Card* card = new Card(uid, cardId, owner);
+		duel.mCardList.push_back(card);
+		duel.getZone(owner, zone)->addCard(card);
+		card->mZone = zone;
+		duel.mNextUniqueId = uid + 1;
+		return uid;
+	};
+
+	int giant = addCard(giantCardId, 0, ZONE_BATTLE);
+	int blocker = addCard(creatureCardId, 1, ZONE_BATTLE);
+	int shield = addCard(creatureCardId, 1, ZONE_SHIELD);
+	duel.setChoiceResolver([shield](const Duel&) { return shield; });
+
+	Message battle("creaturebattle");
+	battle.addValue("attacker", giant);
+	battle.addValue("defender", blocker);
+	battle.addValue("blocked", 1);
+	duel.mMsgMngr.sendMessage(battle);
+	{
+		ActiveDuelGuard activeGuard(duel);
+		duel.dispatchAllMessages();
+	}
+
+	return duel.mCardList[shield]->mZone == ZONE_HAND &&
+		duel.mCardList[giant]->mZone == ZONE_BATTLE &&
+		duel.mCardList[blocker]->mZone == ZONE_GRAVEYARD &&
+		!duel.hasSimulationChoiceFailure() && duel.mMsgMngr.messages.empty();
+}
+
 bool Application::exerciseMctsSmoke()
 {
 	std::lock_guard<std::mutex> lock(gMutex);
 	int attackerId = getCardIdFromName("Burning Mane");
 	int blockerId = getCardIdFromName("Spiral Grass");
-	if (attackerId < 0 || blockerId < 0) return false;
+	int bombazarId = getCardIdFromName("Bombazar, Dragon of Destiny");
+	if (attackerId < 0 || blockerId < 0 || bombazarId < 0) return false;
 
 	auto prepareDuel = [attackerId, blockerId](Duel& duel, bool addBlocker) -> int
 	{
@@ -1163,6 +1425,62 @@ bool Application::exerciseMctsSmoke()
 		valid = valid && result.failedIterations == 0 && foundSpell &&
 			root.mCardList[lowValue]->mZone == ZONE_BATTLE &&
 			root.mCardList[highValue]->mZone == ZONE_BATTLE;
+	}
+
+	{
+		Duel root;
+		root.mInputLoopRunning = false;
+		root.mTurn = 0;
+		root.mTurnPhase = TURN_PHASE_MAIN;
+		auto addCard = [&root](int cardId, int owner, int zone) -> int
+		{
+			int uid = (int)root.mCardList.size();
+			Card* card = new Card(uid, cardId, owner);
+			root.mCardList.push_back(card);
+			root.getZone(owner, zone)->addCard(card);
+			card->mZone = zone;
+			root.mNextUniqueId = uid + 1;
+			return uid;
+		};
+
+		int bombazar = addCard(bombazarId, 0, ZONE_HAND);
+		for (int mana = 0; mana < 8; ++mana)
+			addCard(bombazarId, 0, ZONE_MANA);
+		addCard(attackerId, 0, ZONE_DECK);
+		addCard(attackerId, 1, ZONE_DECK);
+		Message summon("cardmove");
+		summon.addValue("card", bombazar);
+		summon.addValue("from", ZONE_HAND);
+		summon.addValue("to", ZONE_BATTLE);
+		summon.addValue("evobait", -1);
+		root.mMsgMngr.sendMessage(summon);
+		{
+			ActiveDuelGuard activeGuard(root);
+			root.dispatchAllMessages();
+		}
+		root.mCardList[bombazar]->mIsTapped = true;
+
+		MctsConfig extraTurnConfig;
+		extraTurnConfig.iterations = 64;
+		extraTurnConfig.maxDepth = 2;
+		extraTurnConfig.exploration = 0.0;
+		extraTurnConfig.seed = 49979687U;
+		MctsSearch search(0, extraTurnConfig);
+		MctsResult result = search.search(root);
+		bool extraTurnCase = result.hasPlan && result.failedIterations == 0 &&
+			result.iterationsCompleted == extraTurnConfig.iterations &&
+			result.plan.action.getType() == "endturn" && result.meanValue > 0.9 &&
+			result.turnHorizonCutoffs == 0 && root.mWinner == -1 &&
+			root.mCardList[bombazar]->mIsTapped;
+		if (!extraTurnCase)
+		{
+			std::cerr << "Bombazar extra-turn MCTS case: plan=" <<
+				(result.hasPlan ? result.plan.action.getType() : "none") <<
+				", completed=" << result.iterationsCompleted << ", failed=" <<
+				result.failedIterations << ", mean=" << result.meanValue <<
+				", cutoffs=" << result.turnHorizonCutoffs << std::endl;
+		}
+		valid = valid && extraTurnCase;
 	}
 
 	{
@@ -1343,6 +1661,10 @@ bool Application::exerciseAiDriverSmoke()
 	std::lock_guard<std::mutex> lock(gMutex);
 	int attackerId = getCardIdFromName("Burning Mane");
 	if (attackerId < 0) return false;
+	MctsConfig liveMainConfig = liveMctsConfig();
+	MctsConfig liveCombatConfig = liveMctsConfig(true);
+	bool valid = liveMainConfig.iterations == 1024 && liveCombatConfig.iterations == 1024 &&
+		liveMainConfig.timeBudgetMs == 1500 && liveCombatConfig.timeBudgetMs == 2500;
 
 	Duel live;
 	live.mInputLoopRunning = false;
@@ -1372,7 +1694,7 @@ bool Application::exerciseAiDriverSmoke()
 	config.maxDepth = 6;
 	config.seed = 49979687U;
 	AiDecisionOutcome searched = playAiDecision(live, 0, "balanced", config);
-	bool valid = searched.source == AiDecisionSource::Mcts &&
+	valid = valid && searched.source == AiDecisionSource::Mcts &&
 		searched.action.getType() == "creatureattack" &&
 		!live.mMsgMngr.messages.empty() && !live.mCardList[attacker]->mIsTapped &&
 		live.mTurnPhase == TURN_PHASE_ATTACK;

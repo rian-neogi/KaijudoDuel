@@ -538,7 +538,8 @@ void Application::updateDuel(Uint32 deltaTime)
 
 							mDuel->mAiThinkingPlayer = playerToMove;
 							mDuel->mAiThinking = true;
-							mAiSearch = new BackgroundMctsSearch(1, liveMctsConfig());
+							mAiSearch = new BackgroundMctsSearch(1,
+								liveMctsConfig(mDuel->mTurnPhase == TURN_PHASE_ATTACK));
 							if (mAiSearch->start(*mDuel))
 								mAiSearchStartedAt = now;
 							else

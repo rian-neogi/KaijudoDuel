@@ -175,9 +175,11 @@ private:
 	void renderSettings();
 	bool exerciseMenuScreensSmoke();
 	bool exerciseDuelCloneSmoke();
+	bool exerciseModifierDestroySmoke();
 	bool exerciseSimulationChoiceSmoke();
 	bool exerciseDecisionPlanSmoke();
 	bool exerciseMotorcycleMutantSmoke();
+	bool exerciseAvalancheGiantSmoke();
 	bool exerciseMctsSmoke();
 	bool exerciseLiveDecisionPlanSmoke();
 	bool exerciseAiDriverSmoke();

@@ -135,6 +135,16 @@ namespace
 		}
 		if (result.status == DecisionPlanStatus::NeedsChoice)
 		{
+			if (options.heuristicChoices && result.aiPreferredChoice != RETURN_NOTHING &&
+				std::find(result.options.begin(), result.options.end(), result.aiPreferredChoice) !=
+					result.options.end())
+			{
+				DecisionPlan child = prefix;
+				child.choices.push_back(DecisionChoice(result.choicePlayer,
+					result.aiPreferredChoice));
+				enumeratePlan(root, child, plans, options);
+				return;
+			}
 			for (std::vector<int>::const_iterator option = result.options.begin();
 				option != result.options.end(); ++option)
 			{
@@ -176,12 +186,14 @@ bool DecisionPlan::operator==(const DecisionPlan& other) const
 }
 
 DecisionPlanResult::DecisionPlanResult()
-	: status(DecisionPlanStatus::Illegal), choicePlayer(-1)
+	: status(DecisionPlanStatus::Illegal), choicePlayer(-1),
+	  aiPreferredChoice(RETURN_NOTHING)
 {
 }
 
 DecisionPlanEnumerationOptions::DecisionPlanEnumerationOptions()
-	: heuristicMana(false), randomShieldTarget(false)
+	: heuristicMana(false), heuristicCardPlay(false), heuristicChoices(false),
+	  randomShieldTarget(false)
 {
 }
 
@@ -214,9 +226,16 @@ DecisionPlanResult executeDecisionPlan(Duel& duel, const DecisionPlan& plan)
 				}
 				return answer.selection;
 			}
+			// Lua continues the current callback after RETURN_QUIT and may ask a
+			// later dependent question. Preserve the first unresolved choice so
+			// enumeration can add it before discovering subsequent choices.
+			if (missingChoice)
+				return RETURN_QUIT;
 
 			missingChoice = true;
 			result.choicePlayer = position.mChoicePlayer;
+			result.aiPreferredChoice = position.mChoice == NULL ? RETURN_NOTHING :
+				position.mChoice->mAiPreferredSelection;
 			result.options.clear();
 			if (position.mChoice != NULL && position.mChoice->mButtonCount >= 1)
 				result.options.push_back(RETURN_BUTTON1);
@@ -290,6 +309,18 @@ std::vector<DecisionPlan> enumerateDecisionPlans(Duel& root,
 	ActiveDuelGuard rootGuard(root);
 	int player = root.getPlayerToMove();
 	std::vector<Message> moves = root.getPossibleMoves();
+	if (options.heuristicCardPlay)
+	{
+		std::vector<Message> filtered;
+		for (std::vector<Message>::const_iterator move = moves.begin(); move != moves.end(); ++move)
+		{
+			if (messageType(*move) == "cardplay" &&
+				root.getCardAiCanCast(messageInt(*move, "card")) == 0)
+				continue;
+			filtered.push_back(*move);
+		}
+		moves.swap(filtered);
+	}
 	if (options.randomShieldTarget && root.mAttackphase == PHASE_TARGET)
 	{
 		std::vector<Message> targets;

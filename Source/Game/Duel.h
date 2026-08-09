@@ -128,7 +128,8 @@ public:
 	void undoMessage(Message& msg);
 
 	//Other
-	void addChoice(std::string info, int skip, int card, int player, int validref, int actionref);
+	void addChoice(std::string info, int skip, int card, int player, int validref, int actionref,
+		int aiPreferredSelection = RETURN_NOTHING);
 	void checkChoiceValid();
 	int choiceCanBeSelected(int sid) const;
 	bool selectChoice(int sid, bool sendMessage);
@@ -191,6 +192,7 @@ public:
 	int getIsEvolution(int uid);
 	int getIsSpeedAttacker(int uid);
 	int getCardCanCast(int uid);
+	int getCardAiCanCast(int uid);
 	int isCreatureOfRace(int uid, std::string race); //finds if the word race exists in the creature's race
 	std::string getCreatureRace(int uid); //returns the full race string of the creature
 	int getCreatureCanEvolve(int evo, int bait);

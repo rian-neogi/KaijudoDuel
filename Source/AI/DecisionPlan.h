@@ -45,6 +45,7 @@ struct DecisionPlanResult
 {
 	DecisionPlanStatus status;
 	int choicePlayer;
+	int aiPreferredChoice;
 	std::vector<int> options;
 
 	DecisionPlanResult();
@@ -55,6 +56,12 @@ struct DecisionPlanEnumerationOptions
 	// MCTS uses one heuristic mana placement/payment path. The default remains
 	// exhaustive for engine tests and callers that require every complete plan.
 	bool heuristicMana;
+	// Optional Lua advice may suppress strategically empty card plays for AI
+	// planning without changing whether the card is legally castable.
+	bool heuristicCardPlay;
+	// A Lua choice may supply one strategic preference. MCTS follows only those
+	// explicit preferences; choices without one retain their full branching.
+	bool heuristicChoices;
 	// MCTS treats shield targeting as a random policy rather than a tree branch.
 	bool randomShieldTarget;
 	std::function<size_t(size_t)> randomIndex;

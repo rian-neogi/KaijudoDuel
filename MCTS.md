@@ -339,7 +339,11 @@ action in the AI's second turn. The tracker observes `Duel::mTurn`, not merely
 `getPlayerToMove`, so temporary control passed to a blocker, shield-trigger
 owner, or spell-choice owner does not look like a turn transition. Immediate
 extra turns remain inside the horizon because the opponent's following turn has
-not occurred yet. The maximum decision depth remains as a secondary safety cap.
+not occurred yet. Each detected immediate extra turn also adds another full
+decision-depth allowance, so a rollout near its normal depth cap does not prune
+Bombazar's granted turn before it can be played. This extension is bounded to
+two extra turns per rollout; the maximum decision depth remains a secondary
+safety cap.
 
 When a session completes, the terminal reports completed and attempted
 rollouts, failed rollouts, elapsed wall time, whether the budget expired, the

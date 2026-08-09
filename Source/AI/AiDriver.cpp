@@ -3,6 +3,8 @@
 #include "HeuristicBot.h"
 
 #include <atomic>
+#include <exception>
+#include <iostream>
 #include <mutex>
 #include <thread>
 
@@ -15,12 +17,12 @@ AiDecisionOutcome::AiDecisionOutcome() : source(AiDecisionSource::None)
 {
 }
 
-MctsConfig liveMctsConfig()
+MctsConfig liveMctsConfig(bool combatPhase)
 {
 	MctsConfig config;
-	config.iterations = 64;
+	config.iterations = 1024;
 	config.maxDepth = 12;
-	config.timeBudgetMs = 1500;
+	config.timeBudgetMs = combatPhase ? 2500 : 1500;
 	return config;
 }
 
@@ -194,14 +196,23 @@ bool BackgroundMctsSearch::start(Duel& root)
 	mImpl->worker = std::thread(
 		[this, session]()
 		{
+			try
 			{
 				std::lock_guard<std::mutex> luaLock(gBackgroundLuaMutex);
 				while (!mImpl->cancel.load() && !session->isComplete())
 					session->advance(1);
 				if (!mImpl->cancel.load() && session->isComplete())
 					mImpl->result = session->result();
-				delete session;
 			}
+			catch (const std::exception& error)
+			{
+				std::cerr << "Background MCTS search failed: " << error.what() << std::endl;
+			}
+			catch (...)
+			{
+				std::cerr << "Background MCTS search failed with an unknown exception." << std::endl;
+			}
+			delete session;
 			mImpl->finished.store(true);
 		});
 	return true;

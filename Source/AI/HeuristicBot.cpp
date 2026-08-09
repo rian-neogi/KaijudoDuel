@@ -55,6 +55,9 @@ Message HeuristicBot::chooseMove(Duel& duel, const std::vector<Message>& moves) 
 	{
 		for (size_t i = 0; i < moves.size(); ++i)
 		{
+			if (messageType(moves[i]) == "cardplay" &&
+				duel.getCardAiCanCast(messageInt(moves[i], "card")) == 0)
+				continue;
 			preferredPriority = std::min(preferredPriority, movePriority(messageType(moves[i])));
 		}
 	}
@@ -64,6 +67,9 @@ Message HeuristicBot::chooseMove(Duel& duel, const std::vector<Message>& moves) 
 	double bestScore = -std::numeric_limits<double>::infinity();
 	for (size_t i = 0; i < moves.size(); ++i)
 	{
+		if (messageType(moves[i]) == "cardplay" &&
+			duel.getCardAiCanCast(messageInt(moves[i], "card")) == 0)
+			continue;
 		if (ordinaryTurn && movePriority(messageType(moves[i])) != preferredPriority) continue;
 		if (fallbackIndex == moves.size()) fallbackIndex = i;
 		double score = scoreMove(duel, moves[i]);
@@ -157,6 +163,8 @@ double HeuristicBot::cardValue(Duel& duel, int cardId, bool allowLuaQueries) con
 
 double HeuristicBot::scoreChoice(Duel& duel, int selection) const
 {
+	if (duel.mChoice != NULL && duel.mChoice->mAiPreferredSelection == selection)
+		return 100000.0;
 	std::string prompt = duel.mChoice == NULL ? "" : lowerText(duel.mChoice->mInfotext);
 	if (selection < 0)
 	{
@@ -321,6 +329,8 @@ double HeuristicBot::scoreMove(Duel& duel, const Message& move) const
 	if (type == "cardplay")
 	{
 		int card = messageInt(move, "card");
+		if (duel.getCardAiCanCast(card) == 0)
+			return -std::numeric_limits<double>::infinity();
 		double score = 42.0 + cardValue(duel, card, true) * 4.0;
 		if (messageInt(move, "evobait") >= 0) score += 8.0;
 		if (messageInt(move, "evobait2") >= 0) score += 8.0;

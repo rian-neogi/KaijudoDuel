@@ -78,8 +78,8 @@ Cards["Avalanche Giant"] = {
 
 	HandleMessage = function(id)
         Abils.cantAttackCreatures(id)
-        if(getMessageType()=="post creatureblock") then
-            if(getMessageInt("attacker")==id) then
+        if(getMessageType()=="post creaturebattle") then
+            if(getMessageInt("blocked")==1 and getMessageInt("attacker")==id) then
                 local ch = createChoice("Choose an opponent's shield",0,id,getCardOwner(id),Checks.InOppShields)
                 if(ch>=0) then
                     creatureBreakShield(id,ch)

@@ -777,17 +777,19 @@ Cards["Slash Charger"] = {
 	price_tier = 3,
 	shieldtrigger = 0,
 
-	OnCast = function(id) --test
+	OnCast = function(id)
 		local owner = getCardOwner(id)
-		local choice = createChoiceNoCheck("Search your deck? (Choose No for opponent's deck)",2,id,owner,Checks.False)
+		local choice = createChoiceNoCheck("Search opponent's deck? (Choose No for your own deck)",2,id,owner,Checks.False,RETURN_BUTTON1)
 		local player = owner
-		if(choice==RETURN_BUTTON2) then player=getOpponent(owner) end
+		if(choice==RETURN_BUTTON1) then player=getOpponent(owner) end
 		local valid = function(cid,sid)
 			if(getCardOwner(sid)==player and getCardZone(sid)==ZONE_DECK) then return 1 end
 			return 0
 		end
 		openDeck(player)
-		local ch = createChoice("Choose a card to put into that player's graveyard",1,id,owner,valid)
+		local preferred = RETURN_BUTTON1
+		if(getZoneSize(player,ZONE_DECK)>0) then preferred=getCardAt(player,ZONE_DECK,0) end
+		local ch = createChoice("Choose a card to put into that player's graveyard",1,id,owner,valid,preferred)
 		if(ch>=0) then moveCard(ch,ZONE_GRAVEYARD) end
 		shuffleDeck(player)
 		closeDeck(player)
@@ -1267,4 +1269,3 @@ Cards["Whispering Totem"] = {
 		Abils.onSummon(id,summon)
 	end
 }
-

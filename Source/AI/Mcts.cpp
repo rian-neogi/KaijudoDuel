@@ -1,6 +1,7 @@
 #include "Mcts.h"
 
 #include "AiScoring.h"
+#include "HeuristicBot.h"
 
 #include <algorithm>
 #include <chrono>
@@ -12,6 +13,10 @@
 
 namespace
 {
+	const double ROLLOUT_COMBAT_TEMPERATURE = 20.0;
+	const double ROLLOUT_UNIFORM_EXPLORATION = 0.05;
+	const int MAX_EXTRA_TURN_DEPTH_EXTENSIONS = 2;
+
 	struct MctsNode;
 
 	struct PlanNode
@@ -56,16 +61,28 @@ namespace
 		bool aiTurnSeen;
 		bool opponentTurnSeenAfterAi;
 		bool cutoff;
+		int extraTurnDepthExtensions;
 
 		TurnHorizon(const Duel& root, int player)
 			: rootPlayer(player), aiTurnSeen(root.mTurn == player),
-			  opponentTurnSeenAfterAi(false), cutoff(false)
+			  opponentTurnSeenAfterAi(false), cutoff(false), extraTurnDepthExtensions(0)
 		{
 		}
 
-		void observe(const Duel& position)
+		int depthLimit(int baseDepth) const
+		{
+			int multiplier = 1 + extraTurnDepthExtensions;
+			if (baseDepth > std::numeric_limits<int>::max() / multiplier)
+				return std::numeric_limits<int>::max();
+			return baseDepth * multiplier;
+		}
+
+		void observe(const Duel& position, bool immediateExtraTurn)
 		{
 			if (cutoff) return;
+			if (immediateExtraTurn &&
+				extraTurnDepthExtensions < MAX_EXTRA_TURN_DEPTH_EXTENSIONS)
+				extraTurnDepthExtensions++;
 			if (!aiTurnSeen)
 			{
 				if (position.mTurn == rootPlayer) aiTurnSeen = true;
@@ -84,6 +101,26 @@ namespace
 	double meanValue(const Node& node)
 	{
 		return node.visits == 0 ? 0.0 : node.valueSum / node.visits;
+	}
+
+	std::string messageType(const Message& message)
+	{
+		std::map<std::string, std::string>::const_iterator found =
+			message.map.find("msgtype");
+		return found == message.map.end() ? "" : found->second;
+	}
+
+	bool isDirectCombatAction(const std::string& type)
+	{
+		return type == "creatureattack" || type == "creatureblock" ||
+			type == "blockskip";
+	}
+
+	bool startedImmediateExtraTurn(const DecisionPlan& plan, int previousTurn,
+		const Duel& position)
+	{
+		return messageType(plan.action) == "endturn" && position.mWinner == -1 &&
+			position.mTurn == previousTurn;
 	}
 
 	bool sameActionAndPayment(const DecisionPlan& first, const DecisionPlan& second)
@@ -177,6 +214,8 @@ namespace
 		int player = position.getPlayerToMove();
 		DecisionPlanEnumerationOptions options;
 		options.heuristicMana = true;
+		options.heuristicCardPlay = true;
+		options.heuristicChoices = true;
 		options.randomShieldTarget = true;
 		options.randomIndex = [&random](size_t count) -> size_t
 		{
@@ -251,19 +290,95 @@ namespace
 		return node;
 	}
 
-	bool selectRandomPlan(const std::vector<DecisionPlan>& plans, int player,
+	bool selectRolloutPlan(Duel& position, const std::vector<DecisionPlan>& plans, int player,
 		std::mt19937& random, DecisionPlan& selected,
 		const std::function<bool()>& shouldStop)
 	{
 		std::unique_ptr<PlanNode> root(new PlanNode());
 		if (!buildPlanTree(plans, player, *root, shouldStop)) return false;
 		PlanNode* node = root.get();
+		bool primaryAction = true;
 		while (!node->leaf)
 		{
 			if (shouldStop && shouldStop()) return false;
 			if (node->children.empty()) return false;
-			std::uniform_int_distribution<size_t> choice(0, node->children.size() - 1);
-			node = node->children[choice(random)].get();
+			size_t selectedIndex = 0;
+			if (primaryAction)
+			{
+				std::vector<size_t> combatActions;
+				bool hasDirectCombatAction = false;
+				for (size_t i = 0; i < node->children.size(); ++i)
+				{
+					if (isDirectCombatAction(messageType(node->children[i]->plan.action)))
+						hasDirectCombatAction = true;
+				}
+				for (size_t i = 0; i < node->children.size(); ++i)
+				{
+					const std::string type = messageType(node->children[i]->plan.action);
+					if (isDirectCombatAction(type) ||
+						(hasDirectCombatAction && type == "endturn"))
+						combatActions.push_back(i);
+				}
+
+				std::vector<double> weights(node->children.size(), 1.0);
+				if (combatActions.size() > 1)
+				{
+					ActiveDuelGuard activeGuard(position);
+					HeuristicBot bot(player);
+					std::vector<double> scores(combatActions.size(),
+						-std::numeric_limits<double>::infinity());
+					double maximumScore = -std::numeric_limits<double>::infinity();
+					size_t finiteCount = 0;
+					for (size_t i = 0; i < combatActions.size(); ++i)
+					{
+						scores[i] = bot.scoreMove(position,
+							node->children[combatActions[i]]->plan.action);
+						if (std::isfinite(scores[i]))
+						{
+							maximumScore = std::max(maximumScore, scores[i]);
+							finiteCount++;
+						}
+					}
+
+					if (finiteCount > 0)
+					{
+						std::vector<double> exponentials(combatActions.size(), 0.0);
+						double exponentialSum = 0.0;
+						for (size_t i = 0; i < combatActions.size(); ++i)
+						{
+							if (!std::isfinite(scores[i])) continue;
+							exponentials[i] = std::exp(
+								(scores[i] - maximumScore) / ROLLOUT_COMBAT_TEMPERATURE);
+							exponentialSum += exponentials[i];
+						}
+						for (size_t i = 0; i < combatActions.size(); ++i)
+						{
+							if (!std::isfinite(scores[i]))
+							{
+								weights[combatActions[i]] = 0.0;
+								continue;
+							}
+							double probability =
+								(1.0 - ROLLOUT_UNIFORM_EXPLORATION) *
+									exponentials[i] / exponentialSum +
+								ROLLOUT_UNIFORM_EXPLORATION / finiteCount;
+							// Preserve the combat group's old aggregate probability. Card
+							// plays and other action classes therefore remain equal-weight.
+							weights[combatActions[i]] = combatActions.size() * probability;
+						}
+					}
+				}
+				std::discrete_distribution<size_t> choice(weights.begin(), weights.end());
+				selectedIndex = choice(random);
+			}
+			else
+			{
+				// Spell targets and other ordered choices remain uniform.
+				std::uniform_int_distribution<size_t> choice(0, node->children.size() - 1);
+				selectedIndex = choice(random);
+			}
+			node = node->children[selectedIndex].get();
+			primaryAction = false;
 		}
 		selected = node->plan;
 		return true;
@@ -278,7 +393,8 @@ namespace
 		const std::function<bool()>& shouldStop, bool& stopped, TurnHorizon& horizon,
 		int& forcedMovesApplied)
 	{
-		while (position.mWinner == -1 && depth < maxDepth && !horizon.cutoff)
+		while (position.mWinner == -1 && depth < horizon.depthLimit(maxDepth) &&
+			!horizon.cutoff)
 		{
 			if (shouldStop && shouldStop())
 			{
@@ -287,6 +403,8 @@ namespace
 			}
 			DecisionPlanEnumerationOptions options;
 			options.heuristicMana = true;
+			options.heuristicCardPlay = true;
+			options.heuristicChoices = true;
 			options.randomShieldTarget = true;
 			options.randomIndex = [&random](size_t count) -> size_t
 			{
@@ -310,11 +428,12 @@ namespace
 			bool forced = plans.size() == 1;
 			if (forced)
 				selected = plans.front();
-			else if (!selectRandomPlan(plans, player, random, selected, shouldStop))
+			else if (!selectRolloutPlan(position, plans, player, random, selected, shouldStop))
 			{
 				if (shouldStop && shouldStop()) stopped = true;
 				return false;
 			}
+			int previousTurn = position.mTurn;
 			if (!executeCompletePlan(position, selected))
 			{
 				if (shouldStop && shouldStop()) stopped = true;
@@ -322,7 +441,7 @@ namespace
 			}
 			if (forced) forcedMovesApplied++;
 			++depth;
-			horizon.observe(position);
+			horizon.observe(position, startedImmediateExtraTurn(selected, previousTurn, position));
 		}
 		return true;
 	}
@@ -348,7 +467,8 @@ namespace
 		statePath.push_back(node);
 		TurnHorizon horizon(root, rootPlayer);
 		int depth = 0;
-		while (position.mWinner == -1 && depth < config.maxDepth && !horizon.cutoff)
+		while (position.mWinner == -1 && depth < horizon.depthLimit(config.maxDepth) &&
+			!horizon.cutoff)
 		{
 			if (!initializeNode(*node, position, shouldStop, random))
 			{
@@ -358,16 +478,19 @@ namespace
 			}
 			if (node->hasForcedPlan)
 			{
+				int previousTurn = position.mTurn;
 				if (!executeCompletePlan(position, node->forcedPlan)) return false;
 				forcedMovesApplied++;
 				++depth;
-				horizon.observe(position);
+				horizon.observe(position, startedImmediateExtraTurn(node->forcedPlan,
+					previousTurn, position));
 				if (shouldStop && shouldStop())
 				{
 					stopped = true;
 					return false;
 				}
-				if (position.mWinner != -1 || depth >= config.maxDepth || horizon.cutoff)
+				if (position.mWinner != -1 ||
+					depth >= horizon.depthLimit(config.maxDepth) || horizon.cutoff)
 					break;
 				if (node->forcedChild == NULL)
 					node->forcedChild.reset(new MctsNode());
@@ -381,9 +504,10 @@ namespace
 
 			PlanNode* leaf = selectPlanLeaf(*node->plans, rootPlayer, config.exploration,
 				random, planPath);
+			int previousTurn = position.mTurn;
 			if (leaf == NULL || !executeCompletePlan(position, leaf->plan)) return false;
 			++depth;
-			horizon.observe(position);
+			horizon.observe(position, startedImmediateExtraTurn(leaf->plan, previousTurn, position));
 			if (shouldStop && shouldStop())
 			{
 				stopped = true;

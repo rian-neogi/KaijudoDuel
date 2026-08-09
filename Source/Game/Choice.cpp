@@ -1,10 +1,14 @@
 #include "Choice.h"
 
-Choice::Choice() : mInfotext(""), mButtonCount(0)
+Choice::Choice()
+	: mInfotext(""), mButtonCount(0), mValidRef(LUA_REFNIL), mActionRef(LUA_REFNIL),
+	  mAiPreferredSelection(AI_NO_PREFERENCE), mIsCopy(false)
 {
 }
 
-Choice::Choice(std::string info, int bcount, int vr, int ar) : mInfotext(info), mButtonCount(bcount), mValidRef(vr), mActionRef(ar), mIsCopy(false)
+Choice::Choice(std::string info, int bcount, int vr, int ar, int aiPreferredSelection)
+	: mInfotext(info), mButtonCount(bcount), mValidRef(vr), mActionRef(ar),
+	  mAiPreferredSelection(aiPreferredSelection), mIsCopy(false)
 {
 }
 
@@ -62,6 +66,7 @@ void Choice::copyFrom(Choice* c)
 	mButtonCount = c->mButtonCount;
 	mValidRef = c->mValidRef;
 	mActionRef = c->mActionRef;
+	mAiPreferredSelection = c->mAiPreferredSelection;
 	mIsCopy = true;
 }
 

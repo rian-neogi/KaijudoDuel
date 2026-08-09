@@ -23,9 +23,9 @@ struct AiDecisionOutcome
 	AiDecisionOutcome();
 };
 
-// The initial live budget is deliberately bounded. BackgroundMctsSearch runs
-// it on a worker after the live duel hands that worker exclusive Lua ownership.
-MctsConfig liveMctsConfig();
+// The live rollout ceiling is still bounded by a wall-clock budget. Combat
+// decisions receive extra time because their attacker/target branches are wider.
+MctsConfig liveMctsConfig(bool combatPhase = false);
 
 // Chooses and queues one complete MCTS decision. If search is unavailable or
 // cannot commit a plan, queues one legal HeuristicBot action instead. The

@@ -843,7 +843,7 @@ return {
 		max_battles = 1,
 		decks = { "Dark Generic 1.txt" },
 		rewards = {
-			{ card = "Bloody Squito", gold = 200 },
+			{ card = "Ghost Touch", gold = 200 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
@@ -881,7 +881,7 @@ return {
 		max_battles = 1,
 		decks = { "Fire Generic 1.txt" },
 		rewards = {
-			{ card = "Tornado Flame", gold = 115 },
+			{ card = "Crimson Hammer", gold = 115 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {

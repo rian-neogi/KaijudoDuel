@@ -633,8 +633,27 @@ int Duel::handleMessage(Message& msg)
 	{
 		int uid = msg.getInt("card");
 		int mid = msg.getInt("modifier");
-		Modifier* modifier = mCardList.at(uid)->mModifiers.at(mid);
-		mCardList.at(uid)->mModifiers.erase(mCardList.at(uid)->mModifiers.begin() + mid);
+		if (uid < 0 || uid >= static_cast<int>(mCardList.size())) return 0;
+		std::vector<Modifier*>& modifiers = mCardList[uid]->mModifiers;
+		std::vector<Modifier*>::iterator target = modifiers.end();
+		int ref = optionalMessageInt(msg, "funcref", LUA_NOREF);
+		if (ref != LUA_NOREF)
+		{
+			for (std::vector<Modifier*>::iterator modifier = modifiers.begin();
+				modifier != modifiers.end(); ++modifier)
+			{
+				if ((*modifier)->mFuncRef == ref)
+				{
+					target = modifier;
+					break;
+				}
+			}
+		}
+		else if (mid >= 0 && mid < static_cast<int>(modifiers.size()))
+			target = modifiers.begin() + mid;
+		if (target == modifiers.end()) return 0;
+		Modifier* modifier = *target;
+		modifiers.erase(target);
 		delete modifier;
 	}
 	else if (msg.getType() == "changeattackphase")
@@ -1535,10 +1554,11 @@ void Duel::probeBattleZonePower()
 	}
 }
 
-void Duel::addChoice(std::string info, int skip, int card, int player, int validref, int actionref)
+void Duel::addChoice(std::string info, int skip, int card, int player, int validref, int actionref,
+	int aiPreferredSelection)
 {
 	cancelChoice();
-	mChoice = new Choice(info, skip, validref, actionref);
+	mChoice = new Choice(info, skip, validref, actionref, aiPreferredSelection);
 	mChoiceCard = card;
 	mChoicePlayer = player;
 	mIsChoiceActive = true;
@@ -1975,6 +1995,20 @@ int Duel::getCardCanCast(int uid)
 	int c = mCurrentMessage.getInt("cancast");
 	mCurrentMessage = oldmsg;
 	return c;
+}
+
+int Duel::getCardAiCanCast(int uid)
+{
+	Message oldmsg = mCurrentMessage;
+	mCurrentMessage = Message("get cardaicancast");
+	mCurrentMessage.addValue("cancast", 1);
+	mCurrentMessage.addValue("card", uid);
+
+	for (std::vector<Card*>::iterator card = mCardList.begin(); card != mCardList.end(); ++card)
+		(*card)->handleMessage(mCurrentMessage);
+	int canCast = mCurrentMessage.getInt("cancast");
+	mCurrentMessage = oldmsg;
+	return canCast;
 }
 
 int Duel::getCardCivilization(int uid)
