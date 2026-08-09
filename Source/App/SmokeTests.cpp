@@ -91,6 +91,11 @@ int Application::runSmokeTests()
 			std::cerr << "Save menu smoke test failed." << std::endl;
 			return 2;
 		}
+		if (!exerciseDuelCloneSmoke())
+		{
+			std::cerr << "Duel clone smoke test failed." << std::endl;
+			return 2;
+		}
 		if (!exerciseBundledDecksSmoke())
 		{
 			std::cerr << "Bundled deck smoke test failed." << std::endl;
@@ -387,6 +392,201 @@ int Application::runSmokeTests()
 		}
 	}
 	return 0;
+}
+
+bool Application::exerciseDuelCloneSmoke()
+{
+	std::lock_guard<std::mutex> lock(gMutex);
+	int creatureId = getCardIdFromName("Deadly Fighter Braid Claw");
+	if (creatureId < 0 || LuaCards == NULL || lua_gettop(LuaCards) != 0)
+		return false;
+
+	Duel* savedActiveDuel = ActiveDuel;
+	bool valid = true;
+	{
+		Duel source;
+		Duel clone;
+		source.mIsSimulation = false;
+		clone.mIsSimulation = true;
+		clone.mInputLoopRunning = false;
+		ActiveDuel = &source;
+		for (int uid = 0; uid < 5; ++uid)
+		{
+			Card* card = new Card(uid, creatureId, uid % 2);
+			source.mCardList.push_back(card);
+		}
+
+		Card* base = source.mCardList[0];
+		Card* evolution = source.mCardList[1];
+		Card* hand = source.mCardList[2];
+		Card* shield = source.mCardList[3];
+		Card* deck = source.mCardList[4];
+		base->mZone = ZONE_EVOLVED;
+		evolution->mZone = ZONE_BATTLE;
+		evolution->mEvoStack.push_back(base);
+		evolution->mPower = 12345;
+		evolution->mManaCost = 7;
+		evolution->mBreaker = 3;
+		evolution->mIsBlocker = 1;
+		evolution->mIsShieldTrigger = 1;
+		evolution->mIsTapped = true;
+		evolution->mIsFlipped = true;
+		evolution->mSummoningSickness = 0;
+		evolution->mIsVisible[0] = false;
+		evolution->mIsVisible[1] = true;
+		source.mBattlezones[1].mCards.push_back(evolution);
+		hand->mZone = ZONE_HAND;
+		source.mHands[0].mCards.push_back(hand);
+		shield->mZone = ZONE_SHIELD;
+		source.mShields[1].mCards.push_back(shield);
+		source.mShields[1].mSlotsUsed = 5;
+		deck->mZone = ZONE_DECK;
+		source.mDecks[0].mCards.push_back(deck);
+		source.mHands[0].mMyPlayer = 1;
+
+		int stackTop = lua_gettop(LuaCards);
+		if (luaL_loadstring(LuaCards, "return function(card, modifier) end") != LUA_OK ||
+			lua_pcall(LuaCards, 0, 1, 0) != LUA_OK || !lua_isfunction(LuaCards, -1))
+		{
+			lua_settop(LuaCards, stackTop);
+			ActiveDuel = savedActiveDuel;
+			return false;
+		}
+		int modifierRef = luaL_ref(LuaCards, LUA_REGISTRYINDEX);
+		Modifier* modifier = new Modifier(modifierRef);
+		modifier->setLuaRuleState("counter", 9);
+		evolution->mModifiers.push_back(modifier);
+
+		source.mDeckNames[0] = "clone-player";
+		source.mDeckNames[1] = "clone-rival";
+		Message historyMessage("cardtap");
+		historyMessage.addValue("card", 1);
+		MsgHistoryItem historyItem;
+		historyItem.msg = historyMessage;
+		historyItem.move = 4;
+		source.mMessageHistory.push_back(historyItem);
+		source.mMoveHistory.push_back(historyMessage);
+		source.mMovePlayers.push_back(1);
+		source.mCurrentMoveCount = 4;
+		source.mRandomGen.SetRandomSeed(982451653);
+		source.mRandomGen.Random(1000);
+		source.mAttacker = 1;
+		source.mDefender = 3;
+		source.mDefenderType = DEFENDER_PLAYER;
+		source.mBreakCount = 2;
+		source.mShieldTargets.push_back(3);
+		source.mShieldBreakersThisTurn[1].insert(1);
+		source.mCardsDrawnThisTurn[0] = 2;
+		source.mCardsDrawnThisTurn[1] = 1;
+		source.setLuaRuleState("clone-test", 1, 17);
+		source.mAttackphase = PHASE_TARGET;
+		source.mCastingCard = 2;
+		source.mCastingCivilizations = 3;
+		source.mCastingCost = 4;
+		source.mCastingEvobait = 0;
+		source.mCastingEvobait2 = 3;
+		source.mCastingManaCards.push_back(4);
+		source.mWinner = -1;
+		source.mNextUniqueId = 5;
+		source.mCurrentMessage = historyMessage;
+		source.mTurn = 1;
+		source.mTurnPhase = TURN_PHASE_ATTACK;
+		source.mManaUsed = 1;
+		source.mPlayerType[0] = PLAYER_AI;
+		source.mPlayerType[1] = PLAYER_HUMAN;
+
+		valid = clone.copyFrom(source);
+		if (valid)
+		{
+			for (size_t index = 0; index < source.mCardList.size(); ++index)
+			{
+				Card* original = source.mCardList[index];
+				Card* copied = clone.mCardList[index];
+				valid = valid && original != copied && original->mUniqueId == copied->mUniqueId &&
+					original->mCardId == copied->mCardId && original->mName == copied->mName &&
+					original->mRace == copied->mRace && original->mCivilization == copied->mCivilization &&
+					original->mCivilizations == copied->mCivilizations && original->mType == copied->mType &&
+					original->mManaCost == copied->mManaCost && original->mPower == copied->mPower &&
+					original->mBreaker == copied->mBreaker && original->mOwner == copied->mOwner &&
+					original->mZone == copied->mZone && original->mIsBlocker == copied->mIsBlocker &&
+					original->mIsShieldTrigger == copied->mIsShieldTrigger &&
+					original->mIsTapped == copied->mIsTapped && original->mIsFlipped == copied->mIsFlipped &&
+					original->mSummoningSickness == copied->mSummoningSickness &&
+					original->mIsVisible[0] == copied->mIsVisible[0] &&
+					original->mIsVisible[1] == copied->mIsVisible[1];
+			}
+			valid = valid && clone.mBattlezones[1].mCards.size() == 1 &&
+				clone.mBattlezones[1].mCards[0] == clone.mCardList[1] &&
+				clone.mHands[0].mCards.size() == 1 && clone.mHands[0].mCards[0] == clone.mCardList[2] &&
+				clone.mShields[1].mCards.size() == 1 && clone.mShields[1].mCards[0] == clone.mCardList[3] &&
+				clone.mDecks[0].mCards.size() == 1 && clone.mDecks[0].mCards[0] == clone.mCardList[4] &&
+				clone.mHands[0].mMyPlayer == 1 && clone.mShields[1].mSlotsUsed == 5 &&
+				clone.mDecks[0].mRandomGen == &clone.mRandomGen &&
+				clone.mDecks[1].mRandomGen == &clone.mRandomGen &&
+				clone.mCardList[1]->mEvoStack.size() == 1 &&
+				clone.mCardList[1]->mEvoStack[0] == clone.mCardList[0];
+
+			Modifier* clonedModifier = clone.mCardList[1]->mModifiers.empty() ? NULL :
+				clone.mCardList[1]->mModifiers[0];
+			valid = valid && clonedModifier != NULL && clonedModifier != modifier &&
+				clonedModifier->mFuncRef != modifier->mFuncRef &&
+				clonedModifier->getLuaRuleState("counter", -1) == 9;
+			if (clonedModifier != NULL)
+			{
+				lua_rawgeti(LuaCards, LUA_REGISTRYINDEX, clonedModifier->mFuncRef);
+				valid = valid && lua_isfunction(LuaCards, -1);
+				lua_pop(LuaCards, 1);
+			}
+
+			valid = valid && clone.mDeckNames[0] == source.mDeckNames[0] &&
+				clone.mDeckNames[1] == source.mDeckNames[1] && clone.mIsSimulation &&
+				!clone.mInputLoopRunning.load() &&
+				clone.mMessageHistory.size() == 1 && clone.mMessageHistory[0].move == 4 &&
+				clone.mMessageHistory[0].msg.map == historyMessage.map &&
+				clone.mMoveHistory.size() == 1 && clone.mMoveHistory[0].map == historyMessage.map &&
+				clone.mMovePlayers == source.mMovePlayers && clone.mCurrentMoveCount == 4 &&
+				clone.mAttacker == 1 && clone.mDefender == 3 && clone.mDefenderType == DEFENDER_PLAYER &&
+				clone.mBreakCount == 2 && clone.mShieldTargets == source.mShieldTargets &&
+				clone.mShieldBreakersThisTurn[0].empty() && clone.mShieldBreakersThisTurn[1].count(1) == 1 &&
+				clone.mCardsDrawnThisTurn[0] == 2 && clone.mCardsDrawnThisTurn[1] == 1 &&
+				clone.getLuaRuleState("clone-test", 1, -1) == 17 && clone.mAttackphase == PHASE_TARGET &&
+				clone.mCastingCard == 2 && clone.mCastingCivilizations == 3 && clone.mCastingCost == 4 &&
+				clone.mCastingEvobait == 0 && clone.mCastingEvobait2 == 3 &&
+				clone.mCastingManaCards == source.mCastingManaCards && clone.mWinner == -1 &&
+				clone.mNextUniqueId == 5 && clone.mCurrentMessage.map == historyMessage.map &&
+				clone.mTurn == 1 && clone.mTurnPhase == TURN_PHASE_ATTACK && clone.mManaUsed == 1 &&
+				clone.mPlayerType[0] == PLAYER_AI && clone.mPlayerType[1] == PLAYER_HUMAN &&
+				!clone.mLuaCallbackSuspended.load() && !clone.mIsChoiceActive && clone.mChoice == NULL &&
+				clone.mChoiceValidCards.empty() && clone.mMsgMngr.messages.empty() &&
+				source.mRandomGen.Random(1000000) == clone.mRandomGen.Random(1000000);
+
+			clone.mCardList[1]->mPower++;
+			clone.mCardList[1]->mEvoStack.clear();
+			clone.mCardList[1]->mModifiers[0]->setLuaRuleState("counter", 99);
+			clone.mBattlezones[1].mCards.clear();
+			clone.setLuaRuleState("clone-test", 1, 88);
+			valid = valid && source.mCardList[1]->mPower == 12345 &&
+				source.mCardList[1]->mEvoStack.size() == 1 &&
+				modifier->getLuaRuleState("counter", -1) == 9 &&
+				source.mBattlezones[1].mCards.size() == 1 &&
+				source.getLuaRuleState("clone-test", 1, -1) == 17;
+
+			Card* cloneFirstCard = clone.mCardList[0];
+			Message queued("queued-test");
+			source.mMsgMngr.sendMessage(queued);
+			valid = valid && !clone.copyFrom(source) && clone.mCardList[0] == cloneFirstCard;
+			source.mMsgMngr.dispatch();
+			source.mLuaCallbackSuspended = true;
+			valid = valid && !clone.copyFrom(source) && clone.mCardList[0] == cloneFirstCard;
+			source.mLuaCallbackSuspended = false;
+			valid = valid && clone.copyFrom(source) && clone.mCardList[1]->mPower == 12345 &&
+				clone.mCardList[1]->mEvoStack.size() == 1 &&
+				clone.mCardList[1]->mModifiers[0]->getLuaRuleState("counter", -1) == 9;
+		}
+		valid = valid && lua_gettop(LuaCards) == stackTop;
+		ActiveDuel = savedActiveDuel;
+	}
+	return valid;
 }
 
 bool Application::exerciseBundledDecksSmoke()

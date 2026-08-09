@@ -72,8 +72,6 @@ Cards["Uberdragon Bajula"] = {
 	end
 }
 
-local bailasGaleTriggers = {}
-
 Cards["Super Terradragon Bailas Gale"] = {
 	price_tier = 5,
 	shieldtrigger = 0,
@@ -85,12 +83,13 @@ Cards["Super Terradragon Bailas Gale"] = {
 
 		local messageType = getMessageType()
 		local card = getMessageInt("card")
+		local triggerOwner = getDuelStateInt("bailas_gale.trigger_owner",card,-1)
 		if(messageType=="post cardmove" and getCardZone(id)==ZONE_BATTLE and getMessageInt("from")==ZONE_SHIELD and getMessageInt("to")==ZONE_BATTLE and getCardType(card)==TYPE_SPELL and getCardOwner(card)==getCardOwner(id)) then
-			bailasGaleTriggers[card] = getCardOwner(id)
-		elseif(messageType=="mod cardmove" and bailasGaleTriggers[card]==getCardOwner(id) and getCardZone(id)==ZONE_BATTLE and getMessageInt("from")==ZONE_BATTLE and getMessageInt("to")==ZONE_GRAVEYARD) then
+			setDuelStateInt("bailas_gale.trigger_owner",card,getCardOwner(id))
+		elseif(messageType=="mod cardmove" and triggerOwner==getCardOwner(id) and getCardZone(id)==ZONE_BATTLE and getMessageInt("from")==ZONE_BATTLE and getMessageInt("to")==ZONE_GRAVEYARD) then
 			setMessageInt("to",ZONE_HAND)
-		elseif(messageType=="post cardmove" and bailasGaleTriggers[card]~=nil and getMessageInt("from")==ZONE_BATTLE) then
-			bailasGaleTriggers[card] = nil
+		elseif(messageType=="post cardmove" and triggerOwner~=-1 and getMessageInt("from")==ZONE_BATTLE) then
+			clearDuelState("bailas_gale.trigger_owner",card)
 		end
 	end
 }

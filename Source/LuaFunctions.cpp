@@ -13,6 +13,17 @@ static Card* cardFromLua(lua_State* L, int argument)
 	return ActiveDuel->mCardList[cid];
 }
 
+static Modifier* modifierFromLua(lua_State* L, int cardArgument, int modifierArgument)
+{
+	Card* card = cardFromLua(L, cardArgument);
+	if (card == NULL)
+		return NULL;
+	int modifier = static_cast<int>(lua_tointeger(L, modifierArgument));
+	if (modifier < 0 || modifier >= static_cast<int>(card->mModifiers.size()))
+		return NULL;
+	return card->mModifiers[modifier];
+}
+
 static bool validPlayer(int player)
 {
 	return player == 0 || player == 1;
@@ -63,6 +74,59 @@ static int getMessageType(lua_State* L)
 {
 	lua_pushstring(L, ActiveDuel->mCurrentMessage.getType().c_str());
 	return 1;
+}
+
+static int getDuelStateInt(lua_State* L)
+{
+	int fallback = lua_gettop(L) >= 3 ? static_cast<int>(lua_tointeger(L, 3)) : 0;
+	const char* name = lua_tostring(L, 1);
+	if (ActiveDuel == NULL || name == NULL)
+	{
+		lua_pushinteger(L, fallback);
+		return 1;
+	}
+	lua_pushinteger(L, ActiveDuel->getLuaRuleState(name, static_cast<int>(lua_tointeger(L, 2)), fallback));
+	return 1;
+}
+
+static int setDuelStateInt(lua_State* L)
+{
+	const char* name = lua_tostring(L, 1);
+	if (ActiveDuel != NULL && name != NULL)
+		ActiveDuel->setLuaRuleState(name, static_cast<int>(lua_tointeger(L, 2)),
+			static_cast<int>(lua_tointeger(L, 3)));
+	return 0;
+}
+
+static int clearDuelState(lua_State* L)
+{
+	const char* name = lua_tostring(L, 1);
+	if (ActiveDuel != NULL && name != NULL)
+		ActiveDuel->clearLuaRuleState(name, static_cast<int>(lua_tointeger(L, 2)));
+	return 0;
+}
+
+static int getModifierStateInt(lua_State* L)
+{
+	int fallback = lua_gettop(L) >= 4 ? static_cast<int>(lua_tointeger(L, 4)) : 0;
+	Modifier* modifier = modifierFromLua(L, 1, 2);
+	const char* name = lua_tostring(L, 3);
+	if (modifier == NULL || name == NULL)
+	{
+		lua_pushinteger(L, fallback);
+		return 1;
+	}
+	lua_pushinteger(L, modifier->getLuaRuleState(name, fallback));
+	return 1;
+}
+
+static int setModifierStateInt(lua_State* L)
+{
+	Modifier* modifier = modifierFromLua(L, 1, 2);
+	const char* name = lua_tostring(L, 3);
+	if (modifier != NULL && name != NULL)
+		modifier->setLuaRuleState(name, static_cast<int>(lua_tointeger(L, 4)));
+	return 0;
 }
 
 static int createChoice(lua_State* L)
@@ -295,6 +359,19 @@ static int createModifier(lua_State* L)
 	Message msg("modifiercreate");
 	msg.addValue("card", uid);
 	msg.addValue("funcref", ref);
+	if (lua_istable(L, 3))
+	{
+		lua_pushnil(L);
+		while (lua_next(L, 3) != 0)
+		{
+			if (lua_type(L, -2) == LUA_TSTRING && lua_isnumber(L, -1))
+			{
+				const char* name = lua_tostring(L, -2);
+				msg.addValue(std::string("state.") + name, static_cast<int>(lua_tointeger(L, -1)));
+			}
+			lua_pop(L, 1);
+		}
+	}
 	ActiveDuel->mMsgMngr.sendMessage(msg);
 
 	return 0;
@@ -646,6 +723,9 @@ void registerLua(lua_State* L)
 	lua_register(L, "getMessageString", getMessageString);
 	lua_register(L, "getMessageInt", getMessageInt);
 	lua_register(L, "getMessageType", getMessageType);
+	lua_register(L, "getDuelStateInt", getDuelStateInt);
+	lua_register(L, "setDuelStateInt", setDuelStateInt);
+	lua_register(L, "clearDuelState", clearDuelState);
 
 	lua_register(L, "createChoice", createChoice);
 	lua_register(L, "createChoiceNoCheck", createChoiceNoCheck);
@@ -655,6 +735,8 @@ void registerLua(lua_State* L)
 
 	lua_register(L, "createModifier", createModifier);
 	lua_register(L, "destroyModifier", destroyModifier);
+	lua_register(L, "getModifierStateInt", getModifierStateInt);
+	lua_register(L, "setModifierStateInt", setModifierStateInt);
 	
 	lua_register(L, "destroyCreature", destroyCreature);
 	lua_register(L, "discardCard", discardCard);

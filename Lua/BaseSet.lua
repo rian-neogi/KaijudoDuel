@@ -1546,8 +1546,8 @@ Cards["Meteosaur"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-        summon = function(id)
-            valid = function(cid,sid)
+        local summon = function(id)
+            local valid = function(cid,sid)
                 if(getCardOwner(sid)~=getCardOwner(cid) and getCardZone(sid)==ZONE_BATTLE and getCreaturePower(sid)<=2000) then
 		            return 1
 	            else
@@ -1805,7 +1805,7 @@ Cards["Rayla, Truth Enforcer"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-        summon = function(id)
+        local summon = function(id)
             local owner = getCardOwner(id)
             openDeck(owner)
             local ch = createChoice("Choose a spell in your deck",1,id,owner,Checks.SpellInYourDeck)
@@ -2246,7 +2246,7 @@ Cards["Storm Shell"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-        summon = function(id)
+        local summon = function(id)
             local ch = createChoice("Choose a creature",0,id,getOpponent(getCardOwner(id)),Checks.InOppBattle)
             if(ch>=0) then
                 moveCard(ch,ZONE_MANA)
@@ -2297,7 +2297,7 @@ Cards["Swamp Worm"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-		summon = function(id)
+		local summon = function(id)
             local ch = createChoice("Choose a creature",0,id,getOpponent(getCardOwner(id)),Checks.InOppBattle)
             if(ch>=0) then
                 destroyCreature(ch)
@@ -2559,7 +2559,7 @@ Cards["Unicorn Fish"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-        summon = function(id)
+        local summon = function(id)
             local ch = createChoice("Choose a creature",1,id,getCardOwner(id),Checks.InBattle)
             if(ch>=0) then
                 moveCard(ch,ZONE_HAND)

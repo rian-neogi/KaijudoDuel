@@ -471,19 +471,18 @@ Cards["Bombazar, Dragon of Destiny"] = {
 				end
 			end
 			local owner=getCardOwner(id)
-			local extra=false
 			local mod = function(cid,mid)
 				if(getMessageType()=="mod endturn" and getMessageInt("player")==owner) then
-					if(not extra) then
+					if(getModifierStateInt(cid,mid,"extra_turn_used",0)==0) then
 						setMessageInt("extraturn",1)
-						extra=true
+						setModifierStateInt(cid,mid,"extra_turn_used",1)
 					else
 						loseGame(owner)
 						destroyModifier(cid,mid)
 					end
 				end
 			end
-			createModifier(id,mod)
+			createModifier(id,mod,{extra_turn_used=0})
 		end)
 	end
 }

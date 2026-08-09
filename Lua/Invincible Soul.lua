@@ -1,18 +1,16 @@
 package.path = package.path .. ';./?.lua;'
 require("Lua/Survivors")
 
-local spellCastThisTurn = {[0] = false, [1] = false}
-
 local requireSpellCast = function(id)
 	if(getMessageType()=="post startturn") then
-		spellCastThisTurn[getMessageInt("player")] = false
+		clearDuelState("invincible_soul.spell_cast_this_turn",getMessageInt("player"))
 	elseif(getMessageType()=="post cardmove") then
 		local card = getMessageInt("card")
 		if(getMessageInt("to")==ZONE_BATTLE and getCardType(card)==TYPE_SPELL) then
-			spellCastThisTurn[getCardOwner(card)] = true
+			setDuelStateInt("invincible_soul.spell_cast_this_turn",getCardOwner(card),1)
 		end
 	elseif(getMessageType()=="get cardcancast" and getMessageInt("card")==id) then
-		if(spellCastThisTurn[getCardOwner(id)]~=true) then
+		if(getDuelStateInt("invincible_soul.spell_cast_this_turn",getCardOwner(id),0)~=1) then
 			setMessageInt("cancast",0)
 		end
 	end

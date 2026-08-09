@@ -4,7 +4,7 @@
 
 lua_State* LuaCards;
 
-Modifier::Modifier()
+Modifier::Modifier() : mFuncRef(LUA_NOREF)
 {
 }
 
@@ -16,13 +16,45 @@ Modifier::Modifier(int ref) : mFuncRef(ref)
 Modifier::~Modifier()
 {
 	//cout << "unref mod: " << funcref << endl;
-	luaL_unref(LuaCards, LUA_REGISTRYINDEX, mFuncRef);
+	if (LuaCards != NULL && mFuncRef != LUA_NOREF && mFuncRef != LUA_REFNIL)
+		luaL_unref(LuaCards, LUA_REGISTRYINDEX, mFuncRef);
+}
+
+Modifier* Modifier::clone() const
+{
+	if (LuaCards == NULL || mFuncRef == LUA_NOREF || mFuncRef == LUA_REFNIL)
+		return NULL;
+
+	int stackTop = lua_gettop(LuaCards);
+	lua_rawgeti(LuaCards, LUA_REGISTRYINDEX, mFuncRef);
+	if (!lua_isfunction(LuaCards, -1))
+	{
+		lua_settop(LuaCards, stackTop);
+		return NULL;
+	}
+	int clonedRef = luaL_ref(LuaCards, LUA_REGISTRYINDEX);
+	lua_settop(LuaCards, stackTop);
+
+	Modifier* result = new Modifier(clonedRef);
+	result->mLuaRuleState = mLuaRuleState;
+	return result;
 }
 
 void Modifier::setfunc(int ref)
 {
 	//cout << "ref mod: " << funcref << endl;
 	mFuncRef = ref;
+}
+
+int Modifier::getLuaRuleState(const std::string& name, int fallback) const
+{
+	std::unordered_map<std::string, int>::const_iterator value = mLuaRuleState.find(name);
+	return value == mLuaRuleState.end() ? fallback : value->second;
+}
+
+void Modifier::setLuaRuleState(const std::string& name, int value)
+{
+	mLuaRuleState[name] = value;
 }
 
 int Modifier::handleMessage(int cid, int mid, Message& msg)

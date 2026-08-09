@@ -3,7 +3,9 @@
 
 #include <algorithm>
 #include <chrono>
+#include <memory>
 #include <thread>
+#include <unordered_map>
 
 std::mutex gMutex;
 
@@ -11,6 +13,21 @@ static int optionalMessageInt(const Message& message, const char* key, int fallb
 {
 	std::map<std::string, std::string>::const_iterator value = message.map.find(key);
 	return value == message.map.end() ? fallback : std::atoi(value->second.c_str());
+}
+
+static bool remapCardVector(const std::vector<Card*>& source,
+	const std::unordered_map<const Card*, Card*>& cardMap, std::vector<Card*>& result)
+{
+	result.clear();
+	result.reserve(source.size());
+	for (std::vector<Card*>::const_iterator card = source.begin(); card != source.end(); ++card)
+	{
+		std::unordered_map<const Card*, Card*>::const_iterator clone = cardMap.find(*card);
+		if (clone == cardMap.end())
+			return false;
+		result.push_back(clone->second);
+	}
+	return true;
 }
 
 Duel::Duel()
@@ -119,76 +136,164 @@ Duel::Duel()
 
 Duel::~Duel()
 {
-	for (int i = 0; i < mCardList.size(); i++)
-	{
-		if (mCardList.at(i) != NULL)
-			delete mCardList.at(i);
-	}
+	clearCards();
 	if (mChoice != NULL)
 		delete mChoice;
 }
 
-void Duel::copyFrom(Duel* duel) //incomplete, not used
+bool Duel::isCloneable() const
 {
-	mTurn = duel->mTurn;
-	mTurnPhase = duel->mTurnPhase;
-	mManaUsed = duel->mManaUsed;
-	mNextUniqueId = duel->mNextUniqueId;
+	if (mLuaCallbackSuspended.load() || mChoice != NULL || mIsChoiceActive ||
+		!mChoiceValidCards.empty() || !mMsgMngr.messages.empty() ||
+		mZeroPowerCheckPending || mRaceQueryDepth != 0)
+		return false;
+	if (LuaCards == NULL || lua_gettop(LuaCards) != 0)
+		return false;
+	if (mNextUniqueId != static_cast<int>(mCardList.size()))
+		return false;
 
-	mAttackphase = duel->mAttackphase;
-	mAttacker = duel->mAttacker;
-	mDefender = duel->mDefender;
-	mBreakCount = duel->mBreakCount;
-	mShieldBreakersThisTurn[0] = duel->mShieldBreakersThisTurn[0];
-	mShieldBreakersThisTurn[1] = duel->mShieldBreakersThisTurn[1];
-	mCardsDrawnThisTurn[0] = duel->mCardsDrawnThisTurn[0];
-	mCardsDrawnThisTurn[1] = duel->mCardsDrawnThisTurn[1];
-
-	mCastingCard = duel->mCastingCard;
-	mCastingCivilizations = duel->mCastingCivilizations;
-	mCastingCost = duel->mCastingCost;
-	mCastingEvobait = duel->mCastingEvobait;
-	mCastingEvobait2 = duel->mCastingEvobait2;
-	mCastingManaCards = duel->mCastingManaCards;
-
-	mIsChoiceActive = duel->mIsChoiceActive;
-	mChoiceCard = duel->mChoiceCard;
-	mChoicePlayer = duel->mChoicePlayer;
-	mZeroPowerCheckPending = false;
-	mRaceQueryDepth = 0;
-
-	mWinner = duel->mWinner;
-
-	mNextUniqueId = duel->mNextUniqueId;
-
-	for (std::vector<int>::iterator i = duel->mShieldTargets.begin(); i != duel->mShieldTargets.end(); i++)
+	for (size_t index = 0; index < mCardList.size(); ++index)
 	{
-		mShieldTargets.push_back(*i);
-	}
-
-	for (std::vector<Card*>::iterator i = duel->mCardList.begin(); i != duel->mCardList.end(); i++)
-	{
-		Card* c = new Card(**i);
-		mCardList.push_back(c);
-	}
-	for (int i = 0; i < 2; i++)
-	{
-		for (int z = 0; z < 6; z++)
+		Card* card = mCardList[index];
+		if (card == NULL || card->mUniqueId != static_cast<int>(index))
+			return false;
+		for (std::vector<Modifier*>::const_iterator modifier = card->mModifiers.begin();
+			modifier != card->mModifiers.end(); ++modifier)
 		{
-			for (std::vector<Card*>::iterator j = duel->getZone(i, z)->mCards.begin(); j != duel->getZone(i, z)->mCards.end(); j++)
-			{
-				for (std::vector<Card*>::iterator k = mCardList.begin(); k != mCardList.end(); k++)
-				{
-					if ((*k)->mUniqueId == (*j)->mUniqueId)
-					{
-						getZone(i, z)->mCards.push_back(*k);
-						break;
-					}
-				}
-			}
+			if (*modifier == NULL || (*modifier)->mFuncRef == LUA_NOREF ||
+				(*modifier)->mFuncRef == LUA_REFNIL)
+				return false;
 		}
 	}
-	mChoice->copyFrom(duel->mChoice);
+	return true;
+}
+
+bool Duel::copyFrom(const Duel& duel)
+{
+	if (this == &duel)
+		return true;
+	if (!duel.isCloneable())
+		return false;
+
+	std::vector<std::unique_ptr<Card> > ownedCards;
+	ownedCards.reserve(duel.mCardList.size());
+	std::unordered_map<const Card*, Card*> cardMap;
+	for (std::vector<Card*>::const_iterator source = duel.mCardList.begin();
+		source != duel.mCardList.end(); ++source)
+	{
+		std::unique_ptr<Card> clone(new Card());
+		clone->copyStateFrom(**source);
+		for (std::vector<Modifier*>::const_iterator modifier = (*source)->mModifiers.begin();
+			modifier != (*source)->mModifiers.end(); ++modifier)
+		{
+			Modifier* clonedModifier = (*modifier)->clone();
+			if (clonedModifier == NULL)
+				return false;
+			clone->mModifiers.push_back(clonedModifier);
+		}
+		cardMap[*source] = clone.get();
+		ownedCards.push_back(std::move(clone));
+	}
+
+	for (size_t index = 0; index < duel.mCardList.size(); ++index)
+	{
+		if (!remapCardVector(duel.mCardList[index]->mEvoStack, cardMap,
+			ownedCards[index]->mEvoStack))
+			return false;
+	}
+
+	std::vector<Card*> deckCards[2];
+	std::vector<Card*> handCards[2];
+	std::vector<Card*> manaCards[2];
+	std::vector<Card*> graveyardCards[2];
+	std::vector<Card*> shieldCards[2];
+	std::vector<Card*> battleCards[2];
+	for (int player = 0; player < 2; ++player)
+	{
+		if (!remapCardVector(duel.mDecks[player].mCards, cardMap, deckCards[player]) ||
+			!remapCardVector(duel.mHands[player].mCards, cardMap, handCards[player]) ||
+			!remapCardVector(duel.mManazones[player].mCards, cardMap, manaCards[player]) ||
+			!remapCardVector(duel.mGraveyards[player].mCards, cardMap, graveyardCards[player]) ||
+			!remapCardVector(duel.mShields[player].mCards, cardMap, shieldCards[player]) ||
+			!remapCardVector(duel.mBattlezones[player].mCards, cardMap, battleCards[player]))
+			return false;
+	}
+
+	clearCards();
+	if (mChoice != NULL)
+	{
+		delete mChoice;
+		mChoice = NULL;
+	}
+	for (std::vector<std::unique_ptr<Card> >::iterator card = ownedCards.begin();
+		card != ownedCards.end(); ++card)
+		mCardList.push_back(card->release());
+
+	mDeckNames[0] = duel.mDeckNames[0];
+	mDeckNames[1] = duel.mDeckNames[1];
+	// Execution mode belongs to the destination context, not to the game position.
+	// In particular, restoring a live root must not turn a simulation duel live.
+	mLuaCallbackSuspended.store(false);
+	mMessageHistory = duel.mMessageHistory;
+	mMoveHistory = duel.mMoveHistory;
+	mMovePlayers = duel.mMovePlayers;
+	mCurrentMoveCount = duel.mCurrentMoveCount;
+	mRandomGen = duel.mRandomGen;
+
+	mAttacker = duel.mAttacker;
+	mDefender = duel.mDefender;
+	mDefenderType = duel.mDefenderType;
+	mBreakCount = duel.mBreakCount;
+	mShieldTargets = duel.mShieldTargets;
+	mShieldBreakersThisTurn[0] = duel.mShieldBreakersThisTurn[0];
+	mShieldBreakersThisTurn[1] = duel.mShieldBreakersThisTurn[1];
+	mCardsDrawnThisTurn[0] = duel.mCardsDrawnThisTurn[0];
+	mCardsDrawnThisTurn[1] = duel.mCardsDrawnThisTurn[1];
+	mLuaRuleState = duel.mLuaRuleState;
+	mAttackphase = duel.mAttackphase;
+
+	mCastingCard = duel.mCastingCard;
+	mCastingCivilizations = duel.mCastingCivilizations;
+	mCastingCost = duel.mCastingCost;
+	mCastingEvobait = duel.mCastingEvobait;
+	mCastingEvobait2 = duel.mCastingEvobait2;
+	mCastingManaCards = duel.mCastingManaCards;
+
+	mChoiceCard = duel.mChoiceCard;
+	mChoicePlayer = duel.mChoicePlayer;
+	mIsChoiceActive = false;
+	mChoiceValidCards.clear();
+	mZeroPowerCheckPending = false;
+	mRaceQueryDepth = 0;
+	mWinner = duel.mWinner;
+	mNextUniqueId = duel.mNextUniqueId;
+	mMsgMngr = duel.mMsgMngr;
+	mCurrentMessage = duel.mCurrentMessage;
+	mTurn = duel.mTurn;
+	mTurnPhase = duel.mTurnPhase;
+	mManaUsed = duel.mManaUsed;
+	mPlayerType[0] = duel.mPlayerType[0];
+	mPlayerType[1] = duel.mPlayerType[1];
+
+	for (int player = 0; player < 2; ++player)
+	{
+		mDecks[player].mOwner = duel.mDecks[player].mOwner;
+		mDecks[player].mRandomGen = &mRandomGen;
+		mDecks[player].mCards = deckCards[player];
+		mHands[player].mOwner = duel.mHands[player].mOwner;
+		mHands[player].mMyPlayer = duel.mHands[player].mMyPlayer;
+		mHands[player].mCards = handCards[player];
+		mManazones[player].mOwner = duel.mManazones[player].mOwner;
+		mManazones[player].mCards = manaCards[player];
+		mGraveyards[player].mOwner = duel.mGraveyards[player].mOwner;
+		mGraveyards[player].mCards = graveyardCards[player];
+		mShields[player].mOwner = duel.mShields[player].mOwner;
+		mShields[player].mSlotsUsed = duel.mShields[player].mSlotsUsed;
+		mShields[player].mCards = shieldCards[player];
+		mBattlezones[player].mOwner = duel.mBattlezones[player].mOwner;
+		mBattlezones[player].mCards = battleCards[player];
+	}
+	return true;
 }
 
 int Duel::handleMessage(Message& msg)
@@ -510,6 +615,13 @@ int Duel::handleMessage(Message& msg)
 		int uid = msg.getInt("card");
 		int ref = msg.getInt("funcref");
 		Modifier* modifier = new Modifier(ref);
+		const std::string statePrefix = "state.";
+		for (std::map<std::string, std::string>::const_iterator value = msg.map.begin();
+			value != msg.map.end(); ++value)
+		{
+			if (value->first.compare(0, statePrefix.size(), statePrefix) == 0)
+				modifier->setLuaRuleState(value->first.substr(statePrefix.size()), std::atoi(value->second.c_str()));
+		}
 		mCardList.at(uid)->mModifiers.push_back(modifier);
 	}
 	else if (msg.getType() == "modifierdestroy")
@@ -2202,6 +2314,7 @@ void Duel::startDuel()
 	mTurn = (int)mRandomGen.Random(2);
 	mTurnPhase = TURN_PHASE_MANA;
 	mManaUsed = 0;
+	mLuaRuleState.clear();
 	mShieldBreakersThisTurn[0].clear();
 	mShieldBreakersThisTurn[1].clear();
 	mCardsDrawnThisTurn[0] = 0;
@@ -2278,14 +2391,41 @@ void Duel::clearCards()
 
 		mShields[i].mSlotsUsed = 0;
 	}
+	for (std::vector<Card*>::iterator card = mCardList.begin(); card != mCardList.end(); ++card)
+		delete *card;
 	mCardList.clear();
 	mNextUniqueId = 0;
 	mTurnPhase = TURN_PHASE_MANA;
 	mManaUsed = 0;
 	mShieldBreakersThisTurn[0].clear();
 	mShieldBreakersThisTurn[1].clear();
+	mLuaRuleState.clear();
 	mZeroPowerCheckPending = false;
 	mRaceQueryDepth = 0;
+}
+
+int Duel::getLuaRuleState(const std::string& name, int index, int fallback) const
+{
+	std::unordered_map<std::string, std::unordered_map<int, int> >::const_iterator state = mLuaRuleState.find(name);
+	if (state == mLuaRuleState.end())
+		return fallback;
+	std::unordered_map<int, int>::const_iterator value = state->second.find(index);
+	return value == state->second.end() ? fallback : value->second;
+}
+
+void Duel::setLuaRuleState(const std::string& name, int index, int value)
+{
+	mLuaRuleState[name][index] = value;
+}
+
+void Duel::clearLuaRuleState(const std::string& name, int index)
+{
+	std::unordered_map<std::string, std::unordered_map<int, int> >::iterator state = mLuaRuleState.find(name);
+	if (state == mLuaRuleState.end())
+		return;
+	state->second.erase(index);
+	if (state->second.empty())
+		mLuaRuleState.erase(state);
 }
 
 void Duel::rebuildShieldBreakersThisTurn()

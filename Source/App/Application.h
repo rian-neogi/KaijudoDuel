@@ -173,6 +173,7 @@ private:
 	void handleSettingsEvent(const SDL_Event& event);
 	void renderSettings();
 	bool exerciseMenuScreensSmoke();
+	bool exerciseDuelCloneSmoke();
 	bool exerciseBundledDecksSmoke();
 	bool exerciseOverworldMovementSmoke();
 	bool exerciseStorySmoke();

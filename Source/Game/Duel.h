@@ -5,6 +5,7 @@
 #include <fstream>
 #include <atomic>
 #include <mutex>
+#include <unordered_map>
 #include <unordered_set>
 
 enum AttackPhase { PHASE_NONE, PHASE_BLOCK, PHASE_TARGET, PHASE_TRIGGER };
@@ -50,6 +51,7 @@ public:
 	std::vector<int> mShieldTargets;
 	std::unordered_set<int> mShieldBreakersThisTurn[2];
 	int mCardsDrawnThisTurn[2];
+	std::unordered_map<std::string, std::unordered_map<int, int> > mLuaRuleState;
 	int mAttackphase;
 
 	int mCastingCard;
@@ -83,7 +85,11 @@ public:
 	Duel();
 	~Duel();
 
-	void copyFrom(Duel* duel);
+	Duel(const Duel&) = delete;
+	Duel& operator=(const Duel&) = delete;
+
+	bool isCloneable() const;
+	bool copyFrom(const Duel& duel);
 
 	bool setDecks(const std::string& p1, const std::string& p2);
 	bool loadDeck(const std::string& path, int player);
@@ -121,6 +127,9 @@ public:
 	void rebuildShieldBreakersThisTurn();
 	void scheduleZeroPowerCheck();
 	void probeBattleZonePower();
+	int getLuaRuleState(const std::string& name, int index, int fallback) const;
+	void setLuaRuleState(const std::string& name, int index, int value);
+	void clearLuaRuleState(const std::string& name, int index);
 
 	void setMyPlayer(int p);
 

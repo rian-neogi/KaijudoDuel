@@ -135,6 +135,9 @@ Card::Card(int uid, int cid, int owner) : mUniqueId(uid), mCardId(cid), mOwner(o
 
 Card::~Card()
 {
+	for (std::vector<Modifier*>::iterator modifier = mModifiers.begin();
+		modifier != mModifiers.end(); ++modifier)
+		delete *modifier;
 }
 
 //void Card::render(int myPlayer)
@@ -147,11 +150,34 @@ Card::~Card()
 //	mModel.update(deltaTime);
 //}
 
-void Card::copyFrom(Card* c)
+void Card::copyStateFrom(const Card& card)
 {
-	mUniqueId = c->mUniqueId;
-	mCardId = c->mCardId;
-
+	if (this == &card)
+		return;
+	for (std::vector<Modifier*>::iterator modifier = mModifiers.begin();
+		modifier != mModifiers.end(); ++modifier)
+		delete *modifier;
+	mUniqueId = card.mUniqueId;
+	mCardId = card.mCardId;
+	mName = card.mName;
+	mRace = card.mRace;
+	mCivilization = card.mCivilization;
+	mCivilizations = card.mCivilizations;
+	mType = card.mType;
+	mManaCost = card.mManaCost;
+	mPower = card.mPower;
+	mBreaker = card.mBreaker;
+	mOwner = card.mOwner;
+	mZone = card.mZone;
+	mIsBlocker = card.mIsBlocker;
+	mIsShieldTrigger = card.mIsShieldTrigger;
+	mIsTapped = card.mIsTapped;
+	mIsFlipped = card.mIsFlipped;
+	mSummoningSickness = card.mSummoningSickness;
+	mIsVisible[0] = card.mIsVisible[0];
+	mIsVisible[1] = card.mIsVisible[1];
+	mModifiers.clear();
+	mEvoStack.clear();
 }
 
 //void Card::handleEvent(const SDL_Event& e)
@@ -532,4 +558,5 @@ bool initCards()
 void cleanupCards()
 {
 	lua_close(LuaCards);
+	LuaCards = NULL;
 }

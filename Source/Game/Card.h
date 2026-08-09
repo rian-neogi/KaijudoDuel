@@ -43,7 +43,10 @@ public:
 	Card(int uid, int cid, int owner);
 	~Card();
 
-	void copyFrom(Card* c);
+	Card(const Card&) = delete;
+	Card& operator=(const Card&) = delete;
+
+	void copyStateFrom(const Card& card);
 
 	//void render(int myPlayer);
 	//void update(int deltaTime);

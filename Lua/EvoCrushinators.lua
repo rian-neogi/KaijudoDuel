@@ -613,7 +613,7 @@ Cards["Fonch, the Oracle"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-        summon = function(id)
+        local summon = function(id)
             local ch = createChoice("Choose an opponent's creature",1,id,getCardOwner(id),Checks.UntappedInOppBattle)
             if(ch>=0) then
                 tapCard(ch)
@@ -639,7 +639,7 @@ Cards["Fortress Shell"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-        summon = function(id)
+        local summon = function(id)
             local ch = createChoice("Choose a card in your opponent's mana zone",0,id,getCardOwner(id),Checks.InOppMana)
             if(ch>=0) then
                 destroyMana(ch)

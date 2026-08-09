@@ -15,8 +15,6 @@ local onUnblockedPlayerAttack = function(id,func)
 	end
 end
 
-local stormBlockedThisTurn = {}
-
 local topFourToHandAndBottom = function(id)
 	local owner = getCardOwner(id)
 	local size = getZoneSize(owner,ZONE_DECK)
@@ -1183,12 +1181,13 @@ Cards["Storm Wrangler, the Furious"] = {
 			end
 		end
 		Abils.onAttack(id,attack)
+		local blocksThisTurn = getDuelStateInt("storm_wrangler.blocks_this_turn",id,0)
 		if(getMessageType()=="mod creaturebattle" and getMessageInt("blocked")==1 and getMessageInt("attacker")==id) then
-			stormBlockedThisTurn[id] = (stormBlockedThisTurn[id] or 0)+1
-		elseif(getMessageType()=="get creaturepower" and getMessageInt("creature")==id and stormBlockedThisTurn[id]~=nil) then
-			setMessageInt("power",getMessageInt("power")+3000*stormBlockedThisTurn[id])
+			setDuelStateInt("storm_wrangler.blocks_this_turn",id,blocksThisTurn+1)
+		elseif(getMessageType()=="get creaturepower" and getMessageInt("creature")==id and blocksThisTurn>0) then
+			setMessageInt("power",getMessageInt("power")+3000*blocksThisTurn)
 		elseif(getMessageType()=="pre endturn") then
-			stormBlockedThisTurn[id] = nil
+			clearDuelState("storm_wrangler.blocks_this_turn",id)
 		end
 	end
 }

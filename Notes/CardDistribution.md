@@ -25,7 +25,7 @@ Explosive Fighter Ucarn
 Fatal Attacker Horvath
 Cavalry General Curatops
 Burning Power
-Tornado Flame
+Chaos Strike
 Rumble Gate
 
 Act III Bonus:
@@ -33,7 +33,7 @@ Pyrofighter Magnus
 Rikabu, the Dismantler
 Bombat, General of Speed
 Rikabu's Screwdriver
-Baby Zoppe
+Picora's Wrench
 Kamikaze, Chainsaw Warrior
 Missile Boy
 Chaotic Skyterror

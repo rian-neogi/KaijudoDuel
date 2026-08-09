@@ -67,22 +67,109 @@ Each shard gives 10 extra cards in his stock. Lets have 20 shards in Act I-II an
 
 Furnace Shard:
 Armored Cannon, Balbaro
+Rothus, the Traveler
+Explosive Dude Joe
+Muramasa, Duke of Blades
+Snip Striker Bullraizer
+Blasto, Explosive Soldier
+Wild Racer Chief Garan
+Spastic Missile
 Phantom Dragon's Flame
+Magma Gazer
 
-Searing Shard:
+Blazing Shard:
+Gatling Skyterror
+Scarlet Skyterror
+Boltail Dragon
+Stonesaur
+Dogarn, the Marauder
+Armored Warrior Quelos
+Flametropus
+Burst Shot
+Crisis Boulder
+Energy Charger
 
+
+Cataclysm Shard: (Act III)
+Cyclone Panic
+Cataclysmic Eruption
+Legionnaire Lizard
+Torchclencher
+Valiant Warrior Exorious
+Baby Zoppe
+Kip Chipotto
+Kipo's Contraption
+Energy Charger
+Otherworldly Warrior Naglu
 
 Nightmare Shard:
+Horrid Worm
+Chaos Worm
+Amber Piercer
+General Dark Fiend
+Scratchclaw
+Gigakail
+Skullcutter, Swarm Leader
+Lone Tear, Shadow of Solitude
+Grim Soul, Shadow of Reversal
+Critical Blade
 
 
 Spectral Shard:
+Shadow Moon, Cursed Shade
+Skeleton Thief, the Revealer
+Mongrel Man
+Giriel, Ghastly Warrior
+Vile Mulder, Wing of the Void
+Scalpel Spider
+Three-Faced Ashura Fang
+Sinister General Damudo
+Zorvaz, the Bonecrusher
+Tank Mutant
+
+Grave Shard: (Act III)
+Battleship Mutant
+Crath Lade, Merciless King
+Gezary, Undercover Doll
+Slash Charger
+Grinning Hunger
+Gabzagul, Warlord of Pain
+Acid Reflux, the Fleshboiler
+Gigamente
+Gigandura
+Spinal Parasite
 
 
 Growth Shard:
 Barkwhip, the Smasher
+Charmilia, the Enticer
+Slumber Shell
+Brood Shell
+Launch Locust
+Carbonite Scarab
+Coliseum Shell
+Solid Horn
+Mystic Inscription
+Muscle Charger
+
 
 Mountain Shard: (Giants)
 Bloodwing Mantis
+Dawn Giant
+Avalanche Giant
+Mighty Bandit, Ace of Thieves
+Silvermoon Trailblazer
+Xeno Mantis
+Fortress Shell
+Sword Butterfly
+Aurora of Reversal
+Cannon Shell
+
+Earthquake Shard: (Act III)
+Spinning Totem
+Whispering Totem
+Whip Scorpion
+
 
 
 Protector Shard:
