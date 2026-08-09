@@ -22,9 +22,11 @@ Tier 5: 25000 gold
 
 ### Initial Stock
 
+Initially Mercer has 6 basic cards from each civilization. Total: 30 cards.
+
 Artisan Picora
 Brawler Zyler
-Super Explosive Volcanodon
+Galsaur
 Armored Walker Urherion
 Draglide
 Tornado Flame
@@ -56,6 +58,46 @@ Forest Hornet
 Storm Shell
 Stampeding Longhorn
 Aura Blast
+
+### Shards
+
+Each shard gives 10 extra cards in his stock. Lets have 20 shards in Act I-II and 10 more shards in Act III. Total: 300 cards.
+
+#### Act I/II Shards
+
+Furnace Shard:
+Armored Cannon, Balbaro
+Phantom Dragon's Flame
+
+Searing Shard:
+
+
+Nightmare Shard:
+
+
+Spectral Shard:
+
+
+Growth Shard:
+Barkwhip, the Smasher
+
+Mountain Shard: (Giants)
+Bloodwing Mantis
+
+
+Protector Shard:
+
+Solar Shard:
+
+Deep Shard: (Leviathans)
+King Benthos
+King Depthcon
+
+Knowledge Shard:
+
+
+#### Act III Shards
+
 
 ### Living Dead Shard
 

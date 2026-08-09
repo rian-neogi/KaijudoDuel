@@ -61,6 +61,7 @@ Cards["Armored Groblav"] = {
         Abils.Evolution(id,"Human")
 	    if(getMessageType()=="get creaturepower") then
 		    if(getMessageInt("creature")==id and getAttacker()==id) then
+				local player = getCardOwner(id)
                 local size = getZoneSize(player,ZONE_BATTLE)
                 local count = 0
                 for i=0,(size-1) do

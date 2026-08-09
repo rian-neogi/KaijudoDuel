@@ -337,7 +337,7 @@ Cards["Cannoneer Bargon"] = {
 
 Cards["Cataclysmic Eruption"] = {
 	price_tier = 3,
-	name = "Dew Mushroom",
+	name = "Cataclysmic Eruption",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_SPELL,
 	civilization = CIV_FIRE,
@@ -354,11 +354,11 @@ Cards["Cataclysmic Eruption"] = {
             if(getCardType(cid)==TYPE_CREATURE) then
                 local civ = getCardCiv(cid)
                 if(civ==CIV_NATURE) then
-                    cwn= cn+1
+					cwn= cwn+1
                 end
             end
         end
-        for i=1,cn do
+		for i=1,cwn do
             local ch = createChoice("Choose a card in your opponent's mana zone",1,id,getCardOwner(id),Checks.InOppMana)
             if(ch>=0) then
                 destroyMana(ch)
