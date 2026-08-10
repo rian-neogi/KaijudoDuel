@@ -2,7 +2,7 @@ package.path = package.path .. ';./?.lua;'
 require("Lua/Invincible Charge")
 
 Cards["Nastasha, Channeler of Suns"] = {
-	price_tier = 5,
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -19,7 +19,7 @@ Cards["Nastasha, Channeler of Suns"] = {
 }
 
 Cards["Emperor Quazla"] = {
-	price_tier = 5,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 1,
 	breaker = 1,
@@ -73,7 +73,7 @@ Cards["Uberdragon Bajula"] = {
 }
 
 Cards["Super Terradragon Bailas Gale"] = {
-	price_tier = 5,
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -95,7 +95,7 @@ Cards["Super Terradragon Bailas Gale"] = {
 }
 
 Cards["Kuukai, Finder of Karma"] = {
-	price_tier = 4,
+	price_tier = 5,
 	shieldtrigger = 0,
 	blocker = 1,
 	breaker = 1,
@@ -108,7 +108,7 @@ Cards["Kuukai, Finder of Karma"] = {
 }
 
 Cards["Aqua Ranger"] = {
-	price_tier = 4,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -120,7 +120,7 @@ Cards["Aqua Ranger"] = {
 }
 
 Cards["Megaria, Empress of Dread"] = {
-	price_tier = 4,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -314,7 +314,7 @@ Cards["Migalo, Vizier of Spycraft"] = {
 }
 
 Cards["Misha, Channeler of Suns"] = {
-	price_tier = 1,
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -343,7 +343,7 @@ Cards["Nariel, the Oracle"] = {
 }
 
 Cards["Sasha, Channeler of Suns"] = {
-	price_tier = 3,
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 1,
 	breaker = 2,
@@ -402,7 +402,7 @@ Cards["Solar Grass"] = {
 }
 
 Cards["Thrumiss, Zephyr Guardian"] = {
-	price_tier = 3,
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -418,7 +418,7 @@ Cards["Thrumiss, Zephyr Guardian"] = {
 }
 
 Cards["Aqua Grappler"] = {
-	price_tier = 3,
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -562,7 +562,7 @@ Cards["Prowling Elephish"] = {
 }
 
 Cards["Vikorakys"] = {
-	price_tier = 3,
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -586,7 +586,7 @@ Cards["Vikorakys"] = {
 }
 
 Cards["Wave Lance"] = {
-	price_tier = 2,
+	price_tier = 1,
 	shieldtrigger = 0,
 
 	OnCast = function(id)
@@ -741,7 +741,7 @@ Cards["Necrodragon Galbazeek"] = {
 }
 
 Cards["Necrodragon Giland"] = {
-	price_tier = 1,
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -802,7 +802,7 @@ Cards["Tyrant Worm"] = {
 }
 
 Cards["Bruiser Dragon"] = {
-	price_tier = 2,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -845,7 +845,7 @@ Cards["Furious Onslaught"] = {
 }
 
 Cards["Kyrstron, Lair Delver"] = {
-	price_tier = 3,
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -1004,7 +1004,7 @@ Cards["Bakkra Horn, the Silent"] = {
 }
 
 Cards["Carbonite Scarab"] = {
-	price_tier = 3,
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -1103,7 +1103,7 @@ Cards["Quixotic Hero Swine Snout"] = {
 }
 
 Cards["Root Charger"] = {
-	price_tier = 3,
+	price_tier = 2,
 	shieldtrigger = 0,
 
 	OnCast = function(id)
@@ -1126,7 +1126,7 @@ Cards["Root Charger"] = {
 }
 
 Cards["Senia, Orchard Avenger"] = {
-	price_tier = 1,
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -1167,7 +1167,7 @@ Cards["Terradragon Gamiratar"] = {
 }
 
 Cards["Terradragon Regarion"] = {
-	price_tier = 1,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,

@@ -60,7 +60,7 @@ local cantBeBlockedWhileAttackingCreature = function(id)
 end
 
 Cards["Petrova, Channeler of Suns"] = {
-	price_tier = 5,
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -92,7 +92,7 @@ Cards["Petrova, Channeler of Suns"] = {
 }
 
 Cards["Aqua Master"] = {
-	price_tier = 5,
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -111,7 +111,7 @@ Cards["Aqua Master"] = {
 }
 
 Cards["Stallob, the Lifequasher"] = {
-	price_tier = 5,
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -129,7 +129,7 @@ Cards["Stallob, the Lifequasher"] = {
 }
 
 Cards["Magmadragon Ogrist Vhal"] = {
-	price_tier = 5,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -149,7 +149,7 @@ Cards["Magmadragon Ogrist Vhal"] = {
 }
 
 Cards["Stratosphere Giant"] = {
-	price_tier = 5,
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 3,
@@ -199,7 +199,7 @@ Cards["Glena Vuele, the Hypnotic"] = {
 }
 
 Cards["Marching Motherboard"] = {
-	price_tier = 4,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -217,7 +217,7 @@ Cards["Marching Motherboard"] = {
 }
 
 Cards["Azaghast, Tyrant of Shadows"] = {
-	price_tier = 4,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -237,7 +237,7 @@ Cards["Azaghast, Tyrant of Shadows"] = {
 }
 
 Cards["Balesk Baj, the Timeburner"] = {
-	price_tier = 4,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -260,7 +260,7 @@ Cards["Balesk Baj, the Timeburner"] = {
 }
 
 Cards["Vreemah, Freaky Mojo Totem"] = {
-	price_tier = 4,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -381,7 +381,7 @@ Cards["Kalute, Vizier of Eternity"] = {
 }
 
 Cards["Micute, the Oracle"] = {
-	price_tier = 3,
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -648,7 +648,7 @@ Cards["Tentacle Cluster"] = {
 }
 
 Cards["Zeppelin Crawler"] = {
-	price_tier = 3,
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 1,
 	breaker = 1,
@@ -662,7 +662,7 @@ Cards["Zeppelin Crawler"] = {
 }
 
 Cards["Acid Reflux, the Fleshboiler"] = {
-	price_tier = 1,
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 1,
 	breaker = 1,
@@ -752,7 +752,7 @@ Cards["Ice Vapor, Shadow of Anguish"] = {
 }
 
 Cards["Necrodragon Izorist Vhal"] = {
-	price_tier = 2,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,

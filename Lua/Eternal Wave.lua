@@ -90,7 +90,7 @@ local setHandVisibility = function(player,viewer,visible)
 end
 
 Cards["Warlord Ailzonius"] = {
-	price_tier = 5,
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -104,7 +104,7 @@ Cards["Warlord Ailzonius"] = {
 }
 
 Cards["Klujadras"] = {
-	price_tier = 5,
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -274,7 +274,7 @@ Cards["Diamondia, the Blizzard Rider"] = {
 }
 
 Cards["Miraculous Snare"] = {
-	price_tier = 4,
+	price_tier = 5,
 	shieldtrigger = 0,
 
 	OnCast = function(id)
@@ -287,7 +287,7 @@ Cards["Miraculous Snare"] = {
 }
 
 Cards["Miraculous Truce"] = {
-	price_tier = 4,
+	price_tier = 5,
 	shieldtrigger = 1,
 
 	OnCast = function(id) --test
@@ -422,7 +422,7 @@ Cards["Solar Trap"] = {
 }
 
 Cards["Yuliana, Channeler of Suns"] = {
-	price_tier = 3,
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 1,
 	breaker = 1,
@@ -825,7 +825,7 @@ Cards["Lockdown Lizard"] = {
 }
 
 Cards["Sapian Tark, Flame Dervish"] = {
-	price_tier = 1,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -987,7 +987,7 @@ Cards["Skyscraper Shell"] = {
 }
 
 Cards["Rise and Shine"] = {
-	price_tier = 2,
+	price_tier = 3,
 	shieldtrigger = 1,
 
 	OnCast = function(id) --test
@@ -1015,7 +1015,7 @@ Cards["Rise and Shine"] = {
 }
 
 Cards["Live and Breathe"] = {
-	price_tier = 2,
+	price_tier = 3,
 	shieldtrigger = 0,
 
 	OnCast = function(id) --test
@@ -1041,7 +1041,7 @@ Cards["Live and Breathe"] = {
 }
 
 Cards["Hide and Seek"] = {
-	price_tier = 2,
+	price_tier = 3,
 	shieldtrigger = 0,
 
 	OnCast = function(id)
@@ -1055,7 +1055,7 @@ Cards["Hide and Seek"] = {
 }
 
 Cards["Slash and Burn"] = {
-	price_tier = 2,
+	price_tier = 3,
 	shieldtrigger = 0,
 
 	OnCast = function(id) --test
@@ -1085,7 +1085,7 @@ Cards["Slash and Burn"] = {
 }
 
 Cards["Reap and Sow"] = {
-	price_tier = 2,
+	price_tier = 3,
 	shieldtrigger = 0,
 
 	OnCast = function(id)

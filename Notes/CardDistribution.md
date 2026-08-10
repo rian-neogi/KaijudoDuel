@@ -334,7 +334,7 @@ Q-tronix Hypermind/Gargantua/Omnistrain: Two duelists in Cinderrail and adjacent
 
 Sword of Malevolent Death/Benevolent Life: An NPC gives you either one of the two, after a philosophical riddle
 
-Invincibles: Special choice
+Invincibles: Special cards, can be found in a chest after a particularly tough battle in each civilization's dungeon
 
 Uberdragon Bajula: Secret opponent in Dragon Keep after beating Kestrel
 
@@ -355,4 +355,8 @@ Multi-color spells are special opponents
 Cranium Clamp: You get only 1 copy in a special place in Act III
 
 Bombazar, Dragon of Destiny: Only 1 copy in a secret location after beating Caelum Rhos
+
+### Weaker card drops
+
+Necrodragon Jagraveen
 

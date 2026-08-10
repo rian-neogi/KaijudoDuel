@@ -55,6 +55,7 @@ public:
 	int mBreakCount;
 	std::vector<int> mShieldTargets;
 	std::unordered_set<int> mShieldBreakersThisTurn[2];
+	int mShieldsBrokenThisTurn[2];
 	int mCardsDrawnThisTurn[2];
 	std::unordered_map<std::string, std::unordered_map<int, int> > mLuaRuleState;
 	int mAttackphase;
@@ -203,6 +204,7 @@ public:
 	int getCreatureHasTapAbility(int uid);
 	bool hasCreatureBrokenShieldThisTurn(int uid) const;
 	bool hasOtherCreatureBrokenShieldThisTurn(int uid) const;
+	int getShieldsBrokenThisTurn(int player) const;
 	int getCardsDrawnThisTurn(int player) const;
 };
 

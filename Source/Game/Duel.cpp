@@ -56,6 +56,7 @@ Duel::Duel()
 		mHands[i].mOwner = i;
 		mManazones[i].mOwner = i;
 		mShields[i].mOwner = i;
+		mShieldsBrokenThisTurn[i] = 0;
 		mCardsDrawnThisTurn[i] = 0;
 
 	//	decks[i].x = ZONE2X;
@@ -252,6 +253,8 @@ bool Duel::copyFrom(const Duel& duel)
 	mShieldTargets = duel.mShieldTargets;
 	mShieldBreakersThisTurn[0] = duel.mShieldBreakersThisTurn[0];
 	mShieldBreakersThisTurn[1] = duel.mShieldBreakersThisTurn[1];
+	mShieldsBrokenThisTurn[0] = duel.mShieldsBrokenThisTurn[0];
+	mShieldsBrokenThisTurn[1] = duel.mShieldsBrokenThisTurn[1];
 	mCardsDrawnThisTurn[0] = duel.mCardsDrawnThisTurn[0];
 	mCardsDrawnThisTurn[1] = duel.mCardsDrawnThisTurn[1];
 	mLuaRuleState = duel.mLuaRuleState;
@@ -511,7 +514,11 @@ int Duel::handleMessage(Message& msg)
 	{
 		int creature = msg.getInt("creature");
 		if (creature >= 0 && creature < static_cast<int>(mCardList.size()))
-			mShieldBreakersThisTurn[mCardList.at(creature)->mOwner].insert(creature);
+		{
+			int owner = mCardList.at(creature)->mOwner;
+			mShieldBreakersThisTurn[owner].insert(creature);
+			mShieldsBrokenThisTurn[owner]++;
+		}
 
 		Message m("breakshield");
 		m.addValue("player", msg.getInt("defender"));
@@ -577,6 +584,8 @@ int Duel::handleMessage(Message& msg)
 	{
 		mShieldBreakersThisTurn[0].clear();
 		mShieldBreakersThisTurn[1].clear();
+		mShieldsBrokenThisTurn[0] = 0;
+		mShieldsBrokenThisTurn[1] = 0;
 		std::map<std::string, std::string>::const_iterator extra = msg.map.find("extraturn");
 		if (extra == msg.map.end() || std::atoi(extra->second.c_str()) != 1)
 			mTurn = (mTurn + 1) % 2;
@@ -2454,6 +2463,8 @@ void Duel::startDuel()
 	mLuaRuleState.clear();
 	mShieldBreakersThisTurn[0].clear();
 	mShieldBreakersThisTurn[1].clear();
+	mShieldsBrokenThisTurn[0] = 0;
+	mShieldsBrokenThisTurn[1] = 0;
 	mCardsDrawnThisTurn[0] = 0;
 	mCardsDrawnThisTurn[1] = 0;
 	for (int i = 0; i < 2; i++)
@@ -2536,6 +2547,8 @@ void Duel::clearCards()
 	mManaUsed = 0;
 	mShieldBreakersThisTurn[0].clear();
 	mShieldBreakersThisTurn[1].clear();
+	mShieldsBrokenThisTurn[0] = 0;
+	mShieldsBrokenThisTurn[1] = 0;
 	mLuaRuleState.clear();
 	mSimulationChoiceFailed = false;
 	mZeroPowerCheckPending = false;
@@ -2570,6 +2583,8 @@ void Duel::rebuildShieldBreakersThisTurn()
 {
 	mShieldBreakersThisTurn[0].clear();
 	mShieldBreakersThisTurn[1].clear();
+	mShieldsBrokenThisTurn[0] = 0;
+	mShieldsBrokenThisTurn[1] = 0;
 	for (std::vector<MsgHistoryItem>::reverse_iterator i = mMessageHistory.rbegin(); i != mMessageHistory.rend(); i++)
 	{
 		if (i->msg.getType() == "endturn")
@@ -2578,7 +2593,11 @@ void Duel::rebuildShieldBreakersThisTurn()
 		{
 			int creature = i->msg.getInt("creature");
 			if (creature >= 0 && creature < static_cast<int>(mCardList.size()))
-				mShieldBreakersThisTurn[mCardList.at(creature)->mOwner].insert(creature);
+			{
+				int owner = mCardList.at(creature)->mOwner;
+				mShieldBreakersThisTurn[owner].insert(creature);
+				mShieldsBrokenThisTurn[owner]++;
+			}
 		}
 	}
 }
@@ -2599,6 +2618,11 @@ bool Duel::hasCreatureBrokenShieldThisTurn(int uid) const
 
 	const std::unordered_set<int>& breakers = mShieldBreakersThisTurn[mCardList.at(uid)->mOwner];
 	return breakers.count(uid) != 0;
+}
+
+int Duel::getShieldsBrokenThisTurn(int player) const
+{
+	return player == 0 || player == 1 ? mShieldsBrokenThisTurn[player] : 0;
 }
 
 int Duel::getCardsDrawnThisTurn(int player) const

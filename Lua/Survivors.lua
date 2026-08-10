@@ -280,21 +280,15 @@ Cards["Brutal Charge"] = {
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_SPELL,
 	civilization = CIV_NATURE,
-	cost = 5,
+	cost = 2,
 
 	shieldtrigger = 0,
 
 	OnCast = function(id) --test
 		local owner = getCardOwner(id)
 		local mod = function(cid,mid)
-			if(getMessageType()=="post creaturebreakshield") then
-				local creature = getMessageInt("creature")
-				if(getCardOwner(creature)==owner) then
-					setModifierStateInt(cid,mid,"shields_broken",
-						getModifierStateInt(cid,mid,"shields_broken",0)+1)
-				end
-			elseif(getMessageType()=="pre endturn" and getMessageInt("player")==owner) then
-				local count = getModifierStateInt(cid,mid,"shields_broken",0)
+			if(getMessageType()=="pre endturn" and getMessageInt("player")==owner) then
+				local count = getShieldsBrokenThisTurn(owner)
 				if(count>0) then
 					openDeck(owner)
 					for i=1,count do
@@ -308,7 +302,7 @@ Cards["Brutal Charge"] = {
 				destroyModifier(cid,mid)
 			end
 		end
-		createModifier(id,mod,{shields_broken=0})
+		createModifier(id,mod)
 	end
 }
 
@@ -841,7 +835,7 @@ Cards["La Byle, Seeker of the Winds"] = {
 	cost = 7,
 
 	shieldtrigger = 0,
-	blocker = 0,
+	blocker = 1,
 
 	power = 5000,
 	breaker = 1,
@@ -1066,22 +1060,14 @@ Cards["Pokolul"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-		local messageType = getMessageType()
-		if(messageType=="post creaturebreakshield") then
-			if(getMessageInt("creature")==id and getCardZone(id)==ZONE_BATTLE) then
-				setDuelStateInt("pokolul.broken_shield",id,getMessageInt("shield"))
-			else
-				clearDuelState("pokolul.broken_shield",id)
-			end
-		elseif(messageType=="post shieldtriggerused" and getCardZone(id)==ZONE_BATTLE) then
+		if(getMessageType()=="post shieldtriggerused" and getCardZone(id)==ZONE_BATTLE and
+			getAttacker()==id) then
 			local trigger = getMessageInt("trigger")
-			if(getCardOwner(trigger)~=getCardOwner(id) and
-				getDuelStateInt("pokolul.broken_shield",id,-1)==trigger) then
+			if(getCardOwner(trigger)~=getCardOwner(id)) then
 				local untap = createChoiceNoCheck("Untap this creature?",2,id,getCardOwner(id),Checks.False)
 				if(untap==RETURN_BUTTON1) then
 					untapCard(id)
 				end
-				clearDuelState("pokolul.broken_shield",id)
 			end
 		end
 	end

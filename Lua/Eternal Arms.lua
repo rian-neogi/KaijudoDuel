@@ -120,7 +120,7 @@ local searchDeck = function(id,check,prompt)
 end
 
 Cards["Deklowaz, the Terminator"] = {
-	price_tier = 3,
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -171,7 +171,7 @@ Cards["Hawkeye Lunatron"] = {
 }
 
 Cards["Bodacious Giant"] = {
-	price_tier = 4,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -187,7 +187,7 @@ Cards["Bodacious Giant"] = {
 }
 
 Cards["Terradragon Dakma Balgarow"] = {
-	price_tier = 5,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -321,7 +321,7 @@ Cards["Necrodragon Bryzenaga"] = {
 }
 
 Cards["Balza, Seeker of Hyperpearls"] = {
-	price_tier = 4,
+	price_tier = 2,
 	shieldtrigger = 1,
 	blocker = 1,
 	breaker = 1,
@@ -352,7 +352,7 @@ Cards["Ryudmila, Channeler of Suns"] = {
 }
 
 Cards["King Oquanos"] = {
-	price_tier = 4,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -383,7 +383,7 @@ Cards["Gajirabute, Vile Centurion"] = {
 }
 
 Cards["Kejila, the Hidden Horror"] = {
-	price_tier = 4,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -402,7 +402,7 @@ Cards["Kejila, the Hidden Horror"] = {
 }
 
 Cards["Gaulezal Dragon"] = {
-	price_tier = 4,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -412,7 +412,7 @@ Cards["Gaulezal Dragon"] = {
 }
 
 Cards["Carnival Totem"] = {
-	price_tier = 4,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -455,7 +455,7 @@ Cards["Tanzanyte, the Awakener"] = {
 }
 
 Cards["Bombazar, Dragon of Destiny"] = {
-	price_tier = 4,
+	price_tier = 5,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -590,7 +590,7 @@ Cards["Flohdani, the Spydroid"] = {
 }
 
 Cards["Glais Mejicula, the Extreme"] = {
-	price_tier = 3,
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -999,7 +999,7 @@ Cards["Siren Concerto"] = {
 }
 
 Cards["Spiral Gate"] = {
-	price_tier = 1,
+	price_tier = 2,
 	shieldtrigger = 1,
 
 	OnCast = function(id)
@@ -1094,7 +1094,7 @@ Cards["Benzo, the Hidden Fury"] = {
 }
 
 Cards["Death Smoke"] = {
-	price_tier = 1,
+	price_tier = 2,
 	shieldtrigger = 0,
 
 	OnCast = function(id)
@@ -1687,7 +1687,7 @@ Cards["Earth Ripper, Talon of Rage"] = {
 }
 
 Cards["Faerie Life"] = {
-	price_tier = 1,
+	price_tier = 2,
 	shieldtrigger = 1,
 
 	OnCast = function(id)
@@ -1794,7 +1794,7 @@ Cards["Shaman Broccoli"] = {
 }
 
 Cards["Soulswap"] = {
-	price_tier = 3,
+	price_tier = 4,
 	shieldtrigger = 1,
 
 	OnCast = function(id) --test

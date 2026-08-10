@@ -527,6 +527,7 @@ bool Application::exerciseDuelCloneSmoke()
 		source.mBreakCount = 2;
 		source.mShieldTargets.push_back(3);
 		source.mShieldBreakersThisTurn[1].insert(1);
+		source.mShieldsBrokenThisTurn[1] = 3;
 		source.mCardsDrawnThisTurn[0] = 2;
 		source.mCardsDrawnThisTurn[1] = 1;
 		source.setLuaRuleState("clone-test", 1, 17);
@@ -599,6 +600,7 @@ bool Application::exerciseDuelCloneSmoke()
 				clone.mAttacker == 1 && clone.mDefender == 3 && clone.mDefenderType == DEFENDER_PLAYER &&
 				clone.mBreakCount == 2 && clone.mShieldTargets == source.mShieldTargets &&
 				clone.mShieldBreakersThisTurn[0].empty() && clone.mShieldBreakersThisTurn[1].count(1) == 1 &&
+				clone.mShieldsBrokenThisTurn[0] == 0 && clone.mShieldsBrokenThisTurn[1] == 3 &&
 				clone.mCardsDrawnThisTurn[0] == 2 && clone.mCardsDrawnThisTurn[1] == 1 &&
 				clone.getLuaRuleState("clone-test", 1, -1) == 17 && clone.mAttackphase == PHASE_TARGET &&
 				clone.mCastingCard == 2 && clone.mCastingCivilizations == 3 && clone.mCastingCost == 4 &&
@@ -615,11 +617,13 @@ bool Application::exerciseDuelCloneSmoke()
 			clone.mCardList[1]->mEvoStack.clear();
 			clone.mCardList[1]->mModifiers[0]->setLuaRuleState("counter", 99);
 			clone.mBattlezones[1].mCards.clear();
+			clone.mShieldsBrokenThisTurn[1] = 99;
 			clone.setLuaRuleState("clone-test", 1, 88);
 			valid = valid && source.mCardList[1]->mPower == 12345 &&
 				source.mCardList[1]->mEvoStack.size() == 1 &&
 				modifier->getLuaRuleState("counter", -1) == 9 &&
 				source.mBattlezones[1].mCards.size() == 1 &&
+				source.mShieldsBrokenThisTurn[1] == 3 &&
 				source.getLuaRuleState("clone-test", 1, -1) == 17;
 
 			Card* cloneFirstCard = clone.mCardList[0];
@@ -842,9 +846,13 @@ bool Application::exerciseDecisionPlanSmoke()
 	int natureCreatureId = getCardIdFromName("Bronze-Arm Tribe");
 	int slashChargerId = getCardIdFromName("Slash Charger");
 	int futureSlashId = getCardIdFromName("Future Slash");
+	int brutalChargeId = getCardIdFromName("Brutal Charge");
+	int pokolulId = getCardIdFromName("Pokolul");
+	int aquaSurferId = getCardIdFromName("Aqua Surfer");
 	int spasticMissileId = getCardIdFromName("Spastic Missile");
 	if (hammerId < 0 || lunarChargerId < 0 || fireCreatureId < 0 || natureCreatureId < 0 ||
-		slashChargerId < 0 || futureSlashId < 0 || spasticMissileId < 0)
+		slashChargerId < 0 || futureSlashId < 0 || brutalChargeId < 0 || pokolulId < 0 ||
+		aquaSurferId < 0 || spasticMissileId < 0)
 		return false;
 
 	bool valid = true;
@@ -1127,6 +1135,131 @@ bool Application::exerciseDecisionPlanSmoke()
 		int highestCost = addCard(natureCreatureId, 1, ZONE_DECK);
 		ActiveDuelGuard activeGuard(root);
 		valid = valid && root.getCardAiPreferredChoice(futureSlash) == highestCost;
+	}
+
+	{
+		Duel root;
+		root.mIsSimulation = true;
+		root.mInputLoopRunning = false;
+		root.mTurn = 0;
+		root.mTurnPhase = TURN_PHASE_MAIN;
+		auto addCard = [&root](int cardId, int owner, int zone) -> int
+		{
+			int uid = (int)root.mCardList.size();
+			Card* card = new Card(uid, cardId, owner);
+			root.mCardList.push_back(card);
+			root.getZone(owner, zone)->addCard(card);
+			card->mZone = zone;
+			root.mNextUniqueId = uid + 1;
+			return uid;
+		};
+
+		int attacker = addCard(fireCreatureId, 0, ZONE_BATTLE);
+		int brutalCharge = addCard(brutalChargeId, 0, ZONE_HAND);
+		int firstCreature = addCard(fireCreatureId, 0, ZONE_DECK);
+		int secondCreature = addCard(natureCreatureId, 0, ZONE_DECK);
+		int firstShield = addCard(fireCreatureId, 1, ZONE_SHIELD);
+		int secondShield = addCard(natureCreatureId, 1, ZONE_SHIELD);
+		std::vector<int> shields;
+		shields.push_back(firstShield);
+		shields.push_back(secondShield);
+		ActiveDuelGuard activeGuard(root);
+		for (std::vector<int>::const_iterator shield = shields.begin(); shield != shields.end(); ++shield)
+		{
+			Message broken("creaturebreakshield");
+			broken.addValue("creature", attacker);
+			broken.addValue("attacker", attacker);
+			broken.addValue("defender", 1);
+			broken.addValue("shield", *shield);
+			root.mMsgMngr.sendMessage(broken);
+			root.dispatchAllMessages();
+		}
+		bool countedBeforeCast = root.getShieldsBrokenThisTurn(0) == 2;
+
+		Message cast("cardmove");
+		cast.addValue("card", brutalCharge);
+		cast.addValue("from", ZONE_HAND);
+		cast.addValue("to", ZONE_BATTLE);
+		root.mMsgMngr.sendMessage(cast);
+		root.dispatchAllMessages();
+		bool modifierCreated = root.mCardList[brutalCharge]->mZone == ZONE_GRAVEYARD &&
+			root.mCardList[brutalCharge]->mModifiers.size() == 1;
+
+		std::vector<int> selectedCreatures;
+		root.setChoiceResolver(
+			[&](const Duel& position) -> int
+			{
+				if (position.mChoiceValidCards.empty()) return RETURN_QUIT;
+				selectedCreatures.push_back(position.mChoiceValidCards.front());
+				return position.mChoiceValidCards.front();
+			});
+		Message endTurn("endturn");
+		endTurn.addValue("player", 0);
+		root.mMsgMngr.sendMessage(endTurn);
+		root.dispatchAllMessages();
+		bool brutalChargeCase = countedBeforeCast && modifierCreated &&
+			selectedCreatures.size() == 2 &&
+			root.mCardList[firstCreature]->mZone == ZONE_HAND &&
+			root.mCardList[secondCreature]->mZone == ZONE_HAND &&
+			root.getShieldsBrokenThisTurn(0) == 0 &&
+			root.mCardList[brutalCharge]->mModifiers.empty();
+		if (!brutalChargeCase)
+		{
+			std::cerr << "Brutal Charge case: pre-cast-count=" << countedBeforeCast <<
+				", modifier=" << modifierCreated << ", choices=" << selectedCreatures.size() <<
+				", first-zone=" << root.mCardList[firstCreature]->mZone << ", second-zone=" <<
+				root.mCardList[secondCreature]->mZone << std::endl;
+		}
+		valid = valid && brutalChargeCase;
+	}
+
+	{
+		Duel root;
+		root.mIsSimulation = true;
+		root.mInputLoopRunning = false;
+		auto addCard = [&root](int cardId, int owner, int zone) -> int
+		{
+			int uid = (int)root.mCardList.size();
+			Card* card = new Card(uid, cardId, owner);
+			root.mCardList.push_back(card);
+			root.getZone(owner, zone)->addCard(card);
+			card->mZone = zone;
+			root.mNextUniqueId = uid + 1;
+			return uid;
+		};
+
+		int pokolul = addCard(pokolulId, 0, ZONE_BATTLE);
+		int otherAttacker = addCard(fireCreatureId, 0, ZONE_BATTLE);
+		int trigger = addCard(aquaSurferId, 1, ZONE_HAND);
+		root.mCardList[pokolul]->mIsTapped = true;
+		root.mAttacker = pokolul;
+		int choices = 0;
+		root.setChoiceResolver(
+			[&](const Duel& position) -> int
+			{
+				++choices;
+				return position.mChoice != NULL && position.mChoice->mButtonCount == 2 ?
+					RETURN_BUTTON1 : RETURN_QUIT;
+			});
+		ActiveDuelGuard activeGuard(root);
+		Message used("shieldtriggerused");
+		used.addValue("trigger", trigger);
+		root.mMsgMngr.sendMessage(used);
+		root.dispatchAllMessages();
+		bool currentAttackerUntapped = choices == 1 && !root.mCardList[pokolul]->mIsTapped;
+
+		root.mCardList[pokolul]->mIsTapped = true;
+		root.mAttacker = otherAttacker;
+		choices = 0;
+		root.mMsgMngr.sendMessage(used);
+		root.dispatchAllMessages();
+		bool otherAttackerIgnored = choices == 0 && root.mCardList[pokolul]->mIsTapped;
+		if (!currentAttackerUntapped || !otherAttackerIgnored)
+		{
+			std::cerr << "Pokolul case: current=" << currentAttackerUntapped <<
+				", other=" << otherAttackerIgnored << std::endl;
+		}
+		valid = valid && currentAttackerUntapped && otherAttackerIgnored;
 	}
 
 	{

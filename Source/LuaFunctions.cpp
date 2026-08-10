@@ -106,6 +106,13 @@ static int clearDuelState(lua_State* L)
 	return 0;
 }
 
+static int getShieldsBrokenThisTurn(lua_State* L)
+{
+	int player = static_cast<int>(lua_tointeger(L, 1));
+	lua_pushinteger(L, ActiveDuel == NULL ? 0 : ActiveDuel->getShieldsBrokenThisTurn(player));
+	return 1;
+}
+
 static int getModifierStateInt(lua_State* L)
 {
 	int fallback = lua_gettop(L) >= 4 ? static_cast<int>(lua_tointeger(L, 4)) : 0;
@@ -740,6 +747,7 @@ void registerLua(lua_State* L)
 	lua_register(L, "getDuelStateInt", getDuelStateInt);
 	lua_register(L, "setDuelStateInt", setDuelStateInt);
 	lua_register(L, "clearDuelState", clearDuelState);
+	lua_register(L, "getShieldsBrokenThisTurn", getShieldsBrokenThisTurn);
 
 	lua_register(L, "createChoice", createChoice);
 	lua_register(L, "createChoiceNoCheck", createChoiceNoCheck);

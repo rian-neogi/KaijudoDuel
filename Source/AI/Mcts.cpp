@@ -131,6 +131,7 @@ namespace
 				duel.mShieldBreakersThisTurn[player].end());
 			std::sort(breakers.begin(), breakers.end());
 			appendIntValues(key, breakers);
+			appendStateInt(key, duel.mShieldsBrokenThisTurn[player]);
 			appendStateInt(key, duel.mCardsDrawnThisTurn[player]);
 		}
 		std::vector<std::string> ruleNames;

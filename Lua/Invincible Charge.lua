@@ -2,7 +2,7 @@ package.path = package.path .. ';./?.lua;'
 require("Lua/Invincible Soul")
 
 Cards["Siri, Glory Elemental"] = {
-	price_tier = 5,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -32,7 +32,7 @@ Cards["Siri, Glory Elemental"] = {
 }
 
 Cards["Cosmic Nebula"] = {
-	price_tier = 5,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -52,7 +52,7 @@ Cards["Cosmic Nebula"] = {
 }
 
 Cards["Crath Lade, Merciless King"] = {
-	price_tier = 5,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -67,7 +67,7 @@ Cards["Crath Lade, Merciless King"] = {
 }
 
 Cards["Sky Crusher, the Agitator"] = {
-	price_tier = 5,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -89,7 +89,7 @@ Cards["Sky Crusher, the Agitator"] = {
 }
 
 Cards["Headlong Giant"] = {
-	price_tier = 5,
+	price_tier = 4,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 3,
@@ -149,7 +149,7 @@ Cards["Gandar, Seeker of Explosions"] = {
 }
 
 Cards["King Benthos"] = {
-	price_tier = 4,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -174,7 +174,7 @@ Cards["King Benthos"] = {
 }
 
 Cards["Battleship Mutant"] = {
-	price_tier = 4,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -201,7 +201,7 @@ Cards["Battleship Mutant"] = {
 }
 
 Cards["Armored Transport Galiacruse"] = {
-	price_tier = 4,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -226,7 +226,7 @@ Cards["Armored Transport Galiacruse"] = {
 }
 
 Cards["Spinning Totem"] = {
-	price_tier = 4,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -439,7 +439,7 @@ Cards["Aqua Agent"] = {
 }
 
 Cards["Aqua Fencer"] = {
-	price_tier = 3,
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -456,7 +456,7 @@ Cards["Aqua Fencer"] = {
 }
 
 Cards["Biancus"] = {
-	price_tier = 3,
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 1,
 	breaker = 1,
@@ -600,7 +600,7 @@ Cards["Titanium Cluster"] = {
 }
 
 Cards["Trenchdive Shark"] = {
-	price_tier = 3,
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -683,7 +683,7 @@ Cards["Gezary, Undercover Doll"] = {
 }
 
 Cards["Gigabuster"] = {
-	price_tier = 3,
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 1,
 	breaker = 1,
@@ -847,7 +847,7 @@ Cards["Apocalypse Vise"] = {
 }
 
 Cards["Astronaut Skyterror"] = {
-	price_tier = 1,
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -921,7 +921,7 @@ Cards["Energy Charger"] = {
 }
 
 Cards["Gazarias Dragon"] = {
-	price_tier = 1,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,

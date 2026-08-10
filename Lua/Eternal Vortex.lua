@@ -94,7 +94,7 @@ for _,name in ipairs({
 end
 
 Cards["Terradragon Arque Delacerna"] = {
-	price_tier = 5,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -195,7 +195,7 @@ Cards["Kilstine, Nebula Elemental"] = {
 }
 
 Cards["Extreme Crawler"] = {
-	price_tier = 4,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -210,7 +210,7 @@ Cards["Extreme Crawler"] = {
 }
 
 Cards["Necrodragon Jagraveen"] = {
-	price_tier = 4,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 1,
 	breaker = 2,
@@ -249,7 +249,7 @@ Cards["Punch Trooper Bronks"] = {
 }
 
 Cards["Soul Phoenix, Avatar of Unity"] = {
-	price_tier = 4,
+	price_tier = 5,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 3,
@@ -429,7 +429,7 @@ Cards["Pincer Scarab"] = {
 }
 
 Cards["Radioactive Horn, the Strange"] = {
-	price_tier = 2,
+	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 2,
@@ -439,7 +439,7 @@ Cards["Radioactive Horn, the Strange"] = {
 }
 
 Cards["Agira, the Warlord Crawler"] = {
-	price_tier = 3,
+	price_tier = 5,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -458,7 +458,7 @@ Cards["Agira, the Warlord Crawler"] = {
 }
 
 Cards["Hydrooze, the Mutant Emperor"] = {
-	price_tier = 3,
+	price_tier = 5,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -476,7 +476,7 @@ Cards["Hydrooze, the Mutant Emperor"] = {
 }
 
 Cards["Phantomach, the Gigatrooper"] = {
-	price_tier = 3,
+	price_tier = 5,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -495,7 +495,7 @@ Cards["Phantomach, the Gigatrooper"] = {
 }
 
 Cards["Nemonex, Bajula's Robomantis"] = {
-	price_tier = 3,
+	price_tier = 5,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -518,7 +518,7 @@ Cards["Nemonex, Bajula's Robomantis"] = {
 }
 
 Cards["Comet Eye, The Spectral Spud"] = {
-	price_tier = 3,
+	price_tier = 5,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
