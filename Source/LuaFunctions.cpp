@@ -144,16 +144,27 @@ static int createChoice(lua_State* L)
 	//lua_pushvalue(L, 6);
 	//int aref = luaL_ref(L, LUA_REGISTRYINDEX);
 	//cout << "ref: " << vref << " " << aref << endl;
-	int aiPreferredSelection = lua_gettop(L) >= 6 && lua_isnumber(L, 6) ?
+	bool hasExplicitAiPreference = lua_gettop(L) >= 6 && lua_isnumber(L, 6);
+	int aiPreferredSelection = hasExplicitAiPreference ?
 		static_cast<int>(lua_tointeger(L, 6)) : RETURN_NOTHING;
 	ActiveDuel->addChoice(lua_tostring(L, 1), lua_tointeger(L, 2), lua_tointeger(L, 3),
 		lua_tointeger(L, 4), vref, -1, aiPreferredSelection);
 	ActiveDuel->checkChoiceValid();
+	if (ActiveDuel->mIsChoiceActive && !hasExplicitAiPreference)
+	{
+		int preferred = ActiveDuel->getCardAiPreferredChoice(ActiveDuel->mChoiceCard);
+		bool legalButton = (preferred == RETURN_BUTTON1 && ActiveDuel->mChoice->mButtonCount >= 1) ||
+			(preferred == RETURN_BUTTON2 && ActiveDuel->mChoice->mButtonCount >= 2);
+		if (legalButton || (preferred >= 0 && ActiveDuel->choiceCanBeSelected(preferred)))
+			ActiveDuel->mChoice->mAiPreferredSelection = preferred;
+	}
 	
-	if (ActiveDuel->mIsChoiceActive)
-		lua_pushinteger(L, ActiveDuel->resolveChoice());
-	else
-		lua_pushinteger(L, RETURN_NOVALID);
+	int result = ActiveDuel->mIsChoiceActive ? ActiveDuel->resolveChoice() : RETURN_NOVALID;
+	// A live choice is completed by dispatching a choiceselect message while the
+	// Lua callback is suspended. Restore the callback's message before Lua
+	// resumes, just as we do after draining work above.
+	ActiveDuel->mCurrentMessage = outerMessage;
+	lua_pushinteger(L, result);
 	return 1;
 	//if (ActiveDuel->isChoiceActive) //if choice is still active
 	//{
@@ -197,10 +208,9 @@ static int createChoiceNoCheck(lua_State* L)
 	//}
 	//luaL_unref(L, LUA_REGISTRYINDEX, ref);
 	//return 1;
-	if (ActiveDuel->mIsChoiceActive)
-		lua_pushinteger(L, ActiveDuel->resolveChoice());
-	else
-		lua_pushinteger(L, RETURN_NOVALID);
+	int result = ActiveDuel->mIsChoiceActive ? ActiveDuel->resolveChoice() : RETURN_NOVALID;
+	ActiveDuel->mCurrentMessage = outerMessage;
+	lua_pushinteger(L, result);
 	return 1;
 	//return 0;
 }

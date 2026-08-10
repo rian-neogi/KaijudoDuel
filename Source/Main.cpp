@@ -14,12 +14,14 @@ namespace
 		std::cout
 			<< "Usage:\n"
 			<< "  " << executable << "\n"
-			<< "  " << executable << " [--lua-trace] --duel <player-deck> <ai-deck>\n"
+			<< "  " << executable << " [--lua-trace] [--full-visibility] --duel "
+				"<player-deck> <ai-deck>\n"
 			<< "  " << executable << " --world-builder\n"
 			<< "  " << executable << " [--lua-trace] --smoke-test\n"
 			<< "  " << executable << " --help\n\n"
 			<< "Decks are searched beneath Decks/ by default; quote paths containing spaces.\n"
 			<< "The player deck is listed first.\n"
+			<< "--full-visibility reveals both hands in direct-duel mode.\n"
 			<< "--lua-trace writes a rolling trace to Logs/lua-trace.log.\n";
 	}
 }
@@ -28,6 +30,7 @@ int main(int argc, char* argv[])
 {
 	bool smokeTest = false;
 	bool luaTrace = false;
+	bool fullVisibility = false;
 	bool worldBuilder = false;
 	std::string playerDeck;
 	std::string aiDeck;
@@ -35,6 +38,7 @@ int main(int argc, char* argv[])
 	for (int i = 1; i < argc; i++)
 	{
 		if (std::string(argv[i]) == "--lua-trace") luaTrace = true;
+		else if (std::string(argv[i]) == "--full-visibility") fullVisibility = true;
 		else arguments.push_back(argv[i]);
 	}
 	const char* traceEnvironment = std::getenv("KAIJUDO_LUA_TRACE");
@@ -63,6 +67,12 @@ int main(int argc, char* argv[])
 		printUsage(argv[0]);
 		return 2;
 	}
+	if (fullVisibility && (playerDeck.empty() || aiDeck.empty()))
+	{
+		std::cerr << "--full-visibility is available only with --duel.\n\n";
+		printUsage(argv[0]);
+		return 2;
+	}
 
 	if (!initCards())
 	{
@@ -73,7 +83,7 @@ int main(int argc, char* argv[])
 	int result = 0;
 	{
 		Application application(worldBuilder);
-		result = application.run(smokeTest, playerDeck, aiDeck, worldBuilder);
+		result = application.run(smokeTest, playerDeck, aiDeck, worldBuilder, fullVisibility);
 	}
 	cleanupCards();
 	return result;

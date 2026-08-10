@@ -37,6 +37,15 @@ struct MctsResult
 	bool timeBudgetExpired;
 	int turnHorizonCutoffs;
 	int forcedMovesApplied;
+	bool reusedTree;
+	int reusedRootVisits;
+	double cloneTimeMs;
+	double treeEnumerationTimeMs;
+	double rolloutEnumerationTimeMs;
+	double rolloutSelectionTimeMs;
+	double actionExecutionTimeMs;
+	double evaluationTimeMs;
+	double luaCallbackTimeMs;
 	double meanValue;
 	int selectedVisits;
 	double selectedMeanValue;
@@ -58,6 +67,9 @@ public:
 	// start() must serialize access to the source Duel. advance() may enter Lua,
 	// so its caller must own exclusive access to LuaCards and ActiveDuel.
 	bool start(Duel& root);
+	// Starts another bounded search from root. A matching explored descendant is
+	// detached and reused; otherwise the session safely begins with a fresh tree.
+	bool restart(Duel& root, const MctsConfig& config);
 	bool advance(int iterationBudget);
 	bool isStarted() const;
 	bool isComplete() const;

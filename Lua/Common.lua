@@ -162,6 +162,24 @@ Abils.Charger = function(id)
 	end
 end
 
+Abils.PreferHighestCostInOpponentDeck = function(id)
+	if(getMessageType()~="get cardaipreferredchoice" or getMessageInt("card")~=id) then
+		return
+	end
+	local opponent = getOpponent(getCardOwner(id))
+	local preferred = RETURN_NOTHING
+	local highestCost = -1
+	for i=0,(getZoneSize(opponent,ZONE_DECK)-1) do
+		local card = getCardAt(opponent,ZONE_DECK,i)
+		local cost = getCardCost(card)
+		if(cost>highestCost) then
+			highestCost = cost
+			preferred = card
+		end
+	end
+	setMessageInt("selection",preferred)
+end
+
 local tapAbilitiesLocked = function()
 	for player=0,1 do
 		for i=0,getZoneSize(player,ZONE_BATTLE)-1 do

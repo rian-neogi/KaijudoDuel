@@ -304,13 +304,15 @@ Bronze-Arm Tribe/Faerie Life: 4 early opponents
 
 Aqua Hulcus/Energy Stream: 4 early opponents
 
-Ghost Touch/Horrid Worm: 4 mid-tier opponents
+Ghost Touch/Horrid Worm/Terror Pit: 4 mid-tier opponents
 
 Spiral Gate/Aqua Surfer: Mid-tier opponents
 
 Diamond Cutter/Holy Awe: Mid-tier
 
 Bolshack Dragon/Metalwing Skyterror: Mid-tier opponents
+
+Locomotiver: High-tier
 
 Cocco Lupia/Totto Pipicchi: Various opponents in Dragon Keep
 
@@ -320,7 +322,7 @@ Future Slash/Apocalypse Vise/Lost Soul: special opp
 
 Magmadragon Jagalzor: Special opponents in Dragon Keep
 
-Trox, General of Destruction: Special opponents
+Trox, General of Destruction: Special opponents in Gloam quarry and Dragon Keep
 
 Balloom, Master of Death/Alcadeias, Lord of Spirits: Special opponents
 
@@ -331,6 +333,8 @@ Sirius, Firmament Elemental: Special opp
 Q-tronix Hypermind/Gargantua/Omnistrain: Two duelists in Cinderrail and adjacent areas give out these cards. Omnistrain is more of a secret card.
 
 Sword of Malevolent Death/Benevolent Life: An NPC gives you either one of the two, after a philosophical riddle
+
+Invincibles: Special choice
 
 Uberdragon Bajula: Secret opponent in Dragon Keep after beating Kestrel
 

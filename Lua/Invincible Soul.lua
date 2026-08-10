@@ -1090,6 +1090,10 @@ Cards["Future Slash"] = {
 		shuffleDeck(opponent)
 		closeDeck(opponent)
 		Functions.EndSpell(id)
+	end,
+
+	HandleMessage = function(id)
+		Abils.PreferHighestCostInOpponentDeck(id)
 	end
 }
 

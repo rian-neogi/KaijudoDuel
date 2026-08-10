@@ -50,7 +50,8 @@ Application::Application(bool worldBuilder)
 	  mWorldBuilderDragging(false), mWorldBuilderUndoPending(false),
 	  mWorldBuilderDirty(false), mWorldBuilderNoticeError(false),
 	  mWorldBuilderNoticeUntil(0),
-	  mDuel(NULL), mActiveNpc(-1), mDirectDuelMode(false), mSelectedCard(-1), mActionScroll(0),
+	  mDuel(NULL), mActiveNpc(-1), mDirectDuelMode(false),
+	  mDirectDuelFullVisibility(false), mSelectedCard(-1), mActionScroll(0),
 	  mOpenGraveyardPlayer(-1), mGraveyardOffset(0), mActionLogOpen(false), mActionLogScroll(0),
 	  mNextAiMove(0), mAiSearch(NULL), mAiSearchStartedAt(0), mDuelResult(-1),
 	  mDuelResultAt(0), mRewardCardId(-1),
@@ -190,7 +191,7 @@ void Application::shutdown()
 }
 
 int Application::run(bool smokeTest, const std::string& directPlayerDeck,
-	const std::string& directAiDeck, bool worldBuilder)
+	const std::string& directAiDeck, bool worldBuilder, bool fullVisibility)
 {
 	if (!initialize())
 		return 1;
@@ -200,6 +201,7 @@ int Application::run(bool smokeTest, const std::string& directPlayerDeck,
 		SDL_SetWindowTitle(mWindow, "Kaijudo Duel - World Builder");
 	}
 	mDirectDuelMode = !directPlayerDeck.empty() || !directAiDeck.empty();
+	mDirectDuelFullVisibility = mDirectDuelMode && fullVisibility;
 	if (mDirectDuelMode)
 	{
 		if (directPlayerDeck.empty() || directAiDeck.empty() ||

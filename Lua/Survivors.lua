@@ -52,7 +52,7 @@ Cards["Aqua Surfer"] = {
 
 	HandleMessage = function(id)
         local func = function(id)
-            local ch = createChoice("Select creature in battle zone",1,att,getCardOwner(id),Checks.InBattle)
+            local ch = createChoice("Select creature in battle zone",1,id,getCardOwner(id),Checks.InBattle)
             if(ch>=0) then
                 moveCard(ch,ZONE_HAND)
             end
@@ -62,7 +62,7 @@ Cards["Aqua Surfer"] = {
 }
 
 Cards["Avalanche Giant"] = {
-	price_tier = 5,
+	price_tier = 3,
 	name = "Avalanche Giant",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -140,7 +140,7 @@ Cards["Ballus, Dogfight Enforcer Q"] = {
 }
 
 Cards["Billion-Degree Dragon"] = {
-	price_tier = 5,
+	price_tier = 4,
 	name = "Billion-Degree Dragon",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -159,7 +159,7 @@ Cards["Billion-Degree Dragon"] = {
 }
 
 Cards["Bladerush Skyterror Q"] = {
-	price_tier = 4,
+	price_tier = 3,
 	name = "Bladerush Skyterror Q",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -235,7 +235,7 @@ Cards["Bloodwing Mantis"] = {
 }
 
 Cards["Bolgash Dragon"] = {
-	price_tier = 2,
+	price_tier = 4,
 	name = "Bolgash Dragon",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -255,7 +255,7 @@ Cards["Bolgash Dragon"] = {
 }
 
 Cards["Bombat, General of Speed"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Bombat, General of Speed",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -275,7 +275,7 @@ Cards["Bombat, General of Speed"] = {
 }
 
 Cards["Brutal Charge"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Brutal Charge",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_SPELL,
@@ -284,8 +284,31 @@ Cards["Brutal Charge"] = {
 
 	shieldtrigger = 0,
 
-	OnCast = function(id)
-        --todo
+	OnCast = function(id) --test
+		local owner = getCardOwner(id)
+		local mod = function(cid,mid)
+			if(getMessageType()=="post creaturebreakshield") then
+				local creature = getMessageInt("creature")
+				if(getCardOwner(creature)==owner) then
+					setModifierStateInt(cid,mid,"shields_broken",
+						getModifierStateInt(cid,mid,"shields_broken",0)+1)
+				end
+			elseif(getMessageType()=="pre endturn" and getMessageInt("player")==owner) then
+				local count = getModifierStateInt(cid,mid,"shields_broken",0)
+				if(count>0) then
+					openDeck(owner)
+					for i=1,count do
+						local creature = createChoice("Choose a creature in your deck",1,cid,owner,Checks.CreatureInYourDeck)
+						if(creature<0) then break end
+						moveCard(creature,ZONE_HAND)
+					end
+					closeDeck(owner)
+					shuffleDeck(owner)
+				end
+				destroyModifier(cid,mid)
+			end
+		end
+		createModifier(id,mod,{shields_broken=0})
 	end
 }
 
@@ -316,7 +339,7 @@ Cards["Calgo, Vizier of Rainclouds"] = {
 }
 
 Cards["Cannoneer Bargon"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Cannoneer Bargon",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -431,7 +454,7 @@ Cards["Cyclone Panic"] = {
 }
 
 Cards["Death Cruzer, the Annihilator"] = {
-	price_tier = 5,
+	price_tier = 4,
 	name = "Death Cruzer, the Annihilator",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -620,7 +643,7 @@ Cards["Gigazoul"] = {
 }
 
 Cards["Glory Snow"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Glory Snow",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_SPELL,
@@ -694,7 +717,7 @@ Cards["Jewel Spider"] = {
 }
 
 Cards["King Mazelan"] = {
-	price_tier = 4,
+	price_tier = 3,
 	name = "King Mazelan",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -720,7 +743,7 @@ Cards["King Mazelan"] = {
 }
 
 Cards["King Tsunami"] = {
-	price_tier = 5,
+	price_tier = 4,
 	name = "King Tsunami",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -823,8 +846,9 @@ Cards["La Byle, Seeker of the Winds"] = {
 	power = 5000,
 	breaker = 1,
 
-	HandleMessage = function(id)
-        --todo
+	HandleMessage = function(id) --test
+		Abils.Blocker(id)
+		Abils.untapAfterBlock(id)
 	end
 }
 
@@ -972,7 +996,7 @@ Cards["Moon Horn"] = {
 }
 
 Cards["Nocturnal Giant"] = {
-	price_tier = 3,
+	price_tier = 4,
 	name = "Nocturnal Giant",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -993,7 +1017,7 @@ Cards["Nocturnal Giant"] = {
 }
 
 Cards["Obsidian Scarab"] = {
-	price_tier = 4,
+	price_tier = 2,
 	name = "Obsidian Scarab",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_SPELL,
@@ -1027,7 +1051,7 @@ Cards["Obsidian Scarab"] = {
 }
 
 Cards["Pokolul"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Pokolul",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1042,7 +1066,24 @@ Cards["Pokolul"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-        --todo
+		local messageType = getMessageType()
+		if(messageType=="post creaturebreakshield") then
+			if(getMessageInt("creature")==id and getCardZone(id)==ZONE_BATTLE) then
+				setDuelStateInt("pokolul.broken_shield",id,getMessageInt("shield"))
+			else
+				clearDuelState("pokolul.broken_shield",id)
+			end
+		elseif(messageType=="post shieldtriggerused" and getCardZone(id)==ZONE_BATTLE) then
+			local trigger = getMessageInt("trigger")
+			if(getCardOwner(trigger)~=getCardOwner(id) and
+				getDuelStateInt("pokolul.broken_shield",id,-1)==trigger) then
+				local untap = createChoiceNoCheck("Untap this creature?",2,id,getCardOwner(id),Checks.False)
+				if(untap==RETURN_BUTTON1) then
+					untapCard(id)
+				end
+				clearDuelState("pokolul.broken_shield",id)
+			end
+		end
 	end
 }
 
@@ -1102,7 +1143,26 @@ Cards["Scheming Hands"] = {
 	shieldtrigger = 0,
 
 	OnCast = function(id)
-        --todo
+		local owner = getCardOwner(id)
+		local opponent = getOpponent(owner)
+		local hand = {}
+		local size = getZoneSize(opponent,ZONE_HAND)
+		for i=0,(size-1) do
+			local card = getCardAt(opponent,ZONE_HAND,i)
+			hand[#hand+1] = card
+			unflipCard(card)
+			setCardVisibility(card,owner,1)
+		end
+		local chosen = createChoice("Choose a card from your opponent's hand",0,id,owner,Checks.InOppHand)
+		if(chosen>=0) then
+			discardCard(chosen)
+		end
+		for _,card in ipairs(hand) do
+			if(getCardZone(card)==ZONE_HAND) then
+				flipCard(card)
+				setCardVisibility(card,owner,0)
+			end
+		end
 	end
 }
 
@@ -1144,7 +1204,7 @@ Cards["Scissor Scarab"] = {
 }
 
 Cards["Sea Slug"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Sea Slug",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1164,7 +1224,7 @@ Cards["Sea Slug"] = {
 }
 
 Cards["Sinister General Damudo"] = {
-	price_tier = 4,
+	price_tier = 3,
 	name = "Sinister General Damudo",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1197,7 +1257,7 @@ Cards["Sinister General Damudo"] = {
 }
 
 Cards["Skullsweeper Q"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Skullsweeper Q",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1220,7 +1280,7 @@ Cards["Skullsweeper Q"] = {
 }
 
 Cards["Slime Veil"] = { --test
-	price_tier = 3,
+	price_tier = 2,
 	name = "Slime Veil",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_SPELL,
@@ -1268,7 +1328,7 @@ Cards["Smash Horn Q"] = {
 }
 
 Cards["Snork La, Shrine Guardian"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Snork La, Shrine Guardian",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1283,7 +1343,19 @@ Cards["Snork La, Shrine Guardian"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-        --todo
+		Abils.cantAttackPlayers(id)
+		if(getMessageType()=="post cardmove" and getCardZone(id)==ZONE_BATTLE) then
+			local card = getMessageInt("card")
+			if(getMessageInt("from")==ZONE_MANA and getMessageInt("to")==ZONE_GRAVEYARD and
+				getMessageInt("snork_la_returned")~=1 and getCardOwner(card)==getCardOwner(id) and
+				getCardZone(card)==ZONE_GRAVEYARD) then
+				local choice = createChoiceNoCheck("Return this card to your mana zone?",2,id,getCardOwner(id),Checks.False)
+				if(choice==RETURN_BUTTON1) then
+					setMessageInt("snork_la_returned",1)
+					moveCard(card,ZONE_MANA)
+				end
+			end
+		end
 	end
 }
 
@@ -1413,7 +1485,7 @@ Cards["Syforce, Aurora Elemental"] = {
 }
 
 Cards["Syrius, Firmament Elemental"] = {
-	price_tier = 5,
+	price_tier = 4,
 	name = "Syrius, Firmament Elemental",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
@@ -1468,7 +1540,7 @@ Cards["Thunder Net"] = {
 }
 
 Cards["Twin-Cannon Skyterror"] = {
-	price_tier = 3,
+	price_tier = 4,
 	name = "Twin-Cannon Skyterror",
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,

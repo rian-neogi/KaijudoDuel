@@ -3,7 +3,7 @@ return {
 	prices = { 100, 500, 1500, 5000, 25000 },
 
 	initial_stock = {
-		"Artisan Picora", "Brawler Zyler", "Super Explosive Volcanodon",
+		"Artisan Picora", "Brawler Zyler", "Galsaur",
 		"Armored Walker Urherion", "Draglide", "Tornado Flame",
 		"Wandering Braineater", "Masked Horror, Shadow of Scorn", "Swamp Worm",
 		"Dark Clown", "Gigargon", "Creeping Plague",
@@ -16,82 +16,134 @@ return {
 
 	shards = {
 		{
-			id = "living_dead", name = "Living Dead Shard",
-			stock = { "Wandering Braineater", "Writhing Bone Ghoul",
-				"Skeleton Soldier, the Defiled", "Bone Assassin, the Ripper", "Dark Reversal" }
+			id = "furnace", name = "Furnace Shard",
+			stock = { "Armored Cannon Balbaro", "Rothus, the Traveler",
+				"Explosive Dude Joe", "Muramasa, Duke of Blades", "Snip Striker Bullraizer",
+				"Blasto, Explosive Soldier", "Wild Racer Chief Garan", "Spastic Missile",
+				"Cyclone Panic", "Magma Gazer" }
 		},
 		{
-			id = "ghost", name = "Ghost Shard",
-			stock = { "Night Master, Shadow of Decay", "Dark Raven, Shadow of Grief",
-				"Black Feather, Shadow of Rage", "Gray Balloon, Shadow of Greed", "Ghost Touch" }
+			id = "blazing", name = "Blazing Shard",
+			stock = { "Gatling Skyterror", "Scarlet Skyterror", "Boltail Dragon",
+				"Stonesaur", "Dogarn, the Marauder", "Armored Warrior Quelos",
+				"Flametropus", "Burst Shot", "Crisis Boulder", "Energy Charger" }
 		},
 		{
-			id = "chimera", name = "Chimera Shard",
-			stock = { "Gigagiele", "Gigaberos", "Gigastand", "Terror Pit" }
+			id = "cataclysm", name = "Cataclysm Shard",
+			stock = { "Cyclone Panic", "Cataclysmic Eruption", "Legionnaire Lizard",
+				"Torchclencher", "Valiant Warrior Exorious", "Baby Zoppe",
+				"Kip Chippotto", "Kipo's Contraption", "Energy Charger",
+				"Otherworldly Warrior Naglu" }
 		},
 		{
-			id = "parasite_worm", name = "Parasite Worm Shard",
-			stock = { "Stinger Worm", "Poison Worm", "Horrid Worm", "Death Smoke" }
+			id = "nightmare", name = "Nightmare Shard",
+			stock = { "Horrid Worm", "Chaos Worm", "Amber Piercer", "General Dark Fiend",
+				"Scratchclaw", "Gigakail", "Skullcutter, Swarm Leader",
+				"Lone Tear, Shadow of Solitude", "Grim Soul, Shadow of Reversal",
+				"Critical Blade" }
 		},
 		{
-			id = "human", name = "Human Shard",
-			stock = { "Immortal Baron, Vorg", "Mini Titan Gett", "Fatal Attacker Horvath" }
+			id = "spectral", name = "Spectral Shard",
+			stock = { "Shadow Moon, Cursed Shade", "Skeleton Thief, the Revealer",
+				"Mongrel Man", "Giriel, Ghastly Warrior", "Vile Mulder, Wing of the Void",
+				"Scalpel Spider", "Three-Faced Ashura Fang", "Sinister General Damudo",
+				"Zorvaz, the Bonecrusher", "Tank Mutant" }
 		},
 		{
-			id = "armoroid", name = "Armoroid Shard",
-			stock = { "Rothus, the Traveler" }
+			id = "grave", name = "Grave Shard",
+			stock = { "Battleship Mutant", "Crath Lade, Merciless King",
+				"Gezary, Undercover Doll", "Slash Charger", "Grinning Hunger",
+				"Gabzagul, Warlord of Pain", "Acid Reflux, the Fleshboiler",
+				"Gigamente", "Gigandura", "Spinal Parasite" }
 		},
 		{
-			id = "rock_beast", name = "Rock Beast Shard",
-			stock = { "Meteosaur", "Cratersaur", "Galsaur" }
+			id = "growth", name = "Growth Shard",
+			stock = { "Barkwhip, the Smasher", "Charmilia, the Enticer", "Slumber Shell",
+				"Brood Shell", "Launch Locust", "Coliseum Shell", "Solid Horn",
+				"Mystic Inscription", "Muscle Charger", "Aurora of Reversal" }
 		},
 		{
-			id = "machine_eater", name = "Machine Eater Shard",
-			stock = { "Nomad Hero Gigio", "Magma Gazer", "Crimson Hammer" }
+			id = "mountain", name = "Mountain Shard",
+			stock = { "Bloodwing Mantis", "Dawn Giant", "Avalanche Giant",
+				"Mighty Bandit, Ace of Thieves", "Silvermoon Trailblazer", "Xeno Mantis",
+				"Fortress Shell", "Sword Butterfly", "Carbonite Scarab", "Cannon Shell" }
 		},
 		{
-			id = "dragonoid", name = "Dragonoid Shard",
-			stock = { "Onslaughter Triceps", "Deadly Fighter Braid Claw",
-				"Fire Sweeper Burning Hellion", "Explosive Fighter Ucarn", "Burning Power" }
+			id = "earthquake", name = "Earthquake Shard",
+			stock = { "Spinning Totem", "Whispering Totem", "Whip Scorpion",
+				"Stinger Horn, the Delver", "Tangle Fist, the Weaver", "Senia, Orchard Avenger",
+				"Legacy Shell", "Scowling Tomato", "Thirst for the Hunt", "Shaman Broccoli" }
 		},
 		{
-			id = "fire", name = "Fire Shard", stock = {}
+			id = "protector", name = "Protector Shard",
+			stock = { "Laguna, Lightning Enforcer", "Raza Vega, Thunder Guardian",
+				"Dia Nork, Moonlight Guardian", "Szubs Kin, Twilight Guardian",
+				"Reusol, the Oracle", "Senatine Jade Tree", "Larba Geer, the Immaculate",
+				"Alek, Solidity Enforcer", "Kanesill, the Explorer", "Logic Cube" }
 		},
 		{
-			id = "giant_insect", name = "Giant Insect Shard",
-			stock = { "Red-Eye Scorpion" }
+			id = "solar", name = "Solar Shard",
+			stock = { "Gran Gure, Space Guardian", "Ra Vu, Seeker of Lightning",
+				"Ur Pale, Seeker of Sunlight", "Aless, the Oracle", "Fu Reil, Seeker of Storms",
+				"Re Bil, Seeker of Archery", "Dava Torey, Seeker of Clouds",
+				"Telitol, the Explorer", "Glory Snow", "Rain of Arrows" }
 		},
 		{
-			id = "colony_beetle", name = "Colony Beetle Shard",
-			stock = { "Tower Shell" }
+			id = "heaven", name = "Heaven Shard",
+			stock = { "Razorpine Tree", "Vess, the Oracle", "Yuluk, the Oracle",
+				"Laveil, Seeker of Catastrophe", "Gandar, Seeker of Explosions",
+				"Pulsar Tree", "Rom, Vizier of Tendrils", "Solar Grass", "Laser Whip",
+				"Justice Jamming" }
 		},
 		{
-			id = "horned_beast", name = "Horned Beast Shard",
-			stock = { "Rumbling Terahorn" }
+			id = "aqua", name = "Aqua Shard",
+			stock = { "Prowling Elephish", "Pokolul", "Aeropica", "Aqua Rider",
+				"Raptor Fish", "Madrillon Fish", "Steam Star", "Aqua Agent",
+				"Titanium Cluster", "Crystal Paladin" }
 		},
 		{
-			id = "beast_folk", name = "Beast Folk Shard",
-			stock = { "Golden Wing Striker", "Mighty Shouter", "Burning Mane", "Ultimate Force" }
+			id = "deep", name = "Deep Shard",
+			stock = { "King Benthos", "King Depthcon", "King Mazelan", "Aqua Grappler",
+				"Aqua Ranger", "Mystic Dreamscape", "Midnight Crawler", "Impossible Tunnel",
+				"Kelp Candle", "Marching Motherboard" }
 		},
 		{
-			id = "tree_folk", name = "Tree Folk Shard",
-			stock = { "Coiling Vines", "Thorny Mandra", "Poisonous Dahlia", "Essence Elf" }
+			id = "knowledge", name = "Knowledge Shard",
+			stock = { "Vikorakys", "Grape Globbo", "Lalicious", "Miracle Quest", "Kyuroro",
+				"Candy Cluster", "Submarine Project", "Scout Cluster", "Tekorax",
+				"Zeppelin Crawler" }
 		},
 		{
-			id = "fish", name = "Fish Shard",
-			stock = { "Saucer-Head Shark", "Seamine", "Illusionary Merfolk", "Phantom Fish", "Scissor Eye" }
+			id = "rainbow", name = "Rainbow Shard",
+			stock = { "Electro Explorer Syrion", "Estol, Vizier of Aqua",
+				"Melnia, the Aqua Shadow", "Aqua Skydiver", "Techno Totem",
+				"Soderlight, the Cold Blade", "Tagtapp, the Retaliator", "Sea Mutant Dormel",
+				"Spectral Horn Glitalis", "Buzz Betocchi" }
 		},
 		{
-			id = "cyber_lord", name = "Cyber Lord Shard",
-			stock = { "Corile", "Hypersquid Walter", "Teleportation" }
+			id = "fury", name = "Fury Shard",
+			stock = { "Saliva Worm", "Lamiel, Destiny Enforcer", "Klujadras",
+				"Skyscraper Shell", "Flame Trooper Goliac", "Sky Crusher, the Agitator",
+				"Spinning Totem", "Gachack, Mechanical Doll", "Heavyweight Dragon",
+				"Tra Rion, Penumbra Guardian" }
 		},
 		{
-			id = "cyber_virus", name = "Cyber Virus Shard",
-			stock = { "Candy Drop", "Faerie Child", "Spiral Gate" }
+			id = "eternal", name = "Eternal Shard",
+			stock = { "Gankloak, Rogue Commando", "Lockdown Lizard", "Hustle Berry",
+				"Venom Capsule", "Kejila, the Hidden Horror", "Minelord Skyterror",
+				"Vorg's Engine", "Kaemira, the Oracle", "Milporo", "Charge Whipper" }
 		},
 		{
-			id = "liquid_people", name = "Liquid People Shard",
-			stock = { "Aqua Shooter", "Aqua Bouncer", "Aqua Surfer", "Recon Operation" }
+			id = "colossal", name = "Colossal Shard",
+			stock = { "Ten-Ton Crunch", "Jabaha's Automaton", "Gigaslug", "Evil Incarnate",
+				"Radioactive Horn, the Strange", "Fever Nuts", "Cosmic Darts",
+				"Kilstine, Nebula Elemental", "Warped Lunatron", "Lucky Ball" }
+		},
+		{
+			id = "imperial", name = "Imperial Shard",
+			stock = { "Roulette of Ruin", "Royal Durian", "Rainbow Gate", "Morbid Medicine",
+				"Hypersprint Warior Uzesol", "Muramasa's Knife", "Supersonic Jet Pack",
+				"Rapid Reincarnation", "Wind Axe, the Warrior Savage", "Obsidian Scarab" }
 		}
 	}
 }

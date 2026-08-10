@@ -1,5 +1,7 @@
 #include "Choice.h"
 
+#include "AI/MctsTiming.h"
+
 Choice::Choice()
 	: mInfotext(""), mButtonCount(0), mValidRef(LUA_REFNIL), mActionRef(LUA_REFNIL),
 	  mAiPreferredSelection(AI_NO_PREFERENCE), mIsCopy(false)
@@ -24,6 +26,7 @@ Choice::~Choice()
 
 int Choice::callvalid(int cid, int sid)
 {
+	MctsTiming::LuaCallbackTimer luaTimer;
 	int r = -1;
 	int stackTop = lua_gettop(LuaCards);
 	lua_rawgeti(LuaCards, LUA_REGISTRYINDEX, mValidRef);
@@ -47,6 +50,7 @@ int Choice::callvalid(int cid, int sid)
 
 void Choice::callaction(int cid, int sid)
 {
+	MctsTiming::LuaCallbackTimer luaTimer;
 	int stackTop = lua_gettop(LuaCards);
 	lua_rawgeti(LuaCards, LUA_REGISTRYINDEX, mActionRef);
 	lua_pushinteger(LuaCards, cid);

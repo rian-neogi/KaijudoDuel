@@ -349,12 +349,40 @@ When a session completes, the terminal reports completed and attempted
 rollouts, failed rollouts, elapsed wall time, whether the budget expired, the
 number of turn-horizon cutoffs, the root evaluation, number of root actions,
 number of forced moves applied, selected action, selected action evaluation,
-and visit count.
+visit count, whether an explored subtree was reused, and the reused root's
+pre-existing visit count. It also reports inclusive millisecond counters for
+duel cloning, tree-plan enumeration, rollout-plan enumeration, rollout
+selection, selected action execution, and leaf evaluation. Enumeration timing
+includes any Lua callbacks invoked while discovering complete plans. A separate
+inclusive Lua counter measures total time inside card, choice, and modifier Lua
+callbacks without double-counting nested callbacks.
 Evaluations are normalized to `[-1, 1]` from the AI's perspective.
 
-This first tree deliberately has no transposition table, persistent tree reuse,
-general heuristic rollout policy, or hidden-information determinization. Those
-remain later refinements.
+The live background search retains its tree after committing a move and across
+the opponent's turn. At the next AI search boundary it computes a canonical
+key from the complete C++ duel position, searches all retained descendants,
+and detaches the matching node with the most visits as the new root. The key
+includes ordered zones and deck order, card state, combat and casting state,
+and engine-owned Lua rule state. It deliberately excludes UI/logging state.
+The live duel is still cloned again, so future simulations begin with the live
+RNG rather than a stale rollout copy. Retained child transitions are checked
+the first time they are traversed after re-rooting and discarded if a changed
+random outcome produces a different gameplay state. If no exact key matches,
+search starts with a fresh root. States containing Lua modifiers also currently take this
+fresh-tree fallback because modifier closures do not yet have stable
+engine-side type identities suitable for an exact key.
+
+The turn-horizon boundary is stored as a child before its rollout is cut off.
+Consequently, a normal search can retain the position at the beginning of the
+AI's following turn even though it does not select an action there. The cutoff
+evaluation is backpropagated through that boundary node, so its retained visit
+count reflects every rollout that reached the exact position. Forced and
+heuristic live actions between searches are handled naturally: reuse succeeds
+only if their resulting live position is one that the earlier tree actually
+explored.
+
+This tree deliberately has no transposition table or hidden-information
+determinization. Those remain later refinements.
 
 Opponent nodes invert the value or otherwise optimize for the opponent. Chance
 outcomes are produced only through the simulation duel's cloned RNG. Search

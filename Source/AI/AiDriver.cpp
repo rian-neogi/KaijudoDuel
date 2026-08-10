@@ -2,9 +2,11 @@
 
 #include "HeuristicBot.h"
 
+#include <algorithm>
 #include <atomic>
 #include <exception>
 #include <iostream>
+#include <limits>
 #include <mutex>
 #include <thread>
 
@@ -33,6 +35,10 @@ AiDecisionOutcome playAiDecision(Duel& duel, int player,
 	if ((player != 0 && player != 1) || duel.mWinner != -1 ||
 		duel.getPlayerToMove() != player)
 		return outcome;
+	AiDecisionOutcome shieldTrigger = playHeuristicShieldTrigger(
+		duel, player, personality);
+	if (shieldTrigger.source == AiDecisionSource::ShieldTriggerHeuristic)
+		return shieldTrigger;
 	AiDecisionOutcome shieldTarget = playRandomShieldTarget(duel, player);
 	if (shieldTarget.source == AiDecisionSource::ShieldRandom)
 		return shieldTarget;
@@ -159,17 +165,112 @@ AiDecisionOutcome playRandomShieldTarget(Duel& duel, int player)
 	return outcome;
 }
 
+AiDecisionOutcome playHeuristicShieldTrigger(Duel& duel, int player,
+	const std::string& personality)
+{
+	AiDecisionOutcome outcome;
+	if ((player != 0 && player != 1) || duel.mWinner != -1 ||
+		duel.getPlayerToMove() != player || duel.mAttackphase != PHASE_TRIGGER)
+		return outcome;
+
+	ActiveDuelGuard activeGuard(duel);
+	std::vector<Message> moves = duel.getPossibleMoves();
+	if (moves.empty()) return outcome;
+	HeuristicBot bot(player, personality);
+
+	if (duel.mIsChoiceActive)
+	{
+		std::vector<Message>::iterator best = moves.end();
+		double bestScore = -std::numeric_limits<double>::infinity();
+		for (std::vector<Message>::iterator move = moves.begin();
+			move != moves.end(); ++move)
+		{
+			if (move->getType() != "choiceselect") continue;
+			int selection = move->getInt("selection");
+			if (selection < 0 || selection >= static_cast<int>(duel.mCardList.size())) continue;
+			Card* target = duel.mCardList[selection];
+			if (target->mOwner == player || target->mZone != ZONE_BATTLE ||
+				target->mType != TYPE_CREATURE)
+				continue;
+			double score = bot.scoreMove(duel, *move);
+			if (best == moves.end() || score > bestScore)
+			{
+				best = move;
+				bestScore = score;
+			}
+		}
+		outcome.action = best == moves.end() ? bot.chooseMove(duel, moves) : *best;
+	}
+	else
+	{
+		// Creature triggers are unconditional. Prefer them before spells so every
+		// creature broken by a multi-breaker enters the battle zone.
+		for (std::vector<Message>::iterator move = moves.begin();
+			move != moves.end(); ++move)
+		{
+			if (move->getType() != "triggeruse") continue;
+			int trigger = move->getInt("trigger");
+			if (trigger >= 0 && trigger < static_cast<int>(duel.mCardList.size()) &&
+				duel.mCardList[trigger]->mType == TYPE_CREATURE)
+			{
+				outcome.action = *move;
+				break;
+			}
+		}
+
+		if (outcome.action.getType().empty())
+		{
+			for (std::vector<Message>::iterator move = moves.begin();
+				move != moves.end(); ++move)
+			{
+				if (move->getType() != "triggeruse") continue;
+				int trigger = move->getInt("trigger");
+				if (trigger >= 0 && trigger < static_cast<int>(duel.mCardList.size()) &&
+					duel.mCardList[trigger]->mType == TYPE_SPELL &&
+					duel.getCardAiCanCast(trigger) == 1)
+				{
+					outcome.action = *move;
+					break;
+				}
+			}
+		}
+
+		if (outcome.action.getType().empty())
+		{
+			for (std::vector<Message>::iterator move = moves.begin();
+				move != moves.end(); ++move)
+			{
+				if (move->getType() == "triggerskip")
+				{
+					outcome.action = *move;
+					break;
+				}
+			}
+		}
+	}
+
+	if (outcome.action.getType().empty()) return outcome;
+	Message action = outcome.action;
+	duel.handleInterfaceInput(action);
+	outcome.source = AiDecisionSource::ShieldTriggerHeuristic;
+	return outcome;
+}
+
 struct BackgroundMctsSearch::Impl
 {
 	int player;
 	MctsConfig config;
+	std::unique_ptr<MctsSession> session;
 	std::thread worker;
 	std::atomic<bool> cancel;
+	std::atomic<bool> active;
 	std::atomic<bool> finished;
 	MctsResult result;
 
 	Impl(int rootPlayer, const MctsConfig& searchConfig)
-		: player(rootPlayer), config(searchConfig), cancel(false), finished(false)
+		: player(rootPlayer), config(searchConfig),
+		  session(new MctsSession(rootPlayer, searchConfig)), cancel(false),
+		  active(false), finished(false)
 	{
 	}
 };
@@ -186,23 +287,40 @@ BackgroundMctsSearch::~BackgroundMctsSearch()
 
 bool BackgroundMctsSearch::start(Duel& root)
 {
-	if (mImpl->worker.joinable() || mImpl->finished.load()) return false;
-	MctsSession* session = new MctsSession(mImpl->player, mImpl->config);
-	if (!session->start(root))
+	return start(root, mImpl->config);
+}
+
+bool BackgroundMctsSearch::start(Duel& root, const MctsConfig& config)
+{
+	if (mImpl->worker.joinable() || mImpl->active.load()) return false;
+	bool started = false;
+	if (mImpl->session->isStarted())
+		started = mImpl->session->restart(root, config);
+	else
 	{
-		delete session;
-		return false;
+		mImpl->session.reset(new MctsSession(mImpl->player, config));
+		started = mImpl->session->start(root);
 	}
+	if (!started)
+	{
+		mImpl->session.reset(new MctsSession(mImpl->player, config));
+		if (!mImpl->session->start(root)) return false;
+	}
+	mImpl->config = config;
+	mImpl->result = MctsResult();
+	mImpl->cancel.store(false);
+	mImpl->finished.store(false);
+	mImpl->active.store(true);
 	mImpl->worker = std::thread(
-		[this, session]()
+		[this]()
 		{
 			try
 			{
 				std::lock_guard<std::mutex> luaLock(gBackgroundLuaMutex);
-				while (!mImpl->cancel.load() && !session->isComplete())
-					session->advance(1);
-				if (!mImpl->cancel.load() && session->isComplete())
-					mImpl->result = session->result();
+				while (!mImpl->cancel.load() && !mImpl->session->isComplete())
+					mImpl->session->advance(1);
+				if (!mImpl->cancel.load() && mImpl->session->isComplete())
+					mImpl->result = mImpl->session->result();
 			}
 			catch (const std::exception& error)
 			{
@@ -212,10 +330,14 @@ bool BackgroundMctsSearch::start(Duel& root)
 			{
 				std::cerr << "Background MCTS search failed with an unknown exception." << std::endl;
 			}
-			delete session;
 			mImpl->finished.store(true);
 		});
 	return true;
+}
+
+bool BackgroundMctsSearch::isActive() const
+{
+	return mImpl->active.load();
 }
 
 bool BackgroundMctsSearch::isFinished() const
@@ -225,9 +347,10 @@ bool BackgroundMctsSearch::isFinished() const
 
 bool BackgroundMctsSearch::finish(MctsResult& result)
 {
-	if (!mImpl->finished.load()) return false;
+	if (!mImpl->active.load() || !mImpl->finished.load()) return false;
 	if (mImpl->worker.joinable()) mImpl->worker.join();
 	result = mImpl->result;
+	mImpl->active.store(false);
 	return true;
 }
 
@@ -235,4 +358,5 @@ void BackgroundMctsSearch::cancelAndWait()
 {
 	mImpl->cancel.store(true);
 	if (mImpl->worker.joinable()) mImpl->worker.join();
+	mImpl->active.store(false);
 }

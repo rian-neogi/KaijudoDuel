@@ -62,8 +62,17 @@ namespace
 			<< ", timed-out=" << (result.timeBudgetExpired ? "yes" : "no")
 			<< ", turn-cutoffs=" << result.turnHorizonCutoffs
 			<< ", forced-moves=" << result.forcedMovesApplied
+			<< ", tree-reused=" << (result.reusedTree ? "yes" : "no")
+			<< ", reused-root-visits=" << result.reusedRootVisits
 			<< ", root-eval=" << result.meanValue
-			<< ", root-actions=" << result.rootChildren.size();
+			<< ", root-actions=" << result.rootChildren.size()
+			<< ", timing-ms={clone:" << result.cloneTimeMs
+			<< ",tree-enum:" << result.treeEnumerationTimeMs
+			<< ",rollout-enum:" << result.rolloutEnumerationTimeMs
+			<< ",rollout-select:" << result.rolloutSelectionTimeMs
+			<< ",execute:" << result.actionExecutionTimeMs
+			<< ",evaluate:" << result.evaluationTimeMs
+			<< ",lua:" << result.luaCallbackTimeMs << "}";
 		if (result.hasPlan)
 		{
 			Message selectedAction = result.plan.action;
@@ -451,7 +460,7 @@ void Application::updateDuel(Uint32 deltaTime)
 		int playerToMove = mDuel->getPlayerToMove();
 		bool aiBoundary = winner == -1 && playerToMove == 1 &&
 			!mDuel->mMsgMngr.hasMoreMessages();
-		if (mAiSearch != NULL)
+		if (mAiSearch != NULL && mAiSearch->isActive())
 		{
 			if (mAiSearch->isFinished())
 			{
@@ -459,8 +468,6 @@ void Application::updateDuel(Uint32 deltaTime)
 				mAiSearch->finish(result);
 				Uint32 finishedAt = SDL_GetTicks();
 				Uint32 elapsed = finishedAt - mAiSearchStartedAt;
-				delete mAiSearch;
-				mAiSearch = NULL;
 				mAiSearchStartedAt = 0;
 				mDuel->mAiThinking = false;
 				mDuel->mAiThinkingPlayer = -1;
@@ -488,78 +495,91 @@ void Application::updateDuel(Uint32 deltaTime)
 		{
 			const std::string personality = mActiveNpc >= 0 ?
 				mNpcs[mActiveNpc].aiPersonality : "balanced";
-			AiDecisionOutcome shieldTarget = playRandomShieldTarget(*mDuel, 1);
-			if (shieldTarget.source == AiDecisionSource::ShieldRandom)
+			AiDecisionOutcome shieldTrigger = playHeuristicShieldTrigger(
+				*mDuel, 1, personality);
+			if (shieldTrigger.source == AiDecisionSource::ShieldTriggerHeuristic)
 			{
-				std::cout << "AI random shield target: selected=" <<
-					shieldTarget.action.getType() << std::endl;
 				mNextAiMove = now + AI_MOVE_DELAY_MS;
 			}
 			else
 			{
-				AiDecisionOutcome manaAction = playHeuristicManaPayment(*mDuel, 1, personality);
-				if (manaAction.source == AiDecisionSource::None)
-					manaAction = playHeuristicManaPlacement(*mDuel, 1, personality);
-				if (manaAction.source == AiDecisionSource::ManaHeuristic)
+				AiDecisionOutcome shieldTarget = playRandomShieldTarget(*mDuel, 1);
+				if (shieldTarget.source == AiDecisionSource::ShieldRandom)
 				{
-					std::cout << "AI mana heuristic: selected=" <<
-						manaAction.action.getType() << std::endl;
-					mNextAiMove = now + (manaAction.action.getType() == "manatap" ?
-						AI_MANA_TAP_DELAY_MS : AI_MOVE_DELAY_MS);
+					std::cout << "AI random shield target: selected=" <<
+						shieldTarget.action.getType() << std::endl;
+					mNextAiMove = now + AI_MOVE_DELAY_MS;
 				}
 				else
 				{
-					AiDecisionOutcome forced = playForcedAiDecision(*mDuel, 1);
-					if (forced.source == AiDecisionSource::Forced)
+					AiDecisionOutcome manaAction = playHeuristicManaPayment(*mDuel, 1, personality);
+					if (manaAction.source == AiDecisionSource::None)
+						manaAction = playHeuristicManaPlacement(*mDuel, 1, personality);
+					if (manaAction.source == AiDecisionSource::ManaHeuristic)
 					{
-						std::cout << "AI MCTS: rollouts=0, attempted=0, reason=single-root-action"
-							<< ", selected=" << forced.action.getType() << std::endl;
-						Uint32 delay = forced.action.getType() == "manatap" ?
-							AI_MANA_TAP_DELAY_MS : AI_MOVE_DELAY_MS;
-						mNextAiMove = now + delay;
+						std::cout << "AI mana heuristic: selected=" <<
+							manaAction.action.getType() << std::endl;
+						mNextAiMove = now + (manaAction.action.getType() == "manatap" ?
+							AI_MANA_TAP_DELAY_MS : AI_MOVE_DELAY_MS);
 					}
 					else
 					{
-						if (mDuel->isCloneable())
+						AiDecisionOutcome forced = playForcedAiDecision(*mDuel, 1);
+						if (forced.source == AiDecisionSource::Forced)
 						{
-							mAiCreaturePowers.resize(mDuel->mCardList.size());
-							for (size_t card = 0; card < mDuel->mCardList.size(); ++card)
-								mAiCreaturePowers[card] = mDuel->mCardList[card]->mPower;
-							for (int player = 0; player < 2; ++player)
-							{
-								for (std::vector<Card*>::const_iterator card =
-									mDuel->mBattlezones[player].mCards.begin();
-									card != mDuel->mBattlezones[player].mCards.end(); ++card)
-								{
-									mAiCreaturePowers[(*card)->mUniqueId] =
-										mDuel->getCreaturePower((*card)->mUniqueId);
-								}
-							}
-
-							mDuel->mAiThinkingPlayer = playerToMove;
-							mDuel->mAiThinking = true;
-							mAiSearch = new BackgroundMctsSearch(1,
-								liveMctsConfig(mDuel->mTurnPhase == TURN_PHASE_ATTACK));
-							if (mAiSearch->start(*mDuel))
-								mAiSearchStartedAt = now;
-							else
-							{
-								delete mAiSearch;
-								mAiSearch = NULL;
-								mDuel->mAiThinking = false;
-								mDuel->mAiThinkingPlayer = -1;
-								mAiCreaturePowers.clear();
-							}
-						}
-						if (mAiSearch == NULL)
-						{
-							AiDecisionOutcome decision = playHeuristicDecision(*mDuel, 1, personality);
-							if (decision.source != AiDecisionSource::None)
-								std::cout << "AI MCTS: unavailable at transient choice; fallback=" <<
-									decision.action.getType() << std::endl;
-							Uint32 delay = decision.action.getType() == "manatap" ?
+							Uint32 delay = forced.action.getType() == "manatap" ?
 								AI_MANA_TAP_DELAY_MS : AI_MOVE_DELAY_MS;
 							mNextAiMove = now + delay;
+						}
+						else
+						{
+							bool searchStarted = false;
+							if (mDuel->isCloneable())
+							{
+								mAiCreaturePowers.resize(mDuel->mCardList.size());
+								for (size_t card = 0; card < mDuel->mCardList.size(); ++card)
+									mAiCreaturePowers[card] = mDuel->mCardList[card]->mPower;
+								for (int player = 0; player < 2; ++player)
+								{
+									for (std::vector<Card*>::const_iterator card =
+										mDuel->mBattlezones[player].mCards.begin();
+										card != mDuel->mBattlezones[player].mCards.end(); ++card)
+									{
+										mAiCreaturePowers[(*card)->mUniqueId] =
+											mDuel->getCreaturePower((*card)->mUniqueId);
+									}
+								}
+
+								mDuel->mAiThinkingPlayer = playerToMove;
+								mDuel->mAiThinking = true;
+								MctsConfig searchConfig = liveMctsConfig(
+									mDuel->mTurnPhase == TURN_PHASE_ATTACK);
+								if (mAiSearch == NULL)
+									mAiSearch = new BackgroundMctsSearch(1, searchConfig);
+								searchStarted = mAiSearch->start(*mDuel, searchConfig);
+								if (searchStarted)
+									mAiSearchStartedAt = now;
+								else
+								{
+									delete mAiSearch;
+									mAiSearch = NULL;
+									mDuel->mAiThinking = false;
+									mDuel->mAiThinkingPlayer = -1;
+									mAiCreaturePowers.clear();
+								}
+							}
+							// Suspended Lua choices are intentionally not cloneable MCTS roots.
+							// An inactive retained search object must not suppress their fallback.
+							if (!searchStarted)
+							{
+								AiDecisionOutcome decision = playHeuristicDecision(*mDuel, 1, personality);
+								if (decision.source != AiDecisionSource::None)
+									std::cout << "AI MCTS: unavailable at transient choice; fallback=" <<
+										decision.action.getType() << std::endl;
+								Uint32 delay = decision.action.getType() == "manatap" ?
+									AI_MANA_TAP_DELAY_MS : AI_MOVE_DELAY_MS;
+								mNextAiMove = now + delay;
+							}
 						}
 					}
 				}

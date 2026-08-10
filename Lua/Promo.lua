@@ -2,7 +2,7 @@ package.path = package.path .. ';./?.lua;'
 require("Lua/BaseSet")
 
 Cards["Amnis, Holy Elemental"] = {
-	price_tier = 5,
+	price_tier = 3,
     name = "Amnis, Holy Elemental",
     set = "Promo",
 	type = TYPE_CREATURE,
@@ -43,7 +43,7 @@ Cards["Amnis, Holy Elemental"] = {
 }
 
 Cards["Armored Groblav"] = {
-	price_tier = 5,
+	price_tier = 3,
 	name = "Armored Groblav",
 	set = "Promo",
 	type = TYPE_CREATURE,
@@ -93,7 +93,7 @@ Cards["Cranium Clamp"] = {
 
 	shieldtrigger = 0,
 
-	OnCast = function(id) --test
+	OnCast = function(id)
 		local opponent = getOpponent(getCardOwner(id))
 		for i=1,2 do
 			local chosen = createChoice("Choose a card from your hand to discard",0,id,opponent,Checks.InOppHand)

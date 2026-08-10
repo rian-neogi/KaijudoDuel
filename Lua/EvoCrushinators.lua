@@ -2,7 +2,7 @@ package.path = package.path .. ';./?.lua;'
 require("Lua/Promo")
 
 Cards["Amber Piercer"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Amber Piercer",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -22,7 +22,7 @@ Cards["Amber Piercer"] = {
 }
 
 Cards["Aqua Bouncer"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Aqua Bouncer",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -68,7 +68,7 @@ Cards["Aqua Shooter"] = {
 }
 
 Cards["Armored Blaster Valdios"] = {
-	price_tier = 5,
+	price_tier = 3,
 	name = "Armored Blaster Valdios",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -166,7 +166,7 @@ Cards["Barkwhip, the Smasher"] = {
 }
 
 Cards["Bolzard Dragon"] = {
-	price_tier = 4,
+	price_tier = 3,
 	name = "Bolzard Dragon",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -186,7 +186,7 @@ Cards["Bolzard Dragon"] = {
 }
 
 Cards["Bombersaur"] = {
-	price_tier = 3,
+	price_tier = 1,
 	name = "Bombersaur",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -256,7 +256,7 @@ Cards["Burst Shot"] = {
 }
 
 Cards["Cavalry General Curatops"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Cavalry General Curatops",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -304,7 +304,7 @@ Cards["Chaos Worm"] = {
 }
 
 Cards["Corile"] = {
-	price_tier = 1,
+	price_tier = 3,
     name = "Corile",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -330,7 +330,7 @@ Cards["Corile"] = {
 }
 
 Cards["Critical Blade"] = {
-	price_tier = 1,
+	price_tier = 2,
     name = "Critical Blade",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_SPELL,
@@ -349,7 +349,7 @@ Cards["Critical Blade"] = {
 }
 
 Cards["Crystal Lancer"] = {
-	price_tier = 2,
+	price_tier = 4,
     name = "Crystal Lancer",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -370,7 +370,7 @@ Cards["Crystal Lancer"] = {
 }
 
 Cards["Crystal Paladin"] = {
-	price_tier = 5,
+	price_tier = 3,
     name = "Crystal Paladin",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -399,7 +399,7 @@ Cards["Crystal Paladin"] = {
 }
 
 Cards["Dark Titan Maginn"] = {
-	price_tier = 4,
+	price_tier = 1,
     name = "Dark Titan Maginn",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -419,7 +419,7 @@ Cards["Dark Titan Maginn"] = {
 }
 
 Cards["Diamond Cutter"] = {
-	price_tier = 2,
+	price_tier = 4,
     name = "Diamond Cutter",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_SPELL,
@@ -442,7 +442,7 @@ Cards["Diamond Cutter"] = {
 }
 
 Cards["Dogarn, the Marauder"] = {
-	price_tier = 3,
+	price_tier = 1,
     name = "Dogarn, the Marauder",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -463,7 +463,7 @@ Cards["Dogarn, the Marauder"] = {
 }
 
 Cards["Elf-X"] = {
-	price_tier = 3,
+	price_tier = 2,
     name = "Elf-X",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -524,7 +524,7 @@ Cards["Engineer Kipo"] = {
 }
 
 Cards["Essence Elf"] = {
-	price_tier = 1,
+	price_tier = 2,
     name = "Essence Elf",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -554,7 +554,7 @@ Cards["Essence Elf"] = {
 }
 
 Cards["Ethel, Star Sea Elemental"] = {
-	price_tier = 4,
+	price_tier = 3,
     name = "Ethel, Star Sea Elemental",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -574,7 +574,7 @@ Cards["Ethel, Star Sea Elemental"] = {
 }
 
 Cards["Fighter Dual Fang"] = {
-	price_tier = 5,
+	price_tier = 4,
     name = "Fighter Dual Fang",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -624,7 +624,7 @@ Cards["Fonch, the Oracle"] = {
 }
 
 Cards["Fortress Shell"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Fortress Shell",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -677,7 +677,7 @@ Cards["Galsaur"] = {
 }
 
 Cards["General Dark Fiend"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "General Dark Fiend",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -731,7 +731,7 @@ Cards["Gigastand"] = {
 }
 
 Cards["Gray Balloon, Shadow of Greed"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Gray Balloon, Shadow of Greed",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -751,7 +751,7 @@ Cards["Gray Balloon, Shadow of Greed"] = {
 }
 
 Cards["Horrid Worm"] = {
-	price_tier = 1,
+	price_tier = 2,
 	name = "Horrid Worm",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -771,7 +771,7 @@ Cards["Horrid Worm"] = {
 }
 
 Cards["Hypersquid Walter"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Hypersquid Walter",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -820,7 +820,7 @@ Cards["King Nautilus"] = {
 }
 
 Cards["Ladia Bale, the Inspirational"] = {
-	price_tier = 5,
+	price_tier = 3,
 	name = "Ladia Bale, the Inspirational",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -840,7 +840,7 @@ Cards["Ladia Bale, the Inspirational"] = {
 }
 
 Cards["Laguna, Lightning Enforcer"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Laguna, Lightning Enforcer",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -870,7 +870,7 @@ Cards["Laguna, Lightning Enforcer"] = {
 }
 
 Cards["Larba Geer, the Immaculate"] = {
-	price_tier = 2,
+	price_tier = 3,
 	name = "Larba Geer, the Immaculate",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -943,7 +943,7 @@ Cards["Logic Cube"] = {
 }
 
 Cards["Lost Soul"] = {
-	price_tier = 2,
+	price_tier = 3,
 	name = "Lost Soul",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_SPELL,
@@ -963,7 +963,7 @@ Cards["Lost Soul"] = {
 }
 
 Cards["Magris, Vizier of Magnetism"] = {
-	price_tier = 1,
+	price_tier = 2,
 	name = "Magris, Vizier of Magnetism",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -983,7 +983,7 @@ Cards["Magris, Vizier of Magnetism"] = {
 }
 
 Cards["Mana Crisis"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Mana Crisis",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_SPELL,
@@ -1074,7 +1074,7 @@ Cards["Mini Titan Gett"] = {
 }
 
 Cards["Phal Eega, Dawn Guardian"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Phal Eega, Dawn Guardian",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -1100,7 +1100,7 @@ Cards["Phal Eega, Dawn Guardian"] = {
 }
 
 Cards["Plasma Chaser"] = {
-	price_tier = 4,
+	price_tier = 2,
 	name = "Plasma Chaser",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -1123,7 +1123,7 @@ Cards["Plasma Chaser"] = {
 }
 
 Cards["Poison Worm"] = {
-	price_tier = 3,
+	price_tier = 1,
 	name = "Poison Worm",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -1329,7 +1329,7 @@ Cards["Silver Axe"] = {
 }
 
 Cards["Silver Fist"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Silver Fist",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -1349,7 +1349,7 @@ Cards["Silver Fist"] = {
 }
 
 Cards["Spiral Grass"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Spiral Grass",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -1420,7 +1420,7 @@ Cards["Thought Probe"] = {
 }
 
 Cards["Ultracide Worm"] = {
-	price_tier = 5,
+	price_tier = 3,
 	name = "Ultracide Worm",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,
@@ -1468,7 +1468,7 @@ Cards["Wyn, the Oracle"] = {
 }
 
 Cards["Xeno Mantis"] = {
-	price_tier = 4,
+	price_tier = 3,
 	name = "Xeno Mantis",
 	set = "Evo-Crushinators of Doom",
 	type = TYPE_CREATURE,

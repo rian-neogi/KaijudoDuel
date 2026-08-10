@@ -715,6 +715,11 @@ bool Application::exerciseSimulationChoiceSmoke()
 			card->mZone = ZONE_HAND;
 		}
 		simulation.mNextUniqueId = 3;
+		Message outerChoiceMessage("post cardmove");
+		outerChoiceMessage.addValue("card", 0);
+		outerChoiceMessage.addValue("from", ZONE_HAND);
+		outerChoiceMessage.addValue("to", ZONE_BATTLE);
+		simulation.mCurrentMessage = outerChoiceMessage;
 
 		std::vector<int> answers;
 		answers.push_back(1);
@@ -727,6 +732,9 @@ bool Application::exerciseSimulationChoiceSmoke()
 					position.mChoice != NULL && position.mChoicePlayer == 0 &&
 					position.mChoiceValidCards.size() == 1 && nextAnswer < answers.size() &&
 					position.mChoiceValidCards[0] == answers[nextAnswer];
+				// Mimic the live wait loop, which dispatches choiceselect while the
+				// containing Lua callback is suspended.
+				simulation.mCurrentMessage = Message("post choiceselect");
 				return nextAnswer < answers.size() ? answers[nextAnswer++] : RETURN_QUIT;
 			});
 
@@ -766,7 +774,8 @@ bool Application::exerciseSimulationChoiceSmoke()
 		valid = valid && ActiveDuel == savedActiveDuel && nextAnswer == answers.size() &&
 			!simulation.hasSimulationChoiceFailure() && !simulation.mIsChoiceActive &&
 			simulation.mChoice == NULL && simulation.mChoiceValidCards.empty() &&
-			!simulation.mLuaCallbackSuspended.load() && simulation.mMsgMngr.messages.empty();
+			!simulation.mLuaCallbackSuspended.load() && simulation.mMsgMngr.messages.empty() &&
+			simulation.mCurrentMessage.map == outerChoiceMessage.map;
 
 		Duel restored;
 		restored.mIsSimulation = true;
@@ -832,9 +841,10 @@ bool Application::exerciseDecisionPlanSmoke()
 	int fireCreatureId = getCardIdFromName("Deadly Fighter Braid Claw");
 	int natureCreatureId = getCardIdFromName("Bronze-Arm Tribe");
 	int slashChargerId = getCardIdFromName("Slash Charger");
+	int futureSlashId = getCardIdFromName("Future Slash");
 	int spasticMissileId = getCardIdFromName("Spastic Missile");
 	if (hammerId < 0 || lunarChargerId < 0 || fireCreatureId < 0 || natureCreatureId < 0 ||
-		slashChargerId < 0 || spasticMissileId < 0)
+		slashChargerId < 0 || futureSlashId < 0 || spasticMissileId < 0)
 		return false;
 
 	bool valid = true;
@@ -1039,7 +1049,8 @@ bool Application::exerciseDecisionPlanSmoke()
 		for (int mana = 0; mana < 3; ++mana)
 			addCard(slashChargerId, 0, ZONE_MANA);
 		int ownDeckCard = addCard(natureCreatureId, 0, ZONE_DECK);
-		int opponentDeckCard = addCard(fireCreatureId, 1, ZONE_DECK);
+		int opponentLowCostCard = addCard(fireCreatureId, 1, ZONE_DECK);
+		int opponentHighCostCard = addCard(natureCreatureId, 1, ZONE_DECK);
 
 		DecisionPlanEnumerationOptions allChoiceOptions;
 		allChoiceOptions.heuristicMana = true;
@@ -1057,7 +1068,8 @@ bool Application::exerciseDecisionPlanSmoke()
 				plan->choices[1].selection == ownDeckCard)
 				ownDeckPlans++;
 			if (plan->choices[0].selection == RETURN_BUTTON1 &&
-				plan->choices[1].selection == opponentDeckCard)
+				(plan->choices[1].selection == opponentLowCostCard ||
+				 plan->choices[1].selection == opponentHighCostCard))
 				opponentDeckPlans++;
 		}
 
@@ -1076,16 +1088,17 @@ bool Application::exerciseDecisionPlanSmoke()
 			aiChargerPlans++;
 			valid = valid && plan->choices.size() == 2 &&
 				plan->choices[0].selection == RETURN_BUTTON1 &&
-				plan->choices[1].selection == opponentDeckCard;
+				plan->choices[1].selection == opponentHighCostCard;
 			Duel result;
 			result.mIsSimulation = true;
 			result.mInputLoopRunning = false;
 			valid = valid && result.copyFrom(root) &&
 				executeDecisionPlan(result, *plan).status == DecisionPlanStatus::Complete &&
 				result.mCardList[ownDeckCard]->mZone == ZONE_DECK &&
-				result.mCardList[opponentDeckCard]->mZone == ZONE_GRAVEYARD;
+				result.mCardList[opponentLowCostCard]->mZone == ZONE_DECK &&
+				result.mCardList[opponentHighCostCard]->mZone == ZONE_GRAVEYARD;
 		}
-		bool slashChargerCase = ownDeckPlans == 1 && opponentDeckPlans == 1 &&
+		bool slashChargerCase = ownDeckPlans == 1 && opponentDeckPlans == 2 &&
 			aiChargerPlans == 1;
 		if (!slashChargerCase)
 		{
@@ -1093,6 +1106,27 @@ bool Application::exerciseDecisionPlanSmoke()
 				", opponent=" << opponentDeckPlans << ", ai=" << aiChargerPlans << std::endl;
 		}
 		valid = valid && slashChargerCase;
+	}
+
+	{
+		Duel root;
+		root.mIsSimulation = true;
+		auto addCard = [&root](int cardId, int owner, int zone) -> int
+		{
+			int uid = (int)root.mCardList.size();
+			Card* card = new Card(uid, cardId, owner);
+			root.mCardList.push_back(card);
+			root.getZone(owner, zone)->addCard(card);
+			card->mZone = zone;
+			root.mNextUniqueId = uid + 1;
+			return uid;
+		};
+
+		int futureSlash = addCard(futureSlashId, 0, ZONE_HAND);
+		addCard(fireCreatureId, 1, ZONE_DECK);
+		int highestCost = addCard(natureCreatureId, 1, ZONE_DECK);
+		ActiveDuelGuard activeGuard(root);
+		valid = valid && root.getCardAiPreferredChoice(futureSlash) == highestCost;
 	}
 
 	{
@@ -1349,6 +1383,47 @@ bool Application::exerciseMctsSmoke()
 
 	{
 		Duel root;
+		prepareDuel(root, false);
+		root.mIsSimulation = true;
+		for (int shield = 0; shield < 2; ++shield)
+		{
+			int uid = (int)root.mCardList.size();
+			Card* card = new Card(uid, attackerId, 1);
+			root.mCardList.push_back(card);
+			root.mShields[1].addCard(card);
+			card->mZone = ZONE_SHIELD;
+			root.mNextUniqueId = uid + 1;
+		}
+		MctsSession reusable(0, config);
+		bool reuseCase = reusable.start(root);
+		reusable.advance(config.iterations);
+		MctsResult first = reusable.result();
+		reuseCase = reuseCase && first.hasPlan &&
+			first.plan.action.getType() == "creatureattack" &&
+			executeDecisionPlan(root, first.plan).status == DecisionPlanStatus::Complete;
+		std::vector<DecisionPlan> blockPlans = enumerateDecisionPlans(root);
+		reuseCase = reuseCase && blockPlans.size() == 1 &&
+			blockPlans[0].action.getType() == "blockskip";
+		if (blockPlans.size() == 1)
+			reuseCase = reuseCase && executeDecisionPlan(root, blockPlans[0]).status ==
+				DecisionPlanStatus::Complete;
+		reuseCase = reuseCase && root.mAttackphase == PHASE_TARGET &&
+			reusable.restart(root, config);
+		MctsResult reused = reusable.result();
+		reuseCase = reuseCase && reused.reusedTree && reused.reusedRootVisits > 0;
+		if (!reuseCase)
+		{
+			std::cerr << "MCTS tree-reuse case: first=" <<
+				(first.hasPlan ? first.plan.action.getType() : "none") <<
+				", block-plans=" << blockPlans.size() << ", phase=" <<
+				root.mAttackphase << ", reused=" << reused.reusedTree <<
+				", retained-visits=" << reused.reusedRootVisits << std::endl;
+		}
+		valid = valid && reuseCase;
+	}
+
+	{
+		Duel root;
 		int attacker = prepareDuel(root, true);
 		// Keep the safety case meaningful under the power/1000 + breaker*2
 		// evaluator: attacking must sacrifice a materially valuable creature.
@@ -1504,20 +1579,48 @@ bool Application::exerciseMctsSmoke()
 		horizonConfig.iterations = 16;
 		horizonConfig.maxDepth = 48;
 		horizonConfig.seed = 15485863U;
-		MctsSearch search(0, horizonConfig);
-		MctsResult result = search.search(root);
+		root.mIsSimulation = true;
+		MctsSession search(0, horizonConfig);
+		bool horizonStarted = search.start(root);
+		search.advance(horizonConfig.iterations);
+		MctsResult result = search.result();
 		bool horizonCase = result.hasPlan && result.plan.action.getType() == "endturn" &&
+			horizonStarted &&
 			result.iterationsCompleted == horizonConfig.iterations &&
 			result.failedIterations == 0 &&
 			result.turnHorizonCutoffs == horizonConfig.iterations &&
 			result.forcedMovesApplied > horizonConfig.iterations;
+		if (result.hasPlan)
+			horizonCase = horizonCase && executeDecisionPlan(root, result.plan).status ==
+				DecisionPlanStatus::Complete;
+		bool opponentTurnSeen = false;
+		DecisionPlanEnumerationOptions horizonOptions;
+		horizonOptions.heuristicMana = true;
+		horizonOptions.heuristicCardPlay = true;
+		horizonOptions.heuristicChoices = true;
+		horizonOptions.randomShieldTarget = true;
+		for (int step = 0; horizonCase && step < 20; ++step)
+		{
+			if (root.mTurn != 0) opponentTurnSeen = true;
+			if (opponentTurnSeen && root.mTurn == 0) break;
+			std::vector<DecisionPlan> plans = enumerateDecisionPlans(root, horizonOptions);
+			horizonCase = plans.size() == 1 &&
+				executeDecisionPlan(root, plans.front()).status == DecisionPlanStatus::Complete;
+		}
+		horizonCase = horizonCase && opponentTurnSeen && root.mTurn == 0 &&
+			search.restart(root, horizonConfig);
+		MctsResult reusedHorizon = search.result();
+		horizonCase = horizonCase && reusedHorizon.reusedTree &&
+			reusedHorizon.reusedRootVisits == horizonConfig.iterations;
 		if (!horizonCase)
 		{
 			std::cerr << "Turn-horizon MCTS case: plan=" <<
 				(result.hasPlan ? result.plan.action.getType() : "none") <<
 				", completed=" << result.iterationsCompleted << ", failed=" <<
 				result.failedIterations << ", cutoffs=" << result.turnHorizonCutoffs <<
-				", forced=" << result.forcedMovesApplied <<
+				", forced=" << result.forcedMovesApplied << ", reused=" <<
+				reusedHorizon.reusedTree << ", retained-visits=" <<
+				reusedHorizon.reusedRootVisits <<
 				std::endl;
 		}
 		valid = valid && horizonCase;
@@ -1660,7 +1763,12 @@ bool Application::exerciseAiDriverSmoke()
 {
 	std::lock_guard<std::mutex> lock(gMutex);
 	int attackerId = getCardIdFromName("Burning Mane");
-	if (attackerId < 0) return false;
+	int shieldCreatureId = getCardIdFromName("Aqua Surfer");
+	int shieldSpellId = getCardIdFromName("Spastic Missile");
+	int valuableTargetId = getCardIdFromName("Bolshack Dragon");
+	if (attackerId < 0 || shieldCreatureId < 0 || shieldSpellId < 0 ||
+		valuableTargetId < 0)
+		return false;
 	MctsConfig liveMainConfig = liveMctsConfig();
 	MctsConfig liveCombatConfig = liveMctsConfig(true);
 	bool valid = liveMainConfig.iterations == 1024 && liveCombatConfig.iterations == 1024 &&
@@ -1804,6 +1912,106 @@ bool Application::exerciseAiDriverSmoke()
 		targeted.action.getType() == "targetshield" &&
 		shieldTarget.mShieldTargets.size() == 1 &&
 		shieldTarget.mShieldTargets[0] == targeted.action.getInt("shield");
+
+	auto prepareTrigger = [](Duel& duel, int cardId, int cardType) -> int
+	{
+		duel.mInputLoopRunning = false;
+		duel.mPlayerType[1] = PLAYER_AI;
+		duel.mTurn = 0;
+		duel.mTurnPhase = TURN_PHASE_ATTACK;
+		duel.mAttackphase = PHASE_TRIGGER;
+		Card* trigger = new Card(0, cardId, 1);
+		trigger->mType = cardType;
+		trigger->mIsShieldTrigger = 1;
+		duel.mCardList.push_back(trigger);
+		duel.mHands[1].addCard(trigger);
+		trigger->mZone = ZONE_HAND;
+		duel.mShieldTargets.push_back(0);
+		duel.mNextUniqueId = 1;
+		return 0;
+	};
+
+	Duel creatureTrigger;
+	int creatureTriggerCard = prepareTrigger(creatureTrigger, shieldCreatureId, TYPE_CREATURE);
+	AiDecisionOutcome usedCreature = playHeuristicShieldTrigger(
+		creatureTrigger, 1, "balanced");
+	valid = valid && usedCreature.source == AiDecisionSource::ShieldTriggerHeuristic &&
+		usedCreature.action.getType() == "triggeruse" &&
+		usedCreature.action.getInt("trigger") == creatureTriggerCard &&
+		!creatureTrigger.mAiThinking.load();
+
+	Duel uncastableSpellTrigger;
+	prepareTrigger(uncastableSpellTrigger, shieldSpellId, TYPE_SPELL);
+	AiDecisionOutcome skippedSpell = playHeuristicShieldTrigger(
+		uncastableSpellTrigger, 1, "balanced");
+	valid = valid && skippedSpell.source == AiDecisionSource::ShieldTriggerHeuristic &&
+		skippedSpell.action.getType() == "triggerskip" &&
+		!uncastableSpellTrigger.mAiThinking.load();
+
+	Duel castableSpellTrigger;
+	int spellTriggerCard = prepareTrigger(castableSpellTrigger, shieldSpellId, TYPE_SPELL);
+	Card* spellTarget = new Card(1, attackerId, 0);
+	castableSpellTrigger.mCardList.push_back(spellTarget);
+	castableSpellTrigger.mBattlezones[0].addCard(spellTarget);
+	spellTarget->mZone = ZONE_BATTLE;
+	castableSpellTrigger.mNextUniqueId = 2;
+	AiDecisionOutcome usedSpell = playHeuristicShieldTrigger(
+		castableSpellTrigger, 1, "balanced");
+	valid = valid && usedSpell.source == AiDecisionSource::ShieldTriggerHeuristic &&
+		usedSpell.action.getType() == "triggeruse" &&
+		usedSpell.action.getInt("trigger") == spellTriggerCard;
+
+	Duel triggerChoice;
+	int choiceSpell = prepareTrigger(triggerChoice, shieldSpellId, TYPE_SPELL);
+	Card* lowTarget = new Card(1, attackerId, 0);
+	Card* highTarget = new Card(2, valuableTargetId, 0);
+	triggerChoice.mCardList.push_back(lowTarget);
+	triggerChoice.mCardList.push_back(highTarget);
+	triggerChoice.mBattlezones[0].addCard(lowTarget);
+	triggerChoice.mBattlezones[0].addCard(highTarget);
+	lowTarget->mZone = ZONE_BATTLE;
+	highTarget->mZone = ZONE_BATTLE;
+	triggerChoice.mNextUniqueId = 3;
+	triggerChoice.addChoice("Choose an opponent's creature to destroy", 0,
+		choiceSpell, 1, LUA_REFNIL, LUA_REFNIL);
+	triggerChoice.mChoiceValidCards.push_back(lowTarget->mUniqueId);
+	triggerChoice.mChoiceValidCards.push_back(highTarget->mUniqueId);
+	triggerChoice.mLuaCallbackSuspended = true;
+	AiDecisionOutcome targetedTrigger = playHeuristicShieldTrigger(
+		triggerChoice, 1, "balanced");
+	valid = valid && targetedTrigger.source == AiDecisionSource::ShieldTriggerHeuristic &&
+		targetedTrigger.action.getType() == "choiceselect" &&
+		targetedTrigger.action.getInt("selection") == highTarget->mUniqueId &&
+		!triggerChoice.mAiThinking.load();
+	triggerChoice.mLuaCallbackSuspended = false;
+
+	Duel suspendedChoice;
+	suspendedChoice.mInputLoopRunning = false;
+	suspendedChoice.mTurn = 0;
+	suspendedChoice.mTurnPhase = TURN_PHASE_MAIN;
+	auto addChoiceCard = [&suspendedChoice, attackerId]() -> int
+	{
+		int uid = (int)suspendedChoice.mCardList.size();
+		Card* card = new Card(uid, attackerId, 1);
+		suspendedChoice.mCardList.push_back(card);
+		suspendedChoice.mBattlezones[1].addCard(card);
+		card->mZone = ZONE_BATTLE;
+		suspendedChoice.mNextUniqueId = uid + 1;
+		return uid;
+	};
+	int firstChoice = addChoiceCard();
+	int secondChoice = addChoiceCard();
+	suspendedChoice.addChoice("Choose one of your creatures to put into your mana zone",
+		0, firstChoice, 1, LUA_REFNIL, LUA_REFNIL);
+	suspendedChoice.mChoiceValidCards.push_back(firstChoice);
+	suspendedChoice.mChoiceValidCards.push_back(secondChoice);
+	suspendedChoice.mLuaCallbackSuspended = true;
+	AiDecisionOutcome transient = playHeuristicDecision(suspendedChoice, 1, "balanced");
+	valid = valid && !suspendedChoice.isCloneable() &&
+		transient.source == AiDecisionSource::Heuristic &&
+		transient.action.getType() == "choiceselect" &&
+		suspendedChoice.mMsgMngr.hasMoreMessages();
+	suspendedChoice.mLuaCallbackSuspended = false;
 	if (!valid)
 	{
 		std::cerr << "AI driver state: searched-source=" << (int)searched.source <<
@@ -1898,6 +2106,18 @@ bool Application::exerciseBackgroundMctsSmoke()
 	mDuel = savedDuel;
 	MctsResult result;
 	bool finished = search.finish(result);
+	bool restarted = false;
+	if (finished)
+	{
+		std::lock_guard<std::mutex> lock(gMutex);
+		restarted = search.start(live, config);
+	}
+	deadline = SDL_GetTicks() + 5000;
+	while (restarted && !search.isFinished() && SDL_GetTicks() < deadline)
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	MctsResult reusedResult;
+	bool finishedReuse = restarted && search.finish(reusedResult);
+	if (finishedReuse) result = reusedResult;
 	bool committed = false;
 	{
 		std::lock_guard<std::mutex> lock(gMutex);
@@ -1907,8 +2127,9 @@ bool Application::exerciseBackgroundMctsSmoke()
 			commitDecisionPlan(live, result.plan) == DecisionPlanCommitStatus::Committed;
 	}
 	mAiCreaturePowers.clear();
-	return uiMutexAvailable && liveStateStayedFrozen && finished &&
+	return uiMutexAvailable && liveStateStayedFrozen && finished && finishedReuse &&
 		result.iterationsCompleted == config.iterations && result.failedIterations == 0 &&
+		result.reusedTree && result.reusedRootVisits == config.iterations &&
 		result.rootChildren.size() == 1 && result.selectedVisits > 0 &&
 		uiUsedCachedDecisionOwner && committed &&
 		!live.mMsgMngr.messages.empty();

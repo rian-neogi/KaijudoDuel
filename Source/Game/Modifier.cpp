@@ -1,4 +1,5 @@
 #include "Modifier.h"
+#include "AI/MctsTiming.h"
 #include "Duel.h"
 #include "LuaTrace.h"
 
@@ -59,6 +60,7 @@ void Modifier::setLuaRuleState(const std::string& name, int value)
 
 int Modifier::handleMessage(int cid, int mid, Message& msg)
 {
+	MctsTiming::LuaCallbackTimer luaTimer;
 	/*int size = func.size();
 	if (size > 0)
 	{

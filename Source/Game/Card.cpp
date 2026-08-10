@@ -1,4 +1,6 @@
 #include "Card.h"
+
+#include "AI/MctsTiming.h"
 #include "Duel.h"
 #include "LuaTrace.h"
 
@@ -209,6 +211,7 @@ int Card::handleMessage(Message& msg)
 		lua_settop(LuaCards, stackTop);
 		return -1;
 	}
+	MctsTiming::LuaCallbackTimer luaTimer;
 	const Message& traceMessage = ActiveDuel == NULL ? msg : ActiveDuel->mCurrentMessage;
 	LuaTrace::logCallback("engine -> lua", "HandleMessage", mName, mUniqueId, traceMessage);
 	lua_pushinteger(LuaCards, mUniqueId);
@@ -250,6 +253,7 @@ void Card::callOnCast()
 		lua_settop(LuaCards, stackTop);
 		return;
 	}
+	MctsTiming::LuaCallbackTimer luaTimer;
 	Message cast("cast");
 	cast.addValue("card", mUniqueId);
 	cast.addValue("owner", mOwner);

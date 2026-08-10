@@ -134,7 +134,7 @@ Cards["Aqua Jolter"] = {
 	end
 }
 
-Cards["Aquan"] = { --todo
+Cards["Aquan"] = {
 	price_tier = 3,
 	name = "Aquan",
 	set = "Shadowclash of Blinding Night",
@@ -151,14 +151,18 @@ Cards["Aquan"] = { --todo
 
 	HandleMessage = function(id)
 		local func = function(id)
-			
+			local owner = getCardOwner(id)
+			local count = 5 - getZoneSize(owner, ZONE_HAND)
+			if(count > 0) then
+				drawCards(owner, count)
+			end
 		end
 		Abils.onSummon(id, func)
 	end
 }
 
 Cards["Astral Warper"] = {
-	price_tier = 5,
+	price_tier = 3,
 	name = "Astral Warper",
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_CREATURE,
@@ -179,7 +183,7 @@ Cards["Astral Warper"] = {
 }
 
 Cards["Ballom, Master of Death"] = {
-	price_tier = 5,
+	price_tier = 4,
 	name = "Ballom, Master of Death",
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_CREATURE,
@@ -297,7 +301,7 @@ Cards["Chains of Sacrifice"] = {
 }
 
 Cards["Chaotic Skyterror"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Chaotic Skyterror",
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_CREATURE,
@@ -405,7 +409,7 @@ Cards["Dew Mushroom"] = {
 }
 
 Cards["Doboulgyser, Giant Rock Beast"] = {
-	price_tier = 4,
+	price_tier = 3,
 	name = "Doboulgyser, Giant Rock Beast",
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_CREATURE,
@@ -495,7 +499,7 @@ Cards["Fu Reil, Seeker of Storms"] = {
 }
 
 Cards["Full Defensor"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Full Defensor",
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_SPELL,
@@ -518,7 +522,7 @@ Cards["Full Defensor"] = {
 }
 
 Cards["Galklife Dragon"] = {
-	price_tier = 5,
+	price_tier = 3,
 	name = "Galklife Dragon",
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_CREATURE,
@@ -766,7 +770,7 @@ Cards["Keeper of the Sunlit Abyss"] = {
 }
 
 Cards["King Aquakamui"] = {
-	price_tier = 5,
+	price_tier = 3,
 	name = "King Aquakamui",
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_CREATURE,
@@ -857,7 +861,7 @@ Cards["Locomotiver"] = {
 }
 
 Cards["Magmarex"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Magmarex",
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_CREATURE,
@@ -890,7 +894,7 @@ Cards["Magmarex"] = {
 }
 
 Cards["Marinomancer"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Marinomancer",
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_CREATURE,
@@ -925,7 +929,7 @@ Cards["Marinomancer"] = {
 }
 
 Cards["Mega Detonator"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Mega Detonator",
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_SPELL,
@@ -989,7 +993,7 @@ Cards["Milieus, the Daystretcher"] = {
 }
 
 Cards["Missile Boy"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Missile Boy",
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_CREATURE,
@@ -1071,7 +1075,7 @@ Cards["Mongrel Man"] = {
 }
 
 Cards["Mystic Inscription"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Mystic Inscription",
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_SPELL,
@@ -1087,7 +1091,7 @@ Cards["Mystic Inscription"] = {
 }
 
 Cards["Niofa, Horned Protector"] = {
-	price_tier = 5,
+	price_tier = 3,
 	name = "Niofa, Horned Protector",
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_CREATURE,
@@ -1228,7 +1232,7 @@ Cards["Purple Piercer"] = {
 }
 
 Cards["Re Bil, Seeker of Archery"] = {
-	price_tier = 2,
+	price_tier = 3,
 	name = "Aeris, Flight Elemental",
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_CREATURE,
@@ -1253,7 +1257,7 @@ Cards["Re Bil, Seeker of Archery"] = {
 }
 
 Cards["Rimuel, Cloudbreak Elemental"] = {
-	price_tier = 5,
+	price_tier = 3,
 	name = "Rimuel, Cloudbreak Elemental",
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_CREATURE,
@@ -1333,7 +1337,7 @@ Cards["Screaming Sunburst"] = {
 }
 
 Cards["Shadow Moon, Cursed Shade"] = {
-	price_tier = 1,
+	price_tier = 2,
 	name = "Shadow Moon, the Cursed Shade",
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_CREATURE,
@@ -1393,7 +1397,7 @@ Cards["Skeleton Thief, the Revealer"] = {
 }
 
 Cards["Smile Angler"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Smile Angler",
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_CREATURE,
@@ -1419,7 +1423,7 @@ Cards["Smile Angler"] = {
 }
 
 Cards["Soul Gulp"] = {
-	price_tier = 2,
+	price_tier = 1,
 	name = "Soul Gulp",
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_SPELL,
@@ -1448,7 +1452,7 @@ Cards["Soul Gulp"] = {
 }
 
 Cards["Supporting Tulip"] = {
-	price_tier = 4,
+	price_tier = 1,
 	name = "Supporting Tulip",
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_CREATURE,
@@ -1473,7 +1477,7 @@ Cards["Supporting Tulip"] = {
 }
 
 Cards["Sword of Benevolent Life"] = {
-	price_tier = 3,
+	price_tier = 2,
 	name = "Sword of Benevolent Life",
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_SPELL,

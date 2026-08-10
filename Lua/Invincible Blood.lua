@@ -787,9 +787,7 @@ Cards["Slash Charger"] = {
 			return 0
 		end
 		openDeck(player)
-		local preferred = RETURN_BUTTON1
-		if(getZoneSize(player,ZONE_DECK)>0) then preferred=getCardAt(player,ZONE_DECK,0) end
-		local ch = createChoice("Choose a card to put into that player's graveyard",1,id,owner,valid,preferred)
+		local ch = createChoice("Choose a card to put into that player's graveyard",1,id,owner,valid)
 		if(ch>=0) then moveCard(ch,ZONE_GRAVEYARD) end
 		shuffleDeck(player)
 		closeDeck(player)
@@ -798,6 +796,7 @@ Cards["Slash Charger"] = {
 
 	HandleMessage = function(id)
 		Abils.Charger(id)
+		Abils.PreferHighestCostInOpponentDeck(id)
 	end
 }
 

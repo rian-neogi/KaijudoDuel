@@ -119,6 +119,15 @@ converter, and repeated duel teardown.
   interaction text, and deck-chest rewards. It does not own positions.
 - `Lua/MercerStock.lua`: Mercer prices, initial stock, shard identities, and
   shard inventory expansions. It does not own positions.
+- `Lua/Cards.lua` and its required card-set Lua files (`Lua/BaseSet.lua`,
+  `Lua/EvoCrushinators.lua`, `Lua/Eternal Arms.lua`, `Lua/Eternal Wave.lua`,
+  `Lua/Eternal Vortex.lua`, and the other set files): authoritative runtime
+  card keys, display names, metadata, and rules. Use the exact `Cards["..."]`
+  key or `name` field when editing decks, rewards, or shop stock; do not rely
+  on potentially stale prose spellings.
+- Card XML exports, stored in the Resources folder, are another reference
+  for imported card names and metadata. Cross-check XML names against the 
+  Lua `Cards` keys before adding or correcting card data.
 - `Source/App/AppSupport.h`: shared logical dimensions and small UI helpers.
 - `Source/AI/HeuristicBot.cpp`: phase-aware rival move scoring. Keep it from
   inspecting identities in opposing hidden zones.

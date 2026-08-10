@@ -32,7 +32,8 @@ public:
 	~Application();
 
 	int run(bool smokeTest = false, const std::string& directPlayerDeck = "",
-		const std::string& directAiDeck = "", bool worldBuilder = false);
+		const std::string& directAiDeck = "", bool worldBuilder = false,
+		bool fullVisibility = false);
 
 private:
 	enum class Screen
@@ -467,6 +468,7 @@ private:
 	std::thread mDuelThread;
 	int mActiveNpc;
 	bool mDirectDuelMode;
+	bool mDirectDuelFullVisibility;
 	int mSelectedCard;
 	int mActionScroll;
 	int mOpenGraveyardPlayer;

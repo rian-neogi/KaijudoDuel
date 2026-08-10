@@ -50,6 +50,14 @@ deck first and AI deck second:
   "VeiledOne.txt"
 ```
 
+Add `--full-visibility` to reveal and inspect the AI hand during a direct duel:
+
+```bash
+./Bin/KaijudoDuel --full-visibility --duel \
+  "My Decks/7 - L Tappy Tappy.txt" \
+  "VeiledOne.txt"
+```
+
 The direct-duel process closes after the match or when Escape is pressed. It
 does not award campaign cards, gold, or NPC victories. Relative deck names are
 searched beneath `Decks/` automatically; explicit existing paths still work.

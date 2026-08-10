@@ -2,6 +2,7 @@
 
 #include "AiScoring.h"
 #include "HeuristicBot.h"
+#include "MctsTiming.h"
 
 #include <algorithm>
 #include <chrono>
@@ -16,6 +17,30 @@ namespace
 	const double ROLLOUT_COMBAT_TEMPERATURE = 20.0;
 	const double ROLLOUT_UNIFORM_EXPLORATION = 0.05;
 	const int MAX_EXTRA_TURN_DEPTH_EXTENSIONS = 2;
+
+	struct MctsTimingCounters
+	{
+		long long cloneNs;
+		long long treeEnumerationNs;
+		long long rolloutEnumerationNs;
+		long long rolloutSelectionNs;
+		long long actionExecutionNs;
+		long long evaluationNs;
+		long long luaCallbackNs;
+
+		MctsTimingCounters()
+			: cloneNs(0), treeEnumerationNs(0), rolloutEnumerationNs(0),
+			  rolloutSelectionNs(0), actionExecutionNs(0), evaluationNs(0),
+			  luaCallbackNs(0)
+		{
+		}
+	};
+
+	long long elapsedNanoseconds(const std::chrono::steady_clock::time_point& started)
+	{
+		return std::chrono::duration_cast<std::chrono::nanoseconds>(
+			std::chrono::steady_clock::now() - started).count();
+	}
 
 	struct MctsNode;
 
@@ -42,6 +67,8 @@ namespace
 		int player;
 		int visits;
 		double valueSum;
+		std::string stateKey;
+		int validationGeneration;
 		bool initialized;
 		bool hasForcedPlan;
 		DecisionPlan forcedPlan;
@@ -49,11 +76,175 @@ namespace
 		std::unique_ptr<PlanNode> plans;
 
 		MctsNode()
-			: player(-1), visits(0), valueSum(0.0), initialized(false),
+			: player(-1), visits(0), valueSum(0.0), validationGeneration(-1), initialized(false),
 			  hasForcedPlan(false)
 		{
 		}
 	};
+
+	void appendStateInt(std::string& key, int value)
+	{
+		for (size_t byte = 0; byte < sizeof(value); ++byte)
+			key.push_back(static_cast<char>((static_cast<unsigned int>(value) >>
+				(byte * 8)) & 0xffU));
+	}
+
+	void appendStateString(std::string& key, const std::string& value)
+	{
+		appendStateInt(key, static_cast<int>(value.size()));
+		key.append(value);
+	}
+
+	void appendCardIds(std::string& key, const std::vector<Card*>& cards)
+	{
+		appendStateInt(key, static_cast<int>(cards.size()));
+		for (std::vector<Card*>::const_iterator card = cards.begin(); card != cards.end(); ++card)
+			appendStateInt(key, (*card)->mUniqueId);
+	}
+
+	void appendIntValues(std::string& key, const std::vector<int>& values)
+	{
+		appendStateInt(key, static_cast<int>(values.size()));
+		for (std::vector<int>::const_iterator value = values.begin(); value != values.end(); ++value)
+			appendStateInt(key, *value);
+	}
+
+	std::string duelStateKey(const Duel& duel)
+	{
+		std::string key;
+		key.reserve(duel.mCardList.size() * 64);
+		appendStateInt(key, duel.mTurn);
+		appendStateInt(key, duel.mTurnPhase);
+		appendStateInt(key, duel.mManaUsed);
+		appendStateInt(key, duel.mWinner);
+		appendStateInt(key, duel.mPlayerType[0]);
+		appendStateInt(key, duel.mPlayerType[1]);
+		appendStateInt(key, duel.mAttacker);
+		appendStateInt(key, duel.mDefender);
+		appendStateInt(key, duel.mDefenderType);
+		appendStateInt(key, duel.mBreakCount);
+		appendStateInt(key, duel.mAttackphase);
+		appendIntValues(key, duel.mShieldTargets);
+		for (int player = 0; player < 2; ++player)
+		{
+			std::vector<int> breakers(duel.mShieldBreakersThisTurn[player].begin(),
+				duel.mShieldBreakersThisTurn[player].end());
+			std::sort(breakers.begin(), breakers.end());
+			appendIntValues(key, breakers);
+			appendStateInt(key, duel.mCardsDrawnThisTurn[player]);
+		}
+		std::vector<std::string> ruleNames;
+		for (std::unordered_map<std::string, std::unordered_map<int, int> >::const_iterator rule =
+			duel.mLuaRuleState.begin(); rule != duel.mLuaRuleState.end(); ++rule)
+			ruleNames.push_back(rule->first);
+		std::sort(ruleNames.begin(), ruleNames.end());
+		appendStateInt(key, static_cast<int>(ruleNames.size()));
+		for (std::vector<std::string>::const_iterator name = ruleNames.begin();
+			name != ruleNames.end(); ++name)
+		{
+			appendStateString(key, *name);
+			std::unordered_map<std::string, std::unordered_map<int, int> >::const_iterator rule =
+				duel.mLuaRuleState.find(*name);
+			std::vector<std::pair<int, int> > values(rule->second.begin(), rule->second.end());
+			std::sort(values.begin(), values.end());
+			appendStateInt(key, static_cast<int>(values.size()));
+			for (std::vector<std::pair<int, int> >::const_iterator value = values.begin();
+				value != values.end(); ++value)
+			{
+				appendStateInt(key, value->first);
+				appendStateInt(key, value->second);
+			}
+		}
+		appendStateInt(key, duel.mCastingCard);
+		appendStateInt(key, duel.mCastingCivilizations);
+		appendStateInt(key, duel.mCastingCost);
+		appendStateInt(key, duel.mCastingEvobait);
+		appendStateInt(key, duel.mCastingEvobait2);
+		appendIntValues(key, duel.mCastingManaCards);
+		appendStateInt(key, duel.mNextUniqueId);
+		appendStateInt(key, static_cast<int>(duel.mCardList.size()));
+		for (std::vector<Card*>::const_iterator card = duel.mCardList.begin();
+			card != duel.mCardList.end(); ++card)
+		{
+			// Lua registry references are clone-local identities. Until modifiers
+			// have a stable engine-side type ID, declining reuse is safer than
+			// treating two behaviorally different closures as the same state.
+			if (!(*card)->mModifiers.empty()) return std::string();
+			appendStateInt(key, (*card)->mUniqueId);
+			appendStateInt(key, (*card)->mCardId);
+			appendStateInt(key, (*card)->mOwner);
+			appendStateInt(key, (*card)->mZone);
+			appendStateInt(key, (*card)->mPower);
+			appendStateInt(key, (*card)->mBreaker);
+			appendStateInt(key, (*card)->mIsBlocker);
+			appendStateInt(key, (*card)->mIsShieldTrigger);
+			appendStateInt(key, (*card)->mIsTapped ? 1 : 0);
+			appendStateInt(key, (*card)->mIsFlipped ? 1 : 0);
+			appendStateInt(key, (*card)->mSummoningSickness);
+			appendStateInt(key, (*card)->mIsVisible[0] ? 1 : 0);
+			appendStateInt(key, (*card)->mIsVisible[1] ? 1 : 0);
+			appendCardIds(key, (*card)->mEvoStack);
+			appendStateInt(key, 0);
+		}
+		for (int player = 0; player < 2; ++player)
+		{
+			appendCardIds(key, duel.mDecks[player].mCards);
+			appendCardIds(key, duel.mHands[player].mCards);
+			appendCardIds(key, duel.mManazones[player].mCards);
+			appendCardIds(key, duel.mGraveyards[player].mCards);
+			appendCardIds(key, duel.mShields[player].mCards);
+			appendStateInt(key, duel.mShields[player].mSlotsUsed);
+			appendCardIds(key, duel.mBattlezones[player].mCards);
+		}
+		return key;
+	}
+
+	void findMatchingPlanState(PlanNode& planNode, const std::string& stateKey,
+		std::unique_ptr<MctsNode>** best);
+
+	void findMatchingState(std::unique_ptr<MctsNode>& node, const std::string& stateKey,
+		std::unique_ptr<MctsNode>** best)
+	{
+		if (node == NULL) return;
+		if (!stateKey.empty() && node->stateKey == stateKey &&
+			(*best == NULL || node->visits > (**best)->visits))
+			*best = &node;
+		findMatchingState(node->forcedChild, stateKey, best);
+		if (node->plans != NULL) findMatchingPlanState(*node->plans, stateKey, best);
+	}
+
+	void findMatchingPlanState(PlanNode& planNode, const std::string& stateKey,
+		std::unique_ptr<MctsNode>** best)
+	{
+		findMatchingState(planNode.stateChild, stateKey, best);
+		for (std::vector<std::unique_ptr<PlanNode> >::iterator child = planNode.children.begin();
+			child != planNode.children.end(); ++child)
+			findMatchingPlanState(**child, stateKey, best);
+	}
+
+	void pruneUnkeyedPlanStates(PlanNode& planNode);
+
+	void pruneUnkeyedStates(MctsNode& node)
+	{
+		if (node.forcedChild != NULL)
+		{
+			if (node.forcedChild->stateKey.empty()) node.forcedChild.reset();
+			else pruneUnkeyedStates(*node.forcedChild);
+		}
+		if (node.plans != NULL) pruneUnkeyedPlanStates(*node.plans);
+	}
+
+	void pruneUnkeyedPlanStates(PlanNode& planNode)
+	{
+		if (planNode.stateChild != NULL)
+		{
+			if (planNode.stateChild->stateKey.empty()) planNode.stateChild.reset();
+			else pruneUnkeyedStates(*planNode.stateChild);
+		}
+		for (std::vector<std::unique_ptr<PlanNode> >::iterator child = planNode.children.begin();
+			child != planNode.children.end(); ++child)
+			pruneUnkeyedPlanStates(**child);
+	}
 
 	struct TurnHorizon
 	{
@@ -391,7 +582,7 @@ namespace
 
 	bool rollout(Duel& position, int& depth, int maxDepth, std::mt19937& random,
 		const std::function<bool()>& shouldStop, bool& stopped, TurnHorizon& horizon,
-		int& forcedMovesApplied)
+		int& forcedMovesApplied, MctsTimingCounters& timings)
 	{
 		while (position.mWinner == -1 && depth < horizon.depthLimit(maxDepth) &&
 			!horizon.cutoff)
@@ -412,7 +603,10 @@ namespace
 				return choice(random);
 			};
 			options.shouldStop = shouldStop;
+			std::chrono::steady_clock::time_point enumerationStarted =
+				std::chrono::steady_clock::now();
 			std::vector<DecisionPlan> plans = enumerateDecisionPlans(position, options);
+			timings.rolloutEnumerationNs += elapsedNanoseconds(enumerationStarted);
 			if (shouldStop && shouldStop())
 			{
 				stopped = true;
@@ -428,13 +622,25 @@ namespace
 			bool forced = plans.size() == 1;
 			if (forced)
 				selected = plans.front();
-			else if (!selectRolloutPlan(position, plans, player, random, selected, shouldStop))
+			else
 			{
-				if (shouldStop && shouldStop()) stopped = true;
-				return false;
+				std::chrono::steady_clock::time_point selectionStarted =
+					std::chrono::steady_clock::now();
+				bool selectedPlan = selectRolloutPlan(position, plans, player, random,
+					selected, shouldStop);
+				timings.rolloutSelectionNs += elapsedNanoseconds(selectionStarted);
+				if (!selectedPlan)
+				{
+					if (shouldStop && shouldStop()) stopped = true;
+					return false;
+				}
 			}
 			int previousTurn = position.mTurn;
-			if (!executeCompletePlan(position, selected))
+			std::chrono::steady_clock::time_point executionStarted =
+				std::chrono::steady_clock::now();
+			bool executed = executeCompletePlan(position, selected);
+			timings.actionExecutionNs += elapsedNanoseconds(executionStarted);
+			if (!executed)
 			{
 				if (shouldStop && shouldStop()) stopped = true;
 				return false;
@@ -447,9 +653,9 @@ namespace
 	}
 
 	bool runIteration(Duel& root, MctsNode& rootNode, int rootPlayer,
-		const MctsConfig& config, std::mt19937& random,
+		const MctsConfig& config, int validationGeneration, std::mt19937& random,
 		const std::function<bool()>& shouldStop, bool& stopped, bool& horizonCutoff,
-		int& forcedMovesApplied)
+		int& forcedMovesApplied, MctsTimingCounters& timings)
 	{
 		if (shouldStop && shouldStop())
 		{
@@ -459,7 +665,11 @@ namespace
 		Duel position;
 		position.mIsSimulation = true;
 		position.mInputLoopRunning = false;
-		if (!position.copyFrom(root)) return false;
+		std::chrono::steady_clock::time_point cloneStarted =
+			std::chrono::steady_clock::now();
+		bool cloned = position.copyFrom(root);
+		timings.cloneNs += elapsedNanoseconds(cloneStarted);
+		if (!cloned) return false;
 
 		std::vector<MctsNode*> statePath;
 		std::vector<PlanNode*> planPath;
@@ -470,7 +680,13 @@ namespace
 		while (position.mWinner == -1 && depth < horizon.depthLimit(config.maxDepth) &&
 			!horizon.cutoff)
 		{
-			if (!initializeNode(*node, position, shouldStop, random))
+			bool needsEnumeration = !node->initialized;
+			std::chrono::steady_clock::time_point enumerationStarted =
+				std::chrono::steady_clock::now();
+			bool initialized = initializeNode(*node, position, shouldStop, random);
+			if (needsEnumeration)
+				timings.treeEnumerationNs += elapsedNanoseconds(enumerationStarted);
+			if (!initialized)
 			{
 				if (shouldStop && shouldStop()) stopped = true;
 				if (stopped) return false;
@@ -479,7 +695,11 @@ namespace
 			if (node->hasForcedPlan)
 			{
 				int previousTurn = position.mTurn;
-				if (!executeCompletePlan(position, node->forcedPlan)) return false;
+				std::chrono::steady_clock::time_point executionStarted =
+					std::chrono::steady_clock::now();
+				bool executed = executeCompletePlan(position, node->forcedPlan);
+				timings.actionExecutionNs += elapsedNanoseconds(executionStarted);
+				if (!executed) return false;
 				forcedMovesApplied++;
 				++depth;
 				horizon.observe(position, startedImmediateExtraTurn(node->forcedPlan,
@@ -489,13 +709,26 @@ namespace
 					stopped = true;
 					return false;
 				}
-				if (position.mWinner != -1 ||
-					depth >= horizon.depthLimit(config.maxDepth) || horizon.cutoff)
-					break;
-				if (node->forcedChild == NULL)
-					node->forcedChild.reset(new MctsNode());
+				if (position.mWinner == -1 && (node->forcedChild == NULL ||
+					node->forcedChild->validationGeneration != validationGeneration))
+				{
+					std::string stateKey = duelStateKey(position);
+					if (node->forcedChild != NULL && !stateKey.empty() &&
+						node->forcedChild->stateKey != stateKey)
+						node->forcedChild.reset();
+					if (node->forcedChild == NULL) node->forcedChild.reset(new MctsNode());
+					{
+						ActiveDuelGuard activeGuard(position);
+						node->forcedChild->player = position.getPlayerToMove();
+					}
+					node->forcedChild->stateKey = stateKey;
+					node->forcedChild->validationGeneration = validationGeneration;
+				}
+				if (position.mWinner != -1) break;
 				node = node->forcedChild.get();
 				statePath.push_back(node);
+				if (depth >= horizon.depthLimit(config.maxDepth) || horizon.cutoff)
+					break;
 				continue;
 			}
 			if (node->plans == NULL ||
@@ -505,7 +738,12 @@ namespace
 			PlanNode* leaf = selectPlanLeaf(*node->plans, rootPlayer, config.exploration,
 				random, planPath);
 			int previousTurn = position.mTurn;
-			if (leaf == NULL || !executeCompletePlan(position, leaf->plan)) return false;
+			if (leaf == NULL) return false;
+			std::chrono::steady_clock::time_point executionStarted =
+				std::chrono::steady_clock::now();
+			bool executed = executeCompletePlan(position, leaf->plan);
+			timings.actionExecutionNs += elapsedNanoseconds(executionStarted);
+			if (!executed) return false;
 			++depth;
 			horizon.observe(position, startedImmediateExtraTurn(leaf->plan, previousTurn, position));
 			if (shouldStop && shouldStop())
@@ -513,29 +751,38 @@ namespace
 				stopped = true;
 				return false;
 			}
-			if (horizon.cutoff) break;
-
-			if (leaf->stateChild == NULL)
+			bool newStateChild = leaf->stateChild == NULL;
+			if (newStateChild ||
+				leaf->stateChild->validationGeneration != validationGeneration)
 			{
-				leaf->stateChild.reset(new MctsNode());
+				std::string stateKey = duelStateKey(position);
+				if (leaf->stateChild != NULL && !stateKey.empty() &&
+					leaf->stateChild->stateKey != stateKey)
+				{
+					leaf->stateChild.reset();
+					newStateChild = true;
+				}
+				if (leaf->stateChild == NULL) leaf->stateChild.reset(new MctsNode());
 				{
 					ActiveDuelGuard activeGuard(position);
 					leaf->stateChild->player = position.getPlayerToMove();
 				}
-				node = leaf->stateChild.get();
-				statePath.push_back(node);
-				break;
+				leaf->stateChild->stateKey = stateKey;
+				leaf->stateChild->validationGeneration = validationGeneration;
 			}
-
 			node = leaf->stateChild.get();
 			statePath.push_back(node);
+			if (horizon.cutoff || newStateChild) break;
 		}
 
 		if (!rollout(position, depth, config.maxDepth, random, shouldStop, stopped, horizon,
-			forcedMovesApplied))
+			forcedMovesApplied, timings))
 			return false;
 		horizonCutoff = horizon.cutoff;
+		std::chrono::steady_clock::time_point evaluationStarted =
+			std::chrono::steady_clock::now();
 		double reward = evaluate(position, rootPlayer);
+		timings.evaluationNs += elapsedNanoseconds(evaluationStarted);
 		for (std::vector<MctsNode*>::iterator visited = statePath.begin();
 			visited != statePath.end(); ++visited)
 		{
@@ -648,7 +895,11 @@ MctsChildStatistics::MctsChildStatistics() : visits(0), meanValue(0.0)
 
 MctsResult::MctsResult()
 	: hasPlan(false), iterationsCompleted(0), failedIterations(0), timeBudgetExpired(false),
-	  turnHorizonCutoffs(0), forcedMovesApplied(0), meanValue(0.0),
+	  turnHorizonCutoffs(0), forcedMovesApplied(0), reusedTree(false),
+	  reusedRootVisits(0), cloneTimeMs(0.0), treeEnumerationTimeMs(0.0),
+	  rolloutEnumerationTimeMs(0.0), rolloutSelectionTimeMs(0.0),
+	  actionExecutionTimeMs(0.0), evaluationTimeMs(0.0), luaCallbackTimeMs(0.0),
+	  meanValue(0.0),
 	  selectedVisits(0), selectedMeanValue(0.0)
 {
 }
@@ -658,24 +909,30 @@ struct MctsSession::Impl
 	int rootPlayer;
 	MctsConfig config;
 	Duel root;
-	MctsNode rootNode;
+	std::unique_ptr<MctsNode> rootNode;
 	std::mt19937 random;
 	int iterationsCompleted;
 	int failedIterations;
 	int turnHorizonCutoffs;
 	int forcedMovesApplied;
 	bool started;
+	bool reusedTree;
+	int reusedRootVisits;
+	int validationGeneration;
+	MctsTimingCounters timings;
 	std::chrono::steady_clock::time_point deadline;
 	bool hasDeadline;
 
 	Impl(int player, const MctsConfig& searchConfig)
-		: rootPlayer(player), config(searchConfig), random(searchConfig.seed),
+		: rootPlayer(player), config(searchConfig), rootNode(new MctsNode()),
+		  random(searchConfig.seed),
 		  iterationsCompleted(0), failedIterations(0), turnHorizonCutoffs(0),
-		  forcedMovesApplied(0), started(false), hasDeadline(false)
+		  forcedMovesApplied(0), started(false), reusedTree(false),
+		  reusedRootVisits(0), validationGeneration(0), hasDeadline(false)
 	{
 		root.mIsSimulation = true;
 		root.mInputLoopRunning = false;
-		rootNode.player = player;
+		rootNode->player = player;
 	}
 
 	bool timeExpired() const
@@ -713,14 +970,70 @@ bool MctsSession::start(Duel& root)
 		if (root.mWinner != -1 || root.getPlayerToMove() != mImpl->rootPlayer)
 			return false;
 	}
-	if (!mImpl->root.copyFrom(root)) return false;
+	std::chrono::steady_clock::time_point cloneStarted =
+		std::chrono::steady_clock::now();
+	bool cloned = mImpl->root.copyFrom(root);
+	mImpl->timings.cloneNs += elapsedNanoseconds(cloneStarted);
+	if (!cloned) return false;
+	mImpl->rootNode.reset(new MctsNode());
+	mImpl->rootNode->player = mImpl->rootPlayer;
+	mImpl->rootNode->stateKey = duelStateKey(mImpl->root);
+	mImpl->rootNode->validationGeneration = mImpl->validationGeneration;
 	mImpl->started = true;
+	return true;
+}
+
+bool MctsSession::restart(Duel& root, const MctsConfig& config)
+{
+	if (!mImpl->started || !isComplete() || config.iterations <= 0 ||
+		config.maxDepth <= 0 || config.timeBudgetMs < 0 ||
+		!std::isfinite(config.exploration) || config.exploration < 0.0 ||
+		!root.isCloneable())
+		return false;
+	{
+		ActiveDuelGuard rootGuard(root);
+		if (root.mWinner != -1 || root.getPlayerToMove() != mImpl->rootPlayer)
+			return false;
+	}
+
+	const std::string stateKey = duelStateKey(root);
+	std::unique_ptr<MctsNode>* matchingNode = NULL;
+	findMatchingState(mImpl->rootNode, stateKey, &matchingNode);
+	mImpl->timings = MctsTimingCounters();
+	std::chrono::steady_clock::time_point cloneStarted =
+		std::chrono::steady_clock::now();
+	bool cloned = mImpl->root.copyFrom(root);
+	mImpl->timings.cloneNs += elapsedNanoseconds(cloneStarted);
+	if (!cloned) return false;
+	std::unique_ptr<MctsNode> nextRoot;
+	if (matchingNode != NULL) nextRoot = std::move(*matchingNode);
+	if (nextRoot == NULL) nextRoot.reset(new MctsNode());
+
+	mImpl->config = config;
+	mImpl->rootNode = std::move(nextRoot);
+	mImpl->rootNode->player = mImpl->rootPlayer;
+	mImpl->rootNode->stateKey = stateKey;
+	mImpl->reusedTree = matchingNode != NULL;
+	mImpl->reusedRootVisits = mImpl->reusedTree ? mImpl->rootNode->visits : 0;
+	mImpl->validationGeneration++;
+	mImpl->rootNode->validationGeneration = mImpl->validationGeneration;
+	if (mImpl->reusedTree) pruneUnkeyedStates(*mImpl->rootNode);
+	mImpl->iterationsCompleted = 0;
+	mImpl->failedIterations = 0;
+	mImpl->turnHorizonCutoffs = 0;
+	mImpl->forcedMovesApplied = 0;
+	mImpl->hasDeadline = config.timeBudgetMs > 0;
+	if (mImpl->hasDeadline)
+		mImpl->deadline = std::chrono::steady_clock::now() +
+			std::chrono::milliseconds(config.timeBudgetMs);
+	if (!mImpl->reusedTree) mImpl->random.seed(config.seed);
 	return true;
 }
 
 bool MctsSession::advance(int iterationBudget)
 {
 	if (!mImpl->started) return false;
+	MctsTiming::SearchScope luaTimingScope(mImpl->timings.luaCallbackNs);
 	int attempted = mImpl->iterationsCompleted + mImpl->failedIterations;
 	int remaining = mImpl->config.iterations - attempted;
 	int count = std::min(std::max(0, iterationBudget), remaining);
@@ -731,9 +1044,9 @@ bool MctsSession::advance(int iterationBudget)
 		bool stopped = false;
 		bool horizonCutoff = false;
 		int forcedMovesApplied = 0;
-		if (runIteration(mImpl->root, mImpl->rootNode, mImpl->rootPlayer,
-			mImpl->config, mImpl->random, shouldStop, stopped, horizonCutoff,
-			forcedMovesApplied))
+		if (runIteration(mImpl->root, *mImpl->rootNode, mImpl->rootPlayer,
+			mImpl->config, mImpl->validationGeneration, mImpl->random, shouldStop,
+			stopped, horizonCutoff, forcedMovesApplied, mImpl->timings))
 		{
 			mImpl->iterationsCompleted++;
 			if (horizonCutoff) mImpl->turnHorizonCutoffs++;
@@ -763,10 +1076,26 @@ MctsResult MctsSession::result() const
 {
 	if (!mImpl->started) return MctsResult();
 	int attempted = mImpl->iterationsCompleted + mImpl->failedIterations;
-	return collectResult(mImpl->rootNode, mImpl->rootPlayer,
+	MctsResult result = collectResult(*mImpl->rootNode, mImpl->rootPlayer,
 		mImpl->iterationsCompleted, mImpl->failedIterations,
 		mImpl->timeExpired() && attempted < mImpl->config.iterations,
 		mImpl->turnHorizonCutoffs, mImpl->forcedMovesApplied);
+	result.reusedTree = mImpl->reusedTree;
+	result.reusedRootVisits = mImpl->reusedRootVisits;
+	const double nanosecondsToMilliseconds = 1.0 / 1000000.0;
+	result.cloneTimeMs = mImpl->timings.cloneNs * nanosecondsToMilliseconds;
+	result.treeEnumerationTimeMs =
+		mImpl->timings.treeEnumerationNs * nanosecondsToMilliseconds;
+	result.rolloutEnumerationTimeMs =
+		mImpl->timings.rolloutEnumerationNs * nanosecondsToMilliseconds;
+	result.rolloutSelectionTimeMs =
+		mImpl->timings.rolloutSelectionNs * nanosecondsToMilliseconds;
+	result.actionExecutionTimeMs =
+		mImpl->timings.actionExecutionNs * nanosecondsToMilliseconds;
+	result.evaluationTimeMs = mImpl->timings.evaluationNs * nanosecondsToMilliseconds;
+	result.luaCallbackTimeMs =
+		mImpl->timings.luaCallbackNs * nanosecondsToMilliseconds;
+	return result;
 }
 
 MctsSearch::MctsSearch(int rootPlayer, const MctsConfig& config)

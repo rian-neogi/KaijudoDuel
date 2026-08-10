@@ -2011,6 +2011,20 @@ int Duel::getCardAiCanCast(int uid)
 	return canCast;
 }
 
+int Duel::getCardAiPreferredChoice(int uid)
+{
+	Message oldmsg = mCurrentMessage;
+	mCurrentMessage = Message("get cardaipreferredchoice");
+	mCurrentMessage.addValue("selection", RETURN_NOTHING);
+	mCurrentMessage.addValue("card", uid);
+
+	for (std::vector<Card*>::iterator card = mCardList.begin(); card != mCardList.end(); ++card)
+		(*card)->handleMessage(mCurrentMessage);
+	int selection = mCurrentMessage.getInt("selection");
+	mCurrentMessage = oldmsg;
+	return selection;
+}
+
 int Duel::getCardCivilization(int uid)
 {
 	return mCardList.at(uid)->mCivilization;

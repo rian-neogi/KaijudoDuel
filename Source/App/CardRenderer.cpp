@@ -30,6 +30,8 @@ void Application::drawZone(const std::vector<Card*>& cards, int x, int y, int wi
 void Application::drawHand(const std::vector<Card*>& cards, bool opponent)
 {
 	if (cards.empty()) return;
+	const bool revealedOpponent = opponent && mDirectDuelMode &&
+		mDirectDuelFullVisibility;
 	const int cardWidth = opponent ? 76 : 88;
 	const int cardHeight = opponent ? 106 : 122;
 	const float midpoint = ((float)cards.size() - 1.f) * 0.5f;
@@ -54,7 +56,8 @@ void Application::drawHand(const std::vector<Card*>& cards, bool opponent)
 			(int)std::round(centerY - cardHeight * 0.5f),
 			cardWidth, cardHeight
 		};
-		drawCard(cards[i], rect, !opponent, cards[i]->mUniqueId == mSelectedCard, !opponent, angle);
+		drawCard(cards[i], rect, !opponent || revealedOpponent,
+			cards[i]->mUniqueId == mSelectedCard, !opponent || revealedOpponent, angle);
 	}
 }
 
