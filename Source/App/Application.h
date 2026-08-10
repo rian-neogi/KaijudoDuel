@@ -175,6 +175,7 @@ private:
 	void handleSettingsEvent(const SDL_Event& event);
 	void renderSettings();
 	bool exerciseMenuScreensSmoke();
+	bool exerciseShopStockSmoke();
 	bool exerciseDuelCloneSmoke();
 	bool exerciseModifierDestroySmoke();
 	bool exerciseSimulationChoiceSmoke();

@@ -10,6 +10,7 @@
 #include "Game/Card.h"
 #include "Game/Deck.h"
 #include "Landmarks.h"
+#include "LuaInclude.h"
 #include "RtpTilesetRenderer.h"
 #include "SpriteSheetRenderer.h"
 #include "WorldStorage.h"
@@ -65,6 +66,46 @@ namespace
 		closedir(folder);
 		return valid;
 	}
+
+	bool validateShopStockCardList(lua_State* state, int shopTable, const char* field,
+		const std::string& shopId, std::string& error)
+	{
+		shopTable = lua_absindex(state, shopTable);
+		lua_getfield(state, shopTable, field);
+		if (!lua_istable(state, -1))
+		{
+			error = "shop '" + shopId + "' is missing " + field;
+			lua_pop(state, 1);
+			return false;
+		}
+		const size_t count = lua_rawlen(state, -1);
+		if (std::string(field) == "initial_stock" && count == 0)
+		{
+			error = "shop '" + shopId + "' has empty initial stock";
+			lua_pop(state, 1);
+			return false;
+		}
+		for (size_t index = 1; index <= count; ++index)
+		{
+			lua_rawgeti(state, -1, (lua_Integer)index);
+			if (!lua_isstring(state, -1))
+			{
+				error = "shop '" + shopId + "' has a non-string card in " + field;
+				lua_pop(state, 2);
+				return false;
+			}
+			const std::string cardName = lua_tostring(state, -1);
+			if (getCardIdFromName(cardName) < 0)
+			{
+				error = "shop '" + shopId + "' has unknown card '" + cardName + "'";
+				lua_pop(state, 2);
+				return false;
+			}
+			lua_pop(state, 1);
+		}
+		lua_pop(state, 1);
+		return true;
+	}
 }
 
 int Application::runSmokeTests()
@@ -95,6 +136,11 @@ int Application::runSmokeTests()
 		if (mScreen != Screen::MainMenu || !savePathsReady)
 		{
 			std::cerr << "Save menu smoke test failed." << std::endl;
+			return 2;
+		}
+		if (!exerciseShopStockSmoke())
+		{
+			std::cerr << "Shop stock card-name smoke test failed." << std::endl;
 			return 2;
 		}
 		if (!exerciseDuelCloneSmoke())
@@ -443,6 +489,77 @@ int Application::runSmokeTests()
 		}
 	}
 	return 0;
+}
+
+bool Application::exerciseShopStockSmoke()
+{
+	lua_State* state = luaL_newstate();
+	if (state == NULL) return false;
+	luaL_openlibs(state);
+	std::string error;
+	bool valid = luaL_loadfile(state, "Lua/ShopStock.lua") == LUA_OK;
+	if (valid) valid = lua_pcall(state, 0, 1, 0) == LUA_OK;
+	if (!valid)
+	{
+		const char* message = lua_tostring(state, -1);
+		error = message == NULL ? "unknown Lua error" : message;
+	}
+	if (valid && !lua_istable(state, -1))
+	{
+		error = "ShopStock.lua must return a table";
+		valid = false;
+	}
+	if (valid)
+	{
+		const int root = lua_gettop(state);
+		lua_getfield(state, root, "shops");
+		if (!lua_istable(state, -1))
+		{
+			error = "ShopStock.lua is missing shops";
+			valid = false;
+		}
+		else if (lua_rawlen(state, -1) == 0)
+		{
+			error = "ShopStock.lua has no shops";
+			valid = false;
+		}
+		else
+		{
+			const size_t shopCount = lua_rawlen(state, -1);
+			for (size_t index = 1; index <= shopCount && valid; ++index)
+			{
+				lua_rawgeti(state, -1, (lua_Integer)index);
+				const int shopTable = lua_gettop(state);
+				if (!lua_istable(state, shopTable))
+				{
+					error = "ShopStock.lua has a non-table shop entry";
+					valid = false;
+				}
+				else
+				{
+					lua_getfield(state, shopTable, "id");
+					const std::string shopId = lua_isstring(state, -1) ?
+						lua_tostring(state, -1) : "";
+					lua_pop(state, 1);
+					if (shopId.empty())
+					{
+						error = "ShopStock.lua has a shop without an id";
+						valid = false;
+					}
+					else if (!validateShopStockCardList(state, shopTable, "initial_stock",
+						shopId, error) ||
+						!validateShopStockCardList(state, shopTable, "act_iii_bonus",
+						shopId, error))
+						valid = false;
+				}
+				lua_pop(state, 1);
+			}
+		}
+		lua_pop(state, 1);
+	}
+	if (!valid) std::cerr << error << std::endl;
+	lua_close(state);
+	return valid;
 }
 
 bool Application::exerciseDuelCloneSmoke()
