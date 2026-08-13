@@ -572,7 +572,8 @@ Cards["Vikorakys"] = {
 			local attack = function(id)
 				local owner = getCardOwner(id)
 				openDeck(owner)
-				local ch = createChoice("Choose a card in your deck",1,id,owner,Checks.InYourDeck)
+				local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,Checks.InYourDeck)
+				local ch = createChoice("Choose a card in your deck",1,id,owner,Checks.InYourDeck,preferred)
 				closeDeck(owner)
 				if(ch>=0) then
 					moveCard(ch,ZONE_HAND)
@@ -588,6 +589,10 @@ Cards["Vikorakys"] = {
 Cards["Wave Lance"] = {
 	price_tier = 1,
 	shieldtrigger = 0,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InBattle)
+	end,
 
 	OnCast = function(id)
 		local ch = createChoice("Choose a creature",0,id,getCardOwner(id),Checks.InBattle)
@@ -622,6 +627,10 @@ Cards["Corpse Charger"] = {
 Cards["Skeleton Vice"] = {
 	price_tier = 3,
 	shieldtrigger = 0,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfOpponentHasHand(id)
+	end,
 
 	OnCast = function(id) --test
 		local opponent = getOpponent(getCardOwner(id))
@@ -982,6 +991,10 @@ Cards["Volcano Charger"] = {
 
 	HandleMessage = function(id)
 		Abils.Charger(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+			if(Checks.InOppBattle(cid,sid)==1 and getCreaturePower(sid)<=2000) then return 1 end
+			return 0
+		end)
 	end
 }
 

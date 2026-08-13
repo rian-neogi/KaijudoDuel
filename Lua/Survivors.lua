@@ -292,7 +292,8 @@ Cards["Brutal Charge"] = {
 				if(count>0) then
 					openDeck(owner)
 					for i=1,count do
-						local creature = createChoice("Choose a creature in your deck",1,cid,owner,Checks.CreatureInYourDeck)
+						local preferred = Functions.HighestCostChoice(cid,owner,ZONE_DECK,Checks.CreatureInYourDeck)
+						local creature = createChoice("Choose a creature in your deck",1,cid,owner,Checks.CreatureInYourDeck,preferred)
 						if(creature<0) then break end
 						moveCard(creature,ZONE_HAND)
 					end
@@ -1128,6 +1129,10 @@ Cards["Scheming Hands"] = {
 
 	shieldtrigger = 0,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfOpponentHasHand(id)
+	end,
+
 	OnCast = function(id)
 		local owner = getCardOwner(id)
 		local opponent = getOpponent(owner)
@@ -1178,7 +1183,8 @@ Cards["Scissor Scarab"] = {
             end
             local owner = getCardOwner(id)
             openDeck(owner)
-            local ch = createChoice("Choose a Giant Insect in your deck",1,id,owner,valid)
+            local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,valid)
+            local ch = createChoice("Choose a Giant Insect in your deck",1,id,owner,valid,preferred)
             closeDeck(owner)
             if(ch>=0) then
                 moveCard(ch,ZONE_HAND)

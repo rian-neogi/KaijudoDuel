@@ -288,9 +288,12 @@ multiple legal target or choice completions is not forced: those completions
 remain separate choice-trie branches. Forced moves still consume the decision
 depth budget as protection against malformed rules that could otherwise loop.
 
-The initial rollout policy chooses uniformly at each action and choice-trie
+The initial rollout policy chooses uniformly at each action and ordered choice
 level, rather than weighting an option by how many complete leaves happen to
-exist beneath it. A
+exist beneath it. Rollouts sample one legal answer directly at each choice;
+they do not exhaustively build every complete choice path merely to select one.
+Tree nodes still enumerate the complete choice trie so MCTS can compare those
+strategic branches. A
 terminal win is `1`, a loss is `-1`, and a depth-limited position receives a
 bounded material evaluation. A battle-zone creature is worth its effective
 power divided by 1000 plus twice its effective breaker count. Mana is worth two
@@ -301,7 +304,15 @@ shield is not mistaken for helping the defender merely because it adds a hand
 card. The same root and seed reproduce the same search. The selected root plan
 is the child with the most visits, with mean value as a deterministic tie-breaker.
 
-The live AI driver attempts at most 64 iterations with a maximum rollout depth
+All numeric tuning values used by the leaf evaluator, MCTS search and rollout
+policy, and `HeuristicBot` rollout scoring live in `Lua/AIParams.lua`. C++ reads
+that immutable configuration once when the card rules initialize; it is not
+duel state and is never changed by a rollout. This includes zone values, the
+evaluation normalization scale, terminal values, rollout and depth budgets,
+the UCT exploration constant, rollout combat temperature, uniform rollout
+exploration, mana policies, combat/choice scores, and personality adjustments.
+
+The live AI driver attempts at most 1024 iterations with a maximum rollout depth
 of 12 complete decisions and a 1500-millisecond wall-clock budget.
 `BackgroundMctsSearch` runs the persistent `MctsSession` on a worker thread
 while the UI continues rendering the frozen live duel. Effective
@@ -309,10 +320,13 @@ creature powers are refreshed before every background search, rather than only
 once per turn, so summons and continuous effects from earlier AI actions are
 visible at the next stable boundary. Before cloning or starting the worker, the
 driver checks the engine's root move list. If it contains exactly one legal
-action, that action is queued immediately and the terminal reports zero
-rollouts. Deadline checks also occur during complete-plan enumeration and
-between simulation steps, so an expensive partially enumerated iteration can
-stop without being counted as failed. The best visited root plan is returned
+action, that action is queued immediately without starting or printing an MCTS
+search. Deadline checks also occur during complete-plan enumeration and
+between simulation steps. Once an iteration has selected a tree action, a
+deadline reached during its rollout becomes a heuristic leaf cutoff and is
+backpropagated instead of discarding that action's entire visit. A deadline
+reached before tree selection can still stop an iteration without counting it
+as failed. The best visited root plan is returned
 when time expires. If no plan was visited, the position is not cloneable, or
 the selected plan fails validation, the driver queues one action from
 `HeuristicBot` instead. This is especially important for legacy suspended
@@ -346,11 +360,13 @@ two extra turns per rollout; the maximum decision depth remains a secondary
 safety cap.
 
 When a session completes, the terminal reports completed and attempted
-rollouts, failed rollouts, elapsed wall time, whether the budget expired, the
-number of turn-horizon cutoffs, the root evaluation, number of root actions,
-number of forced moves applied, selected action, selected action evaluation,
-visit count, whether an explored subtree was reused, and the reused root's
-pre-existing visit count. It also reports inclusive millisecond counters for
+rollouts, failed rollouts, elapsed wall time, the number of turn-horizon
+cutoffs, the root evaluation, number of root actions, number of forced moves
+applied, selected action, whether an explored subtree was reused, and the
+reused root's pre-existing visit count. Each legal root action is then printed
+on its own indented line with a readable card/target description, mean
+evaluation, and visit count; the selected action is marked with `*`. It also
+reports inclusive millisecond counters for
 duel cloning, tree-plan enumeration, rollout-plan enumeration, rollout
 selection, selected action execution, and leaf evaluation. Enumeration timing
 includes any Lua callbacks invoked while discovering complete plans. A separate

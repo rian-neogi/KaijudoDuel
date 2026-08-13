@@ -25,6 +25,7 @@ endif()
 
 set(GAME_SOURCES
     Source/Main.cpp
+	Source/AI/AiParams.cpp
 	Source/AI/AiScoring.cpp
 	Source/AI/AiDriver.cpp
 	Source/AI/DecisionPlan.cpp

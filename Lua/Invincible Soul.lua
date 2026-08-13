@@ -255,7 +255,8 @@ Cards["Invincible Technology"] = {
 		local owner = getCardOwner(id)
         openDeck(owner)
 		while(true) do
-			local ch = createChoice("Choose a card in your deck",1,id,owner,Checks.InYourDeck)
+			local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,Checks.InYourDeck)
+			local ch = createChoice("Choose a card in your deck",1,id,owner,Checks.InYourDeck,preferred)
 			if(ch>=0) then
 				moveCard(ch,ZONE_HAND)
 			end
@@ -272,6 +273,10 @@ Cards["Invincible Technology"] = {
 Cards["Invincible Abyss"] = {
 	price_tier = 5,
 	shieldtrigger = 0,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InOppBattle)
+	end,
 
 	OnCast = function(id)
 		local func = function(cid,sid)
@@ -511,7 +516,8 @@ Cards["Forbos, Sanctum Guardian Q"] = {
 			local summon = function(id)
 				local owner = getCardOwner(id)
 				openDeck(owner)
-				local ch = createChoice("Choose a spell in your deck",1,id,owner,Checks.SpellInYourDeck)
+				local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,Checks.SpellInYourDeck)
+				local ch = createChoice("Choose a spell in your deck",1,id,owner,Checks.SpellInYourDeck,preferred)
 				closeDeck(owner)
 				if(ch>=0) then
 					moveCard(ch,ZONE_HAND)
@@ -588,6 +594,10 @@ Cards["Protective Force"] = {
 Cards["Rain of Arrows"] = {
 	price_tier = 2,
 	shieldtrigger = 0,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfOpponentHasHand(id)
+	end,
 
 	OnCast = function(id) --test
 		local owner = getCardOwner(id)
@@ -905,6 +915,14 @@ Cards["Shock Hurricane"] = {
 	price_tier = 2,
 	shieldtrigger = 0,
 
+	HandleMessage = function(id)
+		if(getMessageType()=="get cardaicancast" and getMessageInt("card")==id and
+			(getZoneSize(getCardOwner(id),ZONE_BATTLE)==0 or
+			getZoneSize(getOpponent(getCardOwner(id)),ZONE_BATTLE)==0)) then
+			setMessageInt("cancast",0)
+		end
+	end,
+
 	OnCast = function(id) --test
 		local count = 0
 		while (true) do
@@ -954,6 +972,10 @@ Cards["Sopian"] = {
 Cards["Spiral Gate"] = {
 	price_tier = 1,
 	shieldtrigger = 1,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InBattle)
+	end,
 
 	OnCast = function(id)
         local ch = createChoice("Choose a creature",0,id,getCardOwner(id),Checks.InBattle)
@@ -1035,6 +1057,10 @@ Cards["Cursed Pincher"] = {
 Cards["Death Smoke"] = {
 	price_tier = 1,
 	shieldtrigger = 0,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.UntappedInOppBattle)
+	end,
 
 	OnCast = function(id)
 		local ch = createChoice("Choose an opponent's creature",0,id,getCardOwner(id),Checks.UntappedInOppBattle)
@@ -1256,6 +1282,10 @@ Cards["Proclamation of Death"] = {
 	price_tier = 2,
 	shieldtrigger = 1,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InOppBattle)
+	end,
+
 	OnCast = function(id)
 		local ch = createChoice("Choose a creature in your battlezone",0,id,getOpponent(getCardOwner(id)),Checks.InOppBattle)
 	    if(ch>=0) then
@@ -1466,6 +1496,13 @@ Cards["Comet Missile"] = {
 	price_tier = 2,
 	shieldtrigger = 1,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+			if(Checks.BlockerInOppBattle(cid,sid)==1 and getCreaturePower(sid)<=6000) then return 1 end
+			return 0
+		end)
+	end,
+
 	OnCast = function(id) --test
 		local check = function(cid,sid)
 			if(getCardType(sid)==TYPE_CREATURE and getCreaturePower(sid)<=6000) then
@@ -1486,9 +1523,18 @@ Cards["Crisis Boulder"] = {
 	price_tier = 3,
 	shieldtrigger = 1,
 
+	HandleMessage = function(id)
+		if(getMessageType()=="get cardaicancast" and getMessageInt("card")==id) then
+			local opponent=getOpponent(getCardOwner(id))
+			if(getZoneSize(opponent,ZONE_BATTLE)==0 and getZoneSize(opponent,ZONE_MANA)==0) then
+				setMessageInt("cancast",0)
+			end
+		end
+	end,
+
 	OnCast = function(id) --test
 		local check = function(cid,sid)
-			return (Checks.InOppMana(cid,sid) or Checks.InOppBattle(cid,sid))
+			return (Checks.InOppMana(cid,sid)==1 or Checks.InOppBattle(cid,sid)==1)
 		end
 		
 		local ch = createChoice("Choose an card in your battle zone or mana zone",0,id,getOpponent(getCardOwner(id)),check)
@@ -1569,6 +1615,13 @@ Cards["Migasa, Adept of Chaos"] = {
 Cards["Phantom Dragon's Flame"] = {
 	price_tier = 1,
 	shieldtrigger = 1,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+			if(Checks.InOppBattle(cid,sid)==1 and getCreaturePower(sid)<=2000) then return 1 end
+			return 0
+		end)
+	end,
 
 	OnCast = function(id)
 		local valid = function(cid,sid)
@@ -1766,7 +1819,8 @@ Cards["Charmilia, the Enticer"] = {
 		local tap = function(id)
 			local owner = getCardOwner(id)
 			openDeck(owner)
-			local ch = createChoice("Choose a creature in your deck",0,id,owner,Checks.CreatureInYourDeck)
+			local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,Checks.CreatureInYourDeck)
+			local ch = createChoice("Choose a creature in your deck",0,id,owner,Checks.CreatureInYourDeck,preferred)
 			closeDeck(owner)
 			if(ch>=0) then
 				moveCard(ch,ZONE_HAND)
@@ -1796,7 +1850,8 @@ Cards["Dimension Gate"] = {
 	OnCast = function(id)
 		local owner = getCardOwner(id)
         openDeck(owner)
-	    local ch = createChoice("Choose a creature in your deck",0,id,owner,Checks.CreatureInYourDeck)
+	    local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,Checks.CreatureInYourDeck)
+	    local ch = createChoice("Choose a creature in your deck",0,id,owner,Checks.CreatureInYourDeck,preferred)
         closeDeck(owner)
 	    if(ch>=0) then
             moveCard(ch,ZONE_HAND)
@@ -1817,7 +1872,8 @@ Cards["Factory Shell Q"] = {
 			local summon = function(id)
 				local owner = getCardOwner(id)
 				openDeck(owner)
-				local ch = createChoice("Choose a creature in your deck",0,id,owner,Checks.SurvivorInYourDeck)
+				local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,Checks.SurvivorInYourDeck)
+				local ch = createChoice("Choose a creature in your deck",0,id,owner,Checks.SurvivorInYourDeck,preferred)
 				closeDeck(owner)
 				if(ch>=0) then
 					moveCard(ch,ZONE_HAND)
@@ -1984,6 +2040,10 @@ Cards["Mystic Treasure Chest"] = {
 Cards["Pangaea's Will"] = {
 	price_tier = 2,
 	shieldtrigger = 1,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.EvolutionInOppBattle)
+	end,
 
 	OnCast = function(id) --test
 		local ch = createChoice("Choose an opponent's evolution creature",0,id,getCardOwner(id),Checks.EvolutionInOppBattle)

@@ -96,7 +96,7 @@ Diamondia, Blizzard Rider: Snow Faerie
 
 ### Other
 
-Abzo Dolba, Bailas Gale, Jabaha, Bajula: Dragon
+Abzo Dolba, Bailas Gale, Jabaha, Bajula, Zaschack: Dragon
 
 Alacadeais/Ballom: Angel/Demon Command
 

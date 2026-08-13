@@ -1,5 +1,6 @@
 #include "Mcts.h"
 
+#include "AiParams.h"
 #include "AiScoring.h"
 #include "HeuristicBot.h"
 #include "MctsTiming.h"
@@ -14,10 +15,6 @@
 
 namespace
 {
-	const double ROLLOUT_COMBAT_TEMPERATURE = 20.0;
-	const double ROLLOUT_UNIFORM_EXPLORATION = 0.05;
-	const int MAX_EXTRA_TURN_DEPTH_EXTENSIONS = 2;
-
 	struct MctsTimingCounters
 	{
 		long long cloneNs;
@@ -273,7 +270,8 @@ namespace
 		{
 			if (cutoff) return;
 			if (immediateExtraTurn &&
-				extraTurnDepthExtensions < MAX_EXTRA_TURN_DEPTH_EXTENSIONS)
+				extraTurnDepthExtensions <
+					std::max(0, aiIntParam("search.max_extra_turn_depth_extensions")))
 				extraTurnDepthExtensions++;
 			if (!aiTurnSeen)
 			{
@@ -390,11 +388,12 @@ namespace
 
 	double evaluate(Duel& duel, int rootPlayer)
 	{
-		if (duel.mWinner == rootPlayer) return 1.0;
-		if (duel.mWinner == 1 - rootPlayer) return -1.0;
+		if (duel.mWinner == rootPlayer) return aiParam("evaluation.win_value");
+		if (duel.mWinner == 1 - rootPlayer) return aiParam("evaluation.loss_value");
 		double difference = AiScoring::playerValue(duel, rootPlayer) -
 			AiScoring::playerValue(duel, 1 - rootPlayer);
-		return std::tanh(difference / 24.0);
+		double scale = std::max(0.000001, aiParam("evaluation.normalization_scale"));
+		return std::tanh(difference / scale);
 	}
 
 	bool initializeNode(MctsNode& node, Duel& position,
@@ -539,8 +538,10 @@ namespace
 						for (size_t i = 0; i < combatActions.size(); ++i)
 						{
 							if (!std::isfinite(scores[i])) continue;
+							double temperature = std::max(0.000001,
+								aiParam("search.rollout_combat_temperature"));
 							exponentials[i] = std::exp(
-								(scores[i] - maximumScore) / ROLLOUT_COMBAT_TEMPERATURE);
+								(scores[i] - maximumScore) / temperature);
 							exponentialSum += exponentials[i];
 						}
 						for (size_t i = 0; i < combatActions.size(); ++i)
@@ -550,10 +551,12 @@ namespace
 								weights[combatActions[i]] = 0.0;
 								continue;
 							}
+							double uniformExploration = std::max(0.0, std::min(1.0,
+								aiParam("search.rollout_uniform_exploration")));
 							double probability =
-								(1.0 - ROLLOUT_UNIFORM_EXPLORATION) *
+								(1.0 - uniformExploration) *
 									exponentials[i] / exponentialSum +
-								ROLLOUT_UNIFORM_EXPLORATION / finiteCount;
+								uniformExploration / finiteCount;
 							// Preserve the combat group's old aggregate probability. Card
 							// plays and other action classes therefore remain equal-weight.
 							weights[combatActions[i]] = combatActions.size() * probability;
@@ -591,12 +594,13 @@ namespace
 			if (shouldStop && shouldStop())
 			{
 				stopped = true;
-				return false;
+				return true;
 			}
 			DecisionPlanEnumerationOptions options;
 			options.heuristicMana = true;
 			options.heuristicCardPlay = true;
 			options.heuristicChoices = true;
+			options.randomChoices = true;
 			options.randomShieldTarget = true;
 			options.randomIndex = [&random](size_t count) -> size_t
 			{
@@ -611,7 +615,7 @@ namespace
 			if (shouldStop && shouldStop())
 			{
 				stopped = true;
-				return false;
+				return true;
 			}
 			if (plans.empty()) break;
 			int player = -1;
@@ -632,7 +636,11 @@ namespace
 				timings.rolloutSelectionNs += elapsedNanoseconds(selectionStarted);
 				if (!selectedPlan)
 				{
-					if (shouldStop && shouldStop()) stopped = true;
+					if (shouldStop && shouldStop())
+					{
+						stopped = true;
+						return true;
+					}
 					return false;
 				}
 			}
@@ -708,7 +716,7 @@ namespace
 				if (shouldStop && shouldStop())
 				{
 					stopped = true;
-					return false;
+					break;
 				}
 				if (position.mWinner == -1 && (node->forcedChild == NULL ||
 					node->forcedChild->validationGeneration != validationGeneration))
@@ -750,7 +758,7 @@ namespace
 			if (shouldStop && shouldStop())
 			{
 				stopped = true;
-				return false;
+				break;
 			}
 			bool newStateChild = leaf->stateChild == NULL;
 			if (newStateChild ||
@@ -885,8 +893,11 @@ namespace
 }
 
 MctsConfig::MctsConfig()
-	: iterations(256), maxDepth(48), timeBudgetMs(0), exploration(std::sqrt(2.0)),
-	  seed(0x4b41494aU)
+	: iterations(aiIntParam("search.max_rollouts")),
+	  maxDepth(aiIntParam("search.max_depth")),
+	  timeBudgetMs(aiIntParam("search.default_time_budget_ms")),
+	  exploration(aiParam("search.uct_exploration")),
+	  seed(aiSeedParam("search.random_seed"))
 {
 }
 

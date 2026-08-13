@@ -112,7 +112,8 @@ end
 
 local searchDeck = function(id,check,prompt)
 	local owner = getCardOwner(id)
-	local card = createChoice(prompt,1,id,owner,check)
+	local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,check)
+	local card = createChoice(prompt,1,id,owner,check,preferred)
 	if(card>=0) then
 		moveCard(card,ZONE_HAND)
 	end
@@ -865,7 +866,11 @@ Cards["Charge Whipper"] = {
 	HandleMessage = function(id) --test
 		local ability = function(id)
 			local owner=getCardOwner(id)
-			local card=createChoice("Choose a card from your hand to add to shields",1,id,owner,Checks.InYourHand)
+			local preferred=Functions.HighestCostShieldTriggerChoice(id,owner,ZONE_HAND,Checks.InYourHand)
+			if(preferred==RETURN_NOTHING) then
+				preferred=Functions.LowestHandValueChoice(id,owner,ZONE_HAND,Checks.InYourHand)
+			end
+			local card=createChoice("Choose a card from your hand to add to shields",1,id,owner,Checks.InYourHand,preferred)
 			if(card>=0) then
 				moveCard(card,ZONE_SHIELD)
 				local shield=createChoice("Choose one of your shields to put into your hand",0,id,owner,Checks.InYourShields)
@@ -1002,6 +1007,10 @@ Cards["Spiral Gate"] = {
 	price_tier = 2,
 	shieldtrigger = 1,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InBattle)
+	end,
+
 	OnCast = function(id)
 		local ch=createChoice("Choose a creature to return to its owner's hand",0,id,getCardOwner(id),Checks.InBattle)
 		if(ch>=0) then
@@ -1041,6 +1050,10 @@ Cards["Torpedo Cluster"] = {
 Cards["Transmogrify"] = {
 	price_tier = 3,
 	shieldtrigger = 1,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InBattle)
+	end,
 
 	OnCast = function(id) --test
 		local victim=createChoice("Choose a creature to destroy",1,id,getCardOwner(id),Checks.InBattle)
@@ -1096,6 +1109,10 @@ Cards["Benzo, the Hidden Fury"] = {
 Cards["Death Smoke"] = {
 	price_tier = 2,
 	shieldtrigger = 0,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.UntappedInOppBattle)
+	end,
 
 	OnCast = function(id)
 		local ch=createChoice("Choose an untapped opponent's creature",0,id,getCardOwner(id),Checks.UntappedInOppBattle)
@@ -1532,6 +1549,13 @@ Cards["Phantom Dragon's Flame"] = {
 	price_tier = 1,
 	shieldtrigger = 1,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+			if(Checks.InOppBattle(cid,sid)==1 and getCreaturePower(sid)<=2000) then return 1 end
+			return 0
+		end)
+	end,
+
 	OnCast = function(id)
 		local valid = function(cid,sid)
 			if(Checks.InOppBattle(cid,sid)==1 and getCreaturePower(sid)<=2000) then return 1 end
@@ -1796,6 +1820,10 @@ Cards["Shaman Broccoli"] = {
 Cards["Soulswap"] = {
 	price_tier = 4,
 	shieldtrigger = 1,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InBattle)
+	end,
 
 	OnCast = function(id) --test
 		local victim=createChoice("Choose a creature to put into its owner's mana zone",1,id,getCardOwner(id),Checks.InBattle)

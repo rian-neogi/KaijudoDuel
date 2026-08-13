@@ -70,7 +70,7 @@ return {
 		},
 		{
 			id = "earthquake", name = "Earthquake Shard",
-			stock = { "Spinning Totem", "Whispering Totem", "Whip Scorpion",
+			stock = { "Clobber Totem", "Whispering Totem", "Whip Scorpion",
 				"Stinger Horn, the Delver", "Tangle Fist, the Weaver", "Senia, Orchard Avenger",
 				"Legacy Shell", "Scowling Tomato", "Thirst for the Hunt", "Shaman Broccoli" }
 		},
@@ -110,8 +110,8 @@ return {
 		{
 			id = "knowledge", name = "Knowledge Shard",
 			stock = { "Vikorakys", "Grape Globbo", "Lalicious", "Miracle Quest", "Kyuroro",
-				"Candy Cluster", "Submarine Project", "Scout Cluster", "Tekorax",
-				"Zeppelin Crawler" }
+				"Candy Cluster", "Submarine Project", "Liquid Scope", "Tekorax",
+				"Stinger Ball" }
 		},
 		{
 			id = "rainbow", name = "Rainbow Shard",

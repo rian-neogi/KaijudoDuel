@@ -398,6 +398,13 @@ Cards["Mechadragon's Breath"] = {
 	price_tier = 3,
 	shieldtrigger = 0,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+			if(Checks.InBattle(cid,sid)==1 and getCreaturePower(sid)<=6000) then return 1 end
+			return 0
+		end)
+	end,
+
 	OnCast = function(id) --test
 		local chosen=createChoice("Choose a creature to select a power of 6000 or less",0,id,getCardOwner(id),function(cid,sid)
 			if(Checks.InBattle(cid,sid)==1 and getCreaturePower(sid)<=6000) then return 1 end
@@ -568,6 +575,10 @@ Cards["Cloned Spiral"] = {
 	price_tier = 2,
 	shieldtrigger = 0,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InBattle)
+	end,
+
 	OnCast = function(id) --test
 		chooseClonedTargets(id,"Cloned Spiral","Choose a creature to return to its owner's hand",Checks.InBattle,function(card)
 			moveCard(card,ZONE_HAND)
@@ -614,6 +625,10 @@ Cards["Cloned Nightmare"] = {
 	price_tier = 2,
 	shieldtrigger = 0,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfOpponentHasHand(id)
+	end,
+
 	OnCast = function(id) --test
 		local count=1
 		for i=1,cloneCount("Cloned Nightmare") do
@@ -639,6 +654,13 @@ Cards["Muramasa's Knife"] = {
 Cards["Cloned Blade"] = {
 	price_tier = 2,
 	shieldtrigger = 0,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+			if(Checks.InOppBattle(cid,sid)==1 and getCreaturePower(sid)<=3000) then return 1 end
+			return 0
+		end)
+	end,
 
 	OnCast = function(id) --test
 		local valid=function(cid,sid)
@@ -1014,7 +1036,9 @@ Cards["Turtle Horn, the Imposing"] = {
 		if(getCardZone(id)==ZONE_BATTLE and getMessageType()=="post shieldtriggerused") then
 			local trigger=getMessageInt("trigger")
 			if(getCardOwner(trigger)~=getCardOwner(id)) then
-				local creature=createChoice("Choose a creature from your deck",1,id,getCardOwner(id),Checks.CreatureInYourDeck)
+				local owner=getCardOwner(id)
+				local preferred=Functions.HighestCostChoice(id,owner,ZONE_DECK,Checks.CreatureInYourDeck)
+				local creature=createChoice("Choose a creature from your deck",1,id,owner,Checks.CreatureInYourDeck,preferred)
 				if(creature>=0) then moveCard(creature,ZONE_HAND) end
 				shuffleDeck(getCardOwner(id))
 			end

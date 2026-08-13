@@ -283,6 +283,14 @@ Cards["Chains of Sacrifice"] = {
 
 	shieldtrigger = 0,
 
+	HandleMessage = function(id)
+		if(getMessageType()=="get cardaicancast" and getMessageInt("card")==id and
+			(getZoneSize(getCardOwner(id),ZONE_BATTLE)==0 or
+			getZoneSize(getOpponent(getCardOwner(id)),ZONE_BATTLE)==0)) then
+			setMessageInt("cancast",0)
+		end
+	end,
+
 	OnCast = function(id)
         local ch = createChoice("Destroy an opponent's creature",1,id,getCardOwner(id),Checks.InOppBattle)
         if(ch>=0) then
@@ -685,6 +693,19 @@ Cards["Hydro Hurricane"] = {
 	cost = 6,
 
 	shieldtrigger = 0,
+
+	HandleMessage = function(id)
+		if(getMessageType()=="get cardaicancast" and getMessageInt("card")==id) then
+			local owner=getCardOwner(id)
+			local darkness=0
+			for i=0,(getZoneSize(owner,ZONE_BATTLE)-1) do
+				if(getCardCiv(getCardAt(owner,ZONE_BATTLE,i))==CIV_DARKNESS) then darkness=darkness+1 end
+			end
+			if(darkness==0 or getZoneSize(getOpponent(owner),ZONE_BATTLE)==0) then
+				setMessageInt("cancast",0)
+			end
+		end
+	end,
 
 	OnCast = function(id)
         local owner = getCardOwner(id)
@@ -1117,7 +1138,8 @@ Cards["Niofa, Horned Protector"] = {
         local func = function(id)
             local owner = getCardOwner(id)
             openDeck(owner)
-	        local ch = createChoice("Choose a nature creature in your deck",1,id,owner,valid)
+	        local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,valid)
+	        local ch = createChoice("Choose a nature creature in your deck",1,id,owner,valid,preferred)
             closeDeck(owner)
 	        if(ch>=0) then
                 moveCard(ch,ZONE_HAND)
@@ -1431,6 +1453,22 @@ Cards["Soul Gulp"] = {
 	cost = 4,
 
 	shieldtrigger = 0,
+
+	HandleMessage = function(id)
+		if(getMessageType()=="get cardaicancast" and getMessageInt("card")==id) then
+			local owner=getCardOwner(id)
+			local hasLightCreature=false
+			for i=0,(getZoneSize(getOpponent(owner),ZONE_BATTLE)-1) do
+				if(getCardCiv(getCardAt(getOpponent(owner),ZONE_BATTLE,i))==CIV_LIGHT) then
+					hasLightCreature=true
+					break
+				end
+			end
+			if(not hasLightCreature or getZoneSize(getOpponent(owner),ZONE_HAND)==0) then
+				setMessageInt("cancast",0)
+			end
+		end
+	end,
 
 	OnCast = function(id)
         local valid = function(cid,sid)

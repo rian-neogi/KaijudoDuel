@@ -417,7 +417,12 @@ Cards["Rondobil, the Explorer"] = {
 
 	HandleMessage = function(id)
 		local tap = function(id)
-			local ch = createChoice("Choose one of your creatures",0,id,getCardOwner(id),Checks.InYourBattle)
+			local owner = getCardOwner(id)
+			local preferred = Functions.HighestCostShieldTriggerChoice(id,owner,ZONE_BATTLE,Checks.InYourBattle)
+			if(preferred==RETURN_NOTHING) then
+				preferred = Functions.LowestBattleValueChoice(id,owner,ZONE_BATTLE,Checks.InYourBattle)
+			end
+			local ch = createChoice("Choose one of your creatures",0,id,owner,Checks.InYourBattle,preferred)
 			if(ch>=0) then
 				moveCard(ch,ZONE_SHIELD)
 			end
@@ -566,6 +571,7 @@ Cards["Riptide Charger"] = {
 
 	HandleMessage = function(id)
 		Abils.Charger(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InBattle)
 	end
 }
 
@@ -617,7 +623,11 @@ Cards["Trenchdive Shark"] = {
 			end
 			local count = 0
 			for i=1,2 do
-				local ch = createChoice("Choose a card from your hand to add to your shields",1,id,owner,validHand)
+				local preferred = Functions.HighestCostShieldTriggerChoice(id,owner,ZONE_HAND,validHand)
+				if(preferred==RETURN_NOTHING) then
+					preferred = Functions.LowestHandValueChoice(id,owner,ZONE_HAND,validHand)
+				end
+				local ch = createChoice("Choose a card from your hand to add to your shields",1,id,owner,validHand,preferred)
 				if(ch<0) then
 					break
 				end
@@ -705,6 +715,10 @@ Cards["Hopeless Vortex"] = {
 	price_tier = 3,
 	shieldtrigger = 0,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InOppBattle)
+	end,
+
 	OnCast = function(id)
 		local ch = createChoice("Choose an opponent's creature",0,id,getCardOwner(id),Checks.InOppBattle)
 	    if(ch>=0) then
@@ -777,6 +791,14 @@ Cards["Vacuum Gel"] = { --test
 	price_tier = 1,
 	shieldtrigger = 1,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+			if(Checks.UntappedInOppBattle(cid,sid)==1 and
+				(getCardCiv(sid)==CIV_NATURE or getCardCiv(sid)==CIV_LIGHT)) then return 1 end
+			return 0
+		end)
+	end,
+
 	OnCast = function(id)
 		local check = function(cid,sid)
 			if(Checks.UntappedInOppBattle(cid,sid)==1) then
@@ -822,6 +844,13 @@ Cards["Venom Charger"] = {
 Cards["Apocalypse Vise"] = {
 	price_tier = 3,
 	shieldtrigger = 0,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+			if(Checks.InOppBattle(cid,sid)==1 and getCreaturePower(sid)<=8000) then return 1 end
+			return 0
+		end)
+	end,
 
 	OnCast = function(id)
 		local owner = getCardOwner(id)
@@ -1054,6 +1083,14 @@ Cards["Cursed Totem"] = {
 Cards["Freezing Icehammer"] = {
 	price_tier = 1,
 	shieldtrigger = 0,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+			if(Checks.InOppBattle(cid,sid)==1 and
+				(getCardCiv(sid)==CIV_WATER or getCardCiv(sid)==CIV_DARKNESS)) then return 1 end
+			return 0
+		end)
+	end,
 
 	OnCast = function(id)
 		local valid = function(cid,sid)

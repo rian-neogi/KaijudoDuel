@@ -326,7 +326,8 @@ Cards["Cyclolink, Spectral Knight"] = {
 		onUnblockedPlayerAttack(id,function(id)
 			local owner = getCardOwner(id)
 			openDeck(owner)
-			local ch = createChoice("Choose a spell in your deck",1,id,owner,Checks.SpellInYourDeck)
+			local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,Checks.SpellInYourDeck)
+			local ch = createChoice("Choose a spell in your deck",1,id,owner,Checks.SpellInYourDeck,preferred)
 			if(ch>=0) then moveCard(ch,ZONE_HAND) end
 			shuffleDeck(owner)
 			closeDeck(owner)
@@ -416,7 +417,12 @@ Cards["Nexus Charger"] = {
 	shieldtrigger = 0,
 
 	OnCast = function(id)
-		local ch = createChoice("Choose a card in your hand",0,id,getCardOwner(id),Checks.InYourHand)
+		local owner = getCardOwner(id)
+		local preferred = Functions.HighestCostShieldTriggerChoice(id,owner,ZONE_HAND,Checks.InYourHand)
+		if(preferred==RETURN_NOTHING) then
+			preferred = Functions.LowestHandValueChoice(id,owner,ZONE_HAND,Checks.InYourHand)
+		end
+		local ch = createChoice("Choose a card in your hand",0,id,owner,Checks.InYourHand,preferred)
 		if(ch>=0) then moveCard(ch,ZONE_SHIELD) end
 		Functions.EndSpell(id)
 	end,
@@ -500,6 +506,7 @@ Cards["Abduction Charger"] = {
 
 	HandleMessage = function(id)
 		Abils.Charger(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InBattle)
 	end
 }
 
@@ -708,6 +715,10 @@ Cards["Grinning Hunger"] = {
 	price_tier = 2,
 	shieldtrigger = 0,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InBattle)
+	end,
+
 	OnCast = function(id)
 		local opponent = getOpponent(getCardOwner(id))
 		local valid = function(cid,sid)
@@ -884,6 +895,13 @@ Cards["Aerodactyl Kooza"] = {
 Cards["Blizzard of Spears"] = {
 	price_tier = 3,
 	shieldtrigger = 0,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+			if(Checks.InOppBattle(cid,sid)==1 and getCreaturePower(sid)<=4000) then return 1 end
+			return 0
+		end)
+	end,
 
 	OnCast = function(id) --test
 		local targets = {}
@@ -1065,7 +1083,8 @@ Cards["Cavern Raider"] = {
 		onUnblockedPlayerAttack(id,function(id)
 			local owner = getCardOwner(id)
 			openDeck(owner)
-			local ch = createChoice("Choose a creature in your deck",1,id,owner,Checks.CreatureInYourDeck)
+			local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,Checks.CreatureInYourDeck)
+			local ch = createChoice("Choose a creature in your deck",1,id,owner,Checks.CreatureInYourDeck,preferred)
 			if(ch>=0) then moveCard(ch,ZONE_HAND) end
 			shuffleDeck(owner)
 			closeDeck(owner)
@@ -1232,6 +1251,7 @@ Cards["Vine Charger"] = {
 
 	HandleMessage = function(id)
 		Abils.Charger(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InOppBattle)
 	end
 }
 
@@ -1260,7 +1280,8 @@ Cards["Whispering Totem"] = {
 				return 0
 			end
 			openDeck(owner)
-			local ch = createChoice("Choose a Whispering Totem in your deck",1,id,owner,valid)
+			local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,valid)
+			local ch = createChoice("Choose a Whispering Totem in your deck",1,id,owner,valid,preferred)
 			if(ch>=0) then moveCard(ch,ZONE_HAND) end
 			shuffleDeck(owner)
 			closeDeck(owner)

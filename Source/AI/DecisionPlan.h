@@ -62,6 +62,10 @@ struct DecisionPlanEnumerationOptions
 	// A Lua choice may supply one strategic preference. MCTS follows only those
 	// explicit preferences; choices without one retain their full branching.
 	bool heuristicChoices;
+	// Rollout policy samples one legal answer at each ordered choice instead of
+	// enumerating every complete choice path before selecting one uniformly.
+	// Tree-node enumeration leaves this disabled so strategic choices still branch.
+	bool randomChoices;
 	// MCTS treats shield targeting as a random policy rather than a tree branch.
 	bool randomShieldTarget;
 	std::function<size_t(size_t)> randomIndex;

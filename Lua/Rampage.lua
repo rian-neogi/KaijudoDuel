@@ -502,10 +502,19 @@ Cards["Emeral"] = {
 
 	HandleMessage = function(id)
         local func = function(id)
-            local ch = createChoice("Choose a card in your hand",1,id,getCardOwner(id),Checks.InYourHand)
+            local owner = getCardOwner(id)
+            local preferred = Functions.HighestCostShieldTriggerChoice(id,owner,ZONE_HAND,Checks.InYourHand)
+            if(preferred==RETURN_NOTHING) then
+                preferred = Functions.LowestHandValueChoice(id,owner,ZONE_HAND,Checks.InYourHand)
+            end
+            local ch = createChoice("Choose a card in your hand",1,id,owner,Checks.InYourHand,preferred)
             if(ch>=0) then
                 moveCard(ch,ZONE_SHIELD)
-                local ch2 = createChoice("Choose a card in your shields",0,id,getCardOwner(id),Checks.InYourShields)
+                local firstShield = RETURN_NOTHING
+                if(getZoneSize(owner,ZONE_SHIELD)>0) then
+                    firstShield = getCardAt(owner,ZONE_SHIELD,0)
+                end
+                local ch2 = createChoice("Choose a card in your shields",0,id,owner,Checks.InYourShields,firstShield)
                 if(ch2>=0) then
                     moveCard(ch2,ZONE_HAND)
                 end
@@ -833,7 +842,8 @@ Cards["King Ponitas"] = {
             end
             local owner = getCardOwner(id)
             openDeck(owner)
-            local ch = createChoice("Choose a water card in your deck",1,id,owner,valid)
+            local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,valid)
+            local ch = createChoice("Choose a water card in your deck",1,id,owner,valid,preferred)
             closeDeck(owner)
             if(ch>=0) then
                 moveCard(ch,ZONE_HAND)
@@ -891,7 +901,7 @@ Cards["Lena, Vizier of Brilliance"] = {
 
 	HandleMessage = function(id)
         local func = function(id)
-            local ch = createChoice("Choose a spell in your mana zone",1,id,getCardOwner(id),Checks.SpellsInYourMana)
+            local ch = createChoice("Choose a spell in your mana zone",1,id,getCardOwner(id),Checks.SpellInYourMana)
             if(ch>=0) then
                 moveCard(ch,ZONE_HAND)
             end
@@ -942,7 +952,7 @@ Cards["Logic Sphere"] = {
 	shieldtrigger = 1,
 
 	OnCast = function(id)
-        local ch = createChoice("Choose a spell in your mana zone",0,id,getCardOwner(id),Checks.SpellsInYourMana)
+        local ch = createChoice("Choose a spell in your mana zone",0,id,getCardOwner(id),Checks.SpellInYourMana)
         if(ch>=0) then
             moveCard(ch,ZONE_HAND)
         end
@@ -961,7 +971,12 @@ Cards["Mana Nexus"] = {
     shieldtrigger = 1,  
 
 	OnCast = function(id)
-        local ch = createChoice("Choose a card in your mana zone",0,id,getCardOwner(id),Checks.InYourMana)
+        local owner = getCardOwner(id)
+        local preferred = Functions.HighestCostShieldTriggerChoice(id,owner,ZONE_MANA,Checks.InYourMana)
+        if(preferred==RETURN_NOTHING) then
+            preferred = Functions.HighestHandValueChoice(id,owner,ZONE_MANA,Checks.InYourMana)
+        end
+        local ch = createChoice("Choose a card in your mana zone",0,id,owner,Checks.InYourMana,preferred)
         if(ch>=0) then
             moveCard(ch,ZONE_SHIELD)
         end
@@ -1350,6 +1365,13 @@ Cards["Searing Wave"] = {
 
 	shieldtrigger = 0,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+			if(Checks.InOppBattle(cid,sid)==1 and getCreaturePower(sid)<=3000) then return 1 end
+			return 0
+		end)
+	end,
+
 	OnCast = function(id)
         local func = function(cid,sid)
             if(getCreaturePower(sid)<=3000) then
@@ -1580,7 +1602,12 @@ Cards["Sundrop Armor"] = {
 	shieldtrigger = 0,
 
 	OnCast = function(id)
-        local ch = createChoice("Choose a card in your hand",0,id,getCardOwner(id),Checks.InYourHand)
+        local owner = getCardOwner(id)
+        local preferred = Functions.HighestCostShieldTriggerChoice(id,owner,ZONE_HAND,Checks.InYourHand)
+        if(preferred==RETURN_NOTHING) then
+            preferred = Functions.LowestHandValueChoice(id,owner,ZONE_HAND,Checks.InYourHand)
+        end
+        local ch = createChoice("Choose a card in your hand",0,id,owner,Checks.InYourHand,preferred)
         if(ch>=0) then
             moveCard(ch,ZONE_SHIELD)
         end
@@ -1681,6 +1708,13 @@ Cards["Volcanic Arrows"] = {
 	cost = 2,
 
 	shieldtrigger = 1,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+			if(Checks.InBattle(cid,sid)==1 and getCreaturePower(sid)<=6000) then return 1 end
+			return 0
+		end)
+	end,
 
 	OnCast = function(id)
         local valid = function(cid,sid)

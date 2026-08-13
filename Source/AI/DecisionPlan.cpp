@@ -145,6 +145,16 @@ namespace
 				enumeratePlan(root, child, plans, options);
 				return;
 			}
+			if (options.randomChoices && !result.options.empty())
+			{
+				size_t selected = options.randomIndex ?
+					options.randomIndex(result.options.size()) : 0;
+				DecisionPlan child = prefix;
+				child.choices.push_back(DecisionChoice(result.choicePlayer,
+					result.options[selected % result.options.size()]));
+				enumeratePlan(root, child, plans, options);
+				return;
+			}
 			for (std::vector<int>::const_iterator option = result.options.begin();
 				option != result.options.end(); ++option)
 			{
@@ -193,7 +203,7 @@ DecisionPlanResult::DecisionPlanResult()
 
 DecisionPlanEnumerationOptions::DecisionPlanEnumerationOptions()
 	: heuristicMana(false), heuristicCardPlay(false), heuristicChoices(false),
-	  randomShieldTarget(false)
+	  randomChoices(false), randomShieldTarget(false)
 {
 }
 

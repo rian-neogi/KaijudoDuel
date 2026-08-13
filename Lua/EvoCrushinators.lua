@@ -234,6 +234,13 @@ Cards["Burst Shot"] = {
 
 	shieldtrigger = 1,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+			if(Checks.InOppBattle(cid,sid)==1 and getCreaturePower(sid)<=2000) then return 1 end
+			return 0
+		end)
+	end,
+
 	OnCast = function(id)
         local owner = getCardOwner(id)
         local size = getZoneSize(owner,ZONE_BATTLE)
@@ -338,6 +345,10 @@ Cards["Critical Blade"] = {
 	cost = 2,
 
 	shieldtrigger = 1,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.BlockerInOppBattle)
+	end,
 
 	OnCast = function(id)
         local ch = createChoice("Choose opponent's blocker",0,id,getCardOwner(id),Checks.BlockerInOppBattle)
@@ -693,7 +704,7 @@ Cards["General Dark Fiend"] = {
 
 	HandleMessage = function(id)
         local func = function(id)
-            local ch = createChoice("Choose a shield",0,id,getCardOwner(id),Checks.InYourShield)
+            local ch = createChoice("Choose a shield",0,id,getCardOwner(id),Checks.InYourShields)
             if(ch>=0) then
                 moveCard(ch,ZONE_GRAVEYARD)
             end
@@ -858,7 +869,8 @@ Cards["Laguna, Lightning Enforcer"] = {
         local func = function(id)
             local owner = getCardOwner(id)
             openDeck(owner)
-	        local ch = createChoice("Choose a spell in your deck",0,id,owner,Checks.SpellInYourDeck)
+	        local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,Checks.SpellInYourDeck)
+	        local ch = createChoice("Choose a spell in your deck",0,id,owner,Checks.SpellInYourDeck,preferred)
             closeDeck(owner)
 	        if(ch>=0) then
                 moveCard(ch,ZONE_HAND)
@@ -932,7 +944,8 @@ Cards["Logic Cube"] = {
 	OnCast = function(id)
         local owner = getCardOwner(id)
         openDeck(owner)
-	    local ch = createChoice("Choose a spell in your deck",0,id,owner,Checks.SpellInYourDeck)
+	    local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,Checks.SpellInYourDeck)
+	    local ch = createChoice("Choose a spell in your deck",0,id,owner,Checks.SpellInYourDeck,preferred)
         closeDeck(owner)
 	    if(ch>=0) then
             moveCard(ch,ZONE_HAND)
@@ -951,6 +964,10 @@ Cards["Lost Soul"] = {
 	cost = 7,
 
 	shieldtrigger = 0,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfOpponentHasHand(id)
+	end,
 
 	OnCast = function(id)
         local owner = getOpponent(getCardOwner(id))
@@ -1275,7 +1292,8 @@ Cards["Rumbling Terahorn"] = {
         local func = function(id)
             local owner = getCardOwner(id)
             openDeck(owner)
-	        local ch = createChoice("Choose a creature in your deck",0,id,owner,Checks.CreatureInYourDeck)
+	        local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,Checks.CreatureInYourDeck)
+	        local ch = createChoice("Choose a creature in your deck",0,id,owner,Checks.CreatureInYourDeck,preferred)
             closeDeck(owner)
 	        if(ch>=0) then
                 moveCard(ch,ZONE_HAND)

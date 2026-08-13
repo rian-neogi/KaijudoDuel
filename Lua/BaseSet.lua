@@ -548,6 +548,13 @@ Cards["Crimson Hammer"] = {
 	cost = 2,
 	shieldtrigger = 0,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+			if(Checks.InOppBattle(cid,sid)==1 and getCreaturePower(sid)<=2000) then return 1 end
+			return 0
+		end)
+	end,
+
     OnCast = function(id)
         local valid = function(cid,sid)
             if(getCardOwner(sid)~=getCardOwner(cid) and getCardZone(sid)==ZONE_BATTLE and getCreaturePower(sid)<=2000) then
@@ -576,7 +583,8 @@ Cards["Crystal Memory"] = {
     OnCast = function(id)
         local owner = getCardOwner(id)
         openDeck(owner)
-	    local ch = createChoice("Choose a card in your deck",0,id,owner,Checks.InYourDeck)
+	    local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,Checks.InYourDeck)
+	    local ch = createChoice("Choose a card in your deck",0,id,owner,Checks.InYourDeck,preferred)
         closeDeck(owner)
 	    if(ch>=0) then
             moveCard(ch,ZONE_HAND)
@@ -688,6 +696,10 @@ Cards["Death Smoke"] = {
 	cost = 4,
 	shieldtrigger = 0,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.UntappedInOppBattle)
+	end,
+
 	OnCast = function(id)
 	    local ch = createChoice("Choose an opponent's creature",0,id,getCardOwner(id),Checks.UntappedInOppBattle)
 	    if(ch>=0) then
@@ -768,7 +780,8 @@ Cards["Dimension Gate"] = {
     OnCast = function(id)
         local owner = getCardOwner(id)
         openDeck(owner)
-	    local ch = createChoice("Choose a creature in your deck",0,id,owner,Checks.CreatureInYourDeck)
+	    local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,Checks.CreatureInYourDeck)
+	    local ch = createChoice("Choose a creature in your deck",0,id,owner,Checks.CreatureInYourDeck,preferred)
         closeDeck(owner)
 	    if(ch>=0) then
             moveCard(ch,ZONE_HAND)
@@ -1026,6 +1039,10 @@ Cards["Ghost Touch"] = {
 	cost = 2,
 	shieldtrigger = 1,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfOpponentHasHand(id)
+	end,
+
     OnCast = function(id)
         discardCardAtRandom(getOpponent(getCardOwner(id)))
         Functions.EndSpell(id)
@@ -1183,6 +1200,10 @@ Cards["Holy Awe"] = {
 	civilization = CIV_LIGHT,
 	cost = 6,
 	shieldtrigger = 1,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.UntappedInOppBattle)
+	end,
 
 	OnCast = function(id)
 		local owner = getCardOwner(id)
@@ -1640,6 +1661,10 @@ Cards["Natural Snare"] = {
 	cost = 6,
 	shieldtrigger = 1,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InOppBattle)
+	end,
+
     OnCast = function(id)
         local ch = createChoice("Choose an opponent's creature",0,id,getCardOwner(id),Checks.InOppBattle)
         if(ch>=0) then
@@ -1808,7 +1833,8 @@ Cards["Rayla, Truth Enforcer"] = {
         local summon = function(id)
             local owner = getCardOwner(id)
             openDeck(owner)
-            local ch = createChoice("Choose a spell in your deck",1,id,owner,Checks.SpellInYourDeck)
+            local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,Checks.SpellInYourDeck)
+            local ch = createChoice("Choose a spell in your deck",1,id,owner,Checks.SpellInYourDeck,preferred)
             closeDeck(owner)
             if(ch>=0) then
                 moveCard(ch,ZONE_HAND)
@@ -2132,6 +2158,10 @@ Cards["Spiral Gate"] = {
 	cost = 2,
 	shieldtrigger = 1,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InBattle)
+	end,
+
     OnCast = function(id)
         local ch = createChoice("Choose a creature",0,id,getCardOwner(id),Checks.InBattle)
 	    if(ch>=0) then
@@ -2336,6 +2366,10 @@ Cards["Teleportation"] = {
 	cost = 5,
 	shieldtrigger = 0,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InBattle)
+	end,
+
     OnCast = function(id)
         local ch = createChoice("Choose 2 creatures",0,id,getCardOwner(id),Checks.InBattle)
 	    if(ch>=0) then
@@ -2357,6 +2391,10 @@ Cards["Terror Pit"] = {
 	civilization = CIV_DARKNESS,
 	cost = 6,
 	shieldtrigger = 1,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InOppBattle)
+	end,
 
     OnCast = function(id)
 	    local ch = createChoice("Choose an opponent's creature",0,id,getCardOwner(id),Checks.InOppBattle)
@@ -2441,6 +2479,13 @@ Cards["Tornado Flame"] = {
 	civilization = CIV_FIRE,
 	cost = 5,
 	shieldtrigger = 1,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+			if(Checks.InOppBattle(cid,sid)==1 and getCreaturePower(sid)<=4000) then return 1 end
+			return 0
+		end)
+	end,
 
     OnCast = function(id)
         local valid = function(cid,sid)

@@ -1,5 +1,6 @@
 #include "AiDriver.h"
 
+#include "AiParams.h"
 #include "HeuristicBot.h"
 
 #include <algorithm>
@@ -22,9 +23,10 @@ AiDecisionOutcome::AiDecisionOutcome() : source(AiDecisionSource::None)
 MctsConfig liveMctsConfig(bool combatPhase)
 {
 	MctsConfig config;
-	config.iterations = 1024;
-	config.maxDepth = 12;
-	config.timeBudgetMs = combatPhase ? 2500 : 1500;
+	config.iterations = aiIntParam("search.max_rollouts");
+	config.maxDepth = aiIntParam("search.max_depth");
+	config.timeBudgetMs = aiIntParam(combatPhase ?
+		"search.combat_time_budget_ms" : "search.main_time_budget_ms");
 	return config;
 }
 
@@ -123,7 +125,8 @@ AiDecisionOutcome playHeuristicManaPayment(Duel& duel, int player,
 		duel.getPlayerToMove() != player || duel.mCastingCard == -1)
 		return outcome;
 	HeuristicBot bot(player, personality);
-	for (int safety = 0; duel.mCastingCard != -1 && safety < 40; ++safety)
+	for (int safety = 0; duel.mCastingCard != -1 &&
+		safety < aiIntParam("search.max_mana_payment_steps"); ++safety)
 	{
 		std::vector<Message> moves = duel.getPossibleMoves();
 		std::vector<int> options;

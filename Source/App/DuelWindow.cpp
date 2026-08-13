@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -50,7 +51,61 @@ namespace
 		return identity;
 	}
 
-	void printMctsStatistics(const MctsResult& result, Uint32 elapsed,
+	int actionInt(const Message& message, const char* key, int fallback = -1)
+	{
+		std::map<std::string, std::string>::const_iterator value = message.map.find(key);
+		return value == message.map.end() ? fallback : std::atoi(value->second.c_str());
+	}
+
+	std::string diagnosticCard(const Duel& duel, int uid)
+	{
+		if (uid < 0 || uid >= static_cast<int>(duel.mCardList.size()))
+			return std::to_string(uid);
+		return duel.mCardList[uid]->mName + "#" + std::to_string(uid);
+	}
+
+	std::string diagnosticMove(const Duel& duel, const DecisionPlan& plan)
+	{
+		const Message& action = plan.action;
+		std::map<std::string, std::string>::const_iterator messageType =
+			action.map.find("msgtype");
+		const std::string type = messageType == action.map.end() ? "" : messageType->second;
+		std::ostringstream output;
+		output << type;
+		if (type == "cardplay" || type == "cardmana")
+		{
+			output << " card=" << diagnosticCard(duel, actionInt(action, "card"));
+			if (type == "cardplay" && actionInt(action, "evobait") >= 0)
+				output << " bait=" << diagnosticCard(duel, actionInt(action, "evobait"));
+			if (type == "cardplay" && actionInt(action, "evobait2") >= 0)
+				output << " bait2=" << diagnosticCard(duel, actionInt(action, "evobait2"));
+		}
+		else if (type == "creatureattack")
+		{
+			output << " attacker=" << diagnosticCard(duel, actionInt(action, "attacker"));
+			if (actionInt(action, "defendertype") == DEFENDER_PLAYER)
+				output << " target=player" << actionInt(action, "defender");
+			else
+				output << " target=" << diagnosticCard(duel, actionInt(action, "defender"));
+		}
+		else if (type == "creatureblock")
+			output << " blocker=" << diagnosticCard(duel, actionInt(action, "blocker"));
+		else if (type == "creatureusetapability")
+			output << " creature=" << diagnosticCard(duel, actionInt(action, "creature"));
+		else if (type == "triggeruse")
+			output << " trigger=" << diagnosticCard(duel, actionInt(action, "trigger"));
+		else if (type == "choiceselect")
+		{
+			int selection = actionInt(action, "selection");
+			output << " selection=" << (selection >= 0 ? diagnosticCard(duel, selection) :
+				std::to_string(selection));
+		}
+		else if (type == "targetshield")
+			output << " shield=" << actionInt(action, "shield");
+		return output.str();
+	}
+
+	void printMctsStatistics(const Duel& duel, const MctsResult& result, Uint32 elapsed,
 		const std::string& committedAction, bool usedFallback)
 	{
 		std::ostringstream output;
@@ -59,7 +114,6 @@ namespace
 			<< ", attempted=" << result.iterationsCompleted + result.failedIterations
 			<< ", failed=" << result.failedIterations
 			<< ", elapsed=" << elapsed << "ms"
-			<< ", timed-out=" << (result.timeBudgetExpired ? "yes" : "no")
 			<< ", turn-cutoffs=" << result.turnHorizonCutoffs
 			<< ", forced-moves=" << result.forcedMovesApplied
 			<< ", tree-reused=" << (result.reusedTree ? "yes" : "no")
@@ -73,16 +127,22 @@ namespace
 			<< ",execute:" << result.actionExecutionTimeMs
 			<< ",evaluate:" << result.evaluationTimeMs
 			<< ",lua:" << result.luaCallbackTimeMs << "}";
-		if (result.hasPlan)
-		{
-			Message selectedAction = result.plan.action;
-			output << ", selected=" << selectedAction.getType()
-				<< ", selected-eval=" << result.selectedMeanValue
-				<< ", selected-visits=" << result.selectedVisits;
-		}
+		if (result.hasPlan) output << ", selected=" << diagnosticMove(duel, result.plan);
 		if (usedFallback)
 			output << ", fallback=" << committedAction;
 		std::cout << output.str() << std::endl;
+		for (std::vector<MctsChildStatistics>::const_iterator child =
+			result.rootChildren.begin(); child != result.rootChildren.end(); ++child)
+		{
+			bool selected = result.hasPlan &&
+				child->plan.action.map == result.plan.action.map &&
+				child->plan.manaCards == result.plan.manaCards;
+			std::ostringstream line;
+			line << std::fixed << std::setprecision(3) << "  " <<
+				(selected ? "* " : "  ") << diagnosticMove(duel, child->plan) <<
+				": eval=" << child->meanValue << ", visits=" << child->visits;
+			std::cout << line.str() << std::endl;
+		}
 	}
 }
 
@@ -485,7 +545,8 @@ void Application::updateDuel(Uint32 deltaTime)
 				else
 					decision = playHeuristicDecision(*mDuel, 1, personality);
 				bool usedFallback = decision.source == AiDecisionSource::Heuristic;
-				printMctsStatistics(result, elapsed, decision.action.getType(), usedFallback);
+				printMctsStatistics(*mDuel, result, elapsed,
+					decision.action.getType(), usedFallback);
 				Uint32 delay = decision.action.getType() == "manatap" ?
 					AI_MANA_TAP_DELAY_MS : AI_MOVE_DELAY_MS;
 				mNextAiMove = finishedAt + delay;

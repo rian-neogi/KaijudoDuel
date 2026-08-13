@@ -967,9 +967,24 @@ bool Application::exerciseDecisionPlanSmoke()
 	int pokolulId = getCardIdFromName("Pokolul");
 	int aquaSurferId = getCardIdFromName("Aqua Surfer");
 	int spasticMissileId = getCardIdFromName("Spastic Missile");
+	int emeralId = getCardIdFromName("Emeral");
+	int solarRayId = getCardIdFromName("Solar Ray");
+	int bolshackDragonId = getCardIdFromName("Bolshack Dragon");
+	int dimensionGateId = getCardIdFromName("Dimension Gate");
+	int manaNexusId = getCardIdFromName("Mana Nexus");
+	int rondobilId = getCardIdFromName("Rondobil, the Explorer");
+	int tornadoFlameId = getCardIdFromName("Tornado Flame");
+	int terrorPitId = getCardIdFromName("Terror Pit");
+	int deathSmokeId = getCardIdFromName("Death Smoke");
+	int ghostTouchId = getCardIdFromName("Ghost Touch");
+	int holyAweId = getCardIdFromName("Holy Awe");
+	int crisisBoulderId = getCardIdFromName("Crisis Boulder");
 	if (hammerId < 0 || lunarChargerId < 0 || fireCreatureId < 0 || natureCreatureId < 0 ||
 		slashChargerId < 0 || futureSlashId < 0 || brutalChargeId < 0 || pokolulId < 0 ||
-		aquaSurferId < 0 || spasticMissileId < 0)
+		aquaSurferId < 0 || spasticMissileId < 0 || emeralId < 0 || solarRayId < 0 ||
+		bolshackDragonId < 0 || dimensionGateId < 0 || manaNexusId < 0 || rondobilId < 0 ||
+		tornadoFlameId < 0 || terrorPitId < 0 || deathSmokeId < 0 || ghostTouchId < 0 ||
+		holyAweId < 0 || crisisBoulderId < 0)
 		return false;
 
 	bool valid = true;
@@ -1084,6 +1099,32 @@ bool Application::exerciseDecisionPlanSmoke()
 				executeDecisionPlan(result, *plan).status == DecisionPlanStatus::Complete;
 		}
 		valid = valid && heuristicHammerPlans == 2;
+
+		DecisionPlanEnumerationOptions randomChoiceOptions;
+		randomChoiceOptions.heuristicMana = true;
+		randomChoiceOptions.randomChoices = true;
+		randomChoiceOptions.randomIndex = [](size_t count) -> size_t
+		{
+			return count - 1;
+		};
+		std::vector<DecisionPlan> randomChoicePlans =
+			enumerateDecisionPlans(root, randomChoiceOptions);
+		int randomHammerPlans = 0;
+		for (std::vector<DecisionPlan>::const_iterator plan = randomChoicePlans.begin();
+			plan != randomChoicePlans.end(); ++plan)
+		{
+			std::map<std::string, std::string>::const_iterator type =
+				plan->action.map.find("msgtype");
+			std::map<std::string, std::string>::const_iterator card = plan->action.map.find("card");
+			if (type == plan->action.map.end() || type->second != "cardplay" ||
+				card == plan->action.map.end() ||
+				std::atoi(card->second.c_str()) != hammer)
+				continue;
+			randomHammerPlans++;
+			valid = valid && plan->manaCards.size() == 2 && plan->choices.size() == 1 &&
+				plan->choices[0].selection == target2;
+		}
+		valid = valid && randomHammerPlans == 1;
 	}
 
 	{
@@ -1236,6 +1277,265 @@ bool Application::exerciseDecisionPlanSmoke()
 	{
 		Duel root;
 		root.mIsSimulation = true;
+		root.mInputLoopRunning = false;
+		root.mTurn = 0;
+		root.mTurnPhase = TURN_PHASE_MAIN;
+		auto addCard = [&root](int cardId, int zone) -> int
+		{
+			int uid = (int)root.mCardList.size();
+			Card* card = new Card(uid, cardId, 0);
+			root.mCardList.push_back(card);
+			root.getZone(0, zone)->addCard(card);
+			card->mZone = zone;
+			root.mNextUniqueId = uid + 1;
+			return uid;
+		};
+
+		int emeral = addCard(emeralId, ZONE_HAND);
+		addCard(emeralId, ZONE_MANA);
+		addCard(emeralId, ZONE_MANA);
+		int nonTrigger = addCard(natureCreatureId, ZONE_HAND);
+		int lowCostTrigger = addCard(solarRayId, ZONE_HAND);
+		int highCostTrigger = addCard(aquaSurferId, ZONE_HAND);
+		int firstShield = addCard(fireCreatureId, ZONE_SHIELD);
+		addCard(natureCreatureId, ZONE_SHIELD);
+
+		DecisionPlanEnumerationOptions aiOptions;
+		aiOptions.heuristicMana = true;
+		aiOptions.heuristicChoices = true;
+		std::vector<DecisionPlan> plans = enumerateDecisionPlans(root, aiOptions);
+		int emeralPlans = 0;
+		for (std::vector<DecisionPlan>::const_iterator plan = plans.begin();
+			plan != plans.end(); ++plan)
+		{
+			std::map<std::string, std::string>::const_iterator card = plan->action.map.find("card");
+			if (card == plan->action.map.end() || std::atoi(card->second.c_str()) != emeral)
+				continue;
+			emeralPlans++;
+			valid = valid && plan->choices.size() == 2 &&
+				plan->choices[0].selection == highCostTrigger &&
+				plan->choices[1].selection == firstShield;
+
+			Duel result;
+			result.mIsSimulation = true;
+			result.mInputLoopRunning = false;
+			valid = valid && result.copyFrom(root) &&
+				executeDecisionPlan(result, *plan).status == DecisionPlanStatus::Complete &&
+				result.mCardList[highCostTrigger]->mZone == ZONE_SHIELD &&
+				result.mCardList[firstShield]->mZone == ZONE_HAND &&
+				result.mCardList[lowCostTrigger]->mZone == ZONE_HAND &&
+				result.mCardList[nonTrigger]->mZone == ZONE_HAND;
+		}
+		valid = valid && emeralPlans == 1;
+	}
+
+	{
+		Duel root;
+		root.mIsSimulation = true;
+		root.mInputLoopRunning = false;
+		root.mTurn = 0;
+		root.mTurnPhase = TURN_PHASE_MAIN;
+		auto addCard = [&root](int cardId, int zone) -> int
+		{
+			int uid = (int)root.mCardList.size();
+			Card* card = new Card(uid, cardId, 0);
+			root.mCardList.push_back(card);
+			root.getZone(0, zone)->addCard(card);
+			card->mZone = zone;
+			root.mNextUniqueId = uid + 1;
+			return uid;
+		};
+
+		int manaNexus = addCard(manaNexusId, ZONE_HAND);
+		int highestHandValue = addCard(natureCreatureId, ZONE_MANA);
+		int expensiveCard = addCard(bolshackDragonId, ZONE_MANA);
+		int cheapCard = addCard(fireCreatureId, ZONE_MANA);
+		int waterCard = addCard(emeralId, ZONE_MANA);
+
+		DecisionPlanEnumerationOptions aiOptions;
+		aiOptions.heuristicMana = true;
+		aiOptions.heuristicChoices = true;
+		std::vector<DecisionPlan> plans = enumerateDecisionPlans(root, aiOptions);
+		int manaNexusPlans = 0;
+		for (std::vector<DecisionPlan>::const_iterator plan = plans.begin();
+			plan != plans.end(); ++plan)
+		{
+			std::map<std::string, std::string>::const_iterator card = plan->action.map.find("card");
+			if (card == plan->action.map.end() || std::atoi(card->second.c_str()) != manaNexus)
+				continue;
+			manaNexusPlans++;
+			valid = valid && plan->choices.size() == 1 &&
+				plan->choices[0].selection == highestHandValue;
+			Duel result;
+			result.mIsSimulation = true;
+			result.mInputLoopRunning = false;
+			valid = valid && result.copyFrom(root) &&
+				executeDecisionPlan(result, *plan).status == DecisionPlanStatus::Complete &&
+				result.mCardList[highestHandValue]->mZone == ZONE_SHIELD &&
+				result.mCardList[expensiveCard]->mZone == ZONE_MANA &&
+				result.mCardList[cheapCard]->mZone == ZONE_MANA &&
+				result.mCardList[waterCard]->mZone == ZONE_MANA;
+		}
+		valid = valid && manaNexusPlans == 1;
+	}
+
+	{
+		Duel root;
+		root.mIsSimulation = true;
+		root.mInputLoopRunning = false;
+		root.mTurn = 0;
+		root.mTurnPhase = TURN_PHASE_MAIN;
+		auto addCard = [&root](int cardId) -> int
+		{
+			int uid = (int)root.mCardList.size();
+			Card* card = new Card(uid, cardId, 0);
+			root.mCardList.push_back(card);
+			root.getZone(0, ZONE_BATTLE)->addCard(card);
+			card->mZone = ZONE_BATTLE;
+			card->mSummoningSickness = 0;
+			root.mNextUniqueId = uid + 1;
+			return uid;
+		};
+
+		int rondobil = addCard(rondobilId);
+		int lowestBattleValue = addCard(fireCreatureId);
+		int highBattleValue = addCard(bolshackDragonId);
+
+		DecisionPlanEnumerationOptions aiOptions;
+		aiOptions.heuristicChoices = true;
+		std::vector<DecisionPlan> plans = enumerateDecisionPlans(root, aiOptions);
+		int rondobilPlans = 0;
+		for (std::vector<DecisionPlan>::const_iterator plan = plans.begin();
+			plan != plans.end(); ++plan)
+		{
+			std::map<std::string, std::string>::const_iterator type =
+				plan->action.map.find("msgtype");
+			std::map<std::string, std::string>::const_iterator creature =
+				plan->action.map.find("creature");
+			if (type == plan->action.map.end() || type->second != "creatureusetapability" ||
+				creature == plan->action.map.end() ||
+				std::atoi(creature->second.c_str()) != rondobil)
+				continue;
+			rondobilPlans++;
+			valid = valid && plan->choices.size() == 1 &&
+				plan->choices[0].selection == lowestBattleValue;
+			Duel result;
+			result.mIsSimulation = true;
+			result.mInputLoopRunning = false;
+			valid = valid && result.copyFrom(root) &&
+				executeDecisionPlan(result, *plan).status == DecisionPlanStatus::Complete &&
+				result.mCardList[rondobil]->mIsTapped &&
+				result.mCardList[lowestBattleValue]->mZone == ZONE_SHIELD &&
+				result.mCardList[highBattleValue]->mZone == ZONE_BATTLE;
+		}
+		valid = valid && rondobilPlans == 1;
+	}
+
+	{
+		Duel root;
+		root.mIsSimulation = true;
+		root.mInputLoopRunning = false;
+		root.mTurn = 0;
+		root.mTurnPhase = TURN_PHASE_MAIN;
+		auto addCard = [&root](int cardId, int zone) -> int
+		{
+			int uid = (int)root.mCardList.size();
+			Card* card = new Card(uid, cardId, 0);
+			root.mCardList.push_back(card);
+			root.getZone(0, zone)->addCard(card);
+			card->mZone = zone;
+			root.mNextUniqueId = uid + 1;
+			return uid;
+		};
+
+		int emeral = addCard(emeralId, ZONE_HAND);
+		addCard(emeralId, ZONE_MANA);
+		addCard(emeralId, ZONE_MANA);
+		int affordableCard = addCard(fireCreatureId, ZONE_HAND);
+		int lowestHandValue = addCard(bolshackDragonId, ZONE_HAND);
+		int firstShield = addCard(natureCreatureId, ZONE_SHIELD);
+
+		DecisionPlanEnumerationOptions aiOptions;
+		aiOptions.heuristicMana = true;
+		aiOptions.heuristicChoices = true;
+		std::vector<DecisionPlan> plans = enumerateDecisionPlans(root, aiOptions);
+		int emeralPlans = 0;
+		for (std::vector<DecisionPlan>::const_iterator plan = plans.begin();
+			plan != plans.end(); ++plan)
+		{
+			std::map<std::string, std::string>::const_iterator card = plan->action.map.find("card");
+			if (card == plan->action.map.end() || std::atoi(card->second.c_str()) != emeral)
+				continue;
+			emeralPlans++;
+			valid = valid && plan->choices.size() == 2 &&
+				plan->choices[0].selection == lowestHandValue &&
+				plan->choices[1].selection == firstShield;
+			Duel result;
+			result.mIsSimulation = true;
+			result.mInputLoopRunning = false;
+			valid = valid && result.copyFrom(root) &&
+				executeDecisionPlan(result, *plan).status == DecisionPlanStatus::Complete &&
+				result.mCardList[lowestHandValue]->mZone == ZONE_SHIELD &&
+				result.mCardList[firstShield]->mZone == ZONE_HAND &&
+				result.mCardList[affordableCard]->mZone == ZONE_HAND;
+		}
+		valid = valid && emeralPlans == 1;
+	}
+
+	{
+		Duel root;
+		root.mIsSimulation = true;
+		root.mInputLoopRunning = false;
+		root.mTurn = 0;
+		root.mTurnPhase = TURN_PHASE_MAIN;
+		auto addCard = [&root](int cardId, int zone) -> int
+		{
+			int uid = (int)root.mCardList.size();
+			Card* card = new Card(uid, cardId, 0);
+			root.mCardList.push_back(card);
+			root.getZone(0, zone)->addCard(card);
+			card->mZone = zone;
+			root.mNextUniqueId = uid + 1;
+			return uid;
+		};
+
+		int dimensionGate = addCard(dimensionGateId, ZONE_HAND);
+		for (int mana = 0; mana < 3; ++mana)
+			addCard(natureCreatureId, ZONE_MANA);
+		int lowCostCreature = addCard(fireCreatureId, ZONE_DECK);
+		int highCostCreature = addCard(bolshackDragonId, ZONE_DECK);
+		int invalidSpell = addCard(solarRayId, ZONE_DECK);
+
+		DecisionPlanEnumerationOptions aiOptions;
+		aiOptions.heuristicMana = true;
+		aiOptions.heuristicChoices = true;
+		std::vector<DecisionPlan> plans = enumerateDecisionPlans(root, aiOptions);
+		int dimensionGatePlans = 0;
+		for (std::vector<DecisionPlan>::const_iterator plan = plans.begin();
+			plan != plans.end(); ++plan)
+		{
+			std::map<std::string, std::string>::const_iterator card = plan->action.map.find("card");
+			if (card == plan->action.map.end() ||
+				std::atoi(card->second.c_str()) != dimensionGate)
+				continue;
+			dimensionGatePlans++;
+			valid = valid && plan->choices.size() == 1 &&
+				plan->choices[0].selection == highCostCreature;
+			Duel result;
+			result.mIsSimulation = true;
+			result.mInputLoopRunning = false;
+			valid = valid && result.copyFrom(root) &&
+				executeDecisionPlan(result, *plan).status == DecisionPlanStatus::Complete &&
+				result.mCardList[highCostCreature]->mZone == ZONE_HAND &&
+				result.mCardList[lowCostCreature]->mZone == ZONE_DECK &&
+				result.mCardList[invalidSpell]->mZone == ZONE_DECK;
+		}
+		valid = valid && dimensionGatePlans == 1;
+	}
+
+	{
+		Duel root;
+		root.mIsSimulation = true;
 		auto addCard = [&root](int cardId, int owner, int zone) -> int
 		{
 			int uid = (int)root.mCardList.size();
@@ -1377,6 +1677,79 @@ bool Application::exerciseDecisionPlanSmoke()
 				", other=" << otherAttackerIgnored << std::endl;
 		}
 		valid = valid && currentAttackerUntapped && otherAttackerIgnored;
+	}
+
+	{
+		Duel root;
+		root.mIsSimulation = true;
+		auto addCard = [&root](int cardId, int owner, int zone) -> int
+		{
+			int uid = (int)root.mCardList.size();
+			Card* card = new Card(uid, cardId, owner);
+			root.mCardList.push_back(card);
+			root.getZone(owner, zone)->addCard(card);
+			card->mZone = zone;
+			root.mNextUniqueId = uid + 1;
+			return uid;
+		};
+
+		int tornadoFlame = addCard(tornadoFlameId, 0, ZONE_HAND);
+		int terrorPit = addCard(terrorPitId, 0, ZONE_HAND);
+		int deathSmoke = addCard(deathSmokeId, 0, ZONE_HAND);
+		int ghostTouch = addCard(ghostTouchId, 0, ZONE_HAND);
+		int holyAwe = addCard(holyAweId, 0, ZONE_HAND);
+		int crisisBoulder = addCard(crisisBoulderId, 0, ZONE_HAND);
+		bool emptyBoardRejected = false;
+		bool emptyHandRejected = false;
+		{
+			ActiveDuelGuard activeGuard(root);
+				emptyBoardRejected = root.getCardAiCanCast(tornadoFlame) == 0 &&
+				root.getCardAiCanCast(terrorPit) == 0 &&
+				root.getCardAiCanCast(deathSmoke) == 0 &&
+				root.getCardAiCanCast(holyAwe) == 0 &&
+				root.getCardAiCanCast(crisisBoulder) == 0;
+			emptyHandRejected = root.getCardAiCanCast(ghostTouch) == 0;
+		}
+
+		addCard(fireCreatureId, 1, ZONE_MANA);
+		bool manaTargetAccepted = false;
+		{
+			ActiveDuelGuard activeGuard(root);
+			manaTargetAccepted = root.getCardAiCanCast(crisisBoulder) == 1;
+		}
+
+		int strongCreature = addCard(bolshackDragonId, 1, ZONE_BATTLE);
+		bool strongTargetRestrictions = false;
+		{
+			ActiveDuelGuard activeGuard(root);
+			strongTargetRestrictions = root.getCardAiCanCast(tornadoFlame) == 0 &&
+				root.getCardAiCanCast(terrorPit) == 1 &&
+				root.getCardAiCanCast(deathSmoke) == 1 &&
+				root.getCardAiCanCast(holyAwe) == 1 &&
+				root.getCardAiCanCast(crisisBoulder) == 1;
+		}
+		root.mCardList[strongCreature]->mIsTapped = true;
+		bool tappedTargetRejected = false;
+		{
+			ActiveDuelGuard activeGuard(root);
+			tappedTargetRejected = root.getCardAiCanCast(deathSmoke) == 0 &&
+				root.getCardAiCanCast(holyAwe) == 0;
+		}
+
+		addCard(fireCreatureId, 1, ZONE_BATTLE);
+		addCard(fireCreatureId, 1, ZONE_HAND);
+		bool restrictedTargetsAccepted = false;
+		bool occupiedHandAccepted = false;
+		{
+			ActiveDuelGuard activeGuard(root);
+			restrictedTargetsAccepted = root.getCardAiCanCast(tornadoFlame) == 1 &&
+				root.getCardAiCanCast(deathSmoke) == 1 &&
+				root.getCardAiCanCast(holyAwe) == 1;
+			occupiedHandAccepted = root.getCardAiCanCast(ghostTouch) == 1;
+		}
+		valid = valid && emptyBoardRejected && emptyHandRejected && strongTargetRestrictions &&
+			manaTargetAccepted && tappedTargetRejected && restrictedTargetsAccepted &&
+			occupiedHandAccepted;
 	}
 
 	{

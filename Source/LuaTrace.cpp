@@ -1,5 +1,7 @@
 #include "LuaTrace.h"
 
+#include "Game/Duel.h"
+
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
@@ -35,6 +37,14 @@ namespace
 	{
 		static TraceState state;
 		return state;
+	}
+
+	bool traceCurrentDuel()
+	{
+		// MCTS can execute thousands of callbacks for positions that are never
+		// committed to the real duel. Logging those callbacks consumes most of
+		// the search budget and makes the UI contend with continuous file I/O.
+		return traceState().enabled && (ActiveDuel == NULL || !ActiveDuel->mIsSimulation);
 	}
 
 	std::string escape(const char* value, size_t length)
@@ -174,7 +184,7 @@ bool LuaTrace::isEnabled()
 void LuaTrace::logCallback(const char* direction, const char* callback, const std::string& subject,
 	int cardId, const Message& message, const char* error)
 {
-	if (!isEnabled()) return;
+	if (!traceCurrentDuel()) return;
 	std::ostringstream output;
 	output << direction << ' ' << callback << " card=" << escape(subject.c_str(), subject.size())
 		<< " uid=" << cardId << " message=" << messageValues(message);
@@ -184,19 +194,19 @@ void LuaTrace::logCallback(const char* direction, const char* callback, const st
 
 void LuaTrace::logBridgeCall(lua_State* state, const char* function, int argumentCount)
 {
-	if (!isEnabled()) return;
+	if (!traceCurrentDuel()) return;
 	writeTrace(std::string("lua -> engine ") + function + " args=" + luaValues(state, 1, argumentCount));
 }
 
 void LuaTrace::logBridgeReturn(lua_State* state, const char* function, int resultCount)
 {
-	if (!isEnabled()) return;
+	if (!traceCurrentDuel()) return;
 	writeTrace(std::string("engine -> lua ") + function + " returns=" + luaValues(state, 1, resultCount));
 }
 
 void LuaTrace::logBridgeError(lua_State* state, const char* function)
 {
-	if (!isEnabled()) return;
+	if (!traceCurrentDuel()) return;
 	const char* error = lua_tostring(state, -1);
 	writeTrace(std::string("engine -> lua ") + function + " error=" +
 		escape(error == NULL ? "unknown error" : error, error == NULL ? 13 : std::strlen(error)));

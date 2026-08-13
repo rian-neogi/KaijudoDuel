@@ -1,6 +1,7 @@
 Cards = {}
 
 package.path = package.path .. ';./?.lua;'
+require("Lua/AIParams")
 require("Lua/Eternal Arms")
 require("Lua/Eternal Wave")
 require("Lua/Eternal Vortex")

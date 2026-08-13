@@ -1,5 +1,6 @@
 #include "Card.h"
 
+#include "AI/AiParams.h"
 #include "AI/MctsTiming.h"
 #include "Duel.h"
 #include "LuaTrace.h"
@@ -207,30 +208,32 @@ int Card::handleMessage(Message& msg)
 	if (!lua_isfunction(LuaCards, -1))
 	{
 		// HandleMessage is optional: many vanilla creatures and spells have no
-		// reactive Lua rule, so quietly ignore broadcasts for those cards.
+		// reactive Lua rule. The card's modifiers must still receive broadcasts.
 		lua_settop(LuaCards, stackTop);
-		return -1;
-	}
-	MctsTiming::LuaCallbackTimer luaTimer;
-	const Message& traceMessage = ActiveDuel == NULL ? msg : ActiveDuel->mCurrentMessage;
-	LuaTrace::logCallback("engine -> lua", "HandleMessage", mName, mUniqueId, traceMessage);
-	lua_pushinteger(LuaCards, mUniqueId);
-	int status = lua_pcall(LuaCards, 1, 0, 0);
-	if (status != LUA_OK)
-	{
-		const char* error = lua_tostring(LuaCards, -1);
-		LuaTrace::logCallback("lua -> engine", "HandleMessage", mName, mUniqueId,
-			ActiveDuel == NULL ? msg : ActiveDuel->mCurrentMessage, error);
-		fprintf(stderr, "Lua error for '%s' while handling '%s': %s\n",
-			mName.c_str(), msg.getType().c_str(), error == NULL ? "unknown error" : error);
 	}
 	else
 	{
-		LuaTrace::logCallback("lua -> engine", "HandleMessage", mName, mUniqueId,
-			ActiveDuel == NULL ? msg : ActiveDuel->mCurrentMessage);
+		MctsTiming::LuaCallbackTimer luaTimer;
+		const Message& traceMessage = ActiveDuel == NULL ? msg : ActiveDuel->mCurrentMessage;
+		LuaTrace::logCallback("engine -> lua", "HandleMessage", mName, mUniqueId, traceMessage);
+		lua_pushinteger(LuaCards, mUniqueId);
+		int status = lua_pcall(LuaCards, 1, 0, 0);
+		if (status != LUA_OK)
+		{
+			const char* error = lua_tostring(LuaCards, -1);
+			LuaTrace::logCallback("lua -> engine", "HandleMessage", mName, mUniqueId,
+				ActiveDuel == NULL ? msg : ActiveDuel->mCurrentMessage, error);
+			fprintf(stderr, "Lua error for '%s' while handling '%s': %s\n",
+				mName.c_str(), msg.getType().c_str(), error == NULL ? "unknown error" : error);
+		}
+		else
+		{
+			LuaTrace::logCallback("lua -> engine", "HandleMessage", mName, mUniqueId,
+				ActiveDuel == NULL ? msg : ActiveDuel->mCurrentMessage);
+		}
+		lua_settop(LuaCards, stackTop);
 	}
 	//sendMessageToBuffs(msg);
-	lua_settop(LuaCards, stackTop);
 
 	int cnt = 0;
 	for (std::vector<Modifier*>::iterator i = mModifiers.begin(); i != mModifiers.end(); i++, cnt++)
@@ -537,6 +540,8 @@ bool initCards()
 		// _getch();
 		return false;
 	}
+	if (!loadAiParams(LuaCards))
+		return false;
 
 	//lua_getglobal(LuaCards, "loadCards");
 	//lua_pcall(LuaCards, 0, 0, 0); //execute once to load cards

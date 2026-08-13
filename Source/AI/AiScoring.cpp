@@ -1,17 +1,11 @@
 #include "AiScoring.h"
 
+#include "AiParams.h"
+
 #include <algorithm>
 
 namespace
 {
-	const double SHIELD_VALUE = 6.0;
-	const double MANA_CARD_VALUE = 2.0;
-	const double MANA_CIVILIZATION_BONUS = 0.1;
-	const double HAND_BASE_VALUE = 1.0;
-	const double HAND_COST_BONUS = 0.25;
-	const double HAND_MISSING_MANA_PENALTY = 0.5;
-	const double DECK_CARD_VALUE = 0.05;
-
 	int civilizationCount(int civilizations)
 	{
 		int count = 0;
@@ -22,8 +16,9 @@ namespace
 
 	double manaValue(int cardCount, int civilizations)
 	{
-		return std::max(0, cardCount) * MANA_CARD_VALUE +
-			civilizationCount(civilizations) * MANA_CIVILIZATION_BONUS;
+		return std::max(0, cardCount) * aiParam("evaluation.mana_card_value") +
+			civilizationCount(civilizations) *
+				aiParam("evaluation.mana_civilization_bonus");
 	}
 }
 
@@ -32,8 +27,10 @@ double AiScoring::battleCreatureValue(Duel& duel, int cardId)
 	if (cardId < 0 || cardId >= static_cast<int>(duel.mCardList.size())) return 0.0;
 	Card* card = duel.mCardList[cardId];
 	if (card->mType != TYPE_CREATURE || card->mZone != ZONE_BATTLE) return 0.0;
-	return std::max(0, duel.getCreaturePower(cardId)) / 1000.0 +
-		std::max(0, duel.getCreatureBreaker(cardId)) * 2.0;
+	return std::max(0, duel.getCreaturePower(cardId)) /
+			aiParam("evaluation.creature_power_divisor") +
+		std::max(0, duel.getCreatureBreaker(cardId)) *
+			aiParam("evaluation.creature_breaker_value");
 }
 
 double AiScoring::manaZoneValue(const Duel& duel, int player)
@@ -52,9 +49,10 @@ double AiScoring::handCardValue(const Card& card, int manaCount)
 {
 	int cost = std::max(0, card.mManaCost);
 	int missingMana = std::max(0, cost - std::max(0, manaCount));
-	double value = HAND_BASE_VALUE + cost * HAND_COST_BONUS -
-		missingMana * HAND_MISSING_MANA_PENALTY;
-	return std::max(HAND_BASE_VALUE, value);
+	double baseValue = aiParam("evaluation.hand_base_value");
+	double value = baseValue + cost * aiParam("evaluation.hand_cost_bonus") -
+		missingMana * aiParam("evaluation.hand_missing_mana_penalty");
+	return std::max(baseValue, value);
 }
 
 double AiScoring::handZoneValue(const Duel& duel, int player, int manaCount)
@@ -73,11 +71,12 @@ double AiScoring::playerValue(Duel& duel, int player)
 {
 	if (player != 0 && player != 1) return 0.0;
 	ActiveDuelGuard activeGuard(duel);
-	double value = duel.mShields[player].mCards.size() * SHIELD_VALUE;
+	double value = duel.mShields[player].mCards.size() *
+		aiParam("evaluation.shield_value");
 	value += manaZoneValue(duel, player);
 	value += handZoneValue(duel, player,
 		static_cast<int>(duel.mManazones[player].mCards.size()));
-	value += duel.mDecks[player].mCards.size() * DECK_CARD_VALUE;
+	value += duel.mDecks[player].mCards.size() * aiParam("evaluation.deck_card_value");
 	for (std::vector<Card*>::const_iterator card = duel.mBattlezones[player].mCards.begin();
 		card != duel.mBattlezones[player].mCards.end(); ++card)
 	{
@@ -90,10 +89,10 @@ double AiScoring::manaPlacementDelta(const Duel& duel, int player, int cardId)
 {
 	if ((player != 0 && player != 1) || cardId < 0 ||
 		cardId >= static_cast<int>(duel.mCardList.size()))
-		return -1000000.0;
+		return aiParam("evaluation.invalid_mana_delta");
 	Card* candidate = duel.mCardList[cardId];
 	if (candidate->mOwner != player || candidate->mZone != ZONE_HAND)
-		return -1000000.0;
+		return aiParam("evaluation.invalid_mana_delta");
 
 	int manaCount = static_cast<int>(duel.mManazones[player].mCards.size());
 	int civilizations = 0;

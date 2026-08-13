@@ -126,6 +126,10 @@ Cards["Miraculous Plague"] = {
 	price_tier = 5,
 	shieldtrigger = 0,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InOppBattle)
+	end,
+
 	OnCast = function(id) --test
 		local owner=getCardOwner(id)
 		local resolvePair=function(prompt,check,destroy)
@@ -192,6 +196,13 @@ Cards["Miraculous Meltdown"] = {
 Cards["Miraculous Rebirth"] = {
 	price_tier = 5,
 	shieldtrigger = 0,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+			if(Checks.InOppBattle(cid,sid)==1 and getCreaturePower(sid)<=5000) then return 1 end
+			return 0
+		end)
+	end,
 
 	OnCast = function(id) --test
 		local target=createChoice("Choose an opponent's creature with power 5000 or less",0,id,getCardOwner(id),function(cid,sid)
@@ -276,6 +287,13 @@ Cards["Diamondia, the Blizzard Rider"] = {
 Cards["Miraculous Snare"] = {
 	price_tier = 5,
 	shieldtrigger = 0,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+			if(Checks.InBattle(cid,sid)==1 and getCreatureIsEvolution(sid)==0) then return 1 end
+			return 0
+		end)
+	end,
 
 	OnCast = function(id)
 		local target=createChoice("Choose a non-evolution creature",0,id,getCardOwner(id),function(cid,sid)
@@ -681,6 +699,10 @@ Cards["Roulette of Ruin"] = {
 	price_tier = 3,
 	shieldtrigger = 1,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfOpponentHasHand(id)
+	end,
+
 	OnCast = function(id) --test
 		local owner=getCardOwner(id)
 		local opponent=getOpponent(owner)
@@ -842,6 +864,13 @@ Cards["Ten-Ton Crunch"] = {
 	price_tier = 1,
 	shieldtrigger = 1,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+			if(Checks.InOppBattle(cid,sid)==1 and getCreaturePower(sid)<=3000) then return 1 end
+			return 0
+		end)
+	end,
+
 	OnCast = function(id)
 		local target=createChoice("Choose an opponent's creature with power 3000 or less",0,id,getCardOwner(id),function(cid,sid)
 			if(Checks.InOppBattle(cid,sid)==1 and getCreaturePower(sid)<=3000) then return 1 end
@@ -920,7 +949,8 @@ Cards["Rainbow Gate"] = {
 	shieldtrigger = 0,
 
 	OnCast = function(id)
-		local creature=createChoice("Choose a multicolored creature from your deck",1,id,getCardOwner(id),function(cid,sid)
+		local owner=getCardOwner(id)
+		local valid=function(cid,sid)
 			if(Checks.CreatureInYourDeck(cid,sid)==0) then return 0 end
 			local count=0
 			for civ=0,4 do
@@ -928,7 +958,9 @@ Cards["Rainbow Gate"] = {
 			end
 			if(count>=2) then return 1 end
 			return 0
-		end)
+		end
+		local preferred=Functions.HighestCostChoice(id,owner,ZONE_DECK,valid)
+		local creature=createChoice("Choose a multicolored creature from your deck",1,id,owner,valid,preferred)
 		if(creature>=0) then moveCard(creature,ZONE_HAND) end
 		shuffleDeck(getCardOwner(id))
 	end
@@ -1043,6 +1075,13 @@ Cards["Live and Breathe"] = {
 Cards["Hide and Seek"] = {
 	price_tier = 3,
 	shieldtrigger = 0,
+
+	HandleMessage = function(id)
+		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+			if(Checks.InOppBattle(cid,sid)==1 and getCreatureIsEvolution(sid)==0) then return 1 end
+			return 0
+		end)
+	end,
 
 	OnCast = function(id)
 		local target=createChoice("Choose an opponent's non-evolution creature",0,id,getCardOwner(id),function(cid,sid)

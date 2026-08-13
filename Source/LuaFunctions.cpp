@@ -1,4 +1,5 @@
 #include "LuaFunctions.h"
+#include "AI/AiScoring.h"
 #include "LuaTrace.h"
 
 Duel* ActiveDuel;
@@ -138,6 +139,13 @@ static int setModifierStateInt(lua_State* L)
 
 static int createChoice(lua_State* L)
 {
+	if (!lua_isfunction(L, 5))
+	{
+		fprintf(stderr, "Lua createChoice error: validator is not a function (card=%d)\n",
+			static_cast<int>(lua_tointeger(L, 3)));
+		lua_pushinteger(L, RETURN_NOVALID);
+		return 1;
+	}
 	// A choice may be created from inside a message callback after that callback
 	// queued more work. Drain the work, but preserve the outer callback's message
 	// context when the nested dispatch returns.
@@ -569,6 +577,27 @@ static int getCardIsShieldTrigger(lua_State* L)
 	return 1;
 }
 
+static int getCardHandValue(lua_State* L)
+{
+	Card* card = cardFromLua(L, 1);
+	if (card == NULL)
+	{
+		lua_pushnumber(L, 0.0);
+		return 1;
+	}
+	int manaCount = static_cast<int>(ActiveDuel->mManazones[card->mOwner].mCards.size());
+	lua_pushnumber(L, AiScoring::handCardValue(*card, manaCount));
+	return 1;
+}
+
+static int getCardBattleValue(lua_State* L)
+{
+	Card* card = cardFromLua(L, 1);
+	lua_pushnumber(L, card == NULL ? 0.0 :
+		AiScoring::battleCreatureValue(*ActiveDuel, card->mUniqueId));
+	return 1;
+}
+
 static int loseGame(lua_State* L)
 {
 	int player = lua_tointeger(L, 1);
@@ -787,6 +816,8 @@ void registerLua(lua_State* L)
 	lua_register(L, "cardHasCivilization", cardHasCivilization);
 	lua_register(L, "getCardCost", getCardCost);
 	lua_register(L, "getCardIsShieldTrigger", getCardIsShieldTrigger);
+	lua_register(L, "getCardHandValue", getCardHandValue);
+	lua_register(L, "getCardBattleValue", getCardBattleValue);
 	lua_register(L, "getCardType", getCardType);
 	lua_register(L, "getCreatureRace", getCreatureRace); //returns the full race string of the creature
 	lua_register(L, "isCreatureOfRace", isCreatureOfRace);

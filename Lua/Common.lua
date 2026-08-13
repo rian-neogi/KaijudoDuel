@@ -180,6 +180,107 @@ Abils.PreferHighestCostInOpponentDeck = function(id)
 	setMessageInt("selection",preferred)
 end
 
+Abils.AiCanCastIfValidTarget = function(id,player,zone,valid)
+	if(getMessageType()~="get cardaicancast" or getMessageInt("card")~=id) then
+		return
+	end
+	setMessageInt("cancast",0)
+	for i=0,(getZoneSize(player,zone)-1) do
+		if(valid(id,getCardAt(player,zone,i))==1) then
+			setMessageInt("cancast",1)
+			return
+		end
+	end
+end
+
+Abils.AiCanCastIfOpponentHasHand = function(id)
+	if(getMessageType()=="get cardaicancast" and getMessageInt("card")==id and
+		getZoneSize(getOpponent(getCardOwner(id)),ZONE_HAND)==0) then
+		setMessageInt("cancast",0)
+	end
+end
+
+Functions.HighestCostShieldTriggerChoice = function(choiceCard,player,zone,valid)
+	local preferred = RETURN_NOTHING
+	local highestCost = -1
+	for i=0,(getZoneSize(player,zone)-1) do
+		local card = getCardAt(player,zone,i)
+		if(getCardIsShieldTrigger(card)==1 and
+			(valid==nil or valid(choiceCard,card)==1)) then
+			local cost = getCardCost(card)
+			if(cost>highestCost) then
+				highestCost = cost
+				preferred = card
+			end
+		end
+	end
+	return preferred
+end
+
+Functions.LowestHandValueChoice = function(choiceCard,player,zone,valid)
+	local preferred = RETURN_NOTHING
+	local lowestValue = math.huge
+	for i=0,(getZoneSize(player,zone)-1) do
+		local card = getCardAt(player,zone,i)
+		if(valid==nil or valid(choiceCard,card)==1) then
+			local value = getCardHandValue(card)
+			if(value<lowestValue) then
+				lowestValue = value
+				preferred = card
+			end
+		end
+	end
+	return preferred
+end
+
+Functions.HighestHandValueChoice = function(choiceCard,player,zone,valid)
+	local preferred = RETURN_NOTHING
+	local highestValue = -math.huge
+	for i=0,(getZoneSize(player,zone)-1) do
+		local card = getCardAt(player,zone,i)
+		if(valid==nil or valid(choiceCard,card)==1) then
+			local value = getCardHandValue(card)
+			if(value>highestValue) then
+				highestValue = value
+				preferred = card
+			end
+		end
+	end
+	return preferred
+end
+
+Functions.LowestBattleValueChoice = function(choiceCard,player,zone,valid)
+	local preferred = RETURN_NOTHING
+	local lowestValue = math.huge
+	for i=0,(getZoneSize(player,zone)-1) do
+		local card = getCardAt(player,zone,i)
+		if(valid==nil or valid(choiceCard,card)==1) then
+			local value = getCardBattleValue(card)
+			if(value<lowestValue) then
+				lowestValue = value
+				preferred = card
+			end
+		end
+	end
+	return preferred
+end
+
+Functions.HighestCostChoice = function(choiceCard,player,zone,valid)
+	local preferred = RETURN_NOTHING
+	local highestCost = -1
+	for i=0,(getZoneSize(player,zone)-1) do
+		local card = getCardAt(player,zone,i)
+		if(valid==nil or valid(choiceCard,card)==1) then
+			local cost = getCardCost(card)
+			if(cost>highestCost) then
+				highestCost = cost
+				preferred = card
+			end
+		end
+	end
+	return preferred
+end
+
 local tapAbilitiesLocked = function()
 	for player=0,1 do
 		for i=0,getZoneSize(player,ZONE_BATTLE)-1 do

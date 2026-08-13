@@ -22,7 +22,8 @@ namespace
 			<< "Decks are searched beneath Decks/ by default; quote paths containing spaces.\n"
 			<< "The player deck is listed first.\n"
 			<< "--full-visibility reveals both hands in direct-duel mode.\n"
-			<< "--lua-trace writes a rolling trace to Logs/lua-trace.log.\n";
+			<< "--lua-trace writes real-duel Lua calls (excluding MCTS simulations) "
+			<< "to Logs/lua-trace.log.\n";
 	}
 }
 

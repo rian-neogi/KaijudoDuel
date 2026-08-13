@@ -93,6 +93,10 @@ Cards["Cranium Clamp"] = {
 
 	shieldtrigger = 0,
 
+	HandleMessage = function(id)
+		Abils.AiCanCastIfOpponentHasHand(id)
+	end,
+
 	OnCast = function(id)
 		local opponent = getOpponent(getCardOwner(id))
 		for i=1,2 do
@@ -204,7 +208,8 @@ Cards["Neve, the Leveler"] = {
             if(c2>c1) then
                 openDeck(owner)
                 for i=1,(c2-c1) do
-                    local ch = createChoice("Choose a creature in your deck",1,id,owner,Checks.CreatureInYourDeck)
+                    local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,Checks.CreatureInYourDeck)
+                    local ch = createChoice("Choose a creature in your deck",1,id,owner,Checks.CreatureInYourDeck,preferred)
 	                if(ch>=0) then
                         moveCard(ch,ZONE_HAND)
                         shuffleDeck(getCardOwner(ch))
@@ -317,7 +322,8 @@ Cards["Velyrika Dragon"] = {
             end
             local owner = getCardOwner(id)
             openDeck(owner)
-	        local ch = createChoice("Choose an Armored Dragon in your deck",0,id,owner,func2)
+	        local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,func2)
+	        local ch = createChoice("Choose an Armored Dragon in your deck",0,id,owner,func2,preferred)
             closeDeck(owner)
 	        if(ch>=0) then
                 moveCard(ch,ZONE_HAND)
@@ -325,5 +331,191 @@ Cards["Velyrika Dragon"] = {
             end
         end
         Abils.onSummon(id,func)
+	end
+}
+
+Cards["Uberdragon Zaschack"] = {
+	price_tier = 3,
+	name = "Uberdragon Zaschack",
+	set = "Promo",
+	type = TYPE_CREATURE,
+	civilization = CIV_FIRE,
+	race = "Armored Dragon",
+	cost = 9,
+
+	shieldtrigger = 0,
+	blocker = 0,
+
+	power = 11000,
+	breaker = 1,
+
+	HandleMessage = function(id)
+		Abils.Evolution(id,"Armored Dragon")
+		if(getMessageType()=="get creaturebreaker" and getMessageInt("creature")==id and getCardZone(id)==ZONE_BATTLE) then
+			local owner = getCardOwner(id)
+			local size = getZoneSize(owner,ZONE_BATTLE)
+			local count = 0
+			for i=0,(size-1) do
+				local cid = getCardAt(owner,ZONE_BATTLE,i)
+				if(cid~=id and getCardType(cid)==TYPE_CREATURE and isCreatureOfRace(cid,"Armored Dragon")==1) then
+					count = count+1
+				end
+			end
+			setMessageInt("breaker",getMessageInt("breaker")+count)
+		end
+	end
+}
+
+Cards["Angry Maple"] = {
+	price_tier = 3,
+	name = "Angry Maple",
+	set = "Promo",
+	type = TYPE_CREATURE,
+	civilization = CIV_NATURE,
+	race = "Tree Folk",
+	cost = 3,
+
+	shieldtrigger = 0,
+	blocker = 0,
+
+	power = 1000,
+	breaker = 1,
+
+	HandleMessage = function(id)
+		Abils.PowerAttacker(id,4000)
+	end
+}
+
+Cards["Super Dragon Machine Dolzark"] = {
+	price_tier = 3,
+	name = "Super Dragon Machine Dolzark",
+	set = "Promo",
+	type = TYPE_CREATURE,
+	civilization = CIV_FIRE,
+	race = "Armored Dragon/Earth Dragon",
+	cost = 6,
+
+	shieldtrigger = 0,
+	blocker = 0,
+
+	power = 7000,
+	breaker = 2,
+
+	HandleMessage = function(id)
+		local owner = getCardOwner(id)
+		if(getMessageType()=="post cardmove" and getMessageInt("card")==id and
+			getMessageInt("to")==ZONE_MANA) then
+			tapCard(id)
+		elseif(getMessageType()=="post creatureattack" and getCardZone(id)==ZONE_BATTLE) then
+			local attacker = getMessageInt("attacker")
+			if(attacker~=id and getCardOwner(attacker)==owner and
+				getCardType(attacker)==TYPE_CREATURE and isCreatureOfRace(attacker,"Dragon")==1) then
+				local valid = function(cid,sid)
+					return getCardOwner(sid)~=owner and getCardZone(sid)==ZONE_BATTLE and
+						getCardType(sid)==TYPE_CREATURE and getCreaturePower(sid)<=5000 and 1 or 0
+				end
+				local chosen = createChoice("Choose an opponent's creature with power 5000 or less",2,id,owner,valid)
+				if(chosen>=0) then moveCard(chosen,ZONE_MANA) end
+			end
+		end
+	end
+}
+
+Cards["Dyno Mantis, the Mightspinner"] = {
+	price_tier = 3,
+	name = "Dyno Mantis, the Mightspinner",
+	set = "Promo",
+	type = TYPE_CREATURE,
+	civilization = CIV_NATURE,
+	race = "Giant Insect",
+	cost = 5,
+
+	shieldtrigger = 0,
+	blocker = 0,
+
+	power = 7000,
+	breaker = 2,
+
+	HandleMessage = function(id)
+		Abils.Evolution(id,"Giant Insect")
+		if(getMessageType()=="get creaturebreaker" and getCardZone(id)==ZONE_BATTLE) then
+			local creature = getMessageInt("creature")
+			if(creature~=id and getCardOwner(creature)==getCardOwner(id) and
+				getCardZone(creature)==ZONE_BATTLE and getCardType(creature)==TYPE_CREATURE and
+				getCreaturePower(creature)>=5000) then
+				setMessageInt("breaker",getMessageInt("breaker")+1)
+			end
+		end
+	end
+}
+
+Cards["Giliam, the Tormentor"] = {
+	price_tier = 3,
+	name = "Giliam, the Tormentor",
+	set = "Promo",
+	type = TYPE_CREATURE,
+	civilization = CIV_DARKNESS,
+	race = "Demon Command",
+	cost = 7,
+
+	shieldtrigger = 0,
+	blocker = 1,
+
+	power = 5000,
+	breaker = 1,
+
+	HandleMessage = function(id)
+		if(getMessageType()=="get creaturecanblock" and getCardZone(id)==ZONE_BATTLE and
+			getMessageInt("blocker")==id and
+			not cardHasCivilization(getMessageInt("attacker"),CIV_LIGHT)) then
+			setMessageInt("canblock",0)
+		end
+
+		if(getMessageType()=="pre creaturebattle" and getCardZone(id)==ZONE_BATTLE) then
+			local attacker = getMessageInt("attacker")
+			local defender = getMessageInt("defender")
+			local opponent = attacker==id and defender or defender==id and attacker or -1
+			if(opponent>=0 and cardHasCivilization(opponent,CIV_LIGHT) and
+				getCreaturePower(id)<getCreaturePower(opponent)) then
+				local protect = function(cid,mid)
+					if(getMessageType()=="mod creaturedestroy" and getMessageInt("creature")==cid and
+						getCardZone(cid)==ZONE_BATTLE) then
+						setMessageInt("msgContinue",0)
+						destroyModifier(cid,mid)
+					end
+				end
+				createModifier(id,protect)
+			end
+		end
+	end
+}
+
+Cards["Q-tronic Omnistrain"] = {
+	price_tier = 3,
+	name = "Q-Tronic Omnistrain",
+	set = "Promo",
+	type = TYPE_CREATURE,
+	civilization = CIV_NATURE,
+	race = "Survivor",
+	cost = 6,
+
+	shieldtrigger = 1,
+	blocker = 0,
+
+	power = 3000,
+	breaker = 1,
+
+	HandleMessage = function(id)
+		Abils.Evolution(id,"Survivor")
+		if(getMessageType()=="get creaturerace" and getCardZone(id)==ZONE_BATTLE) then
+			local creature = getMessageInt("creature")
+			if(getCardOwner(creature)==getCardOwner(id) and getCardZone(creature)==ZONE_BATTLE and
+				getCardType(creature)==TYPE_CREATURE) then
+				local race = getMessageString("race")
+				if(string.find(race,"Survivor",1,true)==nil) then
+					setMessageString("race",race.."/Survivor")
+				end
+			end
+		end
 	end
 }

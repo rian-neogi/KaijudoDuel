@@ -672,7 +672,7 @@ return {
 		max_battles = 1,
 		decks = { "AstrocometDragon.txt" },
 		rewards = {
-			{ card = "Astrocomet Dragon", gold = 115 },
+			{ card = "Astrocomet Dragon", gold = 200 },
 		},
 		ai = { personality = "aggressive" },
 		dialogue = {
@@ -691,7 +691,7 @@ return {
 		max_battles = 1,
 		decks = { "Official/2 - F Shobu Fire.txt" },
 		rewards = {
-			{ card = "Rothus, the Traveler", gold = 115 },
+			{ card = "Rothus, the Traveler", gold = 200 },
 		},
 		ai = { personality = "aggressive" },
 		dialogue = {
@@ -710,7 +710,7 @@ return {
 		max_battles = 1,
 		decks = { "Dark Generic 2.txt" },
 		rewards = {
-			{ card = "Amber Piercer", gold = 115 },
+			{ card = "Amber Piercer", gold = 200 },
 		},
 		ai = { personality = "aggressive" },
 		dialogue = {
@@ -729,7 +729,7 @@ return {
 		max_battles = 1,
 		decks = { "Light Generic 1.txt" },
 		rewards = {
-			{ card = "Dia Nork, Moonlight Guardian", gold = 115 },
+			{ card = "Dia Nork, Moonlight Guardian", gold = 200 },
 		},
 		ai = { personality = "aggressive" },
 		dialogue = {
@@ -748,7 +748,7 @@ return {
 		max_battles = 1,
 		decks = { "Nature Generic 1.txt" },
 		rewards = {
-			{ card = "Fear Fang", gold = 115 },
+			{ card = "Fear Fang", gold = 200 },
 		},
 		ai = { personality = "aggressive" },
 		dialogue = {
@@ -767,7 +767,7 @@ return {
 		max_battles = 1,
 		decks = { "Nature Generic 2.txt" },
 		rewards = {
-			{ card = "Rumbling Terahorn", gold = 115 },
+			{ card = "Rumbling Terahorn", gold = 200 },
 		},
 		ai = { personality = "aggressive" },
 		dialogue = {
@@ -786,7 +786,7 @@ return {
 		max_battles = 1,
 		decks = { "Official/2 - D Kokujo Darkness.txt" },
 		rewards = {
-			{ card = "Death Smoke", gold = 115 },
+			{ card = "Death Smoke", gold = 200 },
 		},
 		ai = { personality = "aggressive" },
 		dialogue = {
@@ -805,7 +805,7 @@ return {
 		max_battles = 1,
 		decks = { "Fire Generic 2.txt" },
 		rewards = {
-			{ card = "Armored Cannon Balbaro", gold = 115 },
+			{ card = "Armored Cannon Balbaro", gold = 200 },
 		},
 		ai = { personality = "aggressive" },
 		dialogue = {
@@ -815,6 +815,8 @@ return {
 			complete = "The ridge has tested you four times. I will not pretend a fifth would reveal anything new."
 		}
 	},
+
+	--old-road
 	{
 		id = "old-road-duelist-1",
 		name = "Mara Flintway",
@@ -862,7 +864,7 @@ return {
 		max_battles = 1,
 		decks = { "TrenchdiveShark.txt" },
 		rewards = {
-			{ card = "Cetibols", gold = 115 },
+			{ card = "Cetibols", gold = 200 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
@@ -881,7 +883,7 @@ return {
 		max_battles = 1,
 		decks = { "Fire Generic 1.txt" },
 		rewards = {
-			{ card = "Crimson Hammer", gold = 115 },
+			{ card = "Crimson Hammer", gold = 200 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
@@ -900,7 +902,7 @@ return {
 		max_battles = 1,
 		decks = { "Fire Generic 2.txt" },
 		rewards = {
-			{ card = "Volcanic Arrows", gold = 115 },
+			{ card = "Volcanic Arrows", gold = 200 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
@@ -919,7 +921,7 @@ return {
 		max_battles = 1,
 		decks = { "AquaSniper.txt" },
 		rewards = {
-			{ card = "Aqua Sniper", gold = 115 },
+			{ card = "Aqua Sniper", gold = 200 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
@@ -938,7 +940,7 @@ return {
 		max_battles = 1,
 		decks = { "Zagaan.txt" },
 		rewards = {
-			{ card = "Vampire Silphy", gold = 115 },
+			{ card = "Vampire Silphy", gold = 200 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
@@ -957,7 +959,7 @@ return {
 		max_battles = 1,
 		decks = { "Dark Generic 2.txt" },
 		rewards = {
-			{ card = "Gigazoul", gold = 115 },
+			{ card = "Gigazoul", gold = 200 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
@@ -976,7 +978,7 @@ return {
 		max_battles = 1,
 		decks = { "Nature Generic 2.txt" },
 		rewards = {
-			{ card = "Enchanted Soil", gold = 115 },
+			{ card = "Enchanted Soil", gold = 200 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
@@ -993,11 +995,108 @@ return {
 		sight = { range = 4 },
 		appearance = "People5-1",
 		max_battles = 1,
-		decks = { "WorldTree.txt" },
+		decks = { "TreeFolkNoEvo.txt" },
 		rewards = {
-			{ card = "Senia, Orchard Avenger", gold = 115 },
+			{ card = "Psyshroom", gold = 200 },
 		},
 		ai = { personality = "adaptive" },
+		dialogue = {
+			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
+			defeat = "That will do. You have the nerve to explore beyond the road stones.",
+			victory = "A campfire is no substitute for preparation.",
+			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+		}
+	},
+
+	--treacherous-pass
+	{
+		id = "treacherous-duelist-1",
+		name = "Bandit Benzo",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "Evil-1",
+		max_battles = 1,
+		decks = { "Deathliger.txt" },
+		rewards = {
+			{ card = "Terror Pit", gold = 200 },
+		},
+		ai = { personality = "tempo" },
+		dialogue = {
+			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
+			defeat = "That will do. You have the nerve to explore beyond the road stones.",
+			victory = "A campfire is no substitute for preparation.",
+			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+		}
+	},
+	{
+		id = "treacherous-duelist-2",
+		name = "Bandit Pollo",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "Evil-3",
+		max_battles = 1,
+		decks = { "BraidClaw.txt" },
+		rewards = {
+			{ card = "Deadly Fighter Braid Claw", gold = 200 },
+		},
+		ai = { personality = "rush" },
+		dialogue = {
+			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
+			defeat = "That will do. You have the nerve to explore beyond the road stones.",
+			victory = "A campfire is no substitute for preparation.",
+			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+		}
+	},
+	{
+		id = "treacherous-duelist-3",
+		name = "Bandit Gras",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "Evil-1",
+		max_battles = 1,
+		decks = { "FireDark Generic.txt" },
+		rewards = {
+			{ card = "Blasto, Explosive Soldier", gold = 200 },
+		},
+		ai = { personality = "rush" },
+		dialogue = {
+			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
+			defeat = "That will do. You have the nerve to explore beyond the road stones.",
+			victory = "A campfire is no substitute for preparation.",
+			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+		}
+	},
+	{
+		id = "treacherous-duelist-4",
+		name = "Bandit Tillo",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "Evil-3",
+		max_battles = 1,
+		decks = { "HandRemoval.txt" },
+		rewards = {
+			{ card = "Tyrant Worm", gold = 200 },
+		},
+		ai = { personality = "control" },
+		dialogue = {
+			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
+			defeat = "That will do. You have the nerve to explore beyond the road stones.",
+			victory = "A campfire is no substitute for preparation.",
+			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+		}
+	},
+	{
+		id = "treacherous-duelist-boss",
+		name = "Banditlord Brocco",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "Evil-3",
+		max_battles = 1,
+		decks = { "More2/WD Dark Tide.txt" },
+		rewards = {
+			{ card = "Corile", gold = 400 },
+		},
+		ai = { personality = "tempo" },
 		dialogue = {
 			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
 			defeat = "That will do. You have the nerve to explore beyond the road stones.",
