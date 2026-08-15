@@ -1866,6 +1866,22 @@ int Application::worldBuilderHoveredNpc() const
 	return -1;
 }
 
+int Application::worldBuilderHoveredObject() const
+{
+	int cellX = -1;
+	int cellY = -1;
+	if (!mapCellAt(mMouseX, mMouseY, currentMap(), mWorldBuilderCameraX,
+		mWorldBuilderCameraY, mWorldBuilderTileSize, cellX, cellY)) return -1;
+	for (size_t i = 0; i < mWorldObjects.size(); ++i)
+		if (mWorldObjects[i].mapId == currentMapId() && mWorldObjects[i].x == cellX &&
+			mWorldObjects[i].y == cellY) return (int)i;
+	for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
+		if (mMercerStock.shards[i].mapId == currentMapId() &&
+			mMercerStock.shards[i].x == cellX && mMercerStock.shards[i].y == cellY)
+			return (int)mWorldObjects.size() + (int)i;
+	return -1;
+}
+
 void Application::renderWorldBuilder()
 {
 	fillRect({ 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT }, 12, 18, 29);
@@ -2544,6 +2560,28 @@ void Application::renderWorldBuilder()
 		fillRect({ labelX, labelY, labelWidth, 24 }, 12, 20, 34, 244);
 		outlineRect({ labelX, labelY, labelWidth, 24 }, 238, 188, 79, 255, 2);
 		drawText(npc.id, labelX + 8, labelY + 5, color(247, 221, 151), 12,
+			labelWidth - 16);
+	}
+	int hoveredObject = worldBuilderHoveredObject();
+	if (hoveredObject >= 0)
+	{
+		bool regularObject = hoveredObject < (int)mWorldObjects.size();
+		const std::string& name = regularObject ? mWorldObjects[hoveredObject].name :
+			mMercerStock.shards[hoveredObject - (int)mWorldObjects.size()].name;
+		int objectX = regularObject ? mWorldObjects[hoveredObject].x :
+			mMercerStock.shards[hoveredObject - (int)mWorldObjects.size()].x;
+		int objectY = regularObject ? mWorldObjects[hoveredObject].y :
+			mMercerStock.shards[hoveredObject - (int)mWorldObjects.size()].y;
+		int objectScreenX = mapX + objectX * tileSize;
+		int objectScreenY = mapY + objectY * tileSize;
+		int labelWidth = std::max(54, std::min(230, 18 + (int)name.size() * 8));
+		int labelX = std::max(MAP_X + 3, std::min(MAP_X + MAP_VIEW_WIDTH - labelWidth - 3,
+			objectScreenX + tileSize / 2 - labelWidth / 2));
+		int labelY = objectScreenY - 27;
+		if (labelY < MAP_Y + 3) labelY = objectScreenY + tileSize + 3;
+		fillRect({ labelX, labelY, labelWidth, 24 }, 12, 20, 34, 244);
+		outlineRect({ labelX, labelY, labelWidth, 24 }, 238, 188, 79, 255, 2);
+		drawText(name, labelX + 8, labelY + 5, color(247, 221, 151), 12,
 			labelWidth - 16);
 	}
 	SDL_RenderSetClipRect(mRenderer, NULL);

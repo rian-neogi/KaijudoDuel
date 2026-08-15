@@ -616,6 +616,29 @@ void Application::advanceDialogue()
 		mPendingRewardCardId = -1;
 		mPendingRewardGold = 0;
 	}
+	else if (action == DialogueAction::DefeatPenalty &&
+		npcIndex >= 0 && npcIndex < (int)mNpcs.size())
+	{
+		int goldBefore = std::max(0, mMoney);
+		mMoney = goldBefore / 2;
+		int startArea = worldAreaIndex(mWorld.start.mapId);
+		if (startArea >= 0)
+		{
+			mCurrentWorldArea = startArea;
+			mPlayerX = mWorld.start.x;
+			mPlayerY = mWorld.start.y;
+			mVisualX = (float)mPlayerX;
+			mVisualY = (float)mPlayerY;
+			mFacingX = 0;
+			mFacingY = 1;
+			mOpeningPortal = -1;
+			mPortalAnimationStarted = 0;
+		}
+		savePlayerProgress();
+		mNotice = "Defeated by " + mNpcs[npcIndex].name + ". Returned to Emberglen; gold reduced from " +
+			std::to_string(goldBefore) + " to " + std::to_string(mMoney) + ".";
+		mNoticeUntil = SDL_GetTicks() + 6000;
+	}
 	else if (action == DialogueAction::NpcInteraction &&
 		npcIndex >= 0 && npcIndex < (int)mNpcs.size())
 	{

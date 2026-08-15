@@ -88,6 +88,7 @@ private:
 		ReturnToNpcMenu,
 		ForcedBattle,
 		ShowReward,
+		DefeatPenalty,
 		Close
 	};
 	enum class NpcMenuAction
@@ -239,6 +240,7 @@ private:
 	void zoomWorldBuilder(int direction, int anchorX, int anchorY);
 	void drawWorldBuilderNpcPortrait(const Npc& npc, const SDL_Rect& rect);
 	int worldBuilderHoveredNpc() const;
+	int worldBuilderHoveredObject() const;
 	SDL_Rect worldBuilderTileRect(const SDL_Rect& rect) const;
 	bool worldBuilderBrushResizable() const;
 	void beginWorldBuilderUndoAction();
@@ -310,7 +312,6 @@ private:
 	bool duelClickHitboxAt(int x, int y, CardHitbox& result) const;
 	bool exerciseHoverTimingSmoke();
 	std::vector<Message> visibleActions();
-	bool messageReferencesCard(const Message& message, int cardId) const;
 	std::string actionLabel(const Message& message) const;
 
 	void setColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 255);

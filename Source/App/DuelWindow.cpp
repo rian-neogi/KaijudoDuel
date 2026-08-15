@@ -250,21 +250,8 @@ void Application::handleDuelEvent(const SDL_Event& event)
 		SDL_Keycode key = event.key.keysym.sym;
 		if (key == SDLK_ESCAPE)
 		{
-			if (mDuelResult != -1) return;
 			if (mDraggingCard >= 0)
-			{
 				cancelDrag();
-				return;
-			}
-			stopDuel();
-			if (mDirectDuelMode)
-			{
-				mRunning = false;
-				return;
-			}
-			mScreen = Screen::Overworld;
-			mNotice = "You left the duel.";
-			mNoticeUntil = SDL_GetTicks() + 3000;
 			return;
 		}
 		if (key == SDLK_TAB)
@@ -362,11 +349,6 @@ void Application::handleDuelEvent(const SDL_Event& event)
 				}
 			}
 			if (draggable) beginDrag(clickedCard.cardId, clickedCard.rect, x, y);
-			else
-			{
-				mSelectedCard = mSelectedCard == clickedCard.cardId ? -1 : clickedCard.cardId;
-				mActionScroll = 0;
-			}
 			return;
 		}
 	}
@@ -714,7 +696,7 @@ void Application::updateDuel(Uint32 deltaTime)
 			mScreen = Screen::Overworld;
 			if (outcomeNpc >= 0)
 				beginDialogue(outcomeNpc, outcomeDialogue,
-					won ? DialogueAction::ShowReward : DialogueAction::Close);
+					won ? DialogueAction::ShowReward : DialogueAction::DefeatPenalty);
 		}
 	}
 }
@@ -930,26 +912,9 @@ void Application::finishDrag(int mouseX, int mouseY)
 	}
 }
 
-bool Application::messageReferencesCard(const Message& message, int cardId) const
-{
-	const char* keys[] = { "card", "creature", "attacker", "defender", "blocker", "trigger", "shield", "selection", "evobait", "evobait2" };
-	for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); ++i)
-	{
-		std::map<std::string, std::string>::const_iterator found = message.map.find(keys[i]);
-		if (found != message.map.end() && std::atoi(found->second.c_str()) == cardId) return true;
-	}
-	return false;
-}
-
 std::vector<Message> Application::visibleActions()
 {
-	std::vector<Message> all = mDuel->getPossibleMoves();
-	if (mDuel->mIsChoiceActive) return all;
-	if (mSelectedCard < 0) return all;
-	std::vector<Message> filtered;
-	for (size_t i = 0; i < all.size(); ++i)
-		if (messageReferencesCard(all[i], mSelectedCard)) filtered.push_back(all[i]);
-	return filtered.empty() ? all : filtered;
+	return mDuel->getPossibleMoves();
 }
 
 std::string Application::actionLabel(const Message& message) const
@@ -1329,14 +1294,6 @@ void Application::renderDuel()
 
 	drawText(mDuel->mTurn == 0 ? "YOUR TURN" : "RIVAL THINKING", 1010, 26,
 		mDuel->mTurn == 0 ? color(99, 225, 128) : color(239, 137, 70), 23);
-	if (mSelectedCard >= 0 && mSelectedCard < (int)mDuel->mCardList.size())
-	{
-		drawText("SELECTED", 1010, 67, color(128, 172, 238), 14);
-		drawText(mDuel->mCardList[mSelectedCard]->mName, 1010, 87, color(237, 239, 245), 17, 238);
-	}
-	else
-		drawText("Select a card to filter actions", 1010, 72, color(165, 180, 204), 15, 238);
-
 	std::string phase;
 	if (mDuel->mIsChoiceActive) phase = mDuel->mChoice == NULL ? "Choose an option" : mDuel->mChoice->mInfotext;
 	else if (mDuel->mAttackphase == PHASE_BLOCK) phase = "Choose a blocker";
