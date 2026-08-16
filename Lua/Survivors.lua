@@ -51,6 +51,7 @@ Cards["Aqua Surfer"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
+		Abils.PreferRemovalTarget(id,Checks.InBattle)
         local func = function(id)
             local ch = createChoice("Select creature in battle zone",1,id,getCardOwner(id),Checks.InBattle)
             if(ch>=0) then

@@ -347,7 +347,7 @@ Cards["Critical Blade"] = {
 	shieldtrigger = 1,
 
 	HandleMessage = function(id)
-		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.BlockerInOppBattle)
+		Abils.AiRemovalTarget(id,Checks.BlockerInOppBattle)
 	end,
 
 	OnCast = function(id)

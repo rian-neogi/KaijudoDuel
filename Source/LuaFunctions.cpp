@@ -598,6 +598,14 @@ static int getCardBattleValue(lua_State* L)
 	return 1;
 }
 
+static int getPlayerHasKnockout(lua_State* L)
+{
+	int player = static_cast<int>(lua_tointeger(L, 1));
+	lua_pushinteger(L, ActiveDuel != NULL && validPlayer(player) &&
+		AiScoring::hasKnockout(*ActiveDuel, player, false) ? 1 : 0);
+	return 1;
+}
+
 static int loseGame(lua_State* L)
 {
 	int player = lua_tointeger(L, 1);
@@ -640,6 +648,20 @@ static int getCreaturePower(lua_State* L)
 {
 	Card* card = cardFromLua(L, 1);
 	lua_pushinteger(L, card == NULL ? 0 : ActiveDuel->getCreaturePower(card->mUniqueId));
+	return 1;
+}
+
+static int getCreatureBreaker(lua_State* L)
+{
+	Card* card = cardFromLua(L, 1);
+	lua_pushinteger(L, card == NULL ? 0 : ActiveDuel->getCreatureBreaker(card->mUniqueId));
+	return 1;
+}
+
+static int getCreatureHasSummoningSickness(lua_State* L)
+{
+	Card* card = cardFromLua(L, 1);
+	lua_pushinteger(L, card != NULL && card->mSummoningSickness != 0 ? 1 : 0);
 	return 1;
 }
 
@@ -818,11 +840,14 @@ void registerLua(lua_State* L)
 	lua_register(L, "getCardIsShieldTrigger", getCardIsShieldTrigger);
 	lua_register(L, "getCardHandValue", getCardHandValue);
 	lua_register(L, "getCardBattleValue", getCardBattleValue);
+	lua_register(L, "getPlayerHasKnockout", getPlayerHasKnockout);
 	lua_register(L, "getCardType", getCardType);
 	lua_register(L, "getCreatureRace", getCreatureRace); //returns the full race string of the creature
 	lua_register(L, "isCreatureOfRace", isCreatureOfRace);
 	lua_register(L, "getCardOwner", getCardOwner);
 	lua_register(L, "getCreaturePower", getCreaturePower);
+	lua_register(L, "getCreatureBreaker", getCreatureBreaker);
+	lua_register(L, "getCreatureHasSummoningSickness", getCreatureHasSummoningSickness);
 	lua_register(L, "getCreatureCanBlock", getCreatureCanBlock);
 	lua_register(L, "getCreatureIsBlocker", getCreatureIsBlocker);
 	lua_register(L, "getCreatureIsEvolution", getCreatureIsEvolution);

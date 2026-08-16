@@ -925,7 +925,9 @@ Cards["Fists of Forever"] = {
 		local ch = createChoice("Choose one of your creatures",0,id,getCardOwner(id),Checks.InYourBattle)
 		if(ch>=0) then
 			local mod = function(cid,mid)
-				if(getMessageType()=="post creaturebattle" and (getMessageInt("attacker")==cid or getMessageInt("defender")==cid)) then
+				if(getMessageType()=="get creaturecanblockrepeatedly" and getMessageInt("creature")==cid) then
+					setMessageInt("canblockrepeatedly",1)
+				elseif(getMessageType()=="post creaturebattle" and (getMessageInt("attacker")==cid or getMessageInt("defender")==cid)) then
 					local other = getMessageInt("attacker")
 					if(other==cid) then other=getMessageInt("defender") end
 					if(getCreaturePower(cid)>getCreaturePower(other) and getCardZone(cid)==ZONE_BATTLE) then untapCard(cid) end

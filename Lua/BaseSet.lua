@@ -1662,7 +1662,7 @@ Cards["Natural Snare"] = {
 	shieldtrigger = 1,
 
 	HandleMessage = function(id)
-		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InOppBattle)
+		Abils.AiRemovalTarget(id,Checks.InOppBattle)
 	end,
 
     OnCast = function(id)
@@ -2159,7 +2159,7 @@ Cards["Spiral Gate"] = {
 	shieldtrigger = 1,
 
 	HandleMessage = function(id)
-		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InBattle)
+		Abils.AiRemovalTarget(id,Checks.InBattle)
 	end,
 
     OnCast = function(id)
@@ -2393,7 +2393,7 @@ Cards["Terror Pit"] = {
 	shieldtrigger = 1,
 
 	HandleMessage = function(id)
-		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InOppBattle)
+		Abils.AiRemovalTarget(id,Checks.InOppBattle)
 	end,
 
     OnCast = function(id)
@@ -2481,10 +2481,11 @@ Cards["Tornado Flame"] = {
 	shieldtrigger = 1,
 
 	HandleMessage = function(id)
-		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+		local valid = function(cid,sid)
 			if(Checks.InOppBattle(cid,sid)==1 and getCreaturePower(sid)<=4000) then return 1 end
 			return 0
-		end)
+		end
+		Abils.AiRemovalTarget(id,valid)
 	end,
 
     OnCast = function(id)

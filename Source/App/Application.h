@@ -289,6 +289,7 @@ private:
 	bool exerciseHeuristicAttackSafetySmoke();
 	bool exerciseHeuristicBlockChoiceSmoke();
 	bool exerciseHeuristicManaConservationSmoke();
+	bool exerciseKnockoutScoringSmoke();
 	bool exerciseMultiCivilizationSmoke();
 	bool exerciseRaceQuerySmoke();
 	bool exerciseCrypticTotemSmoke();

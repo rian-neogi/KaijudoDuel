@@ -865,10 +865,11 @@ Cards["Ten-Ton Crunch"] = {
 	shieldtrigger = 1,
 
 	HandleMessage = function(id)
-		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+		local valid = function(cid,sid)
 			if(Checks.InOppBattle(cid,sid)==1 and getCreaturePower(sid)<=3000) then return 1 end
 			return 0
-		end)
+		end
+		Abils.AiRemovalTarget(id,valid)
 	end,
 
 	OnCast = function(id)

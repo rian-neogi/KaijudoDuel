@@ -622,6 +622,9 @@ Cards["Ikaz, the Spydroid"] = {
 	HandleMessage = function(id) --test
 		Abils.Blocker(id)
 		Abils.cantAttackPlayers(id)
+		if(getMessageType()=="get creaturecanblockrepeatedly" and getMessageInt("creature")==id) then
+			setMessageInt("canblockrepeatedly",1)
+		end
 		if(getMessageType()=="post creaturebattle" and getMessageInt("blocked")==1 and getMessageInt("defender")==id) then
 			local ch=createChoice("Choose one of your creatures to untap",0,id,getCardOwner(id),Checks.InYourBattle)
 			if(ch>=0) then
@@ -1008,7 +1011,7 @@ Cards["Spiral Gate"] = {
 	shieldtrigger = 1,
 
 	HandleMessage = function(id)
-		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InBattle)
+		Abils.AiRemovalTarget(id,Checks.InBattle)
 	end,
 
 	OnCast = function(id)
@@ -1052,7 +1055,7 @@ Cards["Transmogrify"] = {
 	shieldtrigger = 1,
 
 	HandleMessage = function(id)
-		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InBattle)
+		Abils.AiRemovalTarget(id,Checks.InBattle)
 	end,
 
 	OnCast = function(id) --test
@@ -1493,11 +1496,12 @@ Cards["Hurlosaur"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
+		local valid = function(cid,sid)
+			if(Checks.InOppBattle(cid,sid)==1 and getCreaturePower(sid)<=1000) then return 1 end
+			return 0
+		end
+		Abils.PreferRemovalTarget(id,valid)
 		local summon = function(id)
-			local valid = function(cid,sid)
-				if(Checks.InOppBattle(cid,sid)==1 and getCreaturePower(sid)<=1000) then return 1 end
-				return 0
-			end
 			local ch=createChoice("Choose an opponent's creature to destroy",0,id,getCardOwner(id),valid)
 			if(ch>=0) then
 				destroyCreature(ch)
@@ -1550,10 +1554,11 @@ Cards["Phantom Dragon's Flame"] = {
 	shieldtrigger = 1,
 
 	HandleMessage = function(id)
-		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+		local valid = function(cid,sid)
 			if(Checks.InOppBattle(cid,sid)==1 and getCreaturePower(sid)<=2000) then return 1 end
 			return 0
-		end)
+		end
+		Abils.AiRemovalTarget(id,valid)
 	end,
 
 	OnCast = function(id)
@@ -1822,7 +1827,7 @@ Cards["Soulswap"] = {
 	shieldtrigger = 1,
 
 	HandleMessage = function(id)
-		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InBattle)
+		Abils.AiRemovalTarget(id,Checks.InBattle)
 	end,
 
 	OnCast = function(id) --test

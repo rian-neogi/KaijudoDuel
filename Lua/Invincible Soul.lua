@@ -974,7 +974,7 @@ Cards["Spiral Gate"] = {
 	shieldtrigger = 1,
 
 	HandleMessage = function(id)
-		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InBattle)
+		Abils.AiRemovalTarget(id,Checks.InBattle)
 	end,
 
 	OnCast = function(id)
@@ -1283,7 +1283,7 @@ Cards["Proclamation of Death"] = {
 	shieldtrigger = 1,
 
 	HandleMessage = function(id)
-		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.InOppBattle)
+		Abils.AiRemovalTarget(id,Checks.InOppBattle)
 	end,
 
 	OnCast = function(id)
@@ -1497,10 +1497,11 @@ Cards["Comet Missile"] = {
 	shieldtrigger = 1,
 
 	HandleMessage = function(id)
-		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+		local valid = function(cid,sid)
 			if(Checks.BlockerInOppBattle(cid,sid)==1 and getCreaturePower(sid)<=6000) then return 1 end
 			return 0
-		end)
+		end
+		Abils.AiRemovalTarget(id,valid)
 	end,
 
 	OnCast = function(id) --test
@@ -1524,6 +1525,7 @@ Cards["Crisis Boulder"] = {
 	shieldtrigger = 1,
 
 	HandleMessage = function(id)
+		Abils.PreferRemovalTarget(id,Checks.InOppBattle)
 		if(getMessageType()=="get cardaicancast" and getMessageInt("card")==id) then
 			local opponent=getOpponent(getCardOwner(id))
 			if(getZoneSize(opponent,ZONE_BATTLE)==0 and getZoneSize(opponent,ZONE_MANA)==0) then
@@ -1617,10 +1619,11 @@ Cards["Phantom Dragon's Flame"] = {
 	shieldtrigger = 1,
 
 	HandleMessage = function(id)
-		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+		local valid = function(cid,sid)
 			if(Checks.InOppBattle(cid,sid)==1 and getCreaturePower(sid)<=2000) then return 1 end
 			return 0
-		end)
+		end
+		Abils.AiRemovalTarget(id,valid)
 	end,
 
 	OnCast = function(id)
@@ -2042,7 +2045,7 @@ Cards["Pangaea's Will"] = {
 	shieldtrigger = 1,
 
 	HandleMessage = function(id)
-		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,Checks.EvolutionInOppBattle)
+		Abils.AiRemovalTarget(id,Checks.EvolutionInOppBattle)
 	end,
 
 	OnCast = function(id) --test

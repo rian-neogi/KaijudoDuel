@@ -171,6 +171,7 @@ public:
 	int getCreatureBreaker(int uid);
 	int getCreatureIsBlocker(int uid);
 	int getCreatureCanBlock(int attckr, int blckr);
+	int getCreatureCanBlockRepeatedly(int uid);
 	//int getCreatureCanAttack(int uid);
 	int getCreatureCanAttackPlayers(int uid);
 	//int getCreatureCanAttackCreatures(int uid);

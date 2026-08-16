@@ -200,6 +200,59 @@ Abils.AiCanCastIfOpponentHasHand = function(id)
 	end
 end
 
+Abils.PreferRemovalTarget = function(id,valid)
+	if(getMessageType()~="get cardaipreferredchoice" or getMessageInt("card")~=id) then
+		return
+	end
+	local opponent = getOpponent(getCardOwner(id))
+	local opponentHasKnockout = getPlayerHasKnockout(opponent)==1
+	local preferred = RETURN_NOTHING
+	local highestBreaker = -1
+	local highestValue = -math.huge
+	for i=0,(getZoneSize(opponent,ZONE_BATTLE)-1) do
+		local card = getCardAt(opponent,ZONE_BATTLE,i)
+		if(valid(id,card)==1) then
+			local value = getCardBattleValue(card)
+			if(opponentHasKnockout and isCardTapped(card)==0 and
+				getCreatureHasSummoningSickness(card)==0) then
+				local breaker = getCreatureBreaker(card)
+				if(breaker>highestBreaker or
+					(breaker==highestBreaker and value>highestValue)) then
+					highestBreaker = breaker
+					highestValue = value
+					preferred = card
+				end
+			elseif(not opponentHasKnockout and value>highestValue) then
+				highestValue = value
+				preferred = card
+			end
+		end
+	end
+
+	-- A restrictive removal spell can occasionally have no legal ready attacker
+	-- even though another attacker creates the KO. Preserve the normal highest-
+	-- value fallback rather than returning no preference.
+	if(preferred==RETURN_NOTHING) then
+		highestValue = -math.huge
+		for i=0,(getZoneSize(opponent,ZONE_BATTLE)-1) do
+			local card = getCardAt(opponent,ZONE_BATTLE,i)
+			if(valid(id,card)==1) then
+				local value = getCardBattleValue(card)
+				if(value>highestValue) then
+					highestValue = value
+					preferred = card
+				end
+			end
+		end
+	end
+	setMessageInt("selection",preferred)
+end
+
+Abils.AiRemovalTarget = function(id,valid)
+	Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,valid)
+	Abils.PreferRemovalTarget(id,valid)
+end
+
 Functions.HighestCostShieldTriggerChoice = function(choiceCard,player,zone,valid)
 	local preferred = RETURN_NOTHING
 	local highestCost = -1
@@ -446,6 +499,9 @@ Abils.destroyAfterBattle = function(id)
 end
 
 Abils.untapAfterBlock = function(id)
+	if(getMessageType()=="get creaturecanblockrepeatedly" and getMessageInt("creature")==id) then
+		setMessageInt("canblockrepeatedly",1)
+	end
 	if(getMessageType()=="post creaturebattle" and getMessageInt("blocked")==1 and
 		getMessageInt("defender")==id and getCardZone(id)==ZONE_BATTLE) then
 		untapCard(id)

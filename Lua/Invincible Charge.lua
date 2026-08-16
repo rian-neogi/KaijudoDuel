@@ -792,11 +792,12 @@ Cards["Vacuum Gel"] = { --test
 	shieldtrigger = 1,
 
 	HandleMessage = function(id)
-		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
+		local valid = function(cid,sid)
 			if(Checks.UntappedInOppBattle(cid,sid)==1 and
 				(getCardCiv(sid)==CIV_NATURE or getCardCiv(sid)==CIV_LIGHT)) then return 1 end
 			return 0
-		end)
+		end
+		Abils.AiRemovalTarget(id,valid)
 	end,
 
 	OnCast = function(id)

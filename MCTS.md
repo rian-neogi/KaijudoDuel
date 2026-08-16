@@ -298,10 +298,16 @@ terminal win is `1`, a loss is `-1`, and a depth-limited position receives a
 bounded material evaluation. A battle-zone creature is worth its effective
 power divided by 1000 plus twice its effective breaker count. Mana is worth two
 points per card plus 0.1 per distinct civilization represented. A hand card is
-worth `1 + 0.25 * cost - 0.5 * missing mana`, floored at one point. Shields and
-the small deck-reserve term remain part of the evaluation so that breaking a
-shield is not mistaken for helping the defender merely because it adds a hand
-card. The same root and seed reproduce the same search. The selected root plan
+worth `1 + 0.25 * cost - 0.5 * missing mana`, floored at one point. The total
+shield-zone value is configured separately for shield counts one through five;
+each shield beyond five adds a configured flat bonus. Shields and the small
+deck-reserve term remain part of the evaluation so that breaking a shield is
+not mistaken for helping the defender merely because it adds a hand card. The
+current player also receives a configurable KO bonus when its currently legal
+attackers can force lethal after an optimal legal assignment of untapped
+blockers, ignoring shield triggers. Breaking the remaining shields still
+requires a separate unblocked attacker to deliver the final attack. The same
+root and seed reproduce the same search. The selected root plan
 is the child with the most visits, with mean value as a deterministic tie-breaker.
 
 All numeric tuning values used by the leaf evaluator, MCTS search and rollout

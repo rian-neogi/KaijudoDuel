@@ -1780,6 +1780,19 @@ int Duel::getCreatureCanBlock(int attckr,int blckr)
 	return c;
 }
 
+int Duel::getCreatureCanBlockRepeatedly(int uid)
+{
+	Message oldmsg = mCurrentMessage;
+	mCurrentMessage = Message("get creaturecanblockrepeatedly");
+	mCurrentMessage.addValue("canblockrepeatedly", 0);
+	mCurrentMessage.addValue("creature", uid);
+	for (std::vector<Card*>::iterator card = mCardList.begin(); card != mCardList.end(); ++card)
+		(*card)->handleMessage(mCurrentMessage);
+	int result = mCurrentMessage.getInt("canblockrepeatedly");
+	mCurrentMessage = oldmsg;
+	return result;
+}
+
 //int Duel::getCreatureCanBeBlocked(int uid)
 //{
 //	Message oldmsg = currentMessage;

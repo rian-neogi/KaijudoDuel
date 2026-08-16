@@ -2,8 +2,17 @@
 -- This table is configuration, not duel state: AI code never mutates it.
 AIParams = {
 	evaluation = {
-		-- Value of one unbroken shield in the non-terminal leaf score.
-		shield_value = 6.0,
+		-- Total non-terminal leaf-score value for exactly 1 through 5 shields.
+		-- Each shield count can be tuned independently.
+		shield_count_1_value = 6.0,
+		shield_count_2_value = 12.0,
+		shield_count_3_value = 18.0,
+		shield_count_4_value = 22.0,
+		shield_count_5_value = 25.0,
+		-- Added for every shield beyond five, on top of shield_count_5_value.
+		shield_above_5_value = 2.0,
+		-- Bonus when the player has a guaranteed immediate KO through optimal blocks.
+		knockout_bonus = 6.0,
 		-- Base value contributed by each card in the mana zone.
 		mana_card_value = 3.0,
 		-- One-time bonus for each distinct civilization represented in mana.

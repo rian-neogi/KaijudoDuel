@@ -1,5 +1,6 @@
 #include "Application.h"
 
+#include "AI/AiParams.h"
 #include "AI/AiScoring.h"
 #include "AI/AiDriver.h"
 #include "AI/DecisionPlan.h"
@@ -292,6 +293,11 @@ int Application::runSmokeTests()
 			if (smokeNpc == 0 && smokeFrames == 32 && !exerciseHeuristicManaConservationSmoke())
 			{
 				std::cerr << "Heuristic mana conservation smoke test failed." << std::endl;
+				return 2;
+			}
+			if (smokeNpc == 0 && smokeFrames == 36 && !exerciseKnockoutScoringSmoke())
+			{
+				std::cerr << "Knockout scoring smoke test failed." << std::endl;
 				return 2;
 			}
 			if (smokeNpc == 0 && smokeFrames == 33 && !exerciseMultiCivilizationSmoke())
@@ -2118,7 +2124,7 @@ bool Application::exerciseMctsSmoke()
 			foundSpell = true;
 			valid = valid && child->plan.choices.size() == 1 &&
 				child->plan.choices[0].player == 1 &&
-				child->plan.choices[0].selection == lowValue;
+				child->plan.choices[0].selection == highValue;
 		}
 		valid = valid && result.failedIterations == 0 && foundSpell &&
 			root.mCardList[lowValue]->mZone == ZONE_BATTLE &&
@@ -3403,11 +3409,22 @@ bool Application::exerciseHeuristicManaConservationSmoke()
 	double manaValue = AiScoring::manaZoneValue(duel, 0);
 	double unaffordableValue = AiScoring::handCardValue(*duel.mCardList[expensive], 0);
 	double affordableValue = AiScoring::handCardValue(*duel.mCardList[cheapNewCivilization], 2);
+	bool shieldValues = std::abs(AiScoring::shieldZoneValue(0)) < 0.0001;
+	for (int shields = 1; shields <= 5; ++shields)
+	{
+		shieldValues = shieldValues &&
+			std::abs(AiScoring::shieldZoneValue(shields) -
+				aiParam("evaluation.shield_count_" + std::to_string(shields) + "_value")) < 0.0001;
+	}
+	shieldValues = shieldValues &&
+		std::abs(AiScoring::shieldZoneValue(7) -
+			(aiParam("evaluation.shield_count_5_value") +
+				2.0 * aiParam("evaluation.shield_above_5_value"))) < 0.0001;
 	bool valid = found && messageInt(placement, "card") == expensive &&
 		expensiveDelta > cheapDelta && std::abs(battleValue - 11.0) < 0.0001 &&
 		std::abs(manaValue - 4.1) < 0.0001 &&
 		std::abs(unaffordableValue - 1.0) < 0.0001 &&
-		std::abs(affordableValue - 1.5) < 0.0001;
+		std::abs(affordableValue - 1.5) < 0.0001 && shieldValues;
 
 	for (int mana = 0; mana < 5; ++mana)
 		addCard(ZONE_MANA, 1, 1 << CIV_LIGHT);
@@ -3431,6 +3448,117 @@ bool Application::exerciseHeuristicManaConservationSmoke()
 		bot.chooseManaPlacement(duel, moves, fullHandPlacement);
 	return valid && placesAtMaximumCost && !placesAboveMaximumWithScarceHand &&
 		placesAboveMaximumWithThreeCards;
+}
+
+bool Application::exerciseKnockoutScoringSmoke()
+{
+	int attackerCardId = getCardIdFromName("Deadly Fighter Braid Claw");
+	int unblockableCardId = getCardIdFromName("Candy Drop");
+	int blockerCardId = getCardIdFromName("Bloody Squito");
+	int repeatBlockerCardId = getCardIdFromName("Spiral Grass");
+	int terrorPitCardId = getCardIdFromName("Terror Pit");
+	if (attackerCardId < 0 || unblockableCardId < 0 || blockerCardId < 0 ||
+		repeatBlockerCardId < 0 || terrorPitCardId < 0) return false;
+
+	auto addCard = [](Duel& duel, int cardId, int owner, int zone) -> int
+	{
+		int uid = static_cast<int>(duel.mCardList.size());
+		Card* card = new Card(uid, cardId, owner);
+		duel.mCardList.push_back(card);
+		duel.getZone(owner, zone)->addCard(card);
+		card->mZone = zone;
+		card->mSummoningSickness = 0;
+		duel.mNextUniqueId = uid + 1;
+		return uid;
+	};
+	auto prepare = [](Duel& duel)
+	{
+		duel.mIsSimulation = true;
+		duel.mInputLoopRunning = false;
+		duel.mTurn = 0;
+		duel.mTurnPhase = TURN_PHASE_MAIN;
+		duel.mAttackphase = PHASE_NONE;
+	};
+
+	Duel directAttack;
+	prepare(directAttack);
+	int regular = addCard(directAttack, attackerCardId, 0, ZONE_BATTLE);
+	addCard(directAttack, blockerCardId, 1, ZONE_BATTLE);
+	bool fullyBlocked = !AiScoring::hasKnockout(directAttack, 0);
+	int unblockable = addCard(directAttack, unblockableCardId, 0, ZONE_BATTLE);
+	bool unblockableGetsThrough = AiScoring::hasKnockout(directAttack, 0);
+	double knockoutValue = AiScoring::playerValue(directAttack, 0);
+	directAttack.mCardList[unblockable]->mIsTapped = true;
+	double ordinaryValue = AiScoring::playerValue(directAttack, 0);
+	bool bonusApplied = std::abs((knockoutValue - ordinaryValue) -
+		aiParam("evaluation.knockout_bonus")) < 0.0001;
+	directAttack.mCardList[regular]->mIsTapped = true;
+	bool noAttackers = !AiScoring::hasKnockout(directAttack, 0);
+
+	Duel shieldRace;
+	prepare(shieldRace);
+	addCard(shieldRace, attackerCardId, 1, ZONE_SHIELD);
+	addCard(shieldRace, attackerCardId, 0, ZONE_BATTLE);
+	bool oneAttackerCannotFinish = !AiScoring::hasKnockout(shieldRace, 0);
+	addCard(shieldRace, attackerCardId, 0, ZONE_BATTLE);
+	bool twoAttackerKo = AiScoring::hasKnockout(shieldRace, 0);
+	addCard(shieldRace, blockerCardId, 1, ZONE_BATTLE);
+	bool optimalBlockStopsKo = !AiScoring::hasKnockout(shieldRace, 0);
+	addCard(shieldRace, attackerCardId, 0, ZONE_BATTLE);
+	bool extraAttackerRestoresKo = AiScoring::hasKnockout(shieldRace, 0);
+
+	Duel doubleBreaker;
+	prepare(doubleBreaker);
+	addCard(doubleBreaker, attackerCardId, 1, ZONE_SHIELD);
+	addCard(doubleBreaker, attackerCardId, 1, ZONE_SHIELD);
+	int breaker = addCard(doubleBreaker, attackerCardId, 0, ZONE_BATTLE);
+	doubleBreaker.mCardList[breaker]->mBreaker = 2;
+	addCard(doubleBreaker, attackerCardId, 0, ZONE_BATTLE);
+	bool breakerPlusFinisherKo = AiScoring::hasKnockout(doubleBreaker, 0);
+
+	Duel repeatBlock;
+	prepare(repeatBlock);
+	addCard(repeatBlock, attackerCardId, 0, ZONE_BATTLE);
+	addCard(repeatBlock, attackerCardId, 0, ZONE_BATTLE);
+	addCard(repeatBlock, repeatBlockerCardId, 1, ZONE_BATTLE);
+	bool repeatedBlocksStopKo = !AiScoring::hasKnockout(repeatBlock, 0);
+
+	Duel shieldTriggerTargeting;
+	prepare(shieldTriggerTargeting);
+	int highValueTapped = addCard(shieldTriggerTargeting, attackerCardId, 0, ZONE_BATTLE);
+	shieldTriggerTargeting.mCardList[highValueTapped]->mPower = 12000;
+	shieldTriggerTargeting.mCardList[highValueTapped]->mBreaker = 3;
+	shieldTriggerTargeting.mCardList[highValueTapped]->mIsTapped = true;
+	int doubleBreakerTarget = addCard(shieldTriggerTargeting, attackerCardId, 0, ZONE_BATTLE);
+	shieldTriggerTargeting.mCardList[doubleBreakerTarget]->mBreaker = 2;
+	int summoningSickTarget = addCard(shieldTriggerTargeting, attackerCardId, 0, ZONE_BATTLE);
+	shieldTriggerTargeting.mCardList[summoningSickTarget]->mBreaker = 4;
+	shieldTriggerTargeting.mCardList[summoningSickTarget]->mSummoningSickness = 1;
+	addCard(shieldTriggerTargeting, attackerCardId, 0, ZONE_BATTLE);
+	addCard(shieldTriggerTargeting, attackerCardId, 1, ZONE_SHIELD);
+	int terrorPit = addCard(shieldTriggerTargeting, terrorPitCardId, 1, ZONE_HAND);
+	shieldTriggerTargeting.mAttackphase = PHASE_TRIGGER;
+	shieldTriggerTargeting.mCastingCard = terrorPit;
+	bool stableProbeSuppressed = !AiScoring::hasKnockout(shieldTriggerTargeting, 0);
+	bool transientProbeFindsKo = AiScoring::hasKnockout(shieldTriggerTargeting, 0, false);
+	int knockoutPreferred = RETURN_NOTHING;
+	{
+		ActiveDuelGuard activeGuard(shieldTriggerTargeting);
+		knockoutPreferred = shieldTriggerTargeting.getCardAiPreferredChoice(terrorPit);
+	}
+	addCard(shieldTriggerTargeting, attackerCardId, 1, ZONE_SHIELD);
+	addCard(shieldTriggerTargeting, attackerCardId, 1, ZONE_SHIELD);
+	int ordinaryPreferred = RETURN_NOTHING;
+	{
+		ActiveDuelGuard activeGuard(shieldTriggerTargeting);
+		ordinaryPreferred = shieldTriggerTargeting.getCardAiPreferredChoice(terrorPit);
+	}
+
+	return fullyBlocked && unblockableGetsThrough && bonusApplied && noAttackers &&
+		oneAttackerCannotFinish && twoAttackerKo && optimalBlockStopsKo &&
+		extraAttackerRestoresKo && breakerPlusFinisherKo && repeatedBlocksStopKo &&
+		stableProbeSuppressed && transientProbeFindsKo &&
+		knockoutPreferred == doubleBreakerTarget && ordinaryPreferred == highValueTapped;
 }
 
 bool Application::beginMandatorySacrificeAiSmoke(
