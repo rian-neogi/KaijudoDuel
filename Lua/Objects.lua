@@ -1,8 +1,9 @@
 -- Overworld object metadata.
 -- Positions are owned by World/World.json and maintained by the World Builder.
 -- Supported kinds: signpost, deck_chest
--- Deck chests additionally require deck, deck_name, and opened_text. Deck paths
--- are searched beneath Decks/ automatically.
+-- Deck chests additionally require an appearance, reward, and opened_text.
+-- Appearances use <character-sheet>-<one-based index>; reward decks are searched
+-- beneath Decks/ automatically.
 
 return {
 	{
@@ -117,8 +118,12 @@ return {
 		id = "old_road_wayfarer_chest",
 		name = "Weathered Freight Chest",
 		kind = "deck_chest",
-		deck = "Treasure/Wayfarers Cache.txt",
-		deck_name = "Wayfarer's Cache",
+		appearance = "!Chest-1",
+		reward = {
+			kind = "deck",
+			deck = "Treasure/Wayfarers Cache.txt",
+			name = "Wayfarer's Cache"
+		},
 		text = "Beneath a ruined freight manifest is a complete Fire and Nature deck. The Wayfarer's Cache was added to your collection and deck list.",
 		opened_text = "The freight chest is empty. Its broken manifest still bears the mark of an old Emberglen caravan."
 	},

@@ -24,8 +24,8 @@ NPC positions belong exclusively to `World/World.json`. Each exterior region als
 
     decks = { "Example.txt", "ExampleAdvanced.txt" },
     rewards = {
-        { card = "First Reward Card", gold = 100 },
-        { card = "Later Reward Card", gold = 125 },
+        { card = "First Reward Card", gold_tier = 1 },
+        { card = "Later Reward Card", gold_tier = 2 },
     },
 
     ai = {
@@ -56,8 +56,29 @@ Interacting with a town NPC first displays `greeting`, then opens a menu contain
 `decks` and `rewards` arrays. Entries are used in order for each battle. If
 `max_battles` is greater than either array's size, that array's final entry is
 reused independently for every remaining battle. In the example above, battles
-three and four use `ExampleAdvanced.txt` and grant `Later Reward Card` with 125
-gold.
+three and four use `ExampleAdvanced.txt` and grant `Later Reward Card` with a
+Tier 2 gold payout.
+
+### Gold reward tiers
+
+NPC metadata stores `gold_tier`, an integer from 1 through 5, rather than a raw
+currency amount. `Lua/Npcs.lua` exposes the payout values through the global
+`NpcGoldTiers` table:
+
+```lua
+NpcGoldTiers = {
+    T1 = 200,
+    T2 = 400,
+    T3 = 800,
+    T4 = 1500,
+    T5 = 3000,
+}
+```
+
+The C++ loader resolves `gold_tier = 3` through `NpcGoldTiers.T3`, for example.
+It rejects missing tier values, non-integer tier payouts, and reward entries
+whose `gold_tier` is outside 1 through 5. Raw `gold` fields are no longer part
+of the NPC reward schema.
 
 Deck names are searched beneath `Decks/` automatically. An explicit path can
 still be used for a deck elsewhere; if that path exists, it takes priority.
@@ -76,7 +97,7 @@ Route duelists wander within the 3-by-3 area centered on their authored `World/W
     max_battles = 4,
     decks = { "Example.txt" },
     rewards = {
-        { card = "Reward Card", gold = 100 },
+        { card = "Reward Card", gold_tier = 1 },
     },
     ai = { personality = "balanced" },
     dialogue = {
@@ -131,7 +152,7 @@ Bosses use the same deck and reward arrays as battle-enabled town NPCs.
     max_battles = 1,
     decks = { "Boss.txt" },
     rewards = {
-        { card = "Exact Card Name", gold = 250 },
+        { card = "Exact Card Name", gold_tier = 2 },
     },
     ai = { personality = "adaptive" },
     dialogue = {

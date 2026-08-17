@@ -334,7 +334,7 @@ clear section of its current:
 | Civilization | Sanctuary region | Seal records |
 | --- | --- | --- |
 | Light | Sunspire Cloister | Protection sustained by judgment and living testimony |
-| Water | Glasswater Port | Information used with consent and capacity to adapt |
+| Water | Tidevault | Information used with consent and capacity to adapt |
 | Darkness | Gloam Quarry | Memory connected to consequence, grief, and chosen change |
 | Fire | Cinderrail Foundry | Decisive force supported by preparation and responsibility |
 | Nature | Rootmaze Commons | Growth sustained through interdependence and stewardship |
@@ -352,6 +352,13 @@ false pattern convincing.
 The five Seals together provide a trustworthy comparison across all currents.
 The Curator needs their patterns to make the Hollow Deck's blank broadcast look
 valid in every alignment. The Crests are never substitutes for the Seals.
+
+Glasswater Port maintains a downstream relay of Tidevault's calibration rather
+than a sixth mechanism or a relocated Seal. Its public instruments can compare
+local currents with the Water standard, but cannot repair or redefine that
+standard. The stolen-prediction crisis matters because Glasswater sends
+unauthorized records upstream until the player closes the system and carries
+its consent ledger to Tidevault.
 
 ## Shards
 
@@ -439,8 +446,8 @@ Most technology is ordinary engineering enhanced by carefully bounded resonance:
 
 - Cinderrail uses furnaces and mechanical rail power, with resonance for control
   and monitoring rather than free energy.
-- Glasswater uses pumps, gates, and cisterns whose Water-aligned instruments
-  predict and regulate flow.
+- Glasswater uses pumps, gates, cisterns, and a Tidevault relay whose
+  Water-aligned instruments predict and regulate flow.
 - Stormbreak uses physical cables, counterweights, shelters, and signal towers;
   resonance coordinates them but does not create walkable air.
 - Dragon Keep uses stone separators, conductive metal, archive prisms, and a

@@ -18,6 +18,8 @@ struct WorldObject
 	std::string openedText;
 	std::string rewardDeck;
 	std::string rewardDeckName;
+	std::string spriteSheet;
+	int spriteIndex;
 	int x;
 	int y;
 	WorldObjectKind kind;

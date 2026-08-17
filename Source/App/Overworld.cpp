@@ -1486,7 +1486,7 @@ void Application::renderOverworld()
 		else
 		{
 			bool opened = mOpenedWorldObjects.count(object.id) != 0;
-			if (mWorldTileRenderer->drawChest({ x, y, TILE, TILE }, opened)) continue;
+			if (drawWorldObjectSprite(object, opened, { x, y, TILE, TILE })) continue;
 			fillRect({ x + 7, y + 23, 34, 20 }, 111, 65, 31, 255);
 			outlineRect({ x + 7, y + 23, 34, 20 }, 50, 31, 22, 255, 2);
 			fillRect({ x + 10, y + 26, 28, 4 }, opened ? 38 : 151,
@@ -1587,6 +1587,16 @@ void Application::renderOverworld()
 	if (mDialogueNpc < 0 && mDialogueObject < 0) renderStoryScene();
 	if (mNpcMenuNpc >= 0) renderNpcMenu();
 	if (mPauseMenuOpen) renderPauseMenu();
+}
+
+bool Application::drawWorldObjectSprite(const WorldObject& object, bool opened,
+	const SDL_Rect& destination)
+{
+	if (object.kind != WorldObjectKind::DeckChest || mSpriteSheets == NULL ||
+		object.spriteSheet.empty() || object.spriteIndex < 0) return false;
+	const CharacterSpriteDefinition sprite = { object.spriteSheet, object.spriteIndex };
+	return mSpriteSheets->drawCharacter(sprite, 0, opened ? -1 : 1, false,
+		SDL_GetTicks(), destination);
 }
 
 void Application::drawCharacter(float gridX, float gridY, CharacterAppearance appearance,

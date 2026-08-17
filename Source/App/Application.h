@@ -33,7 +33,8 @@ public:
 
 	int run(bool smokeTest = false, const std::string& directPlayerDeck = "",
 		const std::string& directAiDeck = "", bool worldBuilder = false,
-		bool fullVisibility = false);
+		bool fullVisibility = false, bool aiVsAi = false,
+		unsigned int duelSeed = 4357U);
 
 private:
 	enum class Screen
@@ -188,6 +189,7 @@ private:
 	bool exerciseAiDriverSmoke();
 	bool exerciseBackgroundMctsSmoke();
 	bool exerciseBundledDecksSmoke();
+	bool exerciseNpcRewardsSmoke();
 	bool exerciseOverworldMovementSmoke();
 	bool exerciseStorySmoke();
 	void initializeStory();
@@ -270,7 +272,7 @@ private:
 
 	void startDuel(int npcIndex, bool ignoreProgressLimit = false);
 	bool startDuelWithDecks(const std::string& playerDeck, const std::string& aiDeck,
-		int npcIndex);
+		int npcIndex, bool aiVsAi = false, unsigned int duelSeed = 4357U);
 	void stopDuel();
 	void handleDuelEvent(const SDL_Event& event);
 	bool handleGraveyardEvent(const SDL_Event& event);
@@ -336,6 +338,8 @@ private:
 	void drawCharacterSprite(int x, int y, CharacterAppearance appearance,
 		bool completed, bool walking = false, int facingX = 0, int facingY = 1,
 		const std::string& spriteSheet = "", int spriteIndex = -1);
+	bool drawWorldObjectSprite(const WorldObject& object, bool opened,
+		const SDL_Rect& destination);
 	SDL_Color civilizationColor(int civilization) const;
 	void logicalMouse(int windowX, int windowY, int& logicalX, int& logicalY) const;
 	bool contains(const SDL_Rect& rect, int x, int y) const;
@@ -472,6 +476,7 @@ private:
 	int mActiveNpc;
 	bool mDirectDuelMode;
 	bool mDirectDuelFullVisibility;
+	bool mDirectAiVsAi;
 	int mSelectedCard;
 	int mActionScroll;
 	int mOpenGraveyardPlayer;
@@ -480,6 +485,7 @@ private:
 	int mActionLogScroll;
 	Uint32 mNextAiMove;
 	BackgroundMctsSearch* mAiSearch;
+	int mAiSearchPlayer;
 	Uint32 mAiSearchStartedAt;
 	std::vector<int> mAiCreaturePowers;
 	int mDuelResult;

@@ -75,7 +75,7 @@ His AI should consider hand size, mana availability, and the value of delaying a
 
 ### Hollow-story role
 
-Glasswater's supposedly perfect prediction engine is built from stolen duel memories. Neris is initially tempted to preserve it for study. Marin challenges him to recognize that information taken without consent is not neutral simply because it is accurate.
+Glasswater's supposedly perfect prediction engine is built from stolen duel memories. Neris is initially tempted to preserve it for study. Marin challenges him to recognize that information taken without consent is not neutral simply because it is accurate. Neris ultimately helps preserve the voluntary records, closes the abusive system, and sends its consent ledger with the player to the actual Water Seal at Tidevault.
 
 ### Reward and rematches
 

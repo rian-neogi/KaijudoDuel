@@ -425,22 +425,23 @@ void Application::awardNpcVictory(int npcIndex)
 	if (!npc.canBattle()) return;
 
 	NpcReward reward = npc.nextReward();
+	const int goldReward = npcGoldRewardValue(reward.goldTier);
 	++npc.wins;
-	mMoney += reward.gold;
+	mMoney += goldReward;
 	int rewardId = getCardIdFromName(reward.card);
 	bool awardedCard = rewardId >= 0 && rewardId < (int)mCollectionCounts.size();
 	if (awardedCard)
 	{
 		++mCollectionCounts[rewardId];
 		mPendingRewardCardId = rewardId;
-		mPendingRewardGold = reward.gold;
+		mPendingRewardGold = goldReward;
 	}
 	updateStoryProgress();
 	savePlayerProgress();
 
 	mNotice = "Victory over " + npc.name + "! ";
 	if (awardedCard) mNotice += "+1 " + reward.card + " and ";
-	mNotice += "+" + std::to_string(reward.gold) + " gold.";
+	mNotice += "+" + std::to_string(goldReward) + " gold.";
 	mNoticeUntil = SDL_GetTicks() + 6500;
 }
 

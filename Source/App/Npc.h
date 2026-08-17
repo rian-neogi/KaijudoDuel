@@ -51,8 +51,10 @@ enum class CharacterAppearance
 struct NpcReward
 {
 	std::string card;
-	int gold;
+	int goldTier;
 };
+
+int npcGoldRewardValue(int tier);
 
 class Npc
 {

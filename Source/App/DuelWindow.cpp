@@ -162,12 +162,18 @@ void Application::startDuel(int npcIndex, bool ignoreProgressLimit)
 }
 
 bool Application::startDuelWithDecks(const std::string& playerDeck,
-	const std::string& aiDeck, int npcIndex)
+	const std::string& aiDeck, int npcIndex, bool aiVsAi, unsigned int duelSeed)
 {
 	stopDuel();
 	mActiveNpc = npcIndex;
 	mDuel = new Duel();
 	ActiveDuel = mDuel;
+	mDuel->mRandomGen.SetRandomSeed(duelSeed);
+	if (aiVsAi)
+	{
+		mDuel->mPlayerType[0] = PLAYER_AI;
+		mDuel->mPlayerType[1] = PLAYER_AI;
+	}
 	if (!mDuel->setDecks(playerDeck, aiDeck))
 	{
 		stopDuel();
@@ -192,6 +198,7 @@ bool Application::startDuelWithDecks(const std::string& playerDeck,
 	mNextAiMove = SDL_GetTicks() + 700;
 	delete mAiSearch;
 	mAiSearch = NULL;
+	mAiSearchPlayer = -1;
 	mAiSearchStartedAt = 0;
 	mAiCreaturePowers.clear();
 	mDuelResult = -1;
@@ -210,6 +217,7 @@ void Application::stopDuel()
 	{
 		delete mAiSearch;
 		mAiSearch = NULL;
+		mAiSearchPlayer = -1;
 		mAiSearchStartedAt = 0;
 		mAiCreaturePowers.clear();
 		return;
@@ -218,6 +226,7 @@ void Application::stopDuel()
 	if (mDuelThread.joinable()) mDuelThread.join();
 	delete mAiSearch;
 	mAiSearch = NULL;
+	mAiSearchPlayer = -1;
 	mAiSearchStartedAt = 0;
 	mDuel->mAiThinking = false;
 	mDuel->mAiThinkingPlayer = -1;
@@ -500,12 +509,14 @@ void Application::updateDuel(Uint32 deltaTime)
 		std::lock_guard<std::mutex> lock(gMutex);
 		winner = mDuel->mWinner;
 		int playerToMove = mDuel->getPlayerToMove();
-		bool aiBoundary = winner == -1 && playerToMove == 1 &&
+		bool aiBoundary = winner == -1 && playerToMove >= 0 && playerToMove <= 1 &&
+			mDuel->mPlayerType[playerToMove] == PLAYER_AI &&
 			!mDuel->mMsgMngr.hasMoreMessages();
 		if (mAiSearch != NULL && mAiSearch->isActive())
 		{
 			if (mAiSearch->isFinished())
 			{
+				int aiPlayer = mAiSearchPlayer;
 				MctsResult result;
 				mAiSearch->finish(result);
 				Uint32 finishedAt = SDL_GetTicks();
@@ -515,7 +526,7 @@ void Application::updateDuel(Uint32 deltaTime)
 				mDuel->mAiThinkingPlayer = -1;
 				mAiCreaturePowers.clear();
 
-				const std::string personality = mActiveNpc >= 0 ?
+				const std::string personality = aiPlayer == 1 && mActiveNpc >= 0 ?
 					mNpcs[mActiveNpc].aiPersonality : "balanced";
 				AiDecisionOutcome decision;
 				if (result.hasPlan && commitDecisionPlan(*mDuel, result.plan) ==
@@ -525,7 +536,7 @@ void Application::updateDuel(Uint32 deltaTime)
 					decision.action = result.plan.action;
 				}
 				else
-					decision = playHeuristicDecision(*mDuel, 1, personality);
+					decision = playHeuristicDecision(*mDuel, aiPlayer, personality);
 				bool usedFallback = decision.source == AiDecisionSource::Heuristic;
 				printMctsStatistics(*mDuel, result, elapsed,
 					decision.action.getType(), usedFallback);
@@ -536,17 +547,18 @@ void Application::updateDuel(Uint32 deltaTime)
 		}
 		else if (aiBoundary && now >= mNextAiMove)
 		{
-			const std::string personality = mActiveNpc >= 0 ?
+			int aiPlayer = playerToMove;
+			const std::string personality = aiPlayer == 1 && mActiveNpc >= 0 ?
 				mNpcs[mActiveNpc].aiPersonality : "balanced";
 			AiDecisionOutcome shieldTrigger = playHeuristicShieldTrigger(
-				*mDuel, 1, personality);
+				*mDuel, aiPlayer, personality);
 			if (shieldTrigger.source == AiDecisionSource::ShieldTriggerHeuristic)
 			{
 				mNextAiMove = now + AI_MOVE_DELAY_MS;
 			}
 			else
 			{
-				AiDecisionOutcome shieldTarget = playRandomShieldTarget(*mDuel, 1);
+				AiDecisionOutcome shieldTarget = playRandomShieldTarget(*mDuel, aiPlayer);
 				if (shieldTarget.source == AiDecisionSource::ShieldRandom)
 				{
 					std::cout << "AI random shield target: selected=" <<
@@ -555,9 +567,10 @@ void Application::updateDuel(Uint32 deltaTime)
 				}
 				else
 				{
-					AiDecisionOutcome manaAction = playHeuristicManaPayment(*mDuel, 1, personality);
+					AiDecisionOutcome manaAction = playHeuristicManaPayment(
+						*mDuel, aiPlayer, personality);
 					if (manaAction.source == AiDecisionSource::None)
-						manaAction = playHeuristicManaPlacement(*mDuel, 1, personality);
+						manaAction = playHeuristicManaPlacement(*mDuel, aiPlayer, personality);
 					if (manaAction.source == AiDecisionSource::ManaHeuristic)
 					{
 						std::cout << "AI mana heuristic: selected=" <<
@@ -567,7 +580,7 @@ void Application::updateDuel(Uint32 deltaTime)
 					}
 					else
 					{
-						AiDecisionOutcome forced = playForcedAiDecision(*mDuel, 1);
+						AiDecisionOutcome forced = playForcedAiDecision(*mDuel, aiPlayer);
 						if (forced.source == AiDecisionSource::Forced)
 						{
 							Uint32 delay = forced.action.getType() == "manatap" ?
@@ -593,12 +606,21 @@ void Application::updateDuel(Uint32 deltaTime)
 									}
 								}
 
-								mDuel->mAiThinkingPlayer = playerToMove;
+								mDuel->mAiThinkingPlayer = aiPlayer;
 								mDuel->mAiThinking = true;
 								MctsConfig searchConfig = liveMctsConfig(
 									mDuel->mTurnPhase == TURN_PHASE_ATTACK);
+								if (mAiSearch != NULL && mAiSearchPlayer != aiPlayer)
+								{
+									delete mAiSearch;
+									mAiSearch = NULL;
+									mAiSearchPlayer = -1;
+								}
 								if (mAiSearch == NULL)
-									mAiSearch = new BackgroundMctsSearch(1, searchConfig);
+								{
+									mAiSearch = new BackgroundMctsSearch(aiPlayer, searchConfig);
+									mAiSearchPlayer = aiPlayer;
+								}
 								searchStarted = mAiSearch->start(*mDuel, searchConfig);
 								if (searchStarted)
 									mAiSearchStartedAt = now;
@@ -606,6 +628,7 @@ void Application::updateDuel(Uint32 deltaTime)
 								{
 									delete mAiSearch;
 									mAiSearch = NULL;
+									mAiSearchPlayer = -1;
 									mDuel->mAiThinking = false;
 									mDuel->mAiThinkingPlayer = -1;
 									mAiCreaturePowers.clear();
@@ -615,7 +638,8 @@ void Application::updateDuel(Uint32 deltaTime)
 							// An inactive retained search object must not suppress their fallback.
 							if (!searchStarted)
 							{
-								AiDecisionOutcome decision = playHeuristicDecision(*mDuel, 1, personality);
+								AiDecisionOutcome decision = playHeuristicDecision(
+									*mDuel, aiPlayer, personality);
 								if (decision.source != AiDecisionSource::None)
 									std::cout << "AI MCTS: unavailable at transient choice; fallback=" <<
 										decision.action.getType() << std::endl;
@@ -630,7 +654,8 @@ void Application::updateDuel(Uint32 deltaTime)
 		}
 
 		bool canChoose = winner == -1 && mAutoChooseOnlyAction &&
-			playerToMove == 0 && !mDuel->mMsgMngr.hasMoreMessages() &&
+			playerToMove == 0 && mDuel->mPlayerType[0] == PLAYER_HUMAN &&
+			!mDuel->mMsgMngr.hasMoreMessages() &&
 			!mActionLogOpen && mOpenGraveyardPlayer < 0 && mDraggingCard < 0;
 		if (canChoose)
 		{
@@ -706,7 +731,7 @@ void Application::playAction(const Message& message)
 	if (mDuel == NULL || mDuelResult != -1) return;
 	std::lock_guard<std::mutex> lock(gMutex);
 	if (mDuel->mAiThinking.load()) return;
-	if (mDuel->getPlayerToMove() == 0)
+	if (mDuel->getPlayerToMove() == 0 && mDuel->mPlayerType[0] == PLAYER_HUMAN)
 	{
 		Message action = message;
 		mDuel->handleInterfaceInput(action);
@@ -720,7 +745,7 @@ void Application::playCard(const Message& message)
 	if (mDuel == NULL || mDuelResult != -1) return;
 	std::lock_guard<std::mutex> lock(gMutex);
 	if (mDuel->mAiThinking.load()) return;
-	if (mDuel->getPlayerToMove() != 0) return;
+	if (mDuel->getPlayerToMove() != 0 || mDuel->mPlayerType[0] != PLAYER_HUMAN) return;
 
 	Message action = message;
 	mDuel->handleInterfaceInput(action);
@@ -751,6 +776,7 @@ void Application::beginDrag(int cardId, const SDL_Rect& origin, int mouseX, int 
 	if (mDuel == NULL) return;
 	std::lock_guard<std::mutex> lock(gMutex);
 	if (mDuel->mAiThinking.load()) return;
+	if (mDuel->mPlayerType[0] != PLAYER_HUMAN) return;
 	if (cardId < 0 || cardId >= (int)mDuel->mCardList.size()) return;
 	Card* card = mDuel->mCardList[cardId];
 	if (card->mOwner != 0 || (card->mZone != ZONE_HAND && card->mZone != ZONE_BATTLE)) return;
@@ -791,6 +817,7 @@ bool Application::findDragAction(const std::string& type, int cardId, int target
 	if (mDuel == NULL) return false;
 	std::lock_guard<std::mutex> lock(gMutex);
 	if (mDuel->mAiThinking.load()) return false;
+	if (mDuel->mPlayerType[0] != PLAYER_HUMAN) return false;
 	std::vector<Message> moves = mDuel->getPossibleMoves();
 	for (size_t i = 0; i < moves.size(); ++i)
 	{
@@ -830,7 +857,7 @@ bool Application::findClickAction(int cardId, Message& result)
 	if (mDuel == NULL || mDuelResult != -1) return false;
 	std::lock_guard<std::mutex> lock(gMutex);
 	if (mDuel->mAiThinking.load()) return false;
-	if (mDuel->getPlayerToMove() != 0) return false;
+	if (mDuel->getPlayerToMove() != 0 || mDuel->mPlayerType[0] != PLAYER_HUMAN) return false;
 
 	std::vector<Message> moves = mDuel->getPossibleMoves();
 	for (size_t i = 0; i < moves.size(); ++i)
@@ -1269,7 +1296,7 @@ void Application::renderDuel()
 
 	std::lock_guard<std::mutex> lock(gMutex);
 	std::string rivalName = mActiveNpc >= 0 ? mNpcs[mActiveNpc].name :
-		"AI: " + deckDisplayName(mDuel->mDeckNames[1]);
+		(mDirectAiVsAi ? "AI 1: " : "AI: ") + deckDisplayName(mDuel->mDeckNames[1]);
 	drawText(rivalName, 18, 14, color(244, 205, 99), 20, 900);
 	drawText("Hand " + std::to_string(mDuel->mHands[1].mCards.size()), 18, 39, color(229, 235, 245), 13);
 	renderDeckPile(1);
@@ -1286,13 +1313,17 @@ void Application::renderDuel()
 	renderGraveyardPile(0);
 	renderDeckPile(0);
 	drawHand(mDuel->mHands[0].mCards, false);
-	std::string playerName = mDirectDuelMode ?
-		"YOU: " + deckDisplayName(mDuel->mDeckNames[0]) : "YOU";
+	std::string playerName = mDirectAiVsAi ?
+		"AI 0: " + deckDisplayName(mDuel->mDeckNames[0]) :
+		(mDirectDuelMode ? "YOU: " + deckDisplayName(mDuel->mDeckNames[0]) : "YOU");
 	drawText(playerName, 18, 748, color(244, 205, 99), 22, 900);
 	drawText("Hand " + std::to_string(mDuel->mHands[0].mCards.size()), 18, 775, color(229, 235, 245), 13);
 	renderAttackIndicator();
 
-	drawText(mDuel->mTurn == 0 ? "YOUR TURN" : "RIVAL THINKING", 1010, 26,
+	std::string turnLabel = mDirectAiVsAi ?
+		"AI " + std::to_string(mDuel->mTurn) + " THINKING" :
+		(mDuel->mTurn == 0 ? "YOUR TURN" : "RIVAL THINKING");
+	drawText(turnLabel, 1010, 26,
 		mDuel->mTurn == 0 ? color(99, 225, 128) : color(239, 137, 70), 23);
 	std::string phase;
 	if (mDuel->mIsChoiceActive) phase = mDuel->mChoice == NULL ? "Choose an option" : mDuel->mChoice->mInfotext;
@@ -1303,7 +1334,8 @@ void Application::renderDuel()
 	if (!phase.empty()) drawText(phase, 1010, 119, color(245, 199, 91), 15, 238);
 
 	int playerToMove = mDuel->getPlayerToMove();
-	if (playerToMove == 0 && mDuelResult == -1)
+	if (playerToMove == 0 && mDuel->mPlayerType[0] == PLAYER_HUMAN &&
+		mDuelResult == -1)
 	{
 		std::vector<Message> actions = visibleActions();
 		int maxScroll = std::max(0, (int)actions.size() - 8);
@@ -1334,7 +1366,10 @@ void Application::renderDuel()
 	{
 		fillRect({ 260, 280, 700, 190 }, 10, 15, 25, 238);
 		outlineRect({ 260, 280, 700, 190 }, 214, 166, 67, 255, 4);
-		drawText(mDuelResult == 0 ? "VICTORY" : "DEFEAT", 475, 319,
+		std::string resultLabel = mDirectAiVsAi ?
+			"AI " + std::to_string(mDuelResult) + " WINS" :
+			(mDuelResult == 0 ? "VICTORY" : "DEFEAT");
+		drawText(resultLabel, mDirectAiVsAi ? 430 : 475, 319,
 			mDuelResult == 0 ? color(101, 231, 133) : color(238, 101, 83), 48);
 		drawText(mDirectDuelMode ? "Direct duel complete..." : "Returning to Emberglen...",
 			mDirectDuelMode ? 475 : 460, 394, color(226, 232, 243), 20);

@@ -30,7 +30,7 @@ Marin respects opponents who change plans halfway through a duel. The player's r
 
 Marin is also preparing for the Grand Championship.
 
-At Glasswater Port in Act II, Marin encounters perfect counterfeit predictions derived from stolen memories. She must choose between flawless information and the uncertainty that allows people to grow.
+At Glasswater Port in Act II, Marin encounters perfect counterfeit predictions derived from stolen memories. She helps recover the consent ledger, then carries it to Tidevault after the outer roads open. At the Water Seal she must choose between flawless information and the uncertainty that allows people to grow.
 
 ## Rook — The Patient Wall
 
@@ -106,7 +106,7 @@ He teaches patience because he has seen hurried decisions turn small dangers int
 
 Garran's quietness can be mistaken for detachment. In truth, he notices nearly everyone in town and positions himself near the southern road during the crisis so no frightened resident has to leave alone. His rematches become increasingly demanding tests of endurance, and King Depthcon is his acknowledgment that the player can carry responsibility without rushing it.
 
-At Glasswater Port, Garran clashes with Marin over whether the stolen prediction system should be destroyed or studied. Their eventual cooperation combines her curiosity with his caution.
+At Glasswater Port, Garran clashes with Marin over whether the stolen prediction system should be destroyed or studied. Their eventual cooperation preserves the voluntary records and closes the abusive system. At Tidevault, his caution helps the keepers restore manual control of the basin while Marin identifies the counterfeit calibration entries.
 
 ## Briar — Warden of the Living Paths
 

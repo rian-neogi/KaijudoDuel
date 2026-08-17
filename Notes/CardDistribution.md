@@ -326,7 +326,7 @@ Obsidian Scarab
 
 ## Town Shops
 
-Each civilization's town has its own shop with 15 cards. This shop expands by another 15 cards when the player reaches act 3. With 5 such shops, the total number of cards is 150.
+Each civilization's core town has its own shop with 15 cards. This shop expands by another 15 cards when the player reaches Act III. With five core shops, the total core inventory is 150 cards. Specialist settlements such as Tidevault and Stonechant add focused stock outside that count and may deliberately overlap a few regional staples.
 
 ### Cinderrail
 
@@ -433,9 +433,69 @@ Overload Cluster
 Sopian
 Thrash Crawler
 Marine Scramble
-Wave Lane
+Wave Lance
 Shock Hurricane
 Riptide Charger
+
+### Tidevault
+
+Tidevault opens with the outer network and carries advanced Water cards that
+support the late Water Seal chapter. Its inventory combines new finishers with
+selected Glasswater staples so a player is not forced to exhaust both shops.
+
+Initial late-game stock:
+Crystal Lancer
+Aqua Surfer
+Corile
+Illusionary Merfolk
+King Tsunami
+King Depthcon
+Hydrooze, the Mutant Emperor
+Angler Cluster
+Hazard Crawler
+Thrash Crawler
+Marine Scramble
+Shock Hurricane
+Riptide Charger
+
+After restoring the Water Seal:
+Crystal Paladin
+Legendary Bynor
+King Aquakamui
+Keeper of the Sunlit Abyss
+Sopian
+Overload Cluster
+Wave Lance
+
+### Stonechant Village
+
+Stonechant's specialist stall is the main source for Mystery Totem decks. The
+early list provides enough repeated bodies and mana support to make a coherent
+deck, while stronger build-around Totems unlock through local challenges and
+later story progress.
+
+Initial stock:
+Jiggly Totem
+Whispering Totem
+Shaman Broccoli
+Spinning Totem
+Techno Totem
+Carnival Totem
+Dimension Gate
+Enchanted Soil
+Mulch Charger
+
+Local challenge and late stock:
+Clobber Totem
+Bliss Totem, Avatar of Luck
+Forbidding Totem
+Vreemah, Freaky Mojo Totem
+Dracodance Totem
+Rollicking Totem
+Cursed Totem
+
+Cryptic Totem remains associated with Oren's Verdant Crest reward rather than
+being sold on the first visit.
 
 ### Gloam Quarry
 

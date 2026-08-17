@@ -4,14 +4,15 @@
 
 Glasswater should feel like a major port city rather than a compact regional town. It has several neighborhoods, a working commercial harbor, civic offices, residential canals, specialized markets, a large sanctioned arena, and old infrastructure beneath the streets.
 
-The city is a required first-tier region containing the Tidal Crest and Water Resonance Seal. Its Watershed Gate enters the shared crossroads for Emberglen and Rootmaze Commons, while its western ferry route reaches the optional Lilyreed Village.
+The city is a required first-tier region containing the Tidal Crest and the first stage of the Water investigation. The actual Water Resonance Seal is upstream at late-game Tidevault. Its Watershed Gate enters the shared crossroads for Emberglen and Rootmaze Commons, while its western ferry route reaches the optional Lilyreed Village.
 
 **Implementation status:** The 96-by-48 surface city is implemented as the
 `glasswater` region of the seamless `overworld` map. Its Grand Harbor, Long
 Quay, Tideglass Square, Ledger Ward, Arena Isle, South Canals, lighthouse,
 Lilyreed ferry quay, and Watershed Gate are playable. Major building and
-Underglass interiors, regional shops, and the Water Seal investigation remain
-future layers of this layout.
+Underglass interiors, regional shops, and the stolen-prediction investigation
+remain future layers of this layout. The later Tidevault route is also planned
+and is not represented by hidden legacy map data.
 
 ## Navigation principles
 
@@ -365,7 +366,7 @@ A long communal building combines laundry platforms, heated baths, and inexpensi
 
 This is a strong location for everyday NPC dialogue and visual activity. It also provides an alternate rest service for players exploring the southern district.
 
-## Deepwell infrastructure and Water Sanctuary
+## Deepwell infrastructure and Tidevault relay
 
 ### Deepwell House
 
@@ -390,17 +391,17 @@ The cistern layout includes:
 - Inspection walkways
 - An abandoned pre-city channel
 - Three control locks corresponding to major surface canals
-- The sanctuary approach
+- The relay chamber approach
 
 During the crisis, false prediction outputs redirect water through unsafe channels. The player restores the locks using evidence gathered above rather than guessing a single correct lever sequence.
 
-### Water Resonance Sanctuary
+### Water Relay Chamber
 
-The Water Seal rests where the underground river first splits toward the harbor and residential canals. Early engineers built around it rather than moving it, treating the stable current as the reason Glasswater could exist.
+The round chamber beneath Deepwell House contains Glasswater's public relay to the Water Seal at Tidevault. Five inlet arches compare the upstream calibration reading with the harbor's current, canal demand, and voluntarily submitted decision records. Early engineers built the city around this relay, treating its trustworthy readings as the reason a complex port could adapt safely.
 
-The sanctuary is a round chamber containing a central pool, five inlet arches, and a narrow observation ring. Water reflections show authentic remembered routes; the stolen-memory corruption introduces movements that have no matching source.
+The central pool and narrow observation ring resemble a sanctuary closely enough that generations of residents began calling the relay “the Seal.” Water reflections show authentic remembered routes; the stolen-memory corruption introduces movements that have no matching source and then transmits those false patterns upstream.
 
-Restoring the Seal requires resolving the consent conflict in Prediction Hall and correcting the cistern flow. The Tidal Crest duel is related thematically but is not a magical requirement for entering the sanctuary.
+Resolving Glasswater's crisis requires ending the unauthorized processing, correcting the cistern flow, and recovering a consent ledger that distinguishes voluntary records from stolen ones. This stabilizes the port but does not restore the Water Seal. After the Confluence relay opens the outer network, the ledger becomes the key evidence for the later Tidevault investigation. The Tidal Crest duel remains thematically related but is not a magical requirement for either system.
 
 ## Regional exits
 
@@ -413,6 +414,12 @@ Mercer's cargo wagons and Rootmaze handcarts use the same gate, so it remains wi
 ### West Ferry to Lilyreed Village
 
 The optional Lilyreed connection leaves from the ferry quay. Once introduced, ferries run on a visible schedule but should not force the player to wait in real time. Speaking to the ferrymaster triggers the transition.
+
+### Headwater Gate to Tidevault
+
+A sealed service gate north of Deepwell House enters Tideglass Aqueduct, the maintenance road that follows Glasswater's water supply upstream. During the first tier, pressure warnings and a physical relay checkpoint make the closed route visible without allowing early passage.
+
+After the Confluence relay is restored, the checkpoint opens permanently and the road becomes bidirectional. It leads to Tidevault's southern gate and the actual Water Resonance Seal. Players may return through Glasswater or continue from Tidevault toward Stormbreak, linking the central and outer road networks.
 
 ## Suggested NPC placement
 
@@ -448,14 +455,23 @@ Challenge NPCs should patrol plazas, quays, and practice courts rather than brid
 - Some public replay boards display information they should not possess
 - Cistern locks divert water from one optional shortcut
 
-### After restoring the Water Seal
+### After exposing the prediction abuse
 
 - Harbor schedules and actual currents agree again
 - The unauthorized processing room is closed or rebuilt transparently
+- The recovered consent ledger identifies which records were transmitted to Tidevault
+- Deepwell readings remain imperfect until the Water Seal is restored upstream
 - Lilyreed trade and Emberglen parcel traffic increase
 - Current and Quill expands its regional stock
 - Neris's Tidal Crest match and advanced rematches remain available
 - A fast canal ferry opens between Tideglass Square and Arena Isle
+
+### After restoring the Water Seal at Tidevault
+
+- The relay pool once again shows several plausible routes rather than one forced prediction
+- Tidevault readings and Glasswater's physical gauges reconcile
+- Headwater Gate remains open as a permanent route into the outer network
+- Additional advanced Water cards become available in Current and Quill
 
 ### During Act III
 

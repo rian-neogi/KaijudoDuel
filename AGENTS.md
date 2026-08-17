@@ -159,6 +159,9 @@ five decks.
 - Duel-enabled NPCs use ordered, non-empty `decks` and `rewards` arrays. When
   `max_battles` exceeds either array's size, the last entry in that array is
   reused for the remaining battles.
+- NPC reward entries use `gold_tier` values from 1 through 5, never raw `gold`
+  amounts. `Lua/Npcs.lua` exposes the payout mapping as the global
+  `NpcGoldTiers` table: T1=200, T2=400, T3=800, T4=1500, and T5=3000.
 - Exterior regions require an explicit `kind` of `town` or `connector` for
   geographic organization. NPC kinds may be placed in either region kind. The
   World Builder must preserve region kinds when saving.

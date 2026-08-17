@@ -51,9 +51,9 @@ Application::Application(bool worldBuilder)
 	  mWorldBuilderDirty(false), mWorldBuilderNoticeError(false),
 	  mWorldBuilderNoticeUntil(0),
 	  mDuel(NULL), mActiveNpc(-1), mDirectDuelMode(false),
-	  mDirectDuelFullVisibility(false), mSelectedCard(-1), mActionScroll(0),
+	  mDirectDuelFullVisibility(false), mDirectAiVsAi(false), mSelectedCard(-1), mActionScroll(0),
 	  mOpenGraveyardPlayer(-1), mGraveyardOffset(0), mActionLogOpen(false), mActionLogScroll(0),
-	  mNextAiMove(0), mAiSearch(NULL), mAiSearchStartedAt(0), mDuelResult(-1),
+	  mNextAiMove(0), mAiSearch(NULL), mAiSearchPlayer(-1), mAiSearchStartedAt(0), mDuelResult(-1),
 	  mDuelResultAt(0), mRewardCardId(-1),
 	  mRewardGold(0), mPendingRewardCardId(-1), mPendingRewardGold(0), mDraggingCard(-1),
 	  mDragFromZone(-1), mDragOrigin({ 0, 0, 0, 0 }), mDragMouseX(0), mDragMouseY(0),
@@ -191,7 +191,8 @@ void Application::shutdown()
 }
 
 int Application::run(bool smokeTest, const std::string& directPlayerDeck,
-	const std::string& directAiDeck, bool worldBuilder, bool fullVisibility)
+	const std::string& directAiDeck, bool worldBuilder, bool fullVisibility,
+	bool aiVsAi, unsigned int duelSeed)
 {
 	if (!initialize())
 		return 1;
@@ -201,11 +202,12 @@ int Application::run(bool smokeTest, const std::string& directPlayerDeck,
 		SDL_SetWindowTitle(mWindow, "Kaijudo Duel - World Builder");
 	}
 	mDirectDuelMode = !directPlayerDeck.empty() || !directAiDeck.empty();
-	mDirectDuelFullVisibility = mDirectDuelMode && fullVisibility;
+	mDirectAiVsAi = mDirectDuelMode && aiVsAi;
+	mDirectDuelFullVisibility = mDirectDuelMode && (fullVisibility || aiVsAi);
 	if (mDirectDuelMode)
 	{
 		if (directPlayerDeck.empty() || directAiDeck.empty() ||
-			!startDuelWithDecks(directPlayerDeck, directAiDeck, -1))
+			!startDuelWithDecks(directPlayerDeck, directAiDeck, -1, aiVsAi, duelSeed))
 		{
 			std::cerr << "Unable to start direct duel. Check both deck paths and deck contents."
 				<< std::endl;

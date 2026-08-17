@@ -4,20 +4,20 @@
 
 Rootmaze Commons should feel like a settlement that grew with a living forest rather than one imposed on top of it. It is made of several clearings connected by broad roots, flexible bridges, and shallow waterways. The central services remain easy to find, while optional trails and shortcuts can shift during the Rootmaze story.
 
-The town is a required first-tier region containing the Verdant Crest and Nature Resonance Seal. Its Northwater Gate enters the shared crossroads for Glasswater Port and Emberglen; separate routes lead to Cinderrail Foundry and the optional town of Honeyreach.
+The town is a required first-tier region containing the Verdant Crest and Nature Resonance Seal. Its Northwater Gate enters the shared crossroads for Glasswater Port and Emberglen; separate routes lead to Cinderrail Foundry and the optional towns of Honeyreach and Stonechant Village.
 
 **Implementation status:** The 96-by-56 surface town is implemented as the
 `rootmaze` region of the seamless `overworld` map. Northwater Gate, Waterstep,
 Greatroot Common, Heartroot, Verdant Arena, the service and residential
-clearings, Southroot Green, and the future Honeyreach and Cinderrail exits are
-playable. Major interiors, shifting optional shortcuts, and the Nature Seal
-investigation remain future layers of this layout.
+clearings, Southroot Green, and the future Honeyreach, Stonechant, and Cinderrail
+exits are playable. Major interiors, shifting optional shortcuts, and the
+Nature Seal investigation remain future layers of this layout.
 
 ## Navigation principles
 
 - The **Greatroot Common** is the central landmark. All major districts loop back to it.
 - Main roads and essential services never move. The forest's changing-path theme is expressed through secondary bridges, blocked trails, creature routes, and optional shortcuts.
-- Painted leaf symbols identify stable public paths: blue for Glasswater, gold for Emberglen, red for Cinderrail, and amber for Honeyreach.
+- Painted leaf symbols identify stable public paths: blue for Glasswater, gold for Emberglen, red for Cinderrail, amber for Honeyreach, and gray spirals for Stonechant.
 - Movable wooden signs show current shortcuts. Moss updates them as story events change the forest.
 - Streams are shallow visual boundaries crossed by small bridges. They should guide movement without turning the town into a maze of narrow collision corridors.
 - Homes use curved root walls, timber frames, canvas awnings, and living roofs. Important buildings have distinct silhouettes and colored banners so players can recognize them without opening a map.
@@ -41,7 +41,7 @@ investigation remain future layers of this layout.
                          |                  |               \
                   [Wildgrove Trails] [Southroot Green] -- [Lineage Nursery]
                          |                  |                |
-                  Road to Honeyreach   [Forager Huts]  Road to Cinderrail
+             Road to Stonechant / Honeyreach [Forager Huts] Road to Cinderrail
 ```
 
 This diagram is schematic rather than tile-accurate. Curved roots and water channels should keep the final map from looking like a rectangular street grid.
@@ -223,6 +223,12 @@ Honeyreach traders use the southern side of the Green. During its harvest season
 The road to Honeyreach begins beneath an arch of flowering roots marked with amber ribbons. It is always optional and never lies between the player and the Nature Seal or Verdant Arena.
 
 A small covered rest platform at the exit can host a Honeyreach merchant before the player visits that town, quietly advertising the side route without turning it into a quest requirement.
+
+### Stonechant listening path
+
+A narrower but clearly marked western branch enters Whisperroot Trail toward Stonechant Village. Gray spiral stones and hanging sounding slats distinguish it from Honeyreach's amber orchard markers. The branch is optional and never lies between the player and Heartroot Sanctuary or Verdant Arena.
+
+An apprentice listener near the exit introduces Stonechant's Mystery Totem culture without claiming that Rootmaze's ordinary creature bonds are inferior. Oren may gain post-Crest dialogue about having studied there.
 
 ### Forager huts and seed sheds
 

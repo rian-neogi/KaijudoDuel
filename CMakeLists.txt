@@ -28,6 +28,7 @@ set(GAME_SOURCES
 	Source/AI/AiParams.cpp
 	Source/AI/AiScoring.cpp
 	Source/AI/AiDriver.cpp
+	Source/AI/AiMatchRunner.cpp
 	Source/AI/DecisionPlan.cpp
 	Source/AI/HeuristicBot.cpp
 	Source/AI/Mcts.cpp
@@ -103,6 +104,15 @@ if(BUILD_TESTING)
     add_test(NAME cli_help
         COMMAND KaijudoDuel --help
     )
+	add_test(NAME headless_ai_duel
+		COMMAND KaijudoDuel --seed 7 --max-actions 2 --headless-ai-duel
+			"NPC/Nyx 3.txt" "NPC/Nyx 4.txt"
+		WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+	)
+	set_tests_properties(headless_ai_duel PROPERTIES
+		PASS_REGULAR_EXPRESSION "AI_MATCH_RESULT status=move-limit winner=-1 actions=2 seed=7"
+		TIMEOUT 15
+	)
     add_test(NAME smoke
         COMMAND KaijudoDuel --smoke-test
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"

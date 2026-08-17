@@ -19,12 +19,13 @@ An asterisk marks an optional town. Optional towns are short offshoots: the play
                                              \       /
              Lilyreed Village*               Dragon Keep ----------- Hollow Archive
                      |                      /     |    \
-              Glasswater Port -------------/      |     \------------- Stormbreak Plateau -- Cloudrest*
-                    /  \                          |
-                   /    \                         |
+              Glasswater Port              /      |     \------------- Stormbreak Plateau -- Cloudrest*
+                    /  \                   /       |                         /
+                   /    +---- Tidevault --+        |------------------------+
+                  /                               |
         Honeyreach* -- Rootmaze Commons ----- Emberglen ----- Cinderrail Foundry -- Clayhearth*
-                            \                    |                    /
-                             \                   |                   /
+                            \       |            |                    /
+                             \  Stonechant*      |                   /
                               +------------- Gloam Quarry ----------+
                                                 |
                                            Lanternfen*
@@ -49,18 +50,20 @@ The adjacency list is authoritative for the planned topology when the ASCII spac
 | Destination | Direct road connections |
 | --- | --- |
 | Emberglen | Glasswater Port, Rootmaze Commons, Cinderrail Foundry, Gloam Quarry, Dragon Keep |
-| Glasswater Port | Emberglen, Rootmaze Commons, Lilyreed Village |
-| Rootmaze Commons | Emberglen, Glasswater Port, Cinderrail Foundry, Honeyreach |
+| Glasswater Port | Emberglen, Rootmaze Commons, Lilyreed Village, Tidevault |
+| Rootmaze Commons | Emberglen, Glasswater Port, Cinderrail Foundry, Honeyreach, Stonechant Village |
 | Cinderrail Foundry | Emberglen, Rootmaze Commons, Gloam Quarry, Clayhearth |
 | Dragon Keep | Emberglen, Mirror Arena, Stormbreak Plateau, Sunspire Cloister, Ribbonfair, Hollow Archive |
 | Mirror Arena | Dragon Keep, Stormbreak Plateau, Sunspire Cloister, Ribbonfair, Crown Gate |
-| Stormbreak Plateau | Dragon Keep, Mirror Arena, Cloudrest |
+| Stormbreak Plateau | Dragon Keep, Mirror Arena, Tidevault, Cloudrest |
+| Tidevault | Glasswater Port, Stormbreak Plateau |
 | Gloam Quarry | Emberglen, Cinderrail Foundry, Lanternfen |
 | Sunspire Cloister | Dragon Keep, Mirror Arena |
 | Crown Gate | Mirror Arena |
 | Hollow Archive | Dragon Keep |
 | Lilyreed Village | Glasswater Port |
 | Honeyreach | Rootmaze Commons |
+| Stonechant Village | Rootmaze Commons |
 | Clayhearth | Cinderrail Foundry |
 | Cloudrest | Stormbreak Plateau |
 | Lanternfen | Gloam Quarry |
@@ -76,9 +79,9 @@ Emberglen contains the story setup and Dawn Crest. The nearby roads are initiall
 
 ### Crests 2–4
 
-Glasswater, Rootmaze, and Cinderrail may be completed in any order. Their local roads form a loop around Emberglen, and the player may return to Mercer between any two objectives.
+Glasswater, Rootmaze, and Cinderrail may be completed in any order. Their local roads form a loop around Emberglen, and the player may return to Mercer between any two objectives. Glasswater awards the Tidal Crest and exposes the stolen-prediction network, but the Water Seal itself lies beyond the midpoint at Tidevault.
 
-Lilyreed Village, Honeyreach, and Clayhearth open with their neighboring routes but remain optional.
+Lilyreed Village, Honeyreach, Stonechant Village, and Clayhearth open with their neighboring routes but remain optional.
 
 ### Crest 5 and the outer-road gate
 
@@ -89,6 +92,8 @@ Winning restores the Confluence relay and permanently opens the outer network to
 ### Crests 6–8
 
 Stormbreak, Gloam Quarry, and Mirror Arena may be completed in any order. Stormbreak and Mirror have direct cross-links to Dragon Keep and each other, while Gloam branches from Emberglen and Cinderrail. The persistent central roads keep all three objectives accessible without imposing an order.
+
+Tidevault also opens in this tier through routes from Glasswater and Stormbreak. It contains the Water Seal but no Crest, just as Sunspire contains the Light Seal without a Crest. Both sanctuary towns must be resolved before the Hollow finale, but neither changes the order of the three Circuit Crest matches.
 
 Cloudrest, Lanternfen, and Ribbonfair open with their neighboring routes but remain optional. Sunspire is a required Hollow-story region with no Crest.
 
@@ -103,13 +108,15 @@ Caelum's Unity match is the final Crest objective. Crown Gate remains connected 
 | Destination | Role | Required for main progression |
 | --- | --- | --- |
 | Emberglen | Central hub, Mercer, Act I, and Dawn Crest | Yes |
-| Glasswater Port | Tidal Crest and Water Seal | Yes, order-independent |
+| Glasswater Port | Tidal Crest and stolen-prediction investigation | Yes, order-independent |
 | Cinderrail Foundry | Forge Crest and Fire Seal | Yes, order-independent |
 | Rootmaze Commons | Verdant Crest and Nature Seal | Yes, order-independent |
 | Lilyreed Village | Fishing and ferry side town | No |
 | Honeyreach | Orchard festival side town | No |
+| Stonechant Village | Shaman village and Mystery Totem deck center | No |
 | Clayhearth | Pottery and cosmetics side town | No |
 | Dragon Keep | Fifth Crest and permanent outer-road gate | Yes |
+| Tidevault | Water Seal sanctuary, no Crest | Yes for Hollow story |
 | Stormbreak Plateau | Tempest Crest | Yes, order-independent |
 | Gloam Quarry | Ashen Crest and Darkness Seal | Yes, order-independent |
 | Mirror Arena | Mirror Crest | Yes, order-independent |
@@ -121,4 +128,4 @@ Caelum's Unity match is the final Crest objective. Crown Gate remains connected 
 | Crown Gate | Unity Crest after Hollow finale | Yes |
 | Grand Championship | Sporting finale | Yes |
 
-Required-town histories are in `Notes/TownBackstories.md`. Detailed optional-town concepts are in `Notes/OptionalTowns.md`. Building plans for Cinderrail, Glasswater, Rootmaze, and Gloam Quarry are in their matching files under `Notes/`. The playable routes between destinations are catalogued in `Notes/ConnectingAreas.md`.
+Required-town histories are in `Notes/TownBackstories.md`. General optional-town concepts are in `Notes/OptionalTowns.md`. Building plans for Cinderrail, Glasswater, Rootmaze, Stonechant, Tidevault, and Gloam Quarry are in their matching files under `Notes/`. The playable routes between destinations are catalogued in `Notes/ConnectingAreas.md`.

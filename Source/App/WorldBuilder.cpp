@@ -2472,17 +2472,17 @@ void Application::renderWorldBuilder()
 		}
 		else
 		{
-			if (!mWorldTileRenderer->drawChest({ x, y, tileSize, tileSize }, false))
+			if (!drawWorldObjectSprite(object, false, { x, y, tileSize, tileSize }))
 			{
-			int inset = std::max(2, tileSize / 7);
-			fillRect({ x + inset, y + tileSize * 2 / 5,
-				tileSize - inset * 2, tileSize / 2 }, 121, 69, 32, 255);
-			fillRect({ x + inset, y + tileSize / 4,
-				tileSize - inset * 2, tileSize / 4 }, 166, 97, 39, 255);
-			outlineRect({ x + inset, y + tileSize / 4,
-				tileSize - inset * 2, tileSize * 13 / 20 }, 58, 35, 23, 255, 1);
-			fillRect({ x + tileSize * 9 / 20, y + tileSize / 2,
-				std::max(2, tileSize / 8), tileSize / 5 }, 224, 174, 65, 255);
+				int inset = std::max(2, tileSize / 7);
+				fillRect({ x + inset, y + tileSize * 2 / 5,
+					tileSize - inset * 2, tileSize / 2 }, 121, 69, 32, 255);
+				fillRect({ x + inset, y + tileSize / 4,
+					tileSize - inset * 2, tileSize / 4 }, 166, 97, 39, 255);
+				outlineRect({ x + inset, y + tileSize / 4,
+					tileSize - inset * 2, tileSize * 13 / 20 }, 58, 35, 23, 255, 1);
+				fillRect({ x + tileSize * 9 / 20, y + tileSize / 2,
+					std::max(2, tileSize / 8), tileSize / 5 }, 224, 174, 65, 255);
 			}
 		}
 		if ((int)i == mWorldBuilderSelectedObject &&
@@ -2753,9 +2753,13 @@ void Application::renderWorldBuilder()
 					}
 					else
 					{
-						fillRect({ item.x + 3, item.y + 13, 20, 16 }, 117, 67, 31, 255);
-						fillRect({ item.x + 3, item.y + 8, 20, 8 }, 165, 96, 39, 255);
-						fillRect({ item.x + 11, item.y + 16, 5, 7 }, 225, 176, 66, 255);
+						if (!drawWorldObjectSprite(mWorldObjects[index], false,
+							{ item.x + 1, item.y + 5, 24, 24 }))
+						{
+							fillRect({ item.x + 3, item.y + 13, 20, 16 }, 117, 67, 31, 255);
+							fillRect({ item.x + 3, item.y + 8, 20, 8 }, 165, 96, 39, 255);
+							fillRect({ item.x + 11, item.y + 16, 5, 7 }, 225, 176, 66, 255);
+						}
 					}
 				}
 				else

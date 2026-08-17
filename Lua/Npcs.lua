@@ -1,6 +1,16 @@
 -- Overworld NPC metadata
 -- NPC positions are owned by World/World.json and maintained by the World Builder.
 --
+-- Gold rewards use tiers rather than authored currency amounts. This global is
+-- the sole payout table consumed by the NPC loader.
+NpcGoldTiers = {
+	T1 = 200,
+	T2 = 400,
+	T3 = 800,
+	T4 = 1500,
+	T5 = 3000,
+}
+--
 -- Add one table to the returned array for each NPC. Required fields are:
 --   id, name, kind, appearance. Crest Holders also set crest to one of:
 --   dawn, tidal, forge, verdant, confluence, tempest, ashen, mirror, unity.
@@ -40,8 +50,8 @@
 --     max_battles = 4,
 --     decks = { "Example.txt", "ExampleAdvanced.txt" },
 --     rewards = {
---         { card = "First Reward Card", gold = 100 },
---         { card = "Later Reward Card", gold = 125 },
+--         { card = "First Reward Card", gold_tier = 1 },
+--         { card = "Later Reward Card", gold_tier = 2 },
 --     },
 --     ai = { personality = "balanced" },
 --     dialogue = {
@@ -63,7 +73,7 @@ return {
         max_battles = 4,
         decks = { "Zagaan.txt", "Deathliger.txt" },
         rewards = {
-            { card = "Zagaan, Knight of Darkness", gold = 100 },
+            { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
         },
         ai = { personality = "control" },
         dialogue = {
@@ -88,7 +98,7 @@ return {
         max_battles = 4,
         decks = { "NPC/Marin.txt", "NPC/Marin 2.txt", "NPC/Marin 3.txt", "NPC/Marin 4.txt" },
         rewards = {
-            { card = "Aqua Sniper", gold = 100 },
+            { card = "Aqua Sniper", gold_tier = 1 },
         },
         ai = { personality = "tempo" },
         dialogue = {
@@ -112,7 +122,7 @@ return {
         max_battles = 1,
         decks = { "RoaringGreathorn.txt"},
         rewards = {
-            { card = "Roaring Great-Horn", gold = 100 },
+            { card = "Roaring Great-Horn", gold_tier = 1 },
         },
         ai = { personality = "ramp" },
         dialogue = {
@@ -137,7 +147,7 @@ return {
         max_battles = 4,
         decks = { "NPC/Aurelia.txt", "NPC/Aurelia 2.txt", "NPC/Aurelia 3.txt", "NPC/Aurelia 4.txt" },
         rewards = {
-            { card = "Hanusa, Radiance Elemental", gold = 100 },
+            { card = "Hanusa, Radiance Elemental", gold_tier = 1 },
         },
         ai = { personality = "defensive" },
         dialogue = {
@@ -162,10 +172,10 @@ return {
         max_battles = 4,
         decks = { "NPC/Flint.txt", "NPC/Flint 2.txt", "NPC/Flint 3.txt", "NPC/Flint 4.txt" },
         rewards = {
-            { card = "Rothus, the Traveler", gold = 100 },
-			{ card = "Rothus, the Traveler", gold = 100 },
-			{ card = "Rothus, the Traveler", gold = 100 },
-			{ card = "Uberdragon Bajula", gold = 100 },
+            { card = "Rothus, the Traveler", gold_tier = 1 },
+			{ card = "Rothus, the Traveler", gold_tier = 1 },
+			{ card = "Rothus, the Traveler", gold_tier = 1 },
+			{ card = "Uberdragon Bajula", gold_tier = 1 },
         },
         ai = { personality = "aggressive" },
         dialogue = {
@@ -190,10 +200,10 @@ return {
         max_battles = 4,
         decks = { "NPC/Nyx.txt", "NPC/Nyx 2.txt", "NPC/Nyx 3.txt", "NPC/Nyx 4.txt" },
         rewards = {
-            { card = "Horrid Worm", gold = 100 },
-			{ card = "Trox, General of Destruction", gold = 100 },
-			{ card = "Ballom, Master of Death", gold = 100 },
-			{ card = "Phantomach, the Gigatrooper", gold = 100 },
+            { card = "Horrid Worm", gold_tier = 1 },
+			{ card = "Trox, General of Destruction", gold_tier = 1 },
+			{ card = "Ballom, Master of Death", gold_tier = 1 },
+			{ card = "Phantomach, the Gigatrooper", gold_tier = 1 },
         },
         ai = { personality = "sacrifice" },
         dialogue = {
@@ -217,7 +227,7 @@ return {
         max_battles = 1,
         decks = { "KingDepthcon.txt" },
         rewards = {
-            { card = "King Depthcon", gold = 100 },
+            { card = "King Depthcon", gold_tier = 1 },
         },
         ai = { personality = "control" },
         dialogue = {
@@ -241,7 +251,7 @@ return {
         max_battles = 1,
         decks = { "DeathbladeBeetle.txt" },
         rewards = {
-            { card = "Deathblade Beetle", gold = 100 },
+            { card = "Deathblade Beetle", gold_tier = 1 },
         },
         ai = { personality = "ramp" },
         dialogue = {
@@ -278,7 +288,7 @@ return {
         max_battles = 1,
         decks = { "NPC/VeiledOne.txt" },
         rewards = {
-            { card = "Urth, Purifying Elemental", gold = 250 },
+            { card = "Urth, Purifying Elemental", gold_tier = 2 },
         },
         ai = { personality = "adaptive" },
         dialogue = {
@@ -299,15 +309,16 @@ return {
         max_battles = 1,
         decks = { "DeathbladeBeetle.txt", "Deathliger.txt" },
         rewards = {
-            { card = "Zagaan, Knight of Darkness", gold = 100 },
+            { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
         },
-        ai = { personality = "control" },
-        dialogue = {
-            greeting = "Darkness answers my call. Ready to duel?",
-            defeat = "The grave remembers that turn. I will not make the same mistake twice.",
-            victory = "Listen more closely. Your discarded cards were warning you.",
-			talk = ""
-        }
+		ai = { personality = "control" },
+		dialogue = {
+			greeting = "Foundry beetles can chew through slag or shields. Want to see which goes first?",
+			defeat = "You cracked my shell before I could harden the board. Nicely timed.",
+			victory = "You kept striking the armor instead of the joints.",
+			complete = "That was enough testing for one shift. The beetles need cooling down.",
+			talk = "I collect the little metal-eaters nesting beneath the ore carts. They are gentler than they look. Usually."
+		}
     },
 	{
         id = "noma",
@@ -318,15 +329,16 @@ return {
         max_battles = 1,
         decks = { "AstrocometDragon.txt", "Deathliger.txt" },
         rewards = {
-            { card = "Zagaan, Knight of Darkness", gold = 100 },
+            { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
         },
-        ai = { personality = "control" },
-        dialogue = {
-            greeting = "Darkness answers my call. Ready to duel?",
-            defeat = "The grave remembers that turn. I will not make the same mistake twice.",
-            victory = "Listen more closely. Your discarded cards were warning you.",
-			talk = ""
-        }
+		ai = { personality = "control" },
+		dialogue = {
+			greeting = "A comet over Cinderrail means sparks, noise, and a very short duel. Interested?",
+			defeat = "You stepped through the blast instead of away from it. Bold move.",
+			victory = "That hesitation gave my dragons all the sky they needed.",
+			complete = "The comet has passed. Catch me again after the next furnace flare.",
+			talk = "Night crews swear the smoke hides stars. I say the stars are hiding from our furnaces."
+		}
     },
 	{
         id = "bram",
@@ -337,15 +349,16 @@ return {
         max_battles = 1,
         decks = { "Fire Generic 1.txt", "Deathliger.txt" },
         rewards = {
-            { card = "Zagaan, Knight of Darkness", gold = 100 },
+            { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
         },
-        ai = { personality = "control" },
-        dialogue = {
-            greeting = "Darkness answers my call. Ready to duel?",
-            defeat = "The grave remembers that turn. I will not make the same mistake twice.",
-            victory = "Listen more closely. Your discarded cards were warning you.",
-			talk = ""
-        }
+		ai = { personality = "control" },
+		dialogue = {
+			greeting = "No gauges, no safety rails—just Fire creatures and nerve. Duel me.",
+			defeat = "You kept your cool better than half the furnace crew.",
+			victory = "Around here, anything left unattended eventually catches fire.",
+			complete = "Inspection finished. Your deck is cleared for the hot floor.",
+			talk = "I tune burner valves by ear. A bad hiss ruins steel; a good roar makes it sing."
+		}
     },
 	{
         id = "elia",
@@ -356,15 +369,16 @@ return {
         max_battles = 1,
         decks = { "Urth.txt" },
         rewards = {
-            { card = "Zagaan, Knight of Darkness", gold = 100 },
+            { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
         },
-        ai = { personality = "control" },
-        dialogue = {
-            greeting = "Darkness answers my call. Ready to duel?",
-            defeat = "The grave remembers that turn. I will not make the same mistake twice.",
-            victory = "Listen more closely. Your discarded cards were warning you.",
-			talk = ""
-        }
+		ai = { personality = "control" },
+		dialogue = {
+			greeting = "Even this soot cannot dim Urth's light. Let me test the clarity of your deck.",
+			defeat = "Your choices stayed clean when the field became clouded. Well done.",
+			victory = "Power without order scatters like sparks in a draft.",
+			complete = "The trial is concluded. Carry that discipline beyond the foundry.",
+			talk = "I maintain the lamps along the night gantries. Light is a safety rule here, not decoration."
+		}
     },
 	{
         id = "tomas",
@@ -375,15 +389,16 @@ return {
         max_battles = 1,
         decks = { "Hanusa.txt" },
         rewards = {
-            { card = "Zagaan, Knight of Darkness", gold = 100 },
+            { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
         },
-        ai = { personality = "control" },
-        dialogue = {
-            greeting = "Darkness answers my call. Ready to duel?",
-            defeat = "The grave remembers that turn. I will not make the same mistake twice.",
-            victory = "Listen more closely. Your discarded cards were warning you.",
-			talk = ""
-        }
+		ai = { personality = "control" },
+		dialogue = {
+			greeting = "Hanusa guards my shields like marble walls. Show me how you breach them.",
+			defeat = "You found the one seam I failed to reinforce.",
+			victory = "A fortress wins by making every attack cost more than it gains.",
+			complete = "One siege is sufficient. I have repairs to calculate.",
+			talk = "The foundry arches expand in the heat. I measure them before each shift so the roof stays where it belongs."
+		}
     },
 	{
         id = "senn",
@@ -394,15 +409,16 @@ return {
         max_battles = 1,
         decks = { "TrenchdiveShark.txt" },
         rewards = {
-            { card = "Zagaan, Knight of Darkness", gold = 100 },
+            { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
         },
-        ai = { personality = "control" },
-        dialogue = {
-            greeting = "Darkness answers my call. Ready to duel?",
-            defeat = "The grave remembers that turn. I will not make the same mistake twice.",
-            victory = "Listen more closely. Your discarded cards were warning you.",
-			talk = ""
-        }
+		ai = { personality = "control" },
+		dialogue = {
+			greeting = "The cooling trenches run deep. So does my deck. Care to dive in?",
+			defeat = "You surfaced before the pressure could crush your plan.",
+			victory = "You followed the ripples and missed what moved beneath them.",
+			complete = "The trench is calm again. I will save the next dive for another traveler.",
+			talk = "Water from the cooling channels leaves bright mineral scales on everything. The sharks seem to like them."
+		}
     },
 	{
         id = "kipp",
@@ -413,15 +429,16 @@ return {
         max_battles = 1,
         decks = { "Fire Generic 2.txt" },
         rewards = {
-            { card = "Zagaan, Knight of Darkness", gold = 100 },
+            { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
         },
-        ai = { personality = "control" },
-        dialogue = {
-            greeting = "Darkness answers my call. Ready to duel?",
-            defeat = "The grave remembers that turn. I will not make the same mistake twice.",
-            victory = "Listen more closely. Your discarded cards were warning you.",
-			talk = ""
-        }
+		ai = { personality = "control" },
+		dialogue = {
+			greeting = "I race sparks from the rail hammers. Your deck cannot be slower than a spark, can it?",
+			defeat = "Fast and accurate? That hardly seems fair.",
+			victory = "Too late! The best opening is the one that is already on fire.",
+			complete = "Race over. I have a new hammer record to chase.",
+			talk = "The foreman says sparks do not count as competitors. The foreman is wrong."
+		}
     },
 	{
         id = "ansa",
@@ -432,15 +449,16 @@ return {
         max_battles = 1,
         decks = { "Zagaan.txt" },
         rewards = {
-            { card = "Zagaan, Knight of Darkness", gold = 100 },
+            { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
         },
-        ai = { personality = "control" },
-        dialogue = {
-            greeting = "Darkness answers my call. Ready to duel?",
-            defeat = "The grave remembers that turn. I will not make the same mistake twice.",
-            victory = "Listen more closely. Your discarded cards were warning you.",
-			talk = ""
-        }
+		ai = { personality = "control" },
+		dialogue = {
+			greeting = "The furnace casts long shadows. Zagaan prefers to duel inside them.",
+			defeat = "You carried your own light into the dark. I underestimated that.",
+			victory = "Every bright plan leaves a shadow large enough to hide a counterattack.",
+			complete = "Zagaan has learned your silhouette. Another duel would not surprise it.",
+			talk = "I inspect the ash tunnels after shutdown. Things grow down there that never see the sun."
+		}
     },
 	{
         id = "holt",
@@ -451,14 +469,15 @@ return {
         max_battles = 1,
         decks = { "RoaringGreathorn.txt" },
         rewards = {
-            { card = "Zagaan, Knight of Darkness", gold = 100 },
+            { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
         },
-        ai = { personality = "control" },
-        dialogue = {
-            greeting = "Darkness answers my call. Ready to duel?",
-            defeat = "The grave remembers that turn. I will not make the same mistake twice.",
-            victory = "Listen more closely. Your discarded cards were warning you.",
-			talk = ""
+		ai = { personality = "control" },
+		dialogue = {
+			greeting = "Great-Horn can haul an ore wagon uphill. Can your deck stop that much momentum?",
+			defeat = "You redirected the charge instead of meeting it head-on. Smart.",
+			victory = "Once the heavy line starts moving, standing firm is not a strategy.",
+			complete = "The wagon is parked and the duel is done. Good work.",
+			talk = "I handle the ore teams. Machines are louder, but creatures know when a bridge is unsafe."
 		}
 	},
 
@@ -473,9 +492,9 @@ return {
 		max_battles = 3,
 		decks = { "NPC/Neris Quill.txt", "NPC/Neris Quill 2.txt", "NPC/Neris Quill 3.txt" },
 		rewards = {
-			{ card = "Crystal Paladin", gold = 150 },
-			{ card = "Crystal Paladin", gold = 150 },
-			{ card = "Hydrooze, the Mutant Emperor", gold = 150 },
+			{ card = "Crystal Paladin", gold_tier = 1 },
+			{ card = "Crystal Paladin", gold_tier = 1 },
+			{ card = "Hydrooze, the Mutant Emperor", gold_tier = 1 },
 		},
 		ai = { personality = "control" },
 		dialogue = {
@@ -495,7 +514,7 @@ return {
 		max_battles = 1,
 		decks = { "KingTsunami.txt" },
 		rewards = {
-			{ card = "Emeral", gold = 85 },
+			{ card = "Emeral", gold_tier = 1 },
 		},
 		ai = { personality = "tempo" },
 		dialogue = {
@@ -514,7 +533,7 @@ return {
 		max_battles = 1,
 		decks = { "More2/WD Dark Tide v3.txt" },
 		rewards = {
-			{ card = "Corile", gold = 90 },
+			{ card = "Corile", gold_tier = 1 },
 		},
 		ai = { personality = "control" },
 		dialogue = {
@@ -533,7 +552,7 @@ return {
 		max_battles = 1,
 		decks = { "KingDepthcon.txt" },
 		rewards = {
-			{ card = "Crystal Memory", gold = 90 },
+			{ card = "Crystal Memory", gold_tier = 1 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
@@ -555,7 +574,7 @@ return {
 		max_battles = 1,
 		decks = { "NPC/Oren.txt" },
 		rewards = {
-			{ card = "Cryptic Totem", gold = 160 },
+			{ card = "Cryptic Totem", gold_tier = 1 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
@@ -575,7 +594,7 @@ return {
 		max_battles = 1,
 		decks = { "Barkwhip.txt" },
 		rewards = {
-			{ card = "Barkwhip, the Smasher", gold = 95 },
+			{ card = "Barkwhip, the Smasher", gold_tier = 1 },
 		},
 		ai = { personality = "ramp" },
 		dialogue = {
@@ -594,7 +613,7 @@ return {
 		max_battles = 1,
 		decks = { "AnristVhal.txt" },
 		rewards = {
-			{ card = "Essence Elf", gold = 95 },
+			{ card = "Essence Elf", gold_tier = 1 },
 		},
 		ai = { personality = "sacrifice" },
 		dialogue = {
@@ -613,7 +632,7 @@ return {
 		max_battles = 1,
 		decks = { "StormWrangler.txt" },
 		rewards = {
-			{ card = "Dimension Gate", gold = 100 },
+			{ card = "Dimension Gate", gold_tier = 1 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
@@ -634,7 +653,7 @@ return {
 		max_battles = 1,
 		decks = { "Nature Generic 1.txt" },
 		rewards = {
-			{ card = "Bronze-Arm Tribe", gold = 200 },
+			{ card = "Bronze-Arm Tribe", gold_tier = 1 },
 		},
 		ai = { personality = "tempo" },
 		dialogue = {
@@ -653,7 +672,7 @@ return {
 		max_battles = 1,
 		decks = { "Water Generic 1.txt" },
 		rewards = {
-			{ card = "Teleportation", gold = 200 },
+			{ card = "Teleportation", gold_tier = 1 },
 		},
 		ai = { personality = "ramp" },
 		dialogue = {
@@ -672,14 +691,14 @@ return {
 		max_battles = 1,
 		decks = { "AstrocometDragon.txt" },
 		rewards = {
-			{ card = "Astrocomet Dragon", gold = 200 },
+			{ card = "Astrocomet Dragon", gold_tier = 1 },
 		},
 		ai = { personality = "aggressive" },
 		dialogue = {
-			greeting = "The freight crews abandoned this cut. Good. Now there is room for a proper duel.",
-			defeat = "You crossed the exposed ridge without flinching. That is worth remembering.",
-			victory = "Out here, hesitation gets buried under the next rockfall.",
-			complete = "The ridge has tested you four times. I will not pretend a fifth would reveal anything new."
+			greeting = "A true duelist turns a crossroads into a launchpad. Come on—let's fire up!",
+			defeat = "Now that was a finishing move! You earned the right of way.",
+			victory = "Your spirit sputtered just before your deck caught flame.",
+			complete = "Our match settled it. The next road is yours to choose."
 		}
 	},
 	{
@@ -691,14 +710,14 @@ return {
 		max_battles = 1,
 		decks = { "Official/2 - F Shobu Fire.txt" },
 		rewards = {
-			{ card = "Rothus, the Traveler", gold = 200 },
+			{ card = "Rothus, the Traveler", gold_tier = 1 },
 		},
 		ai = { personality = "aggressive" },
 		dialogue = {
-			greeting = "The freight crews abandoned this cut. Good. Now there is room for a proper duel.",
-			defeat = "You crossed the exposed ridge without flinching. That is worth remembering.",
-			victory = "Out here, hesitation gets buried under the next rockfall.",
-			complete = "The ridge has tested you four times. I will not pretend a fifth would reveal anything new."
+			greeting = "This crossroads leads everywhere a duelist could dream of going. First, let's fire up!",
+			defeat = "Awesome duel! You found a winning path I never saw coming.",
+			victory = "A duelist chooses a direction and charges with everything they have!",
+			complete = "We settled this match, but there is always another road and another rival."
 		}
 	},
 	{
@@ -710,14 +729,14 @@ return {
 		max_battles = 1,
 		decks = { "Dark Generic 2.txt" },
 		rewards = {
-			{ card = "Amber Piercer", gold = 200 },
+			{ card = "Amber Piercer", gold_tier = 1 },
 		},
 		ai = { personality = "aggressive" },
 		dialogue = {
-			greeting = "The freight crews abandoned this cut. Good. Now there is room for a proper duel.",
-			defeat = "You crossed the exposed ridge without flinching. That is worth remembering.",
-			victory = "Out here, hesitation gets buried under the next rockfall.",
-			complete = "The ridge has tested you four times. I will not pretend a fifth would reveal anything new."
+			greeting = "Travelers drop useful things when startled. Let me startle your hand empty.",
+			defeat = "Hmph. You held on to exactly the cards I needed gone.",
+			victory = "The marsh keeps what sinks, and so does my graveyard.",
+			complete = "I have taken all the measure of you that I need. Keep moving."
 		}
 	},
 	{
@@ -729,14 +748,14 @@ return {
 		max_battles = 1,
 		decks = { "Light Generic 1.txt" },
 		rewards = {
-			{ card = "Dia Nork, Moonlight Guardian", gold = 200 },
+			{ card = "Dia Nork, Moonlight Guardian", gold_tier = 1 },
 		},
 		ai = { personality = "aggressive" },
 		dialogue = {
-			greeting = "The freight crews abandoned this cut. Good. Now there is room for a proper duel.",
-			defeat = "You crossed the exposed ridge without flinching. That is worth remembering.",
-			victory = "Out here, hesitation gets buried under the next rockfall.",
-			complete = "The ridge has tested you four times. I will not pretend a fifth would reveal anything new."
+			greeting = "These roads need a guardian. Before I let you pass, show me whom your shields protect.",
+			defeat = "You broke my formation without abandoning your own. Passage granted.",
+			victory = "A rushed attack only proves why defenses are necessary.",
+			complete = "I have judged your formation once. My verdict stands."
 		}
 	},
 	{
@@ -748,14 +767,14 @@ return {
 		max_battles = 1,
 		decks = { "Nature Generic 1.txt" },
 		rewards = {
-			{ card = "Fear Fang", gold = 200 },
+			{ card = "Fear Fang", gold_tier = 1 },
 		},
 		ai = { personality = "aggressive" },
 		dialogue = {
-			greeting = "The freight crews abandoned this cut. Good. Now there is room for a proper duel.",
-			defeat = "You crossed the exposed ridge without flinching. That is worth remembering.",
-			victory = "Out here, hesitation gets buried under the next rockfall.",
-			complete = "The ridge has tested you four times. I will not pretend a fifth would reveal anything new."
+			greeting = "I have crossed deserts for rare creatures. A rare duel is harder to find—will you provide one?",
+			defeat = "Yes, that will be worth telling at the next caravan fire.",
+			victory = "A traveler survives by carrying answers for roads not yet seen.",
+			complete = "One memorable duel weighs less than ten dull ones. Safe travels."
 		}
 	},
 	{
@@ -767,14 +786,14 @@ return {
 		max_battles = 1,
 		decks = { "Nature Generic 2.txt" },
 		rewards = {
-			{ card = "Rumbling Terahorn", gold = 200 },
+			{ card = "Rumbling Terahorn", gold_tier = 1 },
 		},
 		ai = { personality = "aggressive" },
 		dialogue = {
-			greeting = "The freight crews abandoned this cut. Good. Now there is room for a proper duel.",
-			defeat = "You crossed the exposed ridge without flinching. That is worth remembering.",
-			victory = "Out here, hesitation gets buried under the next rockfall.",
-			complete = "The ridge has tested you four times. I will not pretend a fifth would reveal anything new."
+			greeting = "Hear that rumble? The earth already knows how this duel ends.",
+			defeat = "You moved like water around stone. Even Terahorn could not pin you down.",
+			victory = "The ground warned you before every charge. You should have listened.",
+			complete = "The stones have delivered their verdict. I will not ask twice."
 		}
 	},
 	{
@@ -786,14 +805,14 @@ return {
 		max_battles = 1,
 		decks = { "Official/2 - D Kokujo Darkness.txt" },
 		rewards = {
-			{ card = "Death Smoke", gold = 200 },
+			{ card = "Death Smoke", gold_tier = 1 },
 		},
 		ai = { personality = "aggressive" },
 		dialogue = {
-			greeting = "The freight crews abandoned this cut. Good. Now there is room for a proper duel.",
-			defeat = "You crossed the exposed ridge without flinching. That is worth remembering.",
-			victory = "Out here, hesitation gets buried under the next rockfall.",
-			complete = "The ridge has tested you four times. I will not pretend a fifth would reveal anything new."
+			greeting = "The crossroads is full of weak duelists choosing safe paths. Disappoint me and join them.",
+			defeat = "Do not celebrate. Darkness sharpens humiliation into vengeance.",
+			victory = "Your last useful card vanished before you understood the duel had begun.",
+			complete = "I have nothing to gain from crushing the same strategy again."
 		}
 	},
 	{
@@ -805,14 +824,14 @@ return {
 		max_battles = 1,
 		decks = { "Fire Generic 2.txt" },
 		rewards = {
-			{ card = "Armored Cannon Balbaro", gold = 200 },
+			{ card = "Armored Cannon Balbaro", gold_tier = 1 },
 		},
 		ai = { personality = "aggressive" },
 		dialogue = {
-			greeting = "The freight crews abandoned this cut. Good. Now there is room for a proper duel.",
-			defeat = "You crossed the exposed ridge without flinching. That is worth remembering.",
-			victory = "Out here, hesitation gets buried under the next rockfall.",
-			complete = "The ridge has tested you four times. I will not pretend a fifth would reveal anything new."
+			greeting = "My cannon can clear a blocked road and a shield line with the same shot. Stand clear—or duel.",
+			defeat = "Direct hit on my blind side. I cannot argue with that aim.",
+			victory = "When Balbaro fires, the only safe route is already behind you.",
+			complete = "The barrel needs cooling. Consider yourself dismissed."
 		}
 	},
 
@@ -826,14 +845,14 @@ return {
 		max_battles = 1,
 		decks = { "RoaringGreathorn.txt" },
 		rewards = {
-			{ card = "Roaring Great-Horn", gold = 200 },
+			{ card = "Roaring Great-Horn", gold_tier = 1 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
-			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
-			defeat = "That will do. You have the nerve to explore beyond the road stones.",
-			victory = "A campfire is no substitute for preparation.",
-			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+			greeting = "Great-Horn and I patrol the eastern loop. Prove you will not become our next rescue.",
+			defeat = "Steady footing, clear choices—you are ready for the broken trail.",
+			victory = "The road punishes travelers who build on a weak foundation.",
+			complete = "Inspection over. Wayfarer Camp will hear that you passed."
 		}
 	},
 	{
@@ -845,14 +864,14 @@ return {
 		max_battles = 1,
 		decks = { "Dark Generic 1.txt" },
 		rewards = {
-			{ card = "Ghost Touch", gold = 200 },
+			{ card = "Ghost Touch", gold_tier = 1 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
-			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
-			defeat = "That will do. You have the nerve to explore beyond the road stones.",
-			victory = "A campfire is no substitute for preparation.",
-			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+			greeting = "The old stones remember every traveler. Let us see what your discarded cards remember.",
+			defeat = "You left no regret behind for my darkness to use.",
+			victory = "A secret carried too long becomes weight. I simply made you drop it.",
+			complete = "Our shadows have crossed once. They need not cross again."
 		}
 	},
 	{
@@ -864,14 +883,14 @@ return {
 		max_battles = 1,
 		decks = { "TrenchdiveShark.txt" },
 		rewards = {
-			{ card = "Cetibols", gold = 200 },
+			{ card = "Cetibols", gold_tier = 1 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
-			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
-			defeat = "That will do. You have the nerve to explore beyond the road stones.",
-			victory = "A campfire is no substitute for preparation.",
-			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+			greeting = "Rain filled the wagon ruts overnight. Perfect conditions for a trench duel.",
+			defeat = "You kept your plan afloat through every undertow.",
+			victory = "Never step into dark water before learning what circles beneath it.",
+			complete = "The road is drying and our match is settled. I should move on."
 		}
 	},
 	{
@@ -883,14 +902,14 @@ return {
 		max_battles = 1,
 		decks = { "Fire Generic 1.txt" },
 		rewards = {
-			{ card = "Crimson Hammer", gold = 200 },
+			{ card = "Crimson Hammer", gold_tier = 1 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
-			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
-			defeat = "That will do. You have the nerve to explore beyond the road stones.",
-			victory = "A campfire is no substitute for preparation.",
-			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+			greeting = "I light the road beacons with dragon flame. Your duel can be tonight's kindling.",
+			defeat = "You smothered every spark before it reached the dry grass.",
+			victory = "On the Old Road, a small flame becomes an emergency very quickly.",
+			complete = "The beacon is lit and the challenge is answered. Travel while the light holds."
 		}
 	},
 	{
@@ -902,14 +921,14 @@ return {
 		max_battles = 1,
 		decks = { "Fire Generic 2.txt" },
 		rewards = {
-			{ card = "Volcanic Arrows", gold = 200 },
+			{ card = "Volcanic Arrows", gold_tier = 1 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
-			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
-			defeat = "That will do. You have the nerve to explore beyond the road stones.",
-			victory = "A campfire is no substitute for preparation.",
-			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+			greeting = "The warning signs say 'no open flame.' Fortunately, my deck cannot read.",
+			defeat = "You put out the blaze and barely singed your sleeves. Impressive.",
+			victory = "Volcanic arrows make excellent shortcuts through stubborn defenses.",
+			complete = "I promised the wardens only one duel here. Let us leave before they smell smoke."
 		}
 	},
 	{
@@ -921,14 +940,14 @@ return {
 		max_battles = 1,
 		decks = { "AquaSniper.txt" },
 		rewards = {
-			{ card = "Aqua Sniper", gold = 200 },
+			{ card = "Aqua Sniper", gold_tier = 1 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
-			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
-			defeat = "That will do. You have the nerve to explore beyond the road stones.",
-			victory = "A campfire is no substitute for preparation.",
-			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+			greeting = "Bandits hate Aqua Sniper. It returns their ambushes to sender. Want a demonstration?",
+			defeat = "You gave me no safe target to send away. Excellent formation.",
+			victory = "The road is easier when troublesome creatures take the long way around.",
+			complete = "Demonstration complete. If you meet bandits, remember the timing."
 		}
 	},
 	{
@@ -940,14 +959,14 @@ return {
 		max_battles = 1,
 		decks = { "Zagaan.txt" },
 		rewards = {
-			{ card = "Vampire Silphy", gold = 200 },
+			{ card = "Vampire Silphy", gold_tier = 1 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
-			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
-			defeat = "That will do. You have the nerve to explore beyond the road stones.",
-			victory = "A campfire is no substitute for preparation.",
-			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+			greeting = "These mile markers were grave markers first. Zagaan would like to introduce itself.",
+			defeat = "You showed proper respect to the dead—and none at all to my shields.",
+			victory = "Ancient roads belong to ancient powers after sunset.",
+			complete = "The stones have heard your name. I will not trouble them with a rematch."
 		}
 	},
 	{
@@ -959,14 +978,14 @@ return {
 		max_battles = 1,
 		decks = { "Dark Generic 2.txt" },
 		rewards = {
-			{ card = "Gigazoul", gold = 200 },
+			{ card = "Gigazoul", gold_tier = 1 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
-			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
-			defeat = "That will do. You have the nerve to explore beyond the road stones.",
-			victory = "A campfire is no substitute for preparation.",
-			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+			greeting = "I trade in rumors, but a duel tells me more than travelers ever do.",
+			defeat = "Interesting. Your deck kept its ugliest answer hidden until the perfect moment.",
+			victory = "I knew your plan before you finished pretending it was a secret.",
+			complete = "I have the information I wanted. The rest of your journey is your business."
 		}
 	},
 	{
@@ -978,14 +997,14 @@ return {
 		max_battles = 1,
 		decks = { "Nature Generic 2.txt" },
 		rewards = {
-			{ card = "Enchanted Soil", gold = 200 },
+			{ card = "Enchanted Soil", gold_tier = 1 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
-			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
-			defeat = "That will do. You have the nerve to explore beyond the road stones.",
-			victory = "A campfire is no substitute for preparation.",
-			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+			greeting = "The roadside soil is exhausted. Let us see whether your mana grows any better.",
+			defeat = "You cultivated exactly the board you needed—nothing wasted.",
+			victory = "Strong roots are planned long before the first creature appears.",
+			complete = "One harvest is enough to judge the field. Yours is promising."
 		}
 	},
 	{
@@ -997,14 +1016,14 @@ return {
 		max_battles = 1,
 		decks = { "TreeFolkNoEvo.txt" },
 		rewards = {
-			{ card = "Psyshroom", gold = 200 },
+			{ card = "Psyshroom", gold_tier = 1 },
 		},
 		ai = { personality = "adaptive" },
 		dialogue = {
-			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
-			defeat = "That will do. You have the nerve to explore beyond the road stones.",
-			victory = "A campfire is no substitute for preparation.",
-			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+			greeting = "Quiet—my Psyshrooms are predicting the duel. They say you should accept.",
+			defeat = "They predicted that too. Admittedly, only after the final attack.",
+			victory = "Never argue strategy with a mushroom that can see three turns ahead.",
+			complete = "The spores have settled on one outcome. A second duel would only confuse them."
 		}
 	},
 
@@ -1018,14 +1037,14 @@ return {
 		max_battles = 1,
 		decks = { "Deathliger.txt" },
 		rewards = {
-			{ card = "Terror Pit", gold = 200 },
+			{ card = "Terror Pit", gold_tier = 1 },
 		},
 		ai = { personality = "tempo" },
 		dialogue = {
-			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
-			defeat = "That will do. You have the nerve to explore beyond the road stones.",
-			victory = "A campfire is no substitute for preparation.",
-			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+			greeting = "Toll road! Pay in gold, cards, or one humiliating defeat. I recommend the gold.",
+			defeat = "Keep your coins. I suddenly have urgent business somewhere else.",
+			victory = "Terror Pit collects faster than any tollkeeper I know.",
+			complete = "You already beat my best trap. There is no profit in springing it twice."
 		}
 	},
 	{
@@ -1037,14 +1056,14 @@ return {
 		max_battles = 1,
 		decks = { "BraidClaw.txt" },
 		rewards = {
-			{ card = "Deadly Fighter Braid Claw", gold = 200 },
+			{ card = "Deadly Fighter Braid Claw", gold_tier = 1 },
 		},
 		ai = { personality = "rush" },
 		dialogue = {
-			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
-			defeat = "That will do. You have the nerve to explore beyond the road stones.",
-			victory = "A campfire is no substitute for preparation.",
-			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+			greeting = "Pollo strikes first, Braid Claw strikes second, and questions never get a turn!",
+			defeat = "You were supposed to fall over before I ran out of creatures!",
+			victory = "Fast hands fill slow travelers' graves—and my pockets.",
+			complete = "No rematch. Surprise only works before someone knows the trick."
 		}
 	},
 	{
@@ -1056,14 +1075,14 @@ return {
 		max_battles = 1,
 		decks = { "FireDark Generic.txt" },
 		rewards = {
-			{ card = "Blasto, Explosive Soldier", gold = 200 },
+			{ card = "Blasto, Explosive Soldier", gold_tier = 1 },
 		},
 		ai = { personality = "rush" },
 		dialogue = {
-			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
-			defeat = "That will do. You have the nerve to explore beyond the road stones.",
-			victory = "A campfire is no substitute for preparation.",
-			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+			greeting = "Fire above, darkness below, and nowhere left for you to run. Perfect ambush, eh?",
+			defeat = "You punched straight through the middle! Who plans for that?",
+			victory = "Blasto clears the road; I collect what the explosion leaves behind.",
+			complete = "The ambush site is spoiled now. Go on before I find another."
 		}
 	},
 	{
@@ -1075,14 +1094,14 @@ return {
 		max_battles = 1,
 		decks = { "HandRemoval.txt" },
 		rewards = {
-			{ card = "Tyrant Worm", gold = 200 },
+			{ card = "Tyrant Worm", gold_tier = 1 },
 		},
 		ai = { personality = "control" },
 		dialogue = {
-			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
-			defeat = "That will do. You have the nerve to explore beyond the road stones.",
-			victory = "A campfire is no substitute for preparation.",
-			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+			greeting = "Before I rob your pack, I will empty your hand. Professional pride demands an order.",
+			defeat = "You kept producing answers after I took them all. Infuriating.",
+			victory = "A traveler with no cards is simply luggage that walks itself.",
+			complete = "I know what you hide now. Trying the same theft twice would be amateur work."
 		}
 	},
 	{
@@ -1094,14 +1113,14 @@ return {
 		max_battles = 1,
 		decks = { "More2/WD Dark Tide.txt" },
 		rewards = {
-			{ card = "Corile", gold = 400 },
+			{ card = "Corile", gold_tier = 2 },
 		},
 		ai = { personality = "tempo" },
 		dialogue = {
-			greeting = "Wayfarer Camp is safe, but the eastern loop is not. Show me your deck before you take it.",
-			defeat = "That will do. You have the nerve to explore beyond the road stones.",
-			victory = "A campfire is no substitute for preparation.",
-			complete = "You have earned the road's trust four times over. Go find what waits beyond the marked trail."
+			greeting = "You embarrassed my crew. Banditlord Brocco will take the reward from your deck personally.",
+			defeat = "Impossible... I planned for every route except the one you made.",
+			victory = "That is why I am the Banditlord and they are roadside scenery.",
+			complete = "My crew has scattered and my reputation is bruised. Take the pass and be gone."
 		}
 	},
 }

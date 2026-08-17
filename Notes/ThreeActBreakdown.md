@@ -103,12 +103,12 @@ The high-level route is:
 After the Dawn Crest and the next Hollow-story scene, three frontier roads open at once:
 
 - **Cinderrail Foundry — Fire Seal and Forge Crest:** Brassa Vale discovers that its arena furnaces are harvesting resonance from public duels.
-- **Glasswater Port — Water Seal and Tidal Crest:** Neris Quill confronts a prediction system built from stolen match memories.
+- **Glasswater Port — Tidal Crest and Water investigation:** Neris Quill confronts a prediction system built from stolen match memories and recovers evidence that its output is corrupting Tidevault upstream.
 - **Rootmaze Commons — Nature Seal and Verdant Crest:** Oren Canopy protects creatures that no longer recognize their bonded duelists.
 
 Each region contains a town hub, local trainers, a shop or specialist, environmental shortcuts, and both a Circuit objective and a Hollow-story problem. Completing one region should provide useful information or cards for the others without making any particular order canonical.
 
-Three side roads lead to **Lilyreed Village**, **Honeyreach**, and **Clayhearth**. These optional towns offer self-contained local quests, specialized shops, and repeatable duelists. They award no Crests, repair no Seals, and are never counted by a story gate.
+Four side roads lead to **Lilyreed Village**, **Honeyreach**, **Stonechant Village**, and **Clayhearth**. These optional towns offer self-contained local quests, specialized shops, and repeatable duelists. Stonechant specializes in Mystery Totem decks and shaman-listener traditions. They award no Crests, repair no Seals, and are never counted by a story gate.
 
 ### The Resonance Seals
 
@@ -118,7 +118,7 @@ The player repairs a seal by resolving its local conflict. Some Crest matches oc
 
 ### Midpoint Hollow escalation
 
-After the player holds the Forge, Tidal, and Verdant Crests, the three repaired seals create a projection of Rowan inside the Curator's archive. Rowan refuses rescue and insists that the remaining seals must be restored, making his behavior look like a betrayal.
+After the player holds the Forge, Tidal, and Verdant Crests, the repaired Fire and Nature Seals combine with Glasswater's recovered Water relay trace to create a projection of Rowan inside the Curator's archive. Rowan refuses rescue and insists that the remaining seals must be restored, making his behavior look like a betrayal. The unstable trace also proves that the true Water Seal is still compromised at Tidevault.
 
 A hidden message in the player's starter deck later reveals that Rowan is delaying the Hollow Deck from within. Before the player can follow him, the Chief Collector corrupts the Confluence relay and closes every road into the inner territories.
 
@@ -138,6 +138,8 @@ Beyond Dragon Keep, three more Crest regions open simultaneously:
 
 **Sunspire Cloister** also becomes available during this tier as a Hollow-only Light Seal region without a Crest match. Its guardians have become rigid and accusatory after their cards display false memories. The player may interleave Sunspire with the three Crest routes, but must restore its seal before entering the Hollow Archive.
 
+**Tidevault** opens during the same tier as a second Hollow-only sanctuary town. It contains the Water Seal but no Crest. The player brings Glasswater's consent ledger through Tideglass Aqueduct, restores physical choice at the basin locks, and removes counterfeit archive records without destroying legitimate voluntary knowledge. A second route to Stormbreak keeps Tidevault connected to the outer loop.
+
 The Tempest, Ashen, and Mirror Crests may be earned in any order. Each route contributes a different ally and entrance option for the finale, so the player's chosen order changes dialogue and immediate rewards without changing which route is valid.
 
 The late side roads lead to **Cloudrest**, **Lanternfen**, and **Ribbonfair**. Like the first-tier towns, they remain optional during both the Hollow crisis and post-game. Visiting them can broaden the player's collection or unlock cosmetics, but never changes whether the Archive or Crown Gate can be entered.
@@ -145,7 +147,7 @@ The late side roads lead to **Cloudrest**, **Lanternfen**, and **Ribbonfair**. L
 ### Returning NPC roles
 
 - Aurelia assists at Sunspire and learns that mercy without listening can become control.
-- Marin and Garran investigate the copied predictions at Glasswater from opposing philosophical angles.
+- Marin and Garran carry Glasswater's recovered evidence to Tidevault and confront the corrupted Water Seal from opposing philosophical angles.
 - Flint helps break the forced-duel machinery at Cinderrail.
 - Rook and Briar guide displaced creatures through Rootmaze.
 - Mira and Nyx enter Gloam Quarry, where the Curator's promise is most tempting.
@@ -174,7 +176,7 @@ After the player earns Crests 6–8 and repairs all five seals, the Chief Collec
 - Persistent bidirectional roads linking both availability tiers through Emberglen and Dragon Keep
 - Emberglen as the reusable central hub for Mercer, deck preparation, and returning story characters
 - Two tiers of regions that can be completed in any order
-- Six optional side towns with no Crest, Seal, or required Hollow objective
+- Seven optional side towns with no Crest, Seal, or required Hollow objective
 - Difficulty and dialogue scaling based on Crest count rather than route order
 - Regional card pools and shops
 - Optional quests that affect later assistance

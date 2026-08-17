@@ -12,6 +12,9 @@
 
 namespace
 {
+	const int NPC_GOLD_TIER_COUNT = 5;
+	int gNpcGoldTierValues[NPC_GOLD_TIER_COUNT] = { 0, 0, 0, 0, 0 };
+
 	std::string luaStringField(lua_State* state, int table, const char* key,
 		const std::string& fallback = "")
 	{
@@ -38,6 +41,33 @@ namespace
 		bool value = lua_isboolean(state, -1) ? lua_toboolean(state, -1) != 0 : fallback;
 		lua_pop(state, 1);
 		return value;
+	}
+
+	bool readGoldTierValues(lua_State* state, int values[NPC_GOLD_TIER_COUNT],
+		std::string& error)
+	{
+		lua_getglobal(state, "NpcGoldTiers");
+		if (!lua_istable(state, -1))
+		{
+			error = "NpcGoldTiers must be a global table with T1 through T5 values";
+			lua_pop(state, 1);
+			return false;
+		}
+		for (int tier = 1; tier <= NPC_GOLD_TIER_COUNT; ++tier)
+		{
+			const std::string key = "T" + std::to_string(tier);
+			lua_getfield(state, -1, key.c_str());
+			if (!lua_isinteger(state, -1) || lua_tointeger(state, -1) <= 0)
+			{
+				error = "NpcGoldTiers." + key + " must be a positive integer";
+				lua_pop(state, 2);
+				return false;
+			}
+			values[tier - 1] = (int)lua_tointeger(state, -1);
+			lua_pop(state, 1);
+		}
+		lua_pop(state, 1);
+		return true;
 	}
 
 	bool parseKind(const std::string& value, NpcKind& result)
@@ -156,6 +186,12 @@ namespace
 		}
 		lua_pop(state, 1);
 	}
+}
+
+int npcGoldRewardValue(int tier)
+{
+	return tier >= 1 && tier <= NPC_GOLD_TIER_COUNT ?
+		gNpcGoldTierValues[tier - 1] : 0;
 }
 
 Npc::Npc(int xValue, int yValue, const std::string& npcName,
@@ -365,6 +401,12 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 		lua_close(state);
 		return false;
 	}
+	int goldTierValues[NPC_GOLD_TIER_COUNT] = { 0, 0, 0, 0, 0 };
+	if (!readGoldTierValues(state, goldTierValues, error))
+	{
+		lua_close(state);
+		return false;
+	}
 
 	std::set<std::string> ids;
 	std::set<std::string> names;
@@ -521,10 +563,11 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 				}
 				NpcReward reward = {
 					luaStringField(state, -1, "card"),
-					luaIntegerField(state, -1, "gold", 0)
+					luaIntegerField(state, -1, "gold_tier", 0)
 				};
 				lua_pop(state, 1);
-				if (reward.card.empty() || getCardIdFromName(reward.card) < 0 || reward.gold < 0)
+				if (reward.card.empty() || getCardIdFromName(reward.card) < 0 ||
+					reward.goldTier < 1 || reward.goldTier > NPC_GOLD_TIER_COUNT)
 				{
 					error = "NPC '" + id + "' has an invalid rewards entry at index " +
 						std::to_string(rewardIndex);
@@ -567,5 +610,7 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 		error = "metadata file contains no NPCs";
 		return false;
 	}
+	for (int tier = 0; tier < NPC_GOLD_TIER_COUNT; ++tier)
+		gNpcGoldTierValues[tier] = goldTierValues[tier];
 	return true;
 }

@@ -11,7 +11,7 @@ These settlements exist to make the world feel inhabited beyond the Fivefold Cir
 - Town dialogue may react to major world events, but resolving the Hollow crisis never depends on these reactions.
 - During Act III, every town keeps its essential services available. Blank-zone effects can change presentation and dialogue without removing player conveniences.
 
-The first three towns become reachable with the first open-world tier. The final three become reachable after Dragon Keep's Confluence gate opens.
+The first four towns become reachable with the first open-world tier. The final three become reachable after Dragon Keep's Confluence gate opens.
 
 ## First-tier towns
 
@@ -68,6 +68,24 @@ A cosmetic workshop can recolor deck boxes, card backs, and future player-room d
 - **Pella Ash, kiln keeper:** Defensive Fire/Light control and the conservative kiln trial.
 - **Rusk, apprentice glazer:** Fast Fire Humans protected by cheap Light blockers.
 - **Dovan Clay, token painter:** Sells cosmetics and uses a deliberately strange five-color casual deck.
+
+### Stonechant Village
+
+**Side road:** West of Rootmaze Commons
+
+**Visual identity:** Resonant standing stones, moss-roofed workshops, sounding slats, and Mystery Totem clearings
+
+**Common decks:** Nature Totem cores with mixed-civilization support chosen for a specific relationship
+
+Stonechant is a village of shaman-listeners who compare card, creature, weather,
+and landscape rhythms. Mystery Totems live beside the residents by choice. Its
+optional story concerns perfect but lifeless counterfeit rhythms, while its
+specialist shop and duelists give the player a complete Totem deck-building
+path.
+
+Stonechant has no Crest or Seal and never gates Rootmaze progression. Its full
+history, layout, deck culture, and implementation plan are in
+`Notes/Stonechant Village.md`.
 
 ## Second-tier towns
 

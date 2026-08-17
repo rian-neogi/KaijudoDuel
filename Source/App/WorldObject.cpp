@@ -3,6 +3,8 @@
 #include "Game/Deck.h"
 #include "LuaInclude.h"
 
+#include <cctype>
+#include <fstream>
 #include <set>
 
 namespace
@@ -15,6 +17,37 @@ namespace
 			lua_tostring(state, -1) : "";
 		lua_pop(state, 1);
 		return value;
+	}
+
+	bool parseAppearance(const std::string& value,
+		std::string& spriteSheet, int& spriteIndex)
+	{
+		const size_t separator = value.find_last_of('-');
+		if (separator == std::string::npos || separator == 0 ||
+			separator + 1 >= value.size()) return false;
+		const std::string sheetName = value.substr(0, separator);
+		for (size_t i = 0; i < sheetName.size(); ++i)
+		{
+			const unsigned char character = (unsigned char)sheetName[i];
+			if (!std::isalnum(character) && character != '_' &&
+				character != '!' && character != '$') return false;
+		}
+		int luaIndex = 0;
+		for (size_t i = separator + 1; i < value.size(); ++i)
+		{
+			const unsigned char character = (unsigned char)value[i];
+			if (!std::isdigit(character)) return false;
+			luaIndex = luaIndex * 10 + (character - '0');
+			if (luaIndex > 8) return false;
+		}
+		const bool singleCharacter = sheetName.find('$') != std::string::npos;
+		if (luaIndex < 1 || luaIndex > (singleCharacter ? 1 : 8)) return false;
+
+		spriteSheet = "Resources/Graphics/Characters/" + sheetName + ".png";
+		std::ifstream file(spriteSheet.c_str(), std::ios::binary);
+		if (!file.good()) return false;
+		spriteIndex = luaIndex - 1;
+		return true;
 	}
 }
 
@@ -61,14 +94,40 @@ bool loadWorldObjectsFromLua(const std::string& path,
 		object.name = stringField(state, -1, "name");
 		object.text = stringField(state, -1, "text");
 		object.openedText = stringField(state, -1, "opened_text");
-		object.rewardDeckName = stringField(state, -1, "deck_name");
+		object.spriteIndex = -1;
 		object.x = object.y = 0;
 		const std::string kind = stringField(state, -1, "kind");
 		if (kind == "signpost") object.kind = WorldObjectKind::Signpost;
 		else if (kind == "deck_chest")
 		{
 			object.kind = WorldObjectKind::DeckChest;
+			const std::string appearance = stringField(state, -1, "appearance");
+			if (!parseAppearance(appearance, object.spriteSheet, object.spriteIndex))
+			{
+				error = "deck chest '" + object.id + "' has invalid appearance '" +
+					appearance + "'";
+				lua_close(state);
+				return false;
+			}
+
+			lua_getfield(state, -1, "reward");
+			if (!lua_istable(state, -1))
+			{
+				error = "deck chest '" + object.id + "' needs a reward table";
+				lua_close(state);
+				return false;
+			}
+			const std::string rewardKind = stringField(state, -1, "kind");
 			const std::string configuredDeck = stringField(state, -1, "deck");
+			object.rewardDeckName = stringField(state, -1, "name");
+			lua_pop(state, 1);
+			if (rewardKind != "deck")
+			{
+				error = "deck chest '" + object.id +
+					"' has unsupported reward kind '" + rewardKind + "'";
+				lua_close(state);
+				return false;
+			}
 			if (!resolveDeckPath(configuredDeck, object.rewardDeck))
 			{
 				error = "deck chest '" + object.id +

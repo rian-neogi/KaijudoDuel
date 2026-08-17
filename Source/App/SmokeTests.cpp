@@ -194,6 +194,11 @@ int Application::runSmokeTests()
 			std::cerr << "Background MCTS smoke test failed." << std::endl;
 			return 2;
 		}
+		if (!exerciseNpcRewardsSmoke())
+		{
+			std::cerr << "NPC reward-tier smoke test failed." << std::endl;
+			return 2;
+		}
 		if (!exerciseBundledDecksSmoke())
 		{
 			std::cerr << "Bundled deck smoke test failed." << std::endl;
@@ -2801,6 +2806,24 @@ bool Application::exerciseBundledDecksSmoke()
 	return valid;
 }
 
+bool Application::exerciseNpcRewardsSmoke()
+{
+	const int expectedGoldTiers[] = { 200, 400, 800, 1500, 3000 };
+	for (int tier = 1; tier <= 5; ++tier)
+		if (npcGoldRewardValue(tier) != expectedGoldTiers[tier - 1]) return false;
+	if (npcGoldRewardValue(0) != 0 || npcGoldRewardValue(6) != 0) return false;
+	for (size_t npcIndex = 0; npcIndex < mNpcs.size(); ++npcIndex)
+	{
+		const Npc& npc = mNpcs[npcIndex];
+		for (size_t rewardIndex = 0; rewardIndex < npc.rewards.size(); ++rewardIndex)
+		{
+			const int tier = npc.rewards[rewardIndex].goldTier;
+			if (tier < 1 || tier > 5 || npcGoldRewardValue(tier) <= 0) return false;
+		}
+	}
+	return true;
+}
+
 bool Application::exerciseMultiCivilizationSmoke()
 {
 	std::lock_guard<std::mutex> lock(gMutex);
@@ -3801,6 +3824,13 @@ bool Application::exerciseOverworldMovementSmoke()
 		!SpriteSheetRenderer::characterSourceRect(
 			"Resources/Graphics/Characters/Actor1.png", 8, 0, 1, false, 0,
 			384, 256, spriteFrame);
+	spriteSheetsReady = spriteSheetsReady && SpriteSheetRenderer::characterSourceRect(
+		"Resources/Graphics/Characters/!Chest.png", 0, 0, 1, false, 0,
+		384, 256, spriteFrame) && spriteFrame.x == 32 && spriteFrame.y == 0 &&
+		spriteFrame.w == 32 && spriteFrame.h == 32;
+	spriteSheetsReady = spriteSheetsReady && SpriteSheetRenderer::characterSourceRect(
+		"Resources/Graphics/Characters/!Chest.png", 0, 0, -1, false, 0,
+		384, 256, spriteFrame) && spriteFrame.x == 32 && spriteFrame.y == 96;
 	SDL_Rect atlasTile;
 	spriteSheetsReady = spriteSheetsReady && WorldTileRenderer::atlasSourceRect(
 		16, 8, 32, 256, 512, atlasTile) && atlasTile.x == 0 && atlasTile.y == 64 &&
@@ -4545,7 +4575,9 @@ bool Application::exerciseOverworldMovementSmoke()
 		const WorldRegion* region = worldRegionAt(object.mapId, object.x, object.y);
 		deckChestReady = object.id == "old_road_wayfarer_chest" && region != NULL &&
 			region->id == "old_road" && !object.rewardDeck.empty() &&
-			object.rewardDeckName == "Wayfarer's Cache" && !object.openedText.empty();
+			object.rewardDeckName == "Wayfarer's Cache" && !object.openedText.empty() &&
+			object.spriteSheet == "Resources/Graphics/Characters/!Chest.png" &&
+			object.spriteIndex == 0;
 		if (deckChestReady) break;
 	}
 	seamlessWorldReady = seamlessWorldReady && deckChestReady;
@@ -4658,7 +4690,9 @@ bool Application::exerciseStorySmoke()
 			const size_t rewardIndex = std::min((size_t)battle, npc.rewards.size() - 1);
 			if (npc.battleDeck() != npc.decks[deckIndex] || npc.battleDeck().empty() ||
 				reward.card != npc.rewards[rewardIndex].card ||
-				reward.gold != npc.rewards[rewardIndex].gold)
+				reward.goldTier != npc.rewards[rewardIndex].goldTier ||
+				reward.goldTier < 1 || reward.goldTier > 5 ||
+				npcGoldRewardValue(reward.goldTier) <= 0)
 			{
 				npc.wins = savedNpcWins;
 				return false;

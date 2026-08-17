@@ -40,10 +40,13 @@ Walking near a named landmark records it permanently in the player's route disco
 | Lilyreed Ferry | Glasswater Port ↔ Lilyreed Village | First optional tier | Planned |
 | Rootrail Greenway | Rootmaze Commons ↔ Cinderrail Foundry | First open-world tier | Planned |
 | Honeyroot Trail | Rootmaze Commons ↔ Honeyreach | First optional tier | Planned |
+| Whisperroot Trail | Rootmaze Commons ↔ Stonechant Village | First optional tier | Planned |
 | The Lowlands | Cinderrail Foundry ↔ Gloam Quarry | After Confluence relay | Planned |
 | Offshoot Path | Cinderrail Foundry ↔ Clayhearth | First optional tier | Planned |
 | Western Crossroads | Dragon Keep ↔ Mirror Arena ↔ Ribbonfair | After Confluence relay | Planned |
 | Courier Rise | Dragon Keep ↔ Stormbreak Plateau | After Confluence relay | Planned |
+| Tideglass Aqueduct | Glasswater Port ↔ Tidevault | After Confluence relay | Planned |
+| Rainstep Traverse | Tidevault ↔ Stormbreak Plateau | After Confluence relay | Planned |
 | Eastern Crossroads | Dragon Keep ↔ Mirror Arena ↔ Sunspire Cloister | After Confluence relay | Planned |
 | Archive Approach | Dragon Keep ↔ Hollow Archive | Hollow finale | Planned |
 | Prism Pass | Mirror Arena ↔ Stormbreak Plateau | Second open-world tier | Planned |
@@ -137,6 +140,18 @@ The trail begins beneath flowering roots and becomes a warm orchard lane lined w
 
 Two looping footpaths can provide gathering spots and optional duels, but both must return to the main trail before reaching either portal.
 
+### Whisperroot Trail
+
+**Connects:** Rootmaze Commons' western listening path ↔ Stonechant Village's south trail gate
+
+**Availability:** First optional tier
+
+**Status:** Planned
+
+Whisperroot Trail follows a line of resonant stones through old woodland. Rootmaze's movable green signs gradually give way to Stonechant's gray spiral markers and hanging sounding slats. Wind, insects, and distant Totem calls create audible landmarks without requiring the player to solve a sound puzzle merely to travel.
+
+The route should include a rain shelter, a complete Mystery Totem clearing, and two side loops where players can find Totem support cards or challenge listener duelists. The marked trail remains unambiguous and bidirectional. Stonechant is an optional destination, so neither this route nor its encounters may gate the Verdant Crest or Nature Seal.
+
 ### Offshoot Path
 
 **Connects:** Cinderrail Foundry's eastern courier road ↔ Clayhearth's western kiln gate  
@@ -170,6 +185,30 @@ The Dragon Keep and Mirror branches are disciplined, heavily traveled roads with
 Courier Rise climbs from mixed caravan country into exposed highland. Relay posts, wind flags, rope handrails, and stone shelters become more frequent with elevation.
 
 The route should use switchbacks rather than narrow cliff ledges. Weather may alter flags and background visibility, but the path and portal positions remain stable. A midway signal hut provides shelter and optional courier dialogue.
+
+### Tideglass Aqueduct
+
+**Connects:** Glasswater Port's sealed headwater gate ↔ Tidevault's southern pressure gate
+
+**Availability:** Opens after the Confluence relay
+
+**Status:** Planned
+
+The aqueduct carries both a covered water channel and a maintenance road. It climbs from Glasswater's canal masonry into slate headwater country through inspection houses, spill basins, and old relay arches. Early in the campaign, players can see the sealed Glasswater entrance and read Tidevault notices, but the pressure checkpoint prevents crossing.
+
+Once the outer network opens, the full route becomes permanently bidirectional. Optional lower galleries hold Water-focused trainers and records showing how Glasswater's prediction data traveled upstream. The main road never requires changing water levels, and no moving gate may strand the player between the two towns.
+
+### Rainstep Traverse
+
+**Connects:** Tidevault's upper spillway gate ↔ Stormbreak Plateau's western rain shelf
+
+**Availability:** Opens after the Confluence relay
+
+**Status:** Planned
+
+Rainstep Traverse follows the highland streams that feed Tidevault. Broad wet steps, wind shelters, overflow bridges, and blue courier flags blend the Water sanctuary into Stormbreak's exposed plateau. It creates a second outer-tier loop and lets the player reach Tidevault without always returning through Glasswater.
+
+The route may feature changing rain and runoff, but weather remains cosmetic and every bridge remains usable. Side paths lead to a waterfall overlook, an abandoned gauge station, and a sheltered duelist camp. The main trail stays wide enough for route trainers to approach without blocking narrow ledges.
 
 ### Eastern Crossroads
 
@@ -260,5 +299,6 @@ The route should contain competitor lodges, registration milestones, formal gard
 3. **Fivefold Highway** to establish Dragon Keep and the midpoint gate.
 4. **Ribbonway Crossroads**, **Sunmirror Causeway**, and **Courier Rise** to open the outer tier.
 5. **Prism Pass** to connect the Mirror and Stormbreak regions directly.
-6. Optional branches to Lilyreed Village, Honeyreach, Clayhearth, Cloudrest, Lanternfen, and Ribbonfair.
-7. **Archive Approach** and **Crownway** when their destination maps and story gates are ready.
+6. **Tideglass Aqueduct** and **Rainstep Traverse** with Tidevault's Water Seal story.
+7. Optional branches to Lilyreed Village, Honeyreach, Stonechant Village, Clayhearth, Cloudrest, Lanternfen, and Ribbonfair.
+8. **Archive Approach** and **Crownway** when their destination maps and story gates are ready.

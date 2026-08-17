@@ -16,8 +16,9 @@ restored signal network and Natasha Gale's knowledge of the stolen routes.
 
 Courier Rise connects the southwestern shelf to Dragon Keep. Prism Pass
 connects the western shelf directly to Mirror Arena, and Springline Trail climbs
-from the upper settlement to the optional town of Cloudrest Peak. There is no
-direct road from Stormbreak to Gloam Quarry.
+from the upper settlement to the optional town of Cloudrest Peak. Rainstep
+Traverse descends from the western rain shelf to Tidevault and its Water Seal.
+There is no direct road from Stormbreak to Gloam Quarry.
 
 **Implementation status:** Planned. The suggested surface footprint is roughly
 96 by 64 tiles within the future seamless overworld. Major shelter interiors,
@@ -97,7 +98,7 @@ The camp contains:
 - Benches enclosed by waist-high windbreaks
 - A repair board listing damaged bridges, late couriers, and supply requests
 - Emergency lockers containing rope, blankets, lamps, and preserved food
-- Direction stones for Courier Rise, Prism Pass, and Springline Trail
+- Direction stones for Courier Rise, Prism Pass, Rainstep Traverse, and Springline Trail
 
 The player arrives here shortly after entering from Courier Rise. Natasha gives
 the tower briefing beside the relief map and allows the towers to be attempted
@@ -516,6 +517,16 @@ steam vents, and brass bells distinguish it from the exposed tower paths.
 Cloudrest is optional. Its road never lies between Breakwind Camp and Beacon
 Tower, Natasha's arena, or any part of the Hollow investigation.
 
+### Rain Shelf to Tidevault
+
+The northwestern rain shelf descends through Rainstep Traverse to Tidevault's
+Upper Spillway Ward. Blue water gauges gradually join Stormbreak's teal courier
+flags, showing how plateau runoff feeds the headwater basin.
+
+This route opens with the outer network and remains bidirectional. Weather may
+change its spray and runoff, but cannot close the main bridges or prevent the
+player from reaching the Water Seal town.
+
 ## Suggested NPC placement
 
 - **Natasha Gale:** At the Breakwind Camp map, then the Galehouse and Tempest
@@ -552,7 +563,7 @@ upper tower rim during dangerous story states.
 - Upper wind bridges sit in inconsistent, partially folded positions
 - Injured or delayed couriers gather at the clinic and inn
 - Natasha remains at Breakwind Camp and allows the towers in any order
-- Courier Rise, Prism Pass, and Springline Trail remain physically accessible
+- Courier Rise, Prism Pass, Rainstep Traverse, and Springline Trail remain physically accessible
   according to their ordinary progression gates
 
 ### After each tower restoration
@@ -603,7 +614,7 @@ parallel.
 - Supply crates from restored regions accumulate in Pack Court
 - Named allies pass through the Galehouse on their way toward the finale
 - The three tower flags carry the player's route order as small colored bands
-- Stormbreak remains fully explorable and all three external roads stay open
+- Stormbreak remains fully explorable and all four external roads stay open
 - Natasha carries match results and urgent messages rather than abandoning her
   town to wait at the final gate
 
@@ -617,7 +628,7 @@ parallel.
   remove secondary edges from that graph.
 - Represent bridge configurations with explicit world-story state. Save the
   active configuration and normalize invalid or obsolete values on load.
-- Courier Rise, Prism Pass, and Springline Trail connect through adjacent
+- Courier Rise, Prism Pass, Rainstep Traverse, and Springline Trail connect through adjacent
   walkable boundary tiles on the seamless overworld, not exterior portals.
   Their approaches remain fixed and bidirectional when bridges change.
 - Use distinct semantic tile IDs for highland ground, fixed stone path, cliff,

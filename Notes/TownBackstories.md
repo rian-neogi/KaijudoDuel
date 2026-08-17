@@ -32,7 +32,8 @@ The Fading attacks Emberglen first because its balanced festival resonance can r
 
 ## Glasswater Port
 
-**Map role:** Western trade port, Water Seal sanctuary, and Tidal Crest region  
+**Map role:** Western trade port, Tidal Crest region, and first stage of the Water investigation
+
 **Visual identity:** Blue-green canals, glass-roofed warehouses, tide gauges, narrow bridges, and ships tied beside administrative offices  
 **Common decks:** Water/Darkness information control, hand filtering, discard, bounce, and patient removal
 
@@ -44,7 +45,7 @@ Glasswater stands where a clear underground river reaches a broad navigable lake
 
 The settlement became wealthy by verifying cargo rather than merely moving it. Glasswater clerks compare manifests, tide records, card registrations, and insurance claims. A generation ago, a contraband scandal nearly destroyed trust in the port authority; Neris Quill earned his reputation by finding the false entries without accusing innocent crews.
 
-The prediction engine began as a public safety project. Duelists voluntarily contributed match records to help harbor patrols model risky decisions under incomplete information. Later administrators expanded it beyond its original consent rules, creating the weakness the Curator exploits.
+The prediction engine began as a public safety project. Duelists voluntarily contributed match records to help harbor patrols model risky decisions under incomplete information. Later administrators expanded it beyond its original consent rules, creating the weakness the Curator exploits. Its public current readings come from a relay connected to the actual Water Seal at Tidevault; the relay is not itself a Resonance Seal.
 
 ### Daily life and duel culture
 
@@ -54,7 +55,7 @@ Dockside decks favor Water draw and bounce, while investigators add Darkness dis
 
 ### Campaign role
 
-The stolen-memory prediction system divides the town between people who value its accuracy and people whose private matches were taken. Restoring the Water Seal requires rebuilding consent and trust, not simply smashing a useful machine. Afterward, the port reopens western trade and carries Lilyreed goods toward Mercer's shop.
+The stolen-memory prediction system divides the town between people who value its accuracy and people whose private matches were taken. The player closes the unauthorized system, preserves its voluntary records, and discovers that corrupted outputs have been transmitted upstream to Tidevault. Glasswater resolves the immediate consent crisis and awards the Tidal Crest, but the Water Seal cannot be restored until the late-game Tidevault route opens.
 
 ## Rootmaze Commons
 
@@ -81,6 +82,30 @@ Nature mana growth and Beast Folk are common, while Water cards represent adapta
 ### Campaign role
 
 The false memories frighten creature echoes into reshaping paths faster than residents can respond. Repairing Rootmaze means reuniting creatures with their bonded duelists and accepting that the kindest route may not be the shortest. Once stabilized, its living roads create southern loops back to Emberglen, Cinderrail, and Honeyreach.
+
+## Stonechant Village
+
+**Map role:** Optional shaman village and Mystery Totem deck center
+
+**Visual identity:** Resonant standing stones, moss-roofed workshops, sounding slats, water bowls, and Totem clearings beneath old trees
+
+**Common decks:** Nature Mystery Totems supported by Dragon, tapping, graveyard, mana, or guardian packages from other civilizations
+
+The detailed village, shop, Totem grove, and quest plan is in `Notes/Stonechant Village.md`.
+
+### Founding and history
+
+Stonechant formed around stones that answer nearby card and creature echoes with stable rhythms. Its shamans are trained listeners, not unquestioned prophets: they compare interpretations publicly and are expected to revise a claim when creatures or other listeners contradict it. Mystery Totems gather there by choice and are treated as neighbors rather than idols or tools.
+
+Oren Canopy studied in the village before becoming Rootmaze's Crest Holder. The relationship explains Oren's Totem deck without making Stonechant another Crest location.
+
+### Daily life and duel culture
+
+Local duelists declare which relationship they are testing before a match. Whispering Totem supports repetition, Techno Totem supports tactical tapping, and Dracodance or Rollicking Totem supports Dragon decks. This produces varied mixed-civilization lists instead of a town full of identical Nature ramp decks.
+
+### Campaign role
+
+Stonechant offers an optional quest about perfect but lifeless counterfeit rhythms. Resolving it expands the player's Totem collection and can recruit a listener for Act III, but awards no Crest, repairs no Seal, and never gates the Archive.
 
 ## Cinderrail Foundry
 
@@ -141,6 +166,28 @@ The Fivefold Court is both civic square and Crest venue. The relay mast above it
 
 Dragon Keep is the persistent bridge between availability tiers, not a one-way departure point. The Chief Collector corrupts old relay paths and temporarily blocks the outer checkpoints. Kestrel and the player restore them, after which the Keep becomes the easiest route back to Emberglen and outward toward the late regions.
 
+## Tidevault
+
+**Map role:** Late-game headwater town and Water Seal sanctuary
+
+**Visual identity:** Slate roofs, pale spillways, stepped blue pools, pressure gates, archive terraces, and rain-fed channels
+
+**Common decks:** Water control, Liquid People evolution, Cyber Lord selection, Leviathan finishers, and Water/Light or Water/Nature support
+
+The detailed town, basin, sanctuary, and route plan is in `Notes/Tidevault.md`.
+
+### Founding and history
+
+Tidevault surrounds the stable headwater where the Water current records the range of choices still available after a decision. Its keepers built the Water Resonance Seal there centuries before Glasswater existed. Glasswater later received public readings through a downstream relay, which is why outsiders often assumed the Seal sat beneath the port.
+
+### Daily life and duel culture
+
+Residents value models that state their uncertainty and preserve a route for revision. Public decisions are recorded alongside later corrections. Duelists favor patient Water strategies, but local etiquette distrusts a player who gathers information without explaining how it was obtained.
+
+### Campaign role
+
+Glasswater's stolen predictions arrive at Tidevault disguised as healthy calibration evidence. After the Confluence relay opens the outer network, the player brings the recovered consent ledger upstream, restores manual choice at the basin locks, and removes counterfeit archive entries without destroying legitimate voluntary records. Tidevault contains no Crest; its mandatory objective belongs only to the Hollow storyline.
+
 ## Stormbreak Plateau
 
 **Map role:** Northeastern highland settlement and Tempest Crest region  
@@ -159,7 +206,7 @@ Natasha Gale became Crest Holder after coordinating the plateau through a season
 
 Stormbreak duelists favor cards whose value changes when enough allies assemble. Wave Strikers match a culture built around separate shelters acting as one network. A single creature may look unimportant, just as one signal tower seems small, but the full formation can redirect an entire route.
 
-Courier races, tower maintenance, and forecast contests fill the clear-weather days. Cloudrest provides a calmer place to recover, while Dragon Keep and Mirror maintain the plateau's strongest trade connections.
+Courier races, tower maintenance, and forecast contests fill the clear-weather days. Cloudrest provides a calmer place to recover, while Dragon Keep, Mirror, and Tidevault maintain the plateau's strongest trade connections.
 
 ### Campaign role
 
@@ -265,4 +312,4 @@ During the Hollow crisis, Caelum shelters travelers and postpones the official U
 
 ## Coverage of optional settlements
 
-Lilyreed Village, Honeyreach, Clayhearth, Cloudrest, Lanternfen, and Ribbonfair already have equivalent background profiles in `Notes/OptionalTowns.md`. Together, the two documents cover every inhabited destination currently named on the planned world map.
+Lilyreed Village, Honeyreach, Clayhearth, Cloudrest, Lanternfen, and Ribbonfair already have equivalent background profiles in `Notes/OptionalTowns.md`. Stonechant has its own detailed file because its Totem culture and card progression need more space. Together, these documents cover every inhabited destination currently named on the planned world map.
