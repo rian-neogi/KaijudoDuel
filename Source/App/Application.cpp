@@ -39,7 +39,9 @@ Application::Application(bool worldBuilder)
 	  mWorldBuilderBrushSize(1),
 	  mWorldBuilderShowGrid(true),
 	  mWorldBuilderSelectedNpc(-1),
-	  mWorldBuilderSelectedObject(-1), mWorldBuilderListScroll(0), mWorldBuilderCameraX(0),
+	  mWorldBuilderSelectedObject(-1), mWorldBuilderObjectPalette(false),
+	  mWorldBuilderSelectedObjectTemplate(-1), mWorldBuilderListScroll(0),
+	  mWorldBuilderCameraX(0),
 	  mWorldBuilderCameraY(0), mWorldBuilderTileSize(TILE),
 	  mWorldBuilderTileScaleActive(false), mWorldBuilderTileScaleDestination({ 0, 0, TILE, TILE }),
 	  mWorldBuilderMoveUp(false), mWorldBuilderMoveDown(false),
@@ -83,7 +85,8 @@ Application::Application(bool worldBuilder)
 		std::cerr << "Unable to load Mercer stock: " << stockError << std::endl;
 	}
 	std::string objectError;
-	if (!loadWorldObjectsFromLua("Lua/Objects.lua", mWorldObjects, objectError))
+	if (!loadWorldObjectsFromLua("Lua/Objects.lua", mWorldObjects,
+		mWorldObjectTemplates, objectError))
 	{
 		if (!mNpcMetadataError.empty()) mNpcMetadataError += "\n";
 		mNpcMetadataError += "Unable to load overworld objects: " + objectError;

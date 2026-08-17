@@ -160,6 +160,7 @@ void Application::renderPauseMenu()
 	fillRect(PAUSE_ACTION_PANEL, 12, 19, 31, 245);
 	outlineRect(PAUSE_ACTION_PANEL, 69, 91, 126, 255, 2);
 	drawText("PAUSED", 72, 48, color(244, 207, 112), 30);
+	renderAtmosphereHud({ 814, 45, 398, 32 });
 	drawText("PLAYER STATUS", 88, 106, color(178, 198, 226), 18);
 	drawText("GOLD  " + std::to_string(std::max(0, mMoney)), 628, 104,
 		color(245, 205, 88), 20, 190);

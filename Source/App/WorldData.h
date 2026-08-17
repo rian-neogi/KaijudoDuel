@@ -62,6 +62,13 @@ struct WorldPosition
 	bool operator==(const WorldPosition& other) const;
 };
 
+struct WorldObjectDefinition
+{
+	std::string templateId;
+
+	bool operator==(const WorldObjectDefinition& other) const;
+};
+
 class WorldData
 {
 public:
@@ -71,6 +78,7 @@ public:
 	WorldPosition start;
 	std::map<std::string, WorldPosition> npcPositions;
 	std::map<std::string, WorldPosition> objectPositions;
+	std::map<std::string, WorldObjectDefinition> objectDefinitions;
 	std::map<std::string, WorldPosition> shardPositions;
 
 	int mapIndex(const std::string& id) const;

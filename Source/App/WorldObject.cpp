@@ -49,12 +49,113 @@ namespace
 		spriteIndex = luaIndex - 1;
 		return true;
 	}
+
+	bool booleanField(lua_State* state, int table, const char* key)
+	{
+		table = lua_absindex(state, table);
+		lua_getfield(state, table, key);
+		bool value = lua_toboolean(state, -1) != 0;
+		lua_pop(state, 1);
+		return value;
+	}
+
+	int integerField(lua_State* state, int table, const char* key, int fallback)
+	{
+		table = lua_absindex(state, table);
+		lua_getfield(state, table, key);
+		int value = lua_isinteger(state, -1) ? (int)lua_tointeger(state, -1) : fallback;
+		lua_pop(state, 1);
+		return value;
+	}
+
+	bool parseKind(const std::string& value, WorldObjectKind& kind)
+	{
+		if (value == "signpost") kind = WorldObjectKind::Signpost;
+		else if (value == "chest") kind = WorldObjectKind::Chest;
+		else if (value == "cuttable_bush") kind = WorldObjectKind::CuttableBush;
+		else if (value == "smashable_rock") kind = WorldObjectKind::SmashableRock;
+		else if (value == "environment") kind = WorldObjectKind::Environment;
+		else return false;
+		return true;
+	}
+
+	bool readTemplates(lua_State* state, std::vector<WorldObjectTemplate>& templates,
+		std::string& error)
+	{
+		lua_getglobal(state, "WorldObjectTemplates");
+		if (!lua_istable(state, -1))
+		{
+			error = "WorldObjectTemplates must be an array";
+			lua_pop(state, 1);
+			return false;
+		}
+		std::set<std::string> ids;
+		const size_t count = lua_rawlen(state, -1);
+		for (size_t index = 1; index <= count; ++index)
+		{
+			lua_rawgeti(state, -1, (lua_Integer)index);
+			if (!lua_istable(state, -1))
+			{
+				error = "object template " + std::to_string(index) + " is not a table";
+				lua_pop(state, 2);
+				return false;
+			}
+			WorldObjectTemplate objectTemplate;
+			objectTemplate.id = stringField(state, -1, "id");
+			WorldObject& object = objectTemplate.object;
+			object.templateId = objectTemplate.id;
+			object.name = stringField(state, -1, "name");
+			object.text = stringField(state, -1, "text");
+			object.openedText = stringField(state, -1, "opened_text");
+			object.animated = booleanField(state, -1, "animated");
+			object.spriteRow = integerField(state, -1, "frame_row", 0);
+			const std::string kindName = stringField(state, -1, "kind");
+			const std::string appearance = stringField(state, -1, "appearance");
+			bool validAppearance = appearance.empty() ||
+				parseAppearance(appearance, object.spriteSheet, object.spriteIndex);
+			if (objectTemplate.id.empty() || object.name.empty() ||
+				object.text.empty() || !parseKind(kindName, object.kind) ||
+				!validAppearance || object.spriteRow < 0 || object.spriteRow > 3 ||
+				!ids.insert(objectTemplate.id).second)
+			{
+				error = "object template " + std::to_string(index) +
+					" has invalid or duplicate metadata";
+				lua_pop(state, 2);
+				return false;
+			}
+			if ((object.kind == WorldObjectKind::Chest ||
+				object.kind == WorldObjectKind::Environment) && object.spriteSheet.empty())
+			{
+				error = "object template '" + objectTemplate.id + "' needs an appearance";
+				lua_pop(state, 2);
+				return false;
+			}
+			if (object.kind == WorldObjectKind::Chest && object.openedText.empty())
+			{
+				error = "chest template '" + objectTemplate.id +
+					"' needs opened_text";
+				lua_pop(state, 2);
+				return false;
+			}
+			templates.push_back(objectTemplate);
+			lua_pop(state, 1);
+		}
+		lua_pop(state, 1);
+		if (templates.empty())
+		{
+			error = "WorldObjectTemplates must contain at least one template";
+			return false;
+		}
+		return true;
+	}
 }
 
 bool loadWorldObjectsFromLua(const std::string& path,
-	std::vector<WorldObject>& objects, std::string& error)
+	std::vector<WorldObject>& objects, std::vector<WorldObjectTemplate>& templates,
+	std::string& error)
 {
 	objects.clear();
+	templates.clear();
 	error.clear();
 	lua_State* state = luaL_newstate();
 	if (state == NULL)
@@ -94,8 +195,6 @@ bool loadWorldObjectsFromLua(const std::string& path,
 		object.name = stringField(state, -1, "name");
 		object.text = stringField(state, -1, "text");
 		object.openedText = stringField(state, -1, "opened_text");
-		object.spriteIndex = -1;
-		object.x = object.y = 0;
 		const std::string kind = stringField(state, -1, "kind");
 		if (kind == "signpost") object.kind = WorldObjectKind::Signpost;
 		else if (kind == "deck_chest")
@@ -156,6 +255,11 @@ bool loadWorldObjectsFromLua(const std::string& path,
 		objects.push_back(object);
 		lua_pop(state, 1);
 	}
+	if (!readTemplates(state, templates, error))
+	{
+		lua_close(state);
+		return false;
+	}
 	lua_close(state);
 	if (objects.empty())
 	{
@@ -163,4 +267,24 @@ bool loadWorldObjectsFromLua(const std::string& path,
 		return false;
 	}
 	return true;
+}
+
+WorldObject createWorldObject(const WorldObjectTemplate& objectTemplate,
+	const std::string& id)
+{
+	WorldObject object = objectTemplate.object;
+	object.id = id;
+	object.templateId = objectTemplate.id;
+	object.editorCreated = true;
+	return object;
+}
+
+const char* worldObjectKindName(WorldObjectKind kind)
+{
+	if (kind == WorldObjectKind::DeckChest) return "Deck Chest";
+	if (kind == WorldObjectKind::Chest) return "Chest";
+	if (kind == WorldObjectKind::CuttableBush) return "Cuttable Bush";
+	if (kind == WorldObjectKind::SmashableRock) return "Smashable Rock";
+	if (kind == WorldObjectKind::Environment) return "Environment";
+	return "Signpost";
 }

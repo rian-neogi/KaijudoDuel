@@ -8,6 +8,7 @@
 #include "WorldTileRenderer.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <fstream>
 #include <set>
@@ -24,6 +25,8 @@ namespace
 	const SDL_Rect BUILDER_TILES_TAB = { 1022, 105, 70, 35 };
 	const SDL_Rect BUILDER_NPCS_TAB = { 1096, 105, 70, 35 };
 	const SDL_Rect BUILDER_OBJECTS_TAB = { 1170, 105, 80, 35 };
+	const SDL_Rect BUILDER_OBJECT_ADD = { 1022, 663, 108, 28 };
+	const SDL_Rect BUILDER_OBJECT_PLACED = { 1142, 663, 108, 28 };
 	const SDL_Rect BUILDER_UNDO = { 1022, 724, 91, 44 };
 	const SDL_Rect BUILDER_SAVE = { 1119, 724, 131, 44 };
 	const int BUILDER_LIST_Y = 151;
@@ -42,6 +45,8 @@ namespace
 	const int BUILDER_UNDO_NPC = 1;
 	const int BUILDER_UNDO_OBJECT = 2;
 	const int BUILDER_UNDO_SHARD = 3;
+	const int BUILDER_UNDO_OBJECT_CREATED = 4;
+	const int BUILDER_UNDO_OBJECT_DELETED = 5;
 	const int BUILDER_ZOOM_PERCENTAGES[] = {
 		10, 20, 30, 40, 50, 60, 70, 80, 90, 100
 	};
@@ -284,6 +289,33 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 {
 	WorldData loadedWorld;
 	if (!WorldStorage::load(path, loadedWorld, error)) return false;
+	std::vector<WorldObject> candidateObjects;
+	std::set<std::string> objectIdsInUse;
+	for (size_t index = 0; index < mWorldObjects.size(); ++index)
+		if (!mWorldObjects[index].editorCreated)
+		{
+			candidateObjects.push_back(mWorldObjects[index]);
+			objectIdsInUse.insert(mWorldObjects[index].id);
+		}
+	for (std::map<std::string, WorldObjectDefinition>::const_iterator definition =
+		loadedWorld.objectDefinitions.begin();
+		definition != loadedWorld.objectDefinitions.end(); ++definition)
+	{
+		const WorldObjectTemplate* objectTemplate = NULL;
+		for (size_t index = 0; index < mWorldObjectTemplates.size(); ++index)
+			if (mWorldObjectTemplates[index].id == definition->second.templateId)
+			{
+				objectTemplate = &mWorldObjectTemplates[index];
+				break;
+			}
+		if (objectTemplate == NULL || !objectIdsInUse.insert(definition->first).second)
+		{
+			error = "placed object '" + definition->first +
+				"' has an unknown template or duplicate ID";
+			return false;
+		}
+		candidateObjects.push_back(createWorldObject(*objectTemplate, definition->first));
+	}
 	auto walkable = [this](const WorldData& world, const WorldPosition& position) -> bool
 	{
 		const WorldMap* map = world.map(position.mapId);
@@ -366,8 +398,8 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 	std::vector<std::string> npcIds;
 	for (size_t index = 0; index < mNpcs.size(); ++index) npcIds.push_back(mNpcs[index].id);
 	std::vector<std::string> objectIds;
-	for (size_t index = 0; index < mWorldObjects.size(); ++index)
-		objectIds.push_back(mWorldObjects[index].id);
+	for (size_t index = 0; index < candidateObjects.size(); ++index)
+		objectIds.push_back(candidateObjects[index].id);
 	std::vector<std::string> shardIds;
 	for (size_t index = 0; index < mMercerStock.shards.size(); ++index)
 		shardIds.push_back(mMercerStock.shards[index].id);
@@ -382,6 +414,7 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 	loadedWorld.objectPositions.swap(objectPositions);
 	loadedWorld.shardPositions.swap(shardPositions);
 	if (!loadedWorld.validateStructure(error)) return false;
+	mWorldObjects.swap(candidateObjects);
 	loadedWorld.swap(mWorld);
 	clearWorldBuilderUndoHistory();
 	mCurrentWorldArea = worldAreaIndex(mWorld.start.mapId);
@@ -1076,6 +1109,24 @@ void Application::undoWorldBuilder()
 		shard.x = undo.entityX;
 		shard.y = undo.entityY;
 	}
+	else if (undo.entityKind == BUILDER_UNDO_OBJECT_CREATED &&
+		undo.hasObjectSnapshot && undo.entityIndex >= 0 &&
+		undo.entityIndex < (int)mWorldObjects.size() &&
+		mWorldObjects[undo.entityIndex].id == undo.objectSnapshot.id)
+	{
+		mWorldObjects.erase(mWorldObjects.begin() + undo.entityIndex);
+		if (mWorldBuilderSelectedObject == undo.entityIndex)
+			mWorldBuilderSelectedObject = -1;
+		else if (mWorldBuilderSelectedObject > undo.entityIndex)
+			--mWorldBuilderSelectedObject;
+	}
+	else if (undo.entityKind == BUILDER_UNDO_OBJECT_DELETED &&
+		undo.hasObjectSnapshot && undo.entityIndex >= 0)
+	{
+		int index = std::min(undo.entityIndex, (int)mWorldObjects.size());
+		mWorldObjects.insert(mWorldObjects.begin() + index, undo.objectSnapshot);
+		mWorldBuilderSelectedObject = index;
+	}
 	mWorldBuilderDirty = undo.dirtyBefore;
 	showWorldBuilderNotice("Undid the last editor action.");
 }
@@ -1117,6 +1168,78 @@ bool Application::worldBuilderCanPlace(int x, int y, int ignoredNpc, int ignored
 			mMercerStock.shards[i].x == x &&
 			mMercerStock.shards[i].y == y) return false;
 	return true;
+}
+
+bool Application::addWorldBuilderObject(int templateIndex, int x, int y)
+{
+	if (templateIndex < 0 || templateIndex >= (int)mWorldObjectTemplates.size())
+		return false;
+	if (!worldBuilderCanPlace(x, y, -1, -1))
+	{
+		showWorldBuilderNotice("Objects require an empty walkable tile.", true);
+		return false;
+	}
+	commitWorldBuilderUndoAction();
+	const WorldObjectTemplate& objectTemplate = mWorldObjectTemplates[templateIndex];
+	const unsigned long long createdAt = (unsigned long long)
+		std::chrono::duration_cast<std::chrono::milliseconds>(
+			std::chrono::system_clock::now().time_since_epoch()).count();
+	const std::string idStem = objectTemplate.id + "_" + std::to_string(createdAt);
+	std::string id = idStem;
+	int suffix = 2;
+	for (;;)
+	{
+		bool used = false;
+		for (size_t index = 0; index < mWorldObjects.size(); ++index)
+			if (mWorldObjects[index].id == id) { used = true; break; }
+		if (!used) break;
+		id = idStem + "_" + std::to_string(suffix++);
+	}
+	WorldObject object = createWorldObject(objectTemplate, id);
+	object.mapId = currentMapId();
+	object.x = x;
+	object.y = y;
+	WorldBuilderUndoAction undo;
+	undo.entityKind = BUILDER_UNDO_OBJECT_CREATED;
+	undo.entityIndex = (int)mWorldObjects.size();
+	undo.objectSnapshot = object;
+	undo.hasObjectSnapshot = true;
+	undo.dirtyBefore = mWorldBuilderDirty;
+	mWorldObjects.push_back(object);
+	mWorldBuilderUndoHistory.push_back(undo);
+	if ((int)mWorldBuilderUndoHistory.size() > BUILDER_MAX_UNDO_ACTIONS)
+		mWorldBuilderUndoHistory.erase(mWorldBuilderUndoHistory.begin());
+	mWorldBuilderSelectedObject = (int)mWorldObjects.size() - 1;
+	mWorldBuilderDirty = true;
+	showWorldBuilderNotice("Added " + object.name + ".");
+	return true;
+}
+
+void Application::deleteWorldBuilderObject()
+{
+	commitWorldBuilderUndoAction();
+	if (mWorldBuilderSelectedObject < 0 ||
+		mWorldBuilderSelectedObject >= (int)mWorldObjects.size()) return;
+	const WorldObject& object = mWorldObjects[mWorldBuilderSelectedObject];
+	if (!object.editorCreated)
+	{
+		showWorldBuilderNotice("Lua-authored objects cannot be deleted here.", true);
+		return;
+	}
+	WorldBuilderUndoAction undo;
+	undo.entityKind = BUILDER_UNDO_OBJECT_DELETED;
+	undo.entityIndex = mWorldBuilderSelectedObject;
+	undo.objectSnapshot = object;
+	undo.hasObjectSnapshot = true;
+	undo.dirtyBefore = mWorldBuilderDirty;
+	const std::string name = object.name;
+	mWorldObjects.erase(mWorldObjects.begin() + mWorldBuilderSelectedObject);
+	mWorldBuilderSelectedObject = -1;
+	mWorldBuilderUndoHistory.push_back(undo);
+	if ((int)mWorldBuilderUndoHistory.size() > BUILDER_MAX_UNDO_ACTIONS)
+		mWorldBuilderUndoHistory.erase(mWorldBuilderUndoHistory.begin());
+	mWorldBuilderDirty = true;
+	showWorldBuilderNotice("Removed " + name + ". Ctrl+Z restores it.");
 }
 
 void Application::paintWorldBuilderTile(int x, int y)
@@ -1348,7 +1471,8 @@ void Application::placeWorldBuilderSelection(int x, int y)
 		npc.setPosition(x, y);
 		mWorldBuilderDirty = true;
 	}
-	else if (mWorldBuilderTab == WorldBuilderTab::Objects && mWorldBuilderSelectedObject >= 0 &&
+	else if (mWorldBuilderTab == WorldBuilderTab::Objects &&
+		!mWorldBuilderObjectPalette && mWorldBuilderSelectedObject >= 0 &&
 		mWorldBuilderSelectedObject < (int)(mWorldObjects.size() + mMercerStock.shards.size()))
 	{
 		if (!worldBuilderCanPlace(x, y, -1, mWorldBuilderSelectedObject))
@@ -1390,10 +1514,17 @@ bool Application::saveWorldBuilder(std::string& error)
 			mNpcs[index].mapId, mNpcs[index].x, mNpcs[index].y
 		};
 	mWorld.objectPositions.clear();
+	mWorld.objectDefinitions.clear();
 	for (size_t index = 0; index < mWorldObjects.size(); ++index)
+	{
 		mWorld.objectPositions[mWorldObjects[index].id] = {
 			mWorldObjects[index].mapId, mWorldObjects[index].x, mWorldObjects[index].y
 		};
+		if (mWorldObjects[index].editorCreated)
+			mWorld.objectDefinitions[mWorldObjects[index].id] = {
+				mWorldObjects[index].templateId
+			};
+	}
 	mWorld.shardPositions.clear();
 	for (size_t index = 0; index < mMercerStock.shards.size(); ++index)
 		mWorld.shardPositions[mMercerStock.shards[index].id] = {
@@ -1522,6 +1653,13 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 			mWorldBuilderShowGrid = !mWorldBuilderShowGrid;
 			return;
 		}
+		if ((key == SDLK_DELETE || key == SDLK_BACKSPACE) &&
+			mWorldBuilderTab == WorldBuilderTab::Objects &&
+			!mWorldBuilderObjectPalette)
+		{
+			deleteWorldBuilderObject();
+			return;
+		}
 		if (key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET)
 		{
 			if (mWorldBuilderTab == WorldBuilderTab::Tiles &&
@@ -1599,7 +1737,8 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 			return;
 		}
 		int count = mWorldBuilderTab == WorldBuilderTab::Npcs ? (int)mNpcs.size() :
-			(int)(mWorldObjects.size() + mMercerStock.shards.size());
+			(mWorldBuilderObjectPalette ? (int)mWorldObjectTemplates.size() :
+			(int)(mWorldObjects.size() + mMercerStock.shards.size()));
 		int maximum = std::max(0, count - BUILDER_LIST_ROWS);
 		mWorldBuilderListScroll = std::max(0,
 			std::min(maximum, mWorldBuilderListScroll - event.wheel.y));
@@ -1695,6 +1834,16 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 	}
 	else
 	{
+		if (mWorldBuilderTab == WorldBuilderTab::Objects &&
+			(contains(BUILDER_OBJECT_ADD, x, y) ||
+			contains(BUILDER_OBJECT_PLACED, x, y)))
+		{
+			mWorldBuilderObjectPalette = contains(BUILDER_OBJECT_ADD, x, y);
+			if (mWorldBuilderObjectPalette && mWorldBuilderSelectedObjectTemplate < 0 &&
+				!mWorldObjectTemplates.empty()) mWorldBuilderSelectedObjectTemplate = 0;
+			mWorldBuilderListScroll = 0;
+			return;
+		}
 		if (mWorldBuilderTab == WorldBuilderTab::Tiles)
 		{
 			if (contains(BUILDER_BRUSH_DECREASE, x, y) ||
@@ -1767,6 +1916,12 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 				}
 			}
 			else if (mWorldBuilderTab == WorldBuilderTab::Objects &&
+				mWorldBuilderObjectPalette &&
+				selected < (int)mWorldObjectTemplates.size())
+			{
+				mWorldBuilderSelectedObjectTemplate = selected;
+			}
+			else if (mWorldBuilderTab == WorldBuilderTab::Objects &&
 				selected < (int)(mWorldObjects.size() + mMercerStock.shards.size()))
 			{
 				mWorldBuilderSelectedObject = selected;
@@ -1820,6 +1975,13 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 					mNpcs[i].y == cellY) hit = (int)i;
 			if (hit >= 0) mWorldBuilderSelectedNpc = hit;
 			else placeWorldBuilderSelection(cellX, cellY);
+		}
+		else if (mWorldBuilderObjectPalette)
+		{
+			if (event.button.button == SDL_BUTTON_LEFT &&
+				mWorldBuilderSelectedObjectTemplate >= 0)
+				addWorldBuilderObject(mWorldBuilderSelectedObjectTemplate, cellX, cellY);
+			return;
 		}
 		else
 		{
@@ -2475,18 +2637,31 @@ void Application::renderWorldBuilder()
 			if (!drawWorldObjectSprite(object, false, { x, y, tileSize, tileSize }))
 			{
 				int inset = std::max(2, tileSize / 7);
-				fillRect({ x + inset, y + tileSize * 2 / 5,
-					tileSize - inset * 2, tileSize / 2 }, 121, 69, 32, 255);
-				fillRect({ x + inset, y + tileSize / 4,
-					tileSize - inset * 2, tileSize / 4 }, 166, 97, 39, 255);
-				outlineRect({ x + inset, y + tileSize / 4,
-					tileSize - inset * 2, tileSize * 13 / 20 }, 58, 35, 23, 255, 1);
-				fillRect({ x + tileSize * 9 / 20, y + tileSize / 2,
-					std::max(2, tileSize / 8), tileSize / 5 }, 224, 174, 65, 255);
+				if (object.kind == WorldObjectKind::CuttableBush)
+					fillRect({ x + inset, y + inset, tileSize - inset * 2,
+						tileSize - inset * 2 }, 45, 122, 61, 255);
+				else if (object.kind == WorldObjectKind::SmashableRock)
+					fillRect({ x + inset, y + tileSize / 3, tileSize - inset * 2,
+						tileSize / 2 }, 103, 111, 122, 255);
+				else if (object.kind == WorldObjectKind::Environment)
+					fillRect({ x + tileSize / 3, y + inset, tileSize / 3,
+						tileSize - inset * 2 }, 116, 85, 164, 255);
+				else
+				{
+					fillRect({ x + inset, y + tileSize * 2 / 5,
+						tileSize - inset * 2, tileSize / 2 }, 121, 69, 32, 255);
+					fillRect({ x + inset, y + tileSize / 4,
+						tileSize - inset * 2, tileSize / 4 }, 166, 97, 39, 255);
+					outlineRect({ x + inset, y + tileSize / 4,
+						tileSize - inset * 2, tileSize * 13 / 20 }, 58, 35, 23, 255, 1);
+					fillRect({ x + tileSize * 9 / 20, y + tileSize / 2,
+						std::max(2, tileSize / 8), tileSize / 5 }, 224, 174, 65, 255);
+				}
 			}
 		}
 		if ((int)i == mWorldBuilderSelectedObject &&
-			mWorldBuilderTab == WorldBuilderTab::Objects)
+			mWorldBuilderTab == WorldBuilderTab::Objects &&
+			!mWorldBuilderObjectPalette)
 			outlineRect({ x + 2, y + 2, tileSize - 4, tileSize - 4 },
 				246, 211, 99, 255, std::max(2, tileSize / 16));
 	}
@@ -2509,7 +2684,8 @@ void Application::renderWorldBuilder()
 			tileSize / 5, tileSize / 5 }, 231, 193, 255, 255);
 		}
 		if ((int)(mWorldObjects.size() + i) == mWorldBuilderSelectedObject &&
-			mWorldBuilderTab == WorldBuilderTab::Objects)
+			mWorldBuilderTab == WorldBuilderTab::Objects &&
+			!mWorldBuilderObjectPalette)
 			outlineRect({ x + 2, y + 2, tileSize - 4, tileSize - 4 },
 				246, 211, 99, 255, std::max(2, tileSize / 16));
 	}
@@ -2711,10 +2887,14 @@ void Application::renderWorldBuilder()
 	else
 	{
 		mWorldBuilderHoveredTileName.clear();
+		bool objectPalette = mWorldBuilderTab == WorldBuilderTab::Objects &&
+			mWorldBuilderObjectPalette;
 		int count = mWorldBuilderTab == WorldBuilderTab::Npcs ? (int)mNpcs.size() :
-			(int)(mWorldObjects.size() + mMercerStock.shards.size());
-		int selected = mWorldBuilderTab == WorldBuilderTab::Npcs ? mWorldBuilderSelectedNpc :
-			mWorldBuilderSelectedObject;
+			(objectPalette ? (int)mWorldObjectTemplates.size() :
+			(int)(mWorldObjects.size() + mMercerStock.shards.size()));
+		int selected = mWorldBuilderTab == WorldBuilderTab::Npcs ?
+			mWorldBuilderSelectedNpc : (objectPalette ?
+			mWorldBuilderSelectedObjectTemplate : mWorldBuilderSelectedObject);
 		for (int row = 0; row < BUILDER_LIST_ROWS; ++row)
 		{
 			int index = mWorldBuilderListScroll + row;
@@ -2723,7 +2903,25 @@ void Application::renderWorldBuilder()
 			fillRect(item, index == selected ? 74 : (row % 2 ? 31 : 37),
 				index == selected ? 61 : 42, index == selected ? 42 : 59, 238);
 			if (index == selected) outlineRect(item, 233, 184, 82, 255, 2);
-			if (mWorldBuilderTab == WorldBuilderTab::Npcs)
+			if (objectPalette)
+			{
+				const WorldObject& object = mWorldObjectTemplates[index].object;
+				if (object.kind == WorldObjectKind::Signpost)
+				{
+					fillRect({ item.x + 8, item.y + 17, 4, 13 }, 91, 58, 32, 255);
+					fillRect({ item.x + 3, item.y + 7, 18, 11 }, 178, 125, 59, 255);
+				}
+				else if (!drawWorldObjectSprite(object, false,
+					{ item.x + 1, item.y + 5, 24, 24 }, false))
+				{
+					fillRect({ item.x + 4, item.y + 8, 18, 20 }, 92, 112, 135, 255);
+				}
+				drawText(object.name, item.x + 27, item.y + 3,
+					color(232, 236, 244), 9, 194);
+				drawText(worldObjectKindName(object.kind), item.x + 27, item.y + 18,
+					color(171, 192, 218), 8, 188);
+			}
+			else if (mWorldBuilderTab == WorldBuilderTab::Npcs)
 			{
 				int entityX = mNpcs[index].x;
 				int entityY = mNpcs[index].y;
@@ -2754,7 +2952,7 @@ void Application::renderWorldBuilder()
 					else
 					{
 						if (!drawWorldObjectSprite(mWorldObjects[index], false,
-							{ item.x + 1, item.y + 5, 24, 24 }))
+							{ item.x + 1, item.y + 5, 24, 24 }, false))
 						{
 							fillRect({ item.x + 3, item.y + 13, 20, 16 }, 117, 67, 31, 255);
 							fillRect({ item.x + 3, item.y + 8, 20, 8 }, 165, 96, 39, 255);
@@ -2770,18 +2968,38 @@ void Application::renderWorldBuilder()
 				drawText(name, item.x + 27, item.y + 3,
 					color(232, 236, 244), 9, 148);
 				std::string kindLabel = regularObject ?
-					(mWorldObjects[index].kind == WorldObjectKind::DeckChest ?
-						"Deck Chest" : "Signpost") : "Shard";
+					worldObjectKindName(mWorldObjects[index].kind) : "Shard";
 				drawText(kindLabel, item.x + 27, item.y + 18,
 					color(171, 192, 218), 8, 80);
 				drawText(std::to_string(entityX) + "," + std::to_string(entityY), item.x + 181,
 					item.y + 10, color(173, 193, 220), 9);
 			}
 		}
-		if (count > BUILDER_LIST_ROWS)
-			drawText("Mouse wheel scrolls", 1052, 682, color(166, 184, 211), 12);
-		drawText("Click: select  •  Double-click: locate", 1022, 701,
-			color(166, 184, 211), 10, 224);
+		if (mWorldBuilderTab == WorldBuilderTab::Objects)
+		{
+			fillRect(BUILDER_OBJECT_ADD, objectPalette ? 80 : 35,
+				objectPalette ? 67 : 45, objectPalette ? 43 : 61, 245);
+			fillRect(BUILDER_OBJECT_PLACED, objectPalette ? 35 : 80,
+				objectPalette ? 45 : 67, objectPalette ? 61 : 43, 245);
+			outlineRect(BUILDER_OBJECT_ADD, objectPalette ? 233 : 104,
+				objectPalette ? 184 : 122, objectPalette ? 82 : 151, 255, 1);
+			outlineRect(BUILDER_OBJECT_PLACED, objectPalette ? 104 : 233,
+				objectPalette ? 122 : 184, objectPalette ? 151 : 82, 255, 1);
+			drawText("ADD", BUILDER_OBJECT_ADD.x + 39, BUILDER_OBJECT_ADD.y + 6,
+				color(232, 236, 244), 10);
+			drawText("PLACED", BUILDER_OBJECT_PLACED.x + 25,
+				BUILDER_OBJECT_PLACED.y + 6, color(232, 236, 244), 10);
+			drawText(objectPalette ? "Select a type, then click the map" :
+				"Drag to move • Delete removes created objects", 1022, 698,
+				color(166, 184, 211), 9, 228);
+		}
+		else
+		{
+			if (count > BUILDER_LIST_ROWS)
+				drawText("Mouse wheel scrolls", 1052, 682, color(166, 184, 211), 12);
+			drawText("Click: select  •  Double-click: locate", 1022, 701,
+				color(166, 184, 211), 10, 224);
+		}
 	}
 
 	bool canUndo = !mWorldBuilderUndoHistory.empty();

@@ -11,6 +11,7 @@
 #include <cctype>
 #include <cerrno>
 #include <cstdio>
+#include <cstdlib>
 #include <dirent.h>
 #include <fstream>
 #include <sys/stat.h>
@@ -247,6 +248,14 @@ void Application::ensurePlayerDataLoaded()
 	int savedFacingY = 1;
 	bool hasSavedX = false;
 	bool hasSavedY = false;
+	OverworldAtmosphereState atmosphere = mAtmosphere.state();
+	const std::string atmosphereDay = "atmosphere.day=";
+	const std::string atmosphereMinute = "atmosphere.minute=";
+	const std::string atmosphereWeather = "atmosphere.weather=";
+	const std::string atmosphereIntensity = "atmosphere.intensity=";
+	const std::string atmosphereRemaining = "atmosphere.remaining=";
+	const std::string atmosphereFading = "atmosphere.fading=";
+	const std::string atmosphereSeed = "atmosphere.seed=";
 	while (std::getline(progress, line))
 	{
 		if (line.find("world.map=") == 0)
@@ -276,6 +285,47 @@ void Application::ensurePlayerDataLoaded()
 		{
 			savedFacingY = std::max(-1, std::min(1,
 				std::atoi(line.substr(15).c_str())));
+			continue;
+		}
+		if (line.find(atmosphereDay) == 0)
+		{
+			atmosphere.day = std::max(1, std::atoi(line.substr(atmosphereDay.size()).c_str()));
+			continue;
+		}
+		if (line.find(atmosphereMinute) == 0)
+		{
+			atmosphere.minuteOfDay = std::atoi(line.substr(atmosphereMinute.size()).c_str());
+			continue;
+		}
+		if (line.find(atmosphereWeather) == 0)
+		{
+			WeatherKind weather;
+			if (OverworldAtmosphere::parseWeather(
+				line.substr(atmosphereWeather.size()), weather)) atmosphere.weather = weather;
+			continue;
+		}
+		if (line.find(atmosphereIntensity) == 0)
+		{
+			atmosphere.weatherIntensity = std::atoi(
+				line.substr(atmosphereIntensity.size()).c_str()) / 1000.f;
+			continue;
+		}
+		if (line.find(atmosphereRemaining) == 0)
+		{
+			atmosphere.weatherRemaining = (unsigned int)std::strtoul(
+				line.substr(atmosphereRemaining.size()).c_str(), NULL, 10);
+			continue;
+		}
+		if (line.find(atmosphereFading) == 0)
+		{
+			atmosphere.weatherFadingOut =
+				std::atoi(line.substr(atmosphereFading.size()).c_str()) != 0;
+			continue;
+		}
+		if (line.find(atmosphereSeed) == 0)
+		{
+			atmosphere.weatherSeed = (unsigned int)std::strtoul(
+				line.substr(atmosphereSeed.size()).c_str(), NULL, 10);
 			continue;
 		}
 		if (line.find("money=") == 0)
@@ -334,8 +384,24 @@ void Application::ensurePlayerDataLoaded()
 				equals - openedObjectPrefix.size());
 			for (size_t i = 0; i < mWorldObjects.size(); ++i)
 				if (mWorldObjects[i].id == objectId &&
-					mWorldObjects[i].kind == WorldObjectKind::DeckChest)
+					(mWorldObjects[i].kind == WorldObjectKind::DeckChest ||
+					 mWorldObjects[i].kind == WorldObjectKind::Chest))
 					mOpenedWorldObjects.insert(objectId);
+			continue;
+		}
+		const std::string clearedObjectPrefix = "object.cleared.";
+		if (line.find(clearedObjectPrefix) == 0)
+		{
+			size_t equals = line.find('=', clearedObjectPrefix.size());
+			if (equals == std::string::npos ||
+				std::atoi(line.substr(equals + 1).c_str()) != 1) continue;
+			std::string objectId = line.substr(clearedObjectPrefix.size(),
+				equals - clearedObjectPrefix.size());
+			for (size_t i = 0; i < mWorldObjects.size(); ++i)
+				if (mWorldObjects[i].id == objectId &&
+					(mWorldObjects[i].kind == WorldObjectKind::CuttableBush ||
+					 mWorldObjects[i].kind == WorldObjectKind::SmashableRock))
+					mClearedWorldObjects.insert(objectId);
 			continue;
 		}
 		if (line.find("npc.") != 0) continue;
@@ -348,6 +414,7 @@ void Application::ensurePlayerDataLoaded()
 				(mNpcs[i].id == npcName || mNpcs[i].name == npcName))
 				mNpcs[i].wins = std::min(mNpcs[i].maxWins, wins);
 	}
+	mAtmosphere.restore(atmosphere);
 	int savedArea = worldAreaIndex(savedMap);
 	if (savedArea >= 0 && hasSavedX && hasSavedY)
 	{
@@ -391,6 +458,17 @@ bool Application::savePlayerProgress()
 	progress << "world.y=" << mPlayerY << "\n";
 	progress << "world.facing_x=" << mFacingX << "\n";
 	progress << "world.facing_y=" << mFacingY << "\n";
+	const OverworldAtmosphereState atmosphere = mAtmosphere.state();
+	const char* weather = atmosphere.weather == WeatherKind::Rain ? "rain" :
+		(atmosphere.weather == WeatherKind::Snow ? "snow" : "clear");
+	progress << "atmosphere.day=" << atmosphere.day << "\n";
+	progress << "atmosphere.minute=" << atmosphere.minuteOfDay << "\n";
+	progress << "atmosphere.weather=" << weather << "\n";
+	progress << "atmosphere.intensity=" <<
+		(int)std::round(atmosphere.weatherIntensity * 1000.f) << "\n";
+	progress << "atmosphere.remaining=" << atmosphere.weatherRemaining << "\n";
+	progress << "atmosphere.fading=" << (atmosphere.weatherFadingOut ? 1 : 0) << "\n";
+	progress << "atmosphere.seed=" << atmosphere.weatherSeed << "\n";
 	for (size_t i = 0; i < Landmarks::COUNT; ++i)
 		if (mDiscoveredLandmarks.count(Landmarks::DEFINITIONS[i].id))
 			progress << "landmark." << Landmarks::DEFINITIONS[i].id << "=1\n";
@@ -401,8 +479,12 @@ bool Application::savePlayerProgress()
 		if (mMercerShards.count(shardId)) progress << "shard.mercer." << shardId << "=1\n";
 	}
 	for (size_t i = 0; i < mWorldObjects.size(); ++i)
+	{
 		if (mOpenedWorldObjects.count(mWorldObjects[i].id))
 			progress << "object.opened." << mWorldObjects[i].id << "=1\n";
+		if (mClearedWorldObjects.count(mWorldObjects[i].id))
+			progress << "object.cleared." << mWorldObjects[i].id << "=1\n";
+	}
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 		if (mNpcs[i].isDuelist()) progress << "npc." << mNpcs[i].id << "=" << mNpcs[i].wins << "\n";
 	return collection.good() && progress.good();

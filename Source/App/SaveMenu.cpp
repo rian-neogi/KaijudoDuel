@@ -133,11 +133,13 @@ void Application::refreshSaveSlots()
 void Application::resetPlayerDataState()
 {
 	mPlayerDataLoaded = false;
+	mAtmosphere.reset();
 	mMoney = 0;
 	mCollectedShards.clear();
 	mMercerShards.clear();
 	mDiscoveredLandmarks.clear();
 	mOpenedWorldObjects.clear();
+	mClearedWorldObjects.clear();
 	mCollectionCounts.clear();
 	mPlayerDecks.clear();
 	mActiveDeckPath = STARTER_DECK_PATH;

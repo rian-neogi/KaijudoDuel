@@ -19,6 +19,22 @@ namespace
 	constexpr Uint32 REGION_BANNER_SLIDE = 260;
 	const char* CHARACTER_SHADOW = "Resources/Graphics/System/Shadow.png";
 
+	Uint32 atmosphereHash(Uint32 value)
+	{
+		value ^= value >> 16;
+		value *= 0x7feb352dU;
+		value ^= value >> 15;
+		value *= 0x846ca68bU;
+		return value ^ (value >> 16);
+	}
+
+	int wrappedParticleOffset(long long value, int extent)
+	{
+		long long wrapped = value % extent;
+		if (wrapped < 0) wrapped += extent;
+		return (int)wrapped;
+	}
+
 	CharacterSpriteDefinition characterSprite(CharacterAppearance appearance)
 	{
 		const std::string root = "Resources/Graphics/Characters/";
@@ -152,6 +168,7 @@ void Application::updateOverworld(Uint32 deltaTime)
 	updateRegionBanner();
 	if (mPauseMenuOpen || (mStoryScene != StoryScene::None && mDialogueNpc < 0 &&
 		mDialogueObject < 0)) return;
+	mAtmosphere.update(deltaTime);
 	float playerDx = mPlayerX - mVisualX;
 	float playerDy = mPlayerY - mVisualY;
 	float playerDistance = std::sqrt(playerDx * playerDx + playerDy * playerDy);
@@ -411,7 +428,8 @@ int Application::npcAt(int x, int y, int ignoredNpc) const
 int Application::worldObjectAt(int x, int y) const
 {
 	for (size_t i = 0; i < mWorldObjects.size(); ++i)
-		if (mWorldObjects[i].mapId == currentMapId() &&
+		if (!mClearedWorldObjects.count(mWorldObjects[i].id) &&
+			mWorldObjects[i].mapId == currentMapId() &&
 			mWorldObjects[i].x == x && mWorldObjects[i].y == y) return (int)i;
 	return -1;
 }
@@ -573,6 +591,37 @@ void Application::beginObjectDialogue(int objectIndex)
 				dialogue = error;
 			}
 		}
+	}
+	else if (object.kind == WorldObjectKind::Chest)
+	{
+		ensurePlayerDataLoaded();
+		if (mOpenedWorldObjects.count(object.id)) dialogue = object.openedText;
+		else
+		{
+			mOpenedWorldObjects.insert(object.id);
+			savePlayerProgress();
+		}
+	}
+	else if (object.kind == WorldObjectKind::CuttableBush ||
+		object.kind == WorldObjectKind::SmashableRock)
+	{
+		ensurePlayerDataLoaded();
+		const bool bush = object.kind == WorldObjectKind::CuttableBush;
+		const std::string cardName = bush ? "Xeno Mantis" : "Smash Warrior Stagrandu";
+		const int cardId = getCardIdFromName(cardName);
+		const bool hasTraversalCard = cardId >= 0 &&
+			cardId < (int)mCollectionCounts.size() && mCollectionCounts[cardId] > 0;
+		if (hasTraversalCard)
+		{
+			mClearedWorldObjects.insert(object.id);
+			savePlayerProgress();
+			dialogue = bush ?
+				"Xeno Mantis slices through the bush and clears the path." :
+				"Smash Warrior Stagrandu shatters the rock and clears the path.";
+		}
+		else dialogue = bush ?
+			"The bush is too dense to cross. Xeno Mantis could cut it down." :
+			"The rock is too heavy to move. Smash Warrior Stagrandu could smash it.";
 	}
 	mDialogueNpc = -1;
 	mDialogueObject = objectIndex;
@@ -1470,6 +1519,7 @@ void Application::renderOverworld()
 	for (size_t i = 0; i < mWorldObjects.size(); ++i)
 	{
 		const WorldObject& object = mWorldObjects[i];
+		if (mClearedWorldObjects.count(object.id)) continue;
 		if (object.mapId != currentMapId() || !visibleTiles.contains(object.x, object.y))
 			continue;
 		int x = mapX + object.x * TILE;
@@ -1539,6 +1589,7 @@ void Application::renderOverworld()
 		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
 			drawWorldTileLayer(worldArea, x, y, RtpRenderLayer::Foreground,
 				{ mapX + x * TILE, mapY + y * TILE, TILE, TILE });
+	if (!worldArea.indoor) renderOverworldAtmosphere(mapViewport);
 	SDL_RenderSetClipRect(mRenderer, NULL);
 
 	renderStoryTracker();
@@ -1589,13 +1640,101 @@ void Application::renderOverworld()
 	if (mPauseMenuOpen) renderPauseMenu();
 }
 
-bool Application::drawWorldObjectSprite(const WorldObject& object, bool opened,
-	const SDL_Rect& destination)
+void Application::renderOverworldAtmosphere(const SDL_Rect& viewport)
 {
-	if (object.kind != WorldObjectKind::DeckChest || mSpriteSheets == NULL ||
-		object.spriteSheet.empty() || object.spriteIndex < 0) return false;
+	const int nightAlpha = mAtmosphere.nightOverlayAlpha();
+	if (nightAlpha > 0) fillRect(viewport, 7, 14, 45, (Uint8)nightAlpha);
+	const int warmAlpha = mAtmosphere.warmOverlayAlpha();
+	if (warmAlpha > 0) fillRect(viewport, 139, 66, 27, (Uint8)warmAlpha);
+
+	const WeatherKind weather = mAtmosphere.weather();
+	const float intensity = mAtmosphere.weatherIntensity();
+	if (weather == WeatherKind::Clear || intensity <= 0.01f) return;
+	const Uint32 ticks = SDL_GetTicks();
+	const int cameraPixelX = (int)std::round(overworldCameraX() * TILE);
+	const int cameraPixelY = (int)std::round(overworldCameraY() * TILE);
+	if (weather == WeatherKind::Rain)
+	{
+		fillRect(viewport, 34, 57, 79, (Uint8)(28.f * intensity));
+		const int drops = (int)(190.f * intensity);
+		setColor(161, 199, 224, (Uint8)(105.f + 90.f * intensity));
+		for (int drop = 0; drop < drops; ++drop)
+		{
+			const Uint32 seed = atmosphereHash((Uint32)drop + 0x91e10da5U);
+			const int speed = 7 + (int)((seed >> 8) % 7);
+			const int x = viewport.x - 24 + wrappedParticleOffset(
+				(long long)seed + ticks / 5 - cameraPixelX, viewport.w + 48);
+			const int y = viewport.y - 32 + wrappedParticleOffset(
+				(long long)(seed >> 12) + (long long)ticks * speed / 16 -
+				cameraPixelY, viewport.h + 64);
+			const int length = 9 + (int)(seed % 9);
+			SDL_RenderDrawLine(mRenderer, x, y, x + 5, y + length);
+		}
+		return;
+	}
+
+	fillRect(viewport, 204, 220, 233, (Uint8)(12.f * intensity));
+	const int flakes = (int)(145.f * intensity);
+	for (int flake = 0; flake < flakes; ++flake)
+	{
+		const Uint32 seed = atmosphereHash((Uint32)flake + 0x6c8e9cf5U);
+		const int speed = 2 + (int)((seed >> 10) % 4);
+		const int phase = (int)(((seed >> 18) + ticks / 35) % 80);
+		const int drift = 20 - std::abs(phase - 40);
+		const int x = viewport.x - 12 + wrappedParticleOffset(
+			(long long)seed + drift - cameraPixelX, viewport.w + 24);
+		const int y = viewport.y - 12 + wrappedParticleOffset(
+			(long long)(seed >> 8) + (long long)ticks * speed / 30 -
+			cameraPixelY, viewport.h + 24);
+		const int size = seed % 5 == 0 ? 3 : 2;
+		fillRect({ x, y, size, size }, 236, 245, 252,
+			(Uint8)(145.f + 100.f * intensity));
+	}
+}
+
+void Application::renderAtmosphereHud(const SDL_Rect& panel)
+{
+	if (mCurrentWorldArea < 0 || mCurrentWorldArea >= (int)mWorld.maps.size()) return;
+	const bool indoor = mWorld.maps[mCurrentWorldArea].indoor;
+	std::string label = "Day " + std::to_string(mAtmosphere.day()) + "  " +
+		mAtmosphere.clockText() + "  •  ";
+	label += OverworldAtmosphere::weatherName(mAtmosphere.weather());
+	if (indoor) label += " outside";
+	fillRect(panel, 10, 19, 32, 218);
+	outlineRect(panel, 81, 109, 139, 230, 1);
+	SDL_Color textColor = color(216, 228, 241);
+	if (mAtmosphere.weather() == WeatherKind::Rain)
+		textColor = color(166, 207, 233);
+	else if (mAtmosphere.weather() == WeatherKind::Snow)
+		textColor = color(235, 244, 250);
+	drawText(label, panel.x + 10, panel.y + 7, textColor, 13, panel.w - 18);
+}
+
+bool Application::drawWorldObjectSprite(const WorldObject& object, bool opened,
+	const SDL_Rect& destination, bool preserveAspect)
+{
+	if (object.kind == WorldObjectKind::CuttableBush)
+		return mWorldTileRenderer != NULL && mWorldTileRenderer->drawCatalog(
+			RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::B, 102,
+				RtpRenderLayer::Decoration), 0, destination);
+	if (object.kind == WorldObjectKind::SmashableRock)
+		return mWorldTileRenderer != NULL && mWorldTileRenderer->drawCatalog(
+			RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::B, 103,
+				RtpRenderLayer::Decoration), 0, destination);
+	if (mSpriteSheets == NULL || object.spriteSheet.empty() || object.spriteIndex < 0)
+		return false;
+	int facingX = 0;
+	int facingY = 1;
+	if ((object.kind == WorldObjectKind::DeckChest ||
+		object.kind == WorldObjectKind::Chest) && opened) facingY = -1;
+	else if (object.spriteRow == 1) { facingX = -1; facingY = 0; }
+	else if (object.spriteRow == 2) { facingX = 1; facingY = 0; }
+	else if (object.spriteRow == 3) facingY = -1;
 	const CharacterSpriteDefinition sprite = { object.spriteSheet, object.spriteIndex };
-	return mSpriteSheets->drawCharacter(sprite, 0, opened ? -1 : 1, false,
+	if (preserveAspect)
+		return mSpriteSheets->drawMapObject(sprite, facingX, facingY, object.animated,
+			SDL_GetTicks(), destination);
+	return mSpriteSheets->drawCharacter(sprite, facingX, facingY, object.animated,
 		SDL_GetTicks(), destination);
 }
 

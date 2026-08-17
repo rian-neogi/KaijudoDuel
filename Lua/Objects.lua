@@ -1,9 +1,60 @@
 -- Overworld object metadata.
 -- Positions are owned by World/World.json and maintained by the World Builder.
--- Supported kinds: signpost, deck_chest
+-- Supported authored kinds: signpost, deck_chest. WorldObjectTemplates supplies
+-- the prototypes that the World Builder can instantiate in World/World.json.
 -- Deck chests additionally require an appearance, reward, and opened_text.
 -- Appearances use <character-sheet>-<one-based index>; reward decks are searched
 -- beneath Decks/ automatically.
+
+WorldObjectTemplates = {
+	{
+		id = "signpost",
+		name = "Signpost",
+		kind = "signpost",
+		text = "The signpost has not been inscribed yet."
+	},
+	{
+		id = "chest",
+		name = "Chest",
+		kind = "chest",
+		appearance = "!Chest-1",
+		text = "You open the chest, but find nothing inside.",
+		opened_text = "The chest is empty."
+	},
+	{
+		id = "cuttable_bush",
+		name = "Cuttable Bush",
+		kind = "cuttable_bush",
+		text = "A dense bush blocks the way."
+	},
+	{
+		id = "smashable_rock",
+		name = "Smashable Rock",
+		kind = "smashable_rock",
+		text = "A heavy boulder blocks the way."
+	}
+}
+
+local environment_sheets = {
+	"!Flame", "!Other1", "!Other2", "!Other3",
+	"!Crystal", "!Hexagram", "!Switch1", "!Switch2"
+}
+for _, sheet in ipairs(environment_sheets) do
+	local sheet_id = string.lower(string.gsub(sheet, "[^%w]", ""))
+	for character = 1, 8 do
+		for row = 1, 4 do
+			table.insert(WorldObjectTemplates, {
+				id = "environment_" .. sheet_id .. "_" .. character .. "_" .. row,
+				name = sheet .. " " .. character .. "/" .. row,
+				kind = "environment",
+				appearance = sheet .. "-" .. character,
+				frame_row = row - 1,
+				animated = true,
+				text = "An environmental fixture stands here."
+			})
+		end
+	end
+end
 
 return {
 	{

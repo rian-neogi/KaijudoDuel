@@ -20,6 +20,9 @@ public:
 	bool drawCharacter(const CharacterSpriteDefinition& definition,
 		int facingX, int facingY, bool walking, Uint32 ticks,
 		const SDL_Rect& destination);
+	bool drawMapObject(const CharacterSpriteDefinition& definition,
+		int facingX, int facingY, bool animated, Uint32 ticks,
+		const SDL_Rect& anchorTile);
 	static bool characterSourceRect(const std::string& sheet, int characterIndex,
 		int facingX, int facingY, bool walking, Uint32 ticks,
 		int textureWidth, int textureHeight, SDL_Rect& source);

@@ -2,6 +2,7 @@
 
 #include "App/MercerStock.h"
 #include "App/Npc.h"
+#include "App/OverworldAtmosphere.h"
 #include "App/WorldObject.h"
 #include "App/WorldData.h"
 #include "App/WorldTile.h"
@@ -72,6 +73,8 @@ private:
 		std::string entityMapId;
 		int entityX = -1;
 		int entityY = -1;
+		WorldObject objectSnapshot;
+		bool hasObjectSnapshot = false;
 		bool dirtyBefore = false;
 	};
 	enum class StoryScene
@@ -167,6 +170,8 @@ private:
 	void handleOverworldEvent(const SDL_Event& event);
 	void updateOverworld(Uint32 deltaTime);
 	void renderOverworld();
+	void renderOverworldAtmosphere(const SDL_Rect& viewport);
+	void renderAtmosphereHud(const SDL_Rect& panel);
 	void updateRegionBanner();
 	void renderRegionBanner();
 	void handlePauseMenuEvent(const SDL_Event& event);
@@ -190,6 +195,8 @@ private:
 	bool exerciseBackgroundMctsSmoke();
 	bool exerciseBundledDecksSmoke();
 	bool exerciseNpcRewardsSmoke();
+	bool exerciseAtmosphereSmoke();
+	bool exerciseWorldObjectsSmoke();
 	bool exerciseOverworldMovementSmoke();
 	bool exerciseStorySmoke();
 	void initializeStory();
@@ -257,6 +264,8 @@ private:
 	void eraseWorldBuilderTile(int x, int y);
 	void applyWorldBuilderBrushStroke(int fromX, int fromY, int toX, int toY,
 		bool erasing);
+	bool addWorldBuilderObject(int templateIndex, int x, int y);
+	void deleteWorldBuilderObject();
 	bool worldBuilderRequiresWalkable(int x, int y) const;
 	const RtpTileReference* worldTileLayer(const WorldMap& area, int x, int y,
 		RtpRenderLayer layer) const;
@@ -339,7 +348,7 @@ private:
 		bool completed, bool walking = false, int facingX = 0, int facingY = 1,
 		const std::string& spriteSheet = "", int spriteIndex = -1);
 	bool drawWorldObjectSprite(const WorldObject& object, bool opened,
-		const SDL_Rect& destination);
+		const SDL_Rect& destination, bool preserveAspect = true);
 	SDL_Color civilizationColor(int civilization) const;
 	void logicalMouse(int windowX, int windowY, int& logicalX, int& logicalY) const;
 	bool contains(const SDL_Rect& rect, int x, int y) const;
@@ -399,11 +408,13 @@ private:
 	int mPauseMenuSelection;
 
 	WorldData mWorld;
+	OverworldAtmosphere mAtmosphere;
 	int mCurrentWorldArea;
 	int mOpeningPortal;
 	Uint32 mPortalAnimationStarted;
 	std::vector<Npc> mNpcs;
 	std::vector<WorldObject> mWorldObjects;
+	std::vector<WorldObjectTemplate> mWorldObjectTemplates;
 	MercerStockData mMercerStock;
 	std::string mNpcMetadataError;
 	int mPlayerX;
@@ -447,6 +458,8 @@ private:
 	std::string mWorldBuilderHoveredTileName;
 	int mWorldBuilderSelectedNpc;
 	int mWorldBuilderSelectedObject;
+	bool mWorldBuilderObjectPalette;
+	int mWorldBuilderSelectedObjectTemplate;
 	int mWorldBuilderListScroll;
 	float mWorldBuilderCameraX;
 	float mWorldBuilderCameraY;
@@ -522,6 +535,7 @@ private:
 	std::set<std::string> mMercerShards;
 	std::set<std::string> mDiscoveredLandmarks;
 	std::set<std::string> mOpenedWorldObjects;
+	std::set<std::string> mClearedWorldObjects;
 	std::vector<int> mCollectionCounts;
 	std::vector<PlayerDeck> mPlayerDecks;
 	std::string mActiveDeckPath;

@@ -4,6 +4,7 @@
 
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <boost/optional.hpp>
 
 #include <cerrno>
 #include <cstdio>
@@ -73,6 +74,28 @@ namespace
 		{
 			error = "world manifest is missing '" + path + "': " + exception.what();
 			return false;
+		}
+		return true;
+	}
+
+	bool readObjectDefinitions(const ptree& root,
+		std::map<std::string, WorldObjectDefinition>& definitions, std::string& error)
+	{
+		definitions.clear();
+		boost::optional<const ptree&> entries =
+			root.get_child_optional("entities.object_definitions");
+		if (!entries) return true;
+		for (ptree::const_iterator entry = entries->begin(); entry != entries->end(); ++entry)
+		{
+			const std::string id = entry->second.get<std::string>("id", "");
+			WorldObjectDefinition definition;
+			definition.templateId = entry->second.get<std::string>("template", "");
+			if (id.empty() || definition.templateId.empty() ||
+				!definitions.insert(std::make_pair(id, definition)).second)
+			{
+				error = "world manifest has an invalid or duplicate object definition";
+				return false;
+			}
 		}
 		return true;
 	}
@@ -234,6 +257,7 @@ bool WorldStorage::load(const std::string& path, WorldData& world,
 	}
 	if (!readPositions(root, "entities.npcs", loaded.npcPositions, error) ||
 		!readPositions(root, "entities.objects", loaded.objectPositions, error) ||
+		!readObjectDefinitions(root, loaded.objectDefinitions, error) ||
 		!readPositions(root, "entities.shards", loaded.shardPositions, error) ||
 		!loaded.validateStructure(error)) return false;
 	world.swap(loaded);
@@ -285,6 +309,15 @@ bool WorldStorage::save(const std::string& path, const WorldData& world,
 	writePositions(output, world.npcPositions, 6);
 	output << "    ],\n    \"objects\": [\n";
 	writePositions(output, world.objectPositions, 6);
+	output << "    ],\n    \"object_definitions\": [\n";
+	size_t definitionIndex = 0;
+	for (std::map<std::string, WorldObjectDefinition>::const_iterator definition =
+		world.objectDefinitions.begin(); definition != world.objectDefinitions.end();
+		++definition, ++definitionIndex)
+		output << "      { \"id\": \"" << jsonEscape(definition->first)
+			<< "\", \"template\": \"" << jsonEscape(definition->second.templateId)
+			<< "\" }" << (definitionIndex + 1 == world.objectDefinitions.size() ?
+			"\n" : ",\n");
 	output << "    ],\n    \"shards\": [\n";
 	writePositions(output, world.shardPositions, 6);
 	output << "    ]\n  }\n}\n";

@@ -56,6 +56,11 @@ bool WorldPosition::operator==(const WorldPosition& other) const
 	return mapId == other.mapId && x == other.x && y == other.y;
 }
 
+bool WorldObjectDefinition::operator==(const WorldObjectDefinition& other) const
+{
+	return templateId == other.templateId;
+}
+
 int WorldData::mapIndex(const std::string& id) const
 {
 	for (size_t index = 0; index < maps.size(); ++index)
@@ -204,6 +209,14 @@ bool WorldData::validateStructure(std::string& error) const
 				return false;
 			}
 		}
+	for (std::map<std::string, WorldObjectDefinition>::const_iterator definition =
+		objectDefinitions.begin(); definition != objectDefinitions.end(); ++definition)
+		if (definition->first.empty() || definition->second.templateId.empty() ||
+			objectPositions.count(definition->first) == 0)
+		{
+			error = "world has an invalid placed-object definition";
+			return false;
+		}
 	return true;
 }
 
@@ -215,5 +228,6 @@ void WorldData::swap(WorldData& other)
 	std::swap(start, other.start);
 	npcPositions.swap(other.npcPositions);
 	objectPositions.swap(other.objectPositions);
+	objectDefinitions.swap(other.objectDefinitions);
 	shardPositions.swap(other.shardPositions);
 }

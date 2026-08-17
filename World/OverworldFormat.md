@@ -142,6 +142,19 @@ progress refers to them.
 - directed portal endpoints;
 - NPC, object, and shard positions.
 
+Builder-created objects have an additional entry in the optional
+`entities.object_definitions` array:
+
+```json
+{ "id": "cuttable_bush_1", "template": "cuttable_bush" }
+```
+
+The matching `entities.objects` entry owns its map position. The template ID
+references `WorldObjectTemplates` in `Lua/Objects.lua`; authored Lua objects do
+not need an object-definition entry. Removing an unknown template or its
+matching position makes the native manifest invalid instead of silently
+substituting another object.
+
 All of those overworld coordinates use the same 1024-by-1024 coordinate system.
 Use the World Builder to edit normal map content. Direct JSON edits must retain
 valid palette indices, exact layer cell totals, in-bounds tags, and walkable,

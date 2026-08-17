@@ -199,6 +199,16 @@ int Application::runSmokeTests()
 			std::cerr << "NPC reward-tier smoke test failed." << std::endl;
 			return 2;
 		}
+		if (!exerciseAtmosphereSmoke())
+		{
+			std::cerr << "Day/night and weather smoke test failed." << std::endl;
+			return 2;
+		}
+		if (!exerciseWorldObjectsSmoke())
+		{
+			std::cerr << "World-object template smoke test failed." << std::endl;
+			return 2;
+		}
 		if (!exerciseBundledDecksSmoke())
 		{
 			std::cerr << "Bundled deck smoke test failed." << std::endl;
@@ -2824,6 +2834,164 @@ bool Application::exerciseNpcRewardsSmoke()
 	return true;
 }
 
+bool Application::exerciseAtmosphereSmoke()
+{
+	OverworldAtmosphere atmosphere;
+	bool valid = atmosphere.day() == 1 && atmosphere.minuteOfDay() == 8 * 60 &&
+		atmosphere.clockText() == "08:00" && atmosphere.daylight() > 0.99f &&
+		atmosphere.weather() == WeatherKind::Clear && atmosphere.weatherIntensity() == 0.f;
+
+	OverworldAtmosphereState saved = atmosphere.state();
+	saved.day = 2;
+	saved.minuteOfDay = 23 * 60 + 59;
+	saved.weather = WeatherKind::Rain;
+	saved.weatherIntensity = 0.75f;
+	saved.weatherRemaining = 10000;
+	saved.weatherFadingOut = false;
+	atmosphere.restore(saved);
+	valid = valid && atmosphere.nightOverlayAlpha() > 100 &&
+		atmosphere.weather() == WeatherKind::Rain &&
+		std::fabs(atmosphere.weatherIntensity() - 0.75f) < 0.001f;
+	atmosphere.update(500);
+	valid = valid && atmosphere.day() == 3 && atmosphere.minuteOfDay() == 0 &&
+		atmosphere.clockText() == "00:00";
+
+	saved = atmosphere.state();
+	saved.minuteOfDay = 6 * 60 + 45;
+	saved.weather = WeatherKind::Snow;
+	saved.weatherIntensity = 1.f;
+	saved.weatherRemaining = 5000;
+	atmosphere.restore(saved);
+	valid = valid && atmosphere.warmOverlayAlpha() > 0 &&
+		std::string(OverworldAtmosphere::weatherName(atmosphere.weather())) == "Snow";
+
+	WeatherKind parsed = WeatherKind::Clear;
+	valid = valid && OverworldAtmosphere::parseWeather("rain", parsed) &&
+		parsed == WeatherKind::Rain && OverworldAtmosphere::parseWeather("snow", parsed) &&
+		parsed == WeatherKind::Snow && !OverworldAtmosphere::parseWeather("storm", parsed);
+
+	saved = atmosphere.state();
+	saved.weather = WeatherKind::Clear;
+	saved.weatherIntensity = 0.f;
+	saved.weatherRemaining = 0;
+	saved.weatherFadingOut = false;
+	atmosphere.restore(saved);
+	atmosphere.update(1000);
+	return valid && atmosphere.weather() != WeatherKind::Clear &&
+		atmosphere.weatherIntensity() > 0.f;
+}
+
+bool Application::exerciseWorldObjectsSmoke()
+{
+	std::set<std::string> templateIds;
+	int signposts = 0;
+	int chests = 0;
+	int bushes = 0;
+	int rocks = 0;
+	int environment = 0;
+	for (size_t index = 0; index < mWorldObjectTemplates.size(); ++index)
+	{
+		const WorldObjectTemplate& objectTemplate = mWorldObjectTemplates[index];
+		if (objectTemplate.id.empty() ||
+			!templateIds.insert(objectTemplate.id).second) return false;
+		const WorldObject& object = objectTemplate.object;
+		if (object.kind == WorldObjectKind::Signpost) ++signposts;
+		else if (object.kind == WorldObjectKind::Chest)
+		{
+			++chests;
+			if (object.spriteSheet.find("/!Chest.png") == std::string::npos ||
+				object.spriteIndex != 0 || object.openedText.empty()) return false;
+		}
+		else if (object.kind == WorldObjectKind::CuttableBush) ++bushes;
+		else if (object.kind == WorldObjectKind::SmashableRock) ++rocks;
+		else if (object.kind == WorldObjectKind::Environment)
+		{
+			++environment;
+			if (!object.animated || object.spriteSheet.empty() ||
+				object.spriteIndex < 0 || object.spriteIndex > 7 ||
+				object.spriteRow < 0 || object.spriteRow > 3) return false;
+		}
+	}
+	if (signposts != 1 || chests != 1 || bushes != 1 || rocks != 1 ||
+		environment != 8 * 8 * 4) return false;
+	std::vector<WorldObjectTemplate>::const_iterator bush = std::find_if(
+		mWorldObjectTemplates.begin(), mWorldObjectTemplates.end(),
+		[](const WorldObjectTemplate& objectTemplate)
+		{
+			return objectTemplate.id == "cuttable_bush";
+		});
+	if (bush == mWorldObjectTemplates.end()) return false;
+	WorldObject instance = createWorldObject(*bush, "cuttable_bush_smoke");
+	bool valid = instance.editorCreated && instance.templateId == "cuttable_bush" &&
+		instance.id == "cuttable_bush_smoke" &&
+		instance.kind == WorldObjectKind::CuttableBush &&
+		getCardIdFromName("Xeno Mantis") >= 0 &&
+		getCardIdFromName("Smash Warrior Stagrandu") >= 0;
+	if (!valid) return false;
+
+	const int savedArea = mCurrentWorldArea;
+	const WorldBuilderTab savedTab = mWorldBuilderTab;
+	const bool savedPalette = mWorldBuilderObjectPalette;
+	const int savedSelection = mWorldBuilderSelectedObject;
+	const bool savedDirty = mWorldBuilderDirty;
+	const bool savedUndoPending = mWorldBuilderUndoPending;
+	const WorldBuilderUndoAction savedPendingUndo = mWorldBuilderPendingUndo;
+	const std::vector<WorldBuilderUndoAction> savedUndoHistory =
+		mWorldBuilderUndoHistory;
+	const std::vector<WorldObject> savedObjects = mWorldObjects;
+	const std::string savedNotice = mWorldBuilderNotice;
+	const bool savedNoticeError = mWorldBuilderNoticeError;
+	const Uint32 savedNoticeUntil = mWorldBuilderNoticeUntil;
+	mCurrentWorldArea = worldAreaIndex(mWorld.start.mapId);
+	mWorldBuilderTab = WorldBuilderTab::Objects;
+	mWorldBuilderObjectPalette = false;
+	mWorldBuilderSelectedObject = -1;
+	clearWorldBuilderUndoHistory();
+	int freeX = -1;
+	int freeY = -1;
+	if (mCurrentWorldArea >= 0)
+		for (int radius = 1; radius <= 40 && freeX < 0; ++radius)
+			for (int y = std::max(0, mWorld.start.y - radius);
+				y <= std::min((int)currentMap().size() - 1,
+				mWorld.start.y + radius) && freeX < 0; ++y)
+				for (int x = std::max(0, mWorld.start.x - radius);
+					x <= std::min((int)currentMap()[y].size() - 1,
+					mWorld.start.x + radius); ++x)
+					if (worldBuilderCanPlace(x, y, -1, -1))
+					{
+						freeX = x;
+						freeY = y;
+						break;
+					}
+	const size_t originalCount = mWorldObjects.size();
+	const int bushIndex = (int)(bush - mWorldObjectTemplates.begin());
+	valid = freeX >= 0 && addWorldBuilderObject(bushIndex, freeX, freeY) &&
+		mWorldObjects.size() == originalCount + 1 &&
+		mWorldObjects.back().editorCreated &&
+		mWorldObjects.back().templateId == "cuttable_bush";
+	deleteWorldBuilderObject();
+	valid = valid && mWorldObjects.size() == originalCount;
+	undoWorldBuilder();
+	valid = valid && mWorldObjects.size() == originalCount + 1 &&
+		mWorldObjects.back().editorCreated;
+	undoWorldBuilder();
+	valid = valid && mWorldObjects.size() == originalCount &&
+		mWorldBuilderUndoHistory.empty() && mWorldBuilderDirty == savedDirty;
+	mWorldObjects = savedObjects;
+	mCurrentWorldArea = savedArea;
+	mWorldBuilderTab = savedTab;
+	mWorldBuilderObjectPalette = savedPalette;
+	mWorldBuilderSelectedObject = savedSelection;
+	mWorldBuilderDirty = savedDirty;
+	mWorldBuilderUndoPending = savedUndoPending;
+	mWorldBuilderPendingUndo = savedPendingUndo;
+	mWorldBuilderUndoHistory = savedUndoHistory;
+	mWorldBuilderNotice = savedNotice;
+	mWorldBuilderNoticeError = savedNoticeError;
+	mWorldBuilderNoticeUntil = savedNoticeUntil;
+	return valid;
+}
+
 bool Application::exerciseMultiCivilizationSmoke()
 {
 	std::lock_guard<std::mutex> lock(gMutex);
@@ -4240,6 +4408,7 @@ bool Application::exerciseOverworldMovementSmoke()
 		nativeWorld.portals.size() == mWorld.portals.size() &&
 		nativeWorld.npcPositions == mWorld.npcPositions &&
 		nativeWorld.objectPositions == mWorld.objectPositions &&
+		nativeWorld.objectDefinitions == mWorld.objectDefinitions &&
 		nativeWorld.shardPositions == mWorld.shardPositions;
 	seamlessWorldReady = seamlessWorldReady && catalogStorageReady && nativeWorldReady;
 	const WorldRegion* glasswaterRegion = worldRegionAt("overworld",
@@ -4862,6 +5031,9 @@ bool Application::exerciseMenuScreensSmoke()
 	bool savedBuilderShowGrid = mWorldBuilderShowGrid;
 	int savedBuilderSelectedNpc = mWorldBuilderSelectedNpc;
 	int savedBuilderSelectedObject = mWorldBuilderSelectedObject;
+	bool savedBuilderObjectPalette = mWorldBuilderObjectPalette;
+	int savedBuilderSelectedObjectTemplate = mWorldBuilderSelectedObjectTemplate;
+	std::vector<WorldObject> savedWorldObjects = mWorldObjects;
 	bool savedBuilderDirty = mWorldBuilderDirty;
 	int savedMouseX = mMouseX;
 	int savedMouseY = mMouseY;
@@ -4936,6 +5108,77 @@ bool Application::exerciseMenuScreensSmoke()
 	handleWorldBuilderEvent(objectListClick);
 	int shardArea = worldAreaIndex(mMercerStock.shards[0].mapId);
 	shardListedAsObject = shardListedAsObject && mCurrentWorldArea == shardArea;
+	mCurrentWorldArea = builderArea;
+	mWorldBuilderTab = WorldBuilderTab::Objects;
+	mWorldBuilderObjectPalette = false;
+	mWorldBuilderListScroll = 0;
+	int bushTemplate = -1;
+	for (size_t index = 0; index < mWorldObjectTemplates.size(); ++index)
+		if (mWorldObjectTemplates[index].id == "cuttable_bush")
+			bushTemplate = (int)index;
+	int objectTestX = -1;
+	int objectTestY = -1;
+	if (mWorld.start.mapId == currentMapId())
+		for (int radius = 1; radius <= 40 && objectTestX < 0; ++radius)
+			for (int y = std::max(0, mWorld.start.y - radius);
+				y <= std::min((int)currentMap().size() - 1,
+				mWorld.start.y + radius) && objectTestX < 0; ++y)
+				for (int x = std::max(0, mWorld.start.x - radius);
+					x <= std::min((int)currentMap()[y].size() - 1,
+					mWorld.start.x + radius); ++x)
+					if (worldBuilderCanPlace(x, y, -1, -1))
+					{
+						objectTestX = x;
+						objectTestY = y;
+						break;
+					}
+	clearWorldBuilderUndoHistory();
+	bool objectCreationReady = bushTemplate >= 0 && bushTemplate < 13 &&
+		objectTestX >= 0;
+	SDL_Event addPaletteClick = {};
+	addPaletteClick.type = SDL_MOUSEBUTTONDOWN;
+	addPaletteClick.button.button = SDL_BUTTON_LEFT;
+	addPaletteClick.button.x = 1050;
+	addPaletteClick.button.y = 675;
+	handleWorldBuilderEvent(addPaletteClick);
+	objectCreationReady = objectCreationReady && mWorldBuilderObjectPalette;
+	if (bushTemplate >= 0 && bushTemplate < 13)
+	{
+		SDL_Event templateClick = {};
+		templateClick.type = SDL_MOUSEBUTTONDOWN;
+		templateClick.button.button = SDL_BUTTON_LEFT;
+		templateClick.button.x = 1100;
+		templateClick.button.y = 151 + bushTemplate * 39 + 8;
+		handleWorldBuilderEvent(templateClick);
+		objectCreationReady = objectCreationReady &&
+			mWorldBuilderSelectedObjectTemplate == bushTemplate;
+	}
+	const size_t objectCountBeforeCreation = mWorldObjects.size();
+	const bool dirtyBeforeObjectCreation = mWorldBuilderDirty;
+	if (objectCreationReady)
+		objectCreationReady = addWorldBuilderObject(bushTemplate,
+			objectTestX, objectTestY);
+	objectCreationReady = objectCreationReady &&
+		mWorldObjects.size() == objectCountBeforeCreation + 1 &&
+		mWorldObjects.back().kind == WorldObjectKind::CuttableBush &&
+		mWorldObjects.back().editorCreated &&
+		mWorldObjects.back().templateId == "cuttable_bush";
+	SDL_Event placedPaletteClick = addPaletteClick;
+	placedPaletteClick.button.x = 1190;
+	handleWorldBuilderEvent(placedPaletteClick);
+	objectCreationReady = objectCreationReady && !mWorldBuilderObjectPalette;
+	deleteWorldBuilderObject();
+	objectCreationReady = objectCreationReady &&
+		mWorldObjects.size() == objectCountBeforeCreation;
+	undoWorldBuilder();
+	objectCreationReady = objectCreationReady &&
+		mWorldObjects.size() == objectCountBeforeCreation + 1 &&
+		mWorldObjects.back().editorCreated;
+	undoWorldBuilder();
+	objectCreationReady = objectCreationReady &&
+		mWorldObjects.size() == objectCountBeforeCreation &&
+		mWorldBuilderUndoHistory.empty() &&
+		mWorldBuilderDirty == dirtyBeforeObjectCreation;
 	mWorldBuilderTab = WorldBuilderTab::Npcs;
 	mCurrentWorldArea = portraitArea;
 	mWorldBuilderCameraX = 0;
@@ -5330,6 +5573,9 @@ bool Application::exerciseMenuScreensSmoke()
 	mWorldBuilderShowGrid = savedBuilderShowGrid;
 	mWorldBuilderSelectedNpc = savedBuilderSelectedNpc;
 	mWorldBuilderSelectedObject = savedBuilderSelectedObject;
+	mWorldBuilderObjectPalette = savedBuilderObjectPalette;
+	mWorldBuilderSelectedObjectTemplate = savedBuilderSelectedObjectTemplate;
+	mWorldObjects = savedWorldObjects;
 	mWorld.maps[builderArea].tileLayers = savedTileLayers;
 	mWorldBuilderDirty = savedBuilderDirty;
 	mMouseX = savedMouseX;
@@ -5338,6 +5584,7 @@ bool Application::exerciseMenuScreensSmoke()
 	mCurrentWorldArea = savedBuilderArea;
 	mScreen = savedScreen;
 	if (!npcDoubleClickReady || !objectDoubleClickReady || !shardListedAsObject ||
+		!objectCreationReady ||
 		!npcBuilderViewReady || !tilePaletteReady || !catalogPaintingReady ||
 		!brushAreaReady || !wallOpeningConnectionsRemoved || !undoReady ||
 		!gridToggleReady ||

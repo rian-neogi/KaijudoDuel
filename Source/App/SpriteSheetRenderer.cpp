@@ -65,3 +65,23 @@ bool SpriteSheetRenderer::drawCharacter(const CharacterSpriteDefinition& definit
 		facingX, facingY, walking, ticks, textureWidth, textureHeight, source)) return false;
 	return SDL_RenderCopy(mRenderer, texture, &source, &destination) == 0;
 }
+
+bool SpriteSheetRenderer::drawMapObject(const CharacterSpriteDefinition& definition,
+	int facingX, int facingY, bool animated, Uint32 ticks,
+	const SDL_Rect& anchorTile)
+{
+	if (mRenderer == NULL || mAssets == NULL || definition.sheet.empty()) return false;
+	SDL_Texture* texture = mAssets->texture(definition.sheet, true);
+	if (texture == NULL) return false;
+	int textureWidth = 0;
+	int textureHeight = 0;
+	if (SDL_QueryTexture(texture, NULL, NULL, &textureWidth, &textureHeight) != 0) return false;
+	SDL_Rect source;
+	if (!characterSourceRect(definition.sheet, definition.characterIndex,
+		facingX, facingY, animated, ticks, textureWidth, textureHeight, source)) return false;
+	const int height = std::max(1, anchorTile.w * source.h / source.w);
+	const int width = std::max(1, anchorTile.w);
+	SDL_Rect destination = { anchorTile.x + (anchorTile.w - width) / 2,
+		anchorTile.y + anchorTile.h - height, width, height };
+	return SDL_RenderCopy(mRenderer, texture, &source, &destination) == 0;
+}

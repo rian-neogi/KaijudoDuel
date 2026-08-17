@@ -84,6 +84,7 @@
       { "id": "cinderrail_foundry_sign", "map": "overworld", "x": 688, "y": 708 },
       { "id": "cinderrail_square_sign", "map": "overworld", "x": 668, "y": 710 },
       { "id": "cinderrail_station_sign", "map": "overworld", "x": 650, "y": 703 },
+      { "id": "environment_flame_1_1_1787006381357", "map": "overworld", "x": 529, "y": 712 },
       { "id": "glasswater_ledger_sign", "map": "overworld", "x": 362, "y": 685 },
       { "id": "glasswater_quay_sign", "map": "overworld", "x": 371, "y": 647 },
       { "id": "glasswater_tideglass_sign", "map": "overworld", "x": 371, "y": 649 },
@@ -98,11 +99,20 @@
       { "id": "rootmaze_market_sign", "map": "overworld", "x": 371, "y": 651 },
       { "id": "rootmaze_northwater_sign", "map": "overworld", "x": 371, "y": 653 },
       { "id": "rootmaze_southroot_sign", "map": "overworld", "x": 338, "y": 755 },
+      { "id": "smashable_rock_1787006400858", "map": "overworld", "x": 472, "y": 689 },
+      { "id": "smashable_rock_1787006401508", "map": "overworld", "x": 472, "y": 690 },
+      { "id": "smashable_rock_1787006441377", "map": "overworld", "x": 366, "y": 685 },
       { "id": "watershed_crossroads_sign", "map": "overworld", "x": 435, "y": 717 },
       { "id": "watershed_emberglen_sign", "map": "overworld", "x": 493, "y": 717 },
       { "id": "watershed_glasswater_sign", "map": "overworld", "x": 371, "y": 655 },
       { "id": "watershed_rootmaze_sign", "map": "overworld", "x": 388, "y": 725 },
       { "id": "watershed_shelter_sign", "map": "overworld", "x": 439, "y": 707 }
+    ],
+    "object_definitions": [
+      { "id": "environment_flame_1_1_1787006381357", "template": "environment_flame_1_1" },
+      { "id": "smashable_rock_1787006400858", "template": "smashable_rock" },
+      { "id": "smashable_rock_1787006401508", "template": "smashable_rock" },
+      { "id": "smashable_rock_1787006441377", "template": "smashable_rock" }
     ],
     "shards": [
       { "id": "aqua", "map": "overworld", "x": 451, "y": 648 },
