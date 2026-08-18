@@ -612,7 +612,7 @@ Cards["Rain of Arrows"] = {
 		end
 		createChoiceNoCheck("Look at your opponent's hand",1,id,owner,Checks.False)
 		for _,card in ipairs(hand) do
-			if(getCardZone(card)==ZONE_HAND and getCardType(card)==TYPE_SPELL and getCardCiv(card)==CIV_DARKNESS) then
+			if(getCardZone(card)==ZONE_HAND and getCardType(card)==TYPE_SPELL and cardHasCivilization(card,CIV_DARKNESS)) then
 				discardCard(card)
 			elseif(getCardZone(card)==ZONE_HAND) then
 				flipCard(card)
@@ -1172,7 +1172,7 @@ Cards["Grim Soul, Shadow of Reversal"] = {
 	HandleMessage = function(id)
 		local tap = function(id)
 			local check = function(cid,sid)
-				if(Checks.CreatureInYourGraveyard(cid,sid)==1 and getCardCiv(sid)==CIV_DARKNESS) then
+				if(Checks.CreatureInYourGraveyard(cid,sid)==1 and cardHasCivilization(sid,CIV_DARKNESS)) then
 					return 1
 				else
 					return 0
@@ -1405,7 +1405,7 @@ Cards["Armored Scout Gestuchar"] = {
 		local size = getZoneSize(owner,ZONE_BATTLE)
 		for i=0,(size-1) do
 			local creature = getCardAt(owner,ZONE_BATTLE,i)
-			if(creature~=id and getCardType(creature)==TYPE_CREATURE and getCardCiv(creature)==CIV_FIRE) then
+			if(creature~=id and getCardType(creature)==TYPE_CREATURE and cardHasCivilization(creature,CIV_FIRE)) then
 				otherFire = true
 				break
 			end
@@ -1622,7 +1622,7 @@ Cards["Migasa, Adept of Chaos"] = {
 				Abils.destroyModAtEOT(cid,mid)
 			end
 			local check = function(cid,sid)
-				if(Checks.InYourBattle(cid,sid)==1 and getCardCiv(sid)==CIV_FIRE) then
+				if(Checks.InYourBattle(cid,sid)==1 and cardHasCivilization(sid,CIV_FIRE)) then
 					return 1
 				else
 					return 0
@@ -1783,7 +1783,7 @@ Cards["Torchclencher"] = {
 		local size = getZoneSize(owner,ZONE_BATTLE)
 		for i=0,(size-1) do
 			local creature = getCardAt(owner,ZONE_BATTLE,i)
-			if(creature~=id and getCardType(creature)==TYPE_CREATURE and getCardCiv(creature)==CIV_FIRE) then
+			if(creature~=id and getCardType(creature)==TYPE_CREATURE and cardHasCivilization(creature,CIV_FIRE)) then
 				Abils.PowerAttacker(id,3000)
 				break
 			end
@@ -2051,7 +2051,7 @@ Cards["Mystic Treasure Chest"] = {
 	OnCast = function(id)
 		local owner = getCardOwner(id)
 		local valid = function(cid,sid)
-			if(Checks.InYourDeck(cid,sid)==1 and getCardCiv(sid)~=CIV_NATURE) then
+			if(Checks.InYourDeck(cid,sid)==1 and not cardHasCivilization(sid,CIV_NATURE)) then
 				return 1
 			end
 			return 0

@@ -19,7 +19,7 @@ Cards["Amnis, Holy Elemental"] = {
     HandleMessage = function(id)
         if(getMessageType()=="get creaturecanblock") then
 		    if(getMessageInt("blocker")==id) then
-                if(getCardCiv(getMessageInt("attacker"))~=CIV_DARKNESS) then
+                if(not cardHasCivilization(getMessageInt("attacker"),CIV_DARKNESS)) then
 			        setMessageInt("canblock",0)
                 end
 		    end
@@ -33,7 +33,7 @@ Cards["Amnis, Holy Elemental"] = {
 	        end
         end
         if(getMessageType()=="pre creaturebattle") then
-		    if((getMessageInt("attacker")==id and getCardCiv(getMessageInt("defender"))==CIV_DARKNESS) or (getMessageInt("defender")==id and getCardCiv(getMessageInt("attacker"))==CIV_DARKNESS)) then
+		    if((getMessageInt("attacker")==id and cardHasCivilization(getMessageInt("defender"),CIV_DARKNESS)) or (getMessageInt("defender")==id and cardHasCivilization(getMessageInt("attacker"),CIV_DARKNESS))) then
 			    if(getCardZone(id)==ZONE_BATTLE) then
 				    createModifier(id,mod)
 			    end
@@ -66,14 +66,14 @@ Cards["Armored Groblav"] = {
                 local count = 0
                 for i=0,(size-1) do
                     local sid = getCardAt(player,ZONE_BATTLE,i)
-                    if(getCardType(sid)==TYPE_CREATURE and getCardCiv(sid)==CIV_FIRE and id~=sid) then
+                    if(getCardType(sid)==TYPE_CREATURE and cardHasCivilization(sid,CIV_FIRE) and id~=sid) then
                         count = count+1
                     end
                 end
                 size = getZoneSize(getOpponent(player),ZONE_BATTLE)
                 for i=0,(size-1) do
                     local sid = getCardAt(getOpponent(player),ZONE_BATTLE,i)
-                    if(getCardType(sid)==TYPE_CREATURE and getCardCiv(sid)==CIV_FIRE and id~=sid) then
+                    if(getCardType(sid)==TYPE_CREATURE and cardHasCivilization(sid,CIV_FIRE) and id~=sid) then
                         count = count+1
                     end
                 end

@@ -239,6 +239,11 @@ int Application::runSmokeTests()
 			std::cerr << "Hollow-card rules smoke test failed." << std::endl;
 			return 2;
 		}
+		if (!exerciseMultiCivilizationSmoke())
+		{
+			std::cerr << "Multi-civilization rules smoke test failed." << std::endl;
+			return 2;
+		}
 		if (!exerciseBundledDecksSmoke())
 		{
 			std::cerr << "Bundled deck smoke test failed." << std::endl;
@@ -343,11 +348,6 @@ int Application::runSmokeTests()
 			if (smokeNpc == 0 && smokeFrames == 36 && !exerciseKnockoutScoringSmoke())
 			{
 				std::cerr << "Knockout scoring smoke test failed." << std::endl;
-				return 2;
-			}
-			if (smokeNpc == 0 && smokeFrames == 33 && !exerciseMultiCivilizationSmoke())
-			{
-				std::cerr << "Multi-civilization rules smoke test failed." << std::endl;
 				return 2;
 			}
 			if (smokeNpc == 0 && smokeFrames == 35 && !exerciseCrypticTotemSmoke())
@@ -3464,9 +3464,12 @@ bool Application::exerciseMultiCivilizationSmoke()
 {
 	std::lock_guard<std::mutex> lock(gMutex);
 	int dualCardId = getCardIdFromName("Deklowaz, the Terminator");
+	int secondaryDarknessId = getCardIdFromName("Melnia, the Aqua Shadow");
+	int jackViperId = getCardIdFromName("Jack Viper, Shadow of Doom");
 	int darknessCardId = getCardIdFromName("Bone Spider");
 	int fireCardId = getCardIdFromName("Deadly Fighter Braid Claw");
-	if (dualCardId < 0 || darknessCardId < 0 || fireCardId < 0) return false;
+	if (dualCardId < 0 || secondaryDarknessId < 0 || jackViperId < 0 ||
+		darknessCardId < 0 || fireCardId < 0) return false;
 
 	Duel* savedActiveDuel = ActiveDuel;
 	bool valid = true;
@@ -3529,6 +3532,40 @@ bool Application::exerciseMultiCivilizationSmoke()
 		test.dispatchAllMessages();
 		valid = valid && test.mCardList[tappedDual]->mZone == ZONE_MANA &&
 			test.mCardList[tappedDual]->mIsTapped;
+	}
+	{
+		Duel aura;
+		aura.mIsSimulation = true;
+		ActiveDuel = &aura;
+		auto addBattleCard = [&aura](int cardId) -> int
+		{
+			int uid = static_cast<int>(aura.mCardList.size());
+			Card* card = new Card(uid, cardId, 0);
+			aura.mCardList.push_back(card);
+			aura.mBattlezones[0].addCard(card);
+			card->mZone = ZONE_BATTLE;
+			return uid;
+		};
+
+		int jackViper = addBattleCard(jackViperId);
+		int secondaryDarkness = addBattleCard(secondaryDarknessId);
+		int fireCreature = addBattleCard(fireCardId);
+		valid = valid && aura.mCardList[secondaryDarkness]->mCivilization == CIV_WATER &&
+			aura.cardHasCivilization(secondaryDarkness, CIV_DARKNESS);
+		aura.getCreaturePower(jackViper);
+
+		Message destroyDarkness("creaturedestroy");
+		destroyDarkness.addValue("creature", secondaryDarkness);
+		destroyDarkness.addValue("zoneto", ZONE_GRAVEYARD);
+		aura.dispatchMessage(destroyDarkness);
+		aura.dispatchAllMessages();
+		Message destroyFire("creaturedestroy");
+		destroyFire.addValue("creature", fireCreature);
+		destroyFire.addValue("zoneto", ZONE_GRAVEYARD);
+		aura.dispatchMessage(destroyFire);
+		aura.dispatchAllMessages();
+		valid = valid && aura.mCardList[secondaryDarkness]->mZone == ZONE_HAND &&
+			aura.mCardList[fireCreature]->mZone == ZONE_GRAVEYARD;
 	}
 	ActiveDuel = savedActiveDuel;
 	return valid;

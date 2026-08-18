@@ -21,7 +21,7 @@ namespace
 {
 	const char* TRACE_PATH = "Logs/lua-trace.log";
 	const char* PREVIOUS_TRACE_PATH = "Logs/lua-trace.previous.log";
-	const size_t MAX_TRACE_SIZE = 16 * 1024 * 1024;
+	const size_t MAX_TRACE_SIZE = 64 * 1024 * 1024;
 	const size_t MAX_PENDING_BYTES = 8 * 1024 * 1024;
 	const size_t TRACE_BATCH_BYTES = 64 * 1024;
 	const int TRACE_BATCH_DELAY_MS = 25;

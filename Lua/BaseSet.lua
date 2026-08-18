@@ -274,7 +274,7 @@ Cards["Bolshack Dragon"] = {
 				local owner = getCardOwner(id)
 				local size = getZoneSize(owner,ZONE_GRAVEYARD)-1
 				for i=0,size,1 do
-					if(getCardCiv(getCardAt(owner,ZONE_GRAVEYARD,i))==CIV_FIRE) then
+					if(cardHasCivilization(getCardAt(owner,ZONE_GRAVEYARD,i),CIV_FIRE)) then
 						count = count+1
 					end
 				end

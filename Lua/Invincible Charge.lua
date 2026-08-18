@@ -135,7 +135,7 @@ Cards["Gandar, Seeker of Explosions"] = {
 					local size = getZoneSize(owner,ZONE_BATTLE)
 					for i=0,(size-1) do
 						local creature = getCardAt(owner,ZONE_BATTLE,i)
-						if(getCardCiv(creature)==CIV_LIGHT) then
+						if(cardHasCivilization(creature,CIV_LIGHT)) then
 							untapCard(creature)
 						end
 					end
@@ -164,7 +164,7 @@ Cards["King Benthos"] = {
 			local size = getZoneSize(owner,ZONE_BATTLE)
 			for i=0,(size-1) do
 				local creature = getCardAt(owner,ZONE_BATTLE,i)
-				if(getCardCiv(creature)==CIV_WATER) then
+				if(cardHasCivilization(creature,CIV_WATER)) then
 					createModifier(creature,mod)
 				end
 			end
@@ -191,7 +191,7 @@ Cards["Battleship Mutant"] = {
 			local size = getZoneSize(owner,ZONE_BATTLE)
 			for i=0,(size-1) do
 				local creature = getCardAt(owner,ZONE_BATTLE,i)
-				if(getCardCiv(creature)==CIV_DARKNESS) then
+				if(cardHasCivilization(creature,CIV_DARKNESS)) then
 					createModifier(creature,mod)
 				end
 			end
@@ -216,7 +216,7 @@ Cards["Armored Transport Galiacruse"] = {
 			local size = getZoneSize(owner,ZONE_BATTLE)
 			for i=0,(size-1) do
 				local creature = getCardAt(owner,ZONE_BATTLE,i)
-				if(getCardCiv(creature)==CIV_FIRE) then
+				if(cardHasCivilization(creature,CIV_FIRE)) then
 					createModifier(creature,mod)
 				end
 			end
@@ -237,7 +237,7 @@ Cards["Spinning Totem"] = {
 			local mod = function(cid,mid)
 				if(getMessageType()=="post creaturebattle" and getMessageInt("blocked")==1) then
 					local attacker = getMessageInt("attacker")
-					if(getCardOwner(attacker)==owner and getCardCiv(attacker)==CIV_NATURE) then
+					if(getCardOwner(attacker)==owner and cardHasCivilization(attacker,CIV_NATURE)) then
 						local ch = createChoice("Choose an opponent's shield",0,id,owner,Checks.InOppShields)
 						if(ch>=0) then
 							creatureBreakShield(attacker,ch)
@@ -278,7 +278,7 @@ Cards["Geoshine, Spectral Knight"] = {
 
 	HandleMessage = function(id)
 		local check = function(cid,sid)
-			if(Checks.UntappedInBattle(cid,sid)==1 and (getCardCiv(sid)==CIV_FIRE or getCardCiv(sid)==CIV_DARKNESS)) then
+			if(Checks.UntappedInBattle(cid,sid)==1 and (cardHasCivilization(sid,CIV_FIRE) or cardHasCivilization(sid,CIV_DARKNESS))) then
 				return 1
 			else
 				return 0
@@ -306,7 +306,7 @@ Cards["Justice Jamming"] = {
 			civilization = CIV_FIRE
 		end
 		local tapCivilization = function(cid,sid)
-			if(getCardCiv(sid)==civilization) then
+			if(cardHasCivilization(sid,civilization)) then
 				tapCard(sid)
 			end
 		end
@@ -794,7 +794,7 @@ Cards["Vacuum Gel"] = { --test
 	HandleMessage = function(id)
 		local valid = function(cid,sid)
 			if(Checks.UntappedInOppBattle(cid,sid)==1 and
-				(getCardCiv(sid)==CIV_NATURE or getCardCiv(sid)==CIV_LIGHT)) then return 1 end
+				(cardHasCivilization(sid,CIV_NATURE) or cardHasCivilization(sid,CIV_LIGHT))) then return 1 end
 			return 0
 		end
 		Abils.AiRemovalTarget(id,valid)
@@ -803,7 +803,7 @@ Cards["Vacuum Gel"] = { --test
 	OnCast = function(id)
 		local check = function(cid,sid)
 			if(Checks.UntappedInOppBattle(cid,sid)==1) then
-				if(getCardCiv(sid)==CIV_NATURE or getCardCiv(sid)==CIV_LIGHT) then
+				if(cardHasCivilization(sid,CIV_NATURE) or cardHasCivilization(sid,CIV_LIGHT)) then
 					return 1
 				else
 					return 0
@@ -1088,14 +1088,14 @@ Cards["Freezing Icehammer"] = {
 	HandleMessage = function(id)
 		Abils.AiCanCastIfValidTarget(id,getOpponent(getCardOwner(id)),ZONE_BATTLE,function(cid,sid)
 			if(Checks.InOppBattle(cid,sid)==1 and
-				(getCardCiv(sid)==CIV_WATER or getCardCiv(sid)==CIV_DARKNESS)) then return 1 end
+				(cardHasCivilization(sid,CIV_WATER) or cardHasCivilization(sid,CIV_DARKNESS))) then return 1 end
 			return 0
 		end)
 	end,
 
 	OnCast = function(id)
 		local valid = function(cid,sid)
-			if(Checks.InOppBattle(cid,sid)==1 and (getCardCiv(sid)==CIV_WATER or getCardCiv(sid)==CIV_DARKNESS)) then
+			if(Checks.InOppBattle(cid,sid)==1 and (cardHasCivilization(sid,CIV_WATER) or cardHasCivilization(sid,CIV_DARKNESS))) then
 				return 1
 			end
 			return 0

@@ -775,7 +775,7 @@ Cards["Necrodragon Izorist Vhal"] = {
 			local size = getZoneSize(owner,ZONE_GRAVEYARD)
 			for i=0,(size-1) do
 				local card = getCardAt(owner,ZONE_GRAVEYARD,i)
-				if(getCardType(card)==TYPE_CREATURE and getCardCiv(card)==CIV_DARKNESS) then count=count+1 end
+				if(getCardType(card)==TYPE_CREATURE and cardHasCivilization(card,CIV_DARKNESS)) then count=count+1 end
 			end
 			setMessageInt("power",getMessageInt("power")+count*2000)
 		elseif(getMessageType()=="get creaturebreaker" and getMessageInt("creature")==id and getCreaturePower(id)>=6000) then
@@ -1227,7 +1227,7 @@ Cards["Terradragon Anrist Vhal"] = {
 			local size = getZoneSize(owner,ZONE_BATTLE)
 			for i=0,(size-1) do
 				local creature = getCardAt(owner,ZONE_BATTLE,i)
-				if(creature~=id and getCardCiv(creature)==CIV_NATURE) then count=count+1 end
+				if(creature~=id and cardHasCivilization(creature,CIV_NATURE)) then count=count+1 end
 			end
 			setMessageInt("power",getMessageInt("power")+count*2000)
 		elseif(getMessageType()=="get creaturebreaker" and getMessageInt("creature")==id and getCreaturePower(id)>=6000) then

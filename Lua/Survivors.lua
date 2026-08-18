@@ -369,8 +369,7 @@ Cards["Cataclysmic Eruption"] = {
         for i=0,(size-1) do
             local cid = getCardAt(owner,ZONE_BATTLE,i)
             if(getCardType(cid)==TYPE_CREATURE) then
-                local civ = getCardCiv(cid)
-                if(civ==CIV_NATURE) then
+				if(cardHasCivilization(cid,CIV_NATURE)) then
 					cwn= cwn+1
                 end
             end
@@ -410,11 +409,9 @@ Cards["Crow Winger"] = {
                 local size = getZoneSize(owner,ZONE_BATTLE)
                 local count = 0
                 local cid
-                local civ
                 for i=0,(size-1) do
                     cid = getCardAt(owner,ZONE_BATTLE,i)
-                    civ = getCardCiv(cid)
-                    if(civ==CIV_WATER or civ==CIV_DARKNESS) then
+                    if(cardHasCivilization(cid,CIV_WATER) or cardHasCivilization(cid,CIV_DARKNESS)) then
                         count = count+1
                     end
                 end
@@ -567,12 +564,12 @@ Cards["Gigakail"] = {
 		    local att = getMessageInt("attacker")
 		    local def = getMessageInt("defender")
 		    if(att==id) then
-			    if(getCardZone(def)==ZONE_BATTLE and (getCardCiv(def)==CIV_LIGHT or getCardCiv(def)==CIV_NATURE)) then
+			    if(getCardZone(def)==ZONE_BATTLE and (cardHasCivilization(def,CIV_LIGHT) or cardHasCivilization(def,CIV_NATURE))) then
 				    destroyCreature(def)
 			    end
 		    end
 		    if(def==id) then
-			    if(getCardZone(att)==ZONE_BATTLE and (getCardCiv(att)==CIV_LIGHT or getCardCiv(att)==CIV_NATURE)) then
+			    if(getCardZone(att)==ZONE_BATTLE and (cardHasCivilization(att,CIV_LIGHT) or cardHasCivilization(att,CIV_NATURE))) then
 				    destroyCreature(att)
 			    end
 		    end
@@ -675,7 +672,7 @@ Cards["Horned Mutant"] = {
         if(getMessageType()=="get cardcost") then
             if(getCardZone(id)==ZONE_BATTLE) then
                 local card = getMessageInt("card")
-                if(getCardCiv(card)==CIV_LIGHT) then
+                if(cardHasCivilization(card,CIV_LIGHT)) then
                     local cost = getMessageInt("cost")
                     setMessageInt("cost",cost+1)
                 end
@@ -883,7 +880,7 @@ Cards["Le Quist, the Oracle"] = {
 	HandleMessage = function(id)
         local func = function(id)
             local valid = function(cid,sid)
-                if(Checks.UntappedInBattle(cid,sid)==1 and (getCardCiv(sid)==CIV_FIRE or getCardCiv(sid)==CIV_DARKNESS)) then
+                if(Checks.UntappedInBattle(cid,sid)==1 and (cardHasCivilization(sid,CIV_FIRE) or cardHasCivilization(sid,CIV_DARKNESS))) then
                     return 1
                 else
                     return 0
@@ -916,7 +913,7 @@ Cards["Lurking Eel"] = {
 	HandleMessage = function(id)
         if(getMessageType()=="get creaturecanblock") then
 		    if(getMessageInt("blocker")==id) then
-                if(getCardCiv(getMessageInt("attacker"))~=CIV_NATURE and getCardCiv(getMessageInt("attacker"))~=CIV_FIRE) then
+                if(not cardHasCivilization(getMessageInt("attacker"),CIV_NATURE) and not cardHasCivilization(getMessageInt("attacker"),CIV_FIRE)) then
 			        setMessageInt("canblock",0)
                 end
 		    end
@@ -975,11 +972,9 @@ Cards["Moon Horn"] = {
                 local size = getZoneSize(owner,ZONE_BATTLE)
                 local count = 0
                 local cid
-                local civ
                 for i=0,(size-1) do
                     cid = getCardAt(owner,ZONE_BATTLE,i)
-                    civ = getCardCiv(cid)
-                    if(civ==CIV_WATER or civ==CIV_DARKNESS) then
+                    if(cardHasCivilization(cid,CIV_WATER) or cardHasCivilization(cid,CIV_DARKNESS)) then
                         count = count+1
                     end
                 end
@@ -1111,7 +1106,7 @@ Cards["Ruthless Skyterror"] = {
 	HandleMessage = function(id)
         Abils.cantAttackPlayers(id)
         if(getMessageType()=="get creaturecanattackcreature") then
-		    if(getMessageInt("attacker")==id and getCardCiv(getMessageInt("defender"))==CIV_WATER) then
+		    if(getMessageInt("attacker")==id and cardHasCivilization(getMessageInt("defender"),CIV_WATER)) then
 			    setMessageInt("canattack",CANATTACK_UNTAPPED)
 		    end
 	    end
@@ -1440,8 +1435,8 @@ Cards["Steel-Turret Cluster"] = {
 	HandleMessage = function(id)
         if(getMessageType()=="get creaturecanattackcreature") then
 		    if(getMessageInt("defender")==id) then
-                local civ = getCardCiv(getMessageInt("attacker"))
-                if(civ==CIV_NATURE or civ==CIV_FIRE) then
+                local attacker = getMessageInt("attacker")
+                if(cardHasCivilization(attacker,CIV_NATURE) or cardHasCivilization(attacker,CIV_FIRE)) then
 			        setMessageInt("canattack",CANATTACK_NO)
                 end
 		    end
@@ -1511,8 +1506,7 @@ Cards["Thunder Net"] = {
         for i=0,(size-1) do
             local cid = getCardAt(owner,ZONE_BATTLE,i)
             if(getCardType(cid)==TYPE_CREATURE) then
-                local civ = getCardCiv(cid)
-                if(civ==CIV_WATER) then  
+                if(cardHasCivilization(cid,CIV_WATER)) then
                     cw = cw+1
                 end
             end
@@ -1603,12 +1597,12 @@ Cards["Wisp Howler, Shadow of Tears"] = {
 		    local att = getMessageInt("attacker")
 		    local def = getMessageInt("defender")
 		    if(att==id) then
-			    if(getCardZone(def)==ZONE_BATTLE and (getCardCiv(def)==CIV_LIGHT or getCardCiv(def)==CIV_NATURE)) then
+			    if(getCardZone(def)==ZONE_BATTLE and (cardHasCivilization(def,CIV_LIGHT) or cardHasCivilization(def,CIV_NATURE))) then
 				    destroyCreature(def)
 			    end
 		    end
 		    if(def==id) then
-			    if(getCardZone(att)==ZONE_BATTLE and (getCardCiv(att)==CIV_LIGHT or getCardCiv(att)==CIV_NATURE)) then
+			    if(getCardZone(att)==ZONE_BATTLE and (cardHasCivilization(att,CIV_LIGHT) or cardHasCivilization(att,CIV_NATURE))) then
 				    destroyCreature(att)
 			    end
 		    end

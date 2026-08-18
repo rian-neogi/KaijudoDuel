@@ -19,7 +19,7 @@ Cards["Aeris, Flight Elemental"] = {
 	HandleMessage = function(id)
         Abils.cantAttackPlayers(id)
         if(getMessageType()=="get creaturecanattackcreature") then
-		    if(getMessageInt("attacker")==id and getCardCiv(getMessageInt("defender"))==CIV_DARKNESS) then
+		    if(getMessageInt("attacker")==id and cardHasCivilization(getMessageInt("defender"),CIV_DARKNESS)) then
 			    setMessageInt("canattack",CANATTACK_UNTAPPED)
 		    end
 	    end
@@ -45,7 +45,7 @@ Cards["Alcadeias, Lord of Spirits"] = {
         Abils.Evolution(id,"Angel Command")
         if(getMessageType()=="get cardcancast" and getCardZone(id)==ZONE_BATTLE) then
             local cid = getMessageInt("card")
-            if(getCardType(cid)==TYPE_SPELL and getCardCiv(cid)~=CIV_LIGHT) then
+            if(getCardType(cid)==TYPE_SPELL and not cardHasCivilization(cid,CIV_LIGHT)) then
                 setMessageInt("cancast",0)
             end
         end
@@ -88,7 +88,7 @@ Cards["Ancient Giant"] = {
 
 	HandleMessage = function(id)
         if(getMessageType()=="get creaturecanblock") then
-		    if(getMessageInt("attacker")==id and getCardCiv(getMessageInt("blocker"))==CIV_DARKNESS) then
+		    if(getMessageInt("attacker")==id and cardHasCivilization(getMessageInt("blocker"),CIV_DARKNESS)) then
 			    setMessageInt("canblock",0)
 		    end
 	    end
@@ -201,7 +201,7 @@ Cards["Ballom, Master of Death"] = {
         Abils.Evolution(id,"Demon Command")
         local func = function(id)
             local valid = function(cid,sid)
-                if(Checks.InBattle(cid,sid)==1 and getCardCiv(sid)~=CIV_DARKNESS) then
+                if(Checks.InBattle(cid,sid)==1 and not cardHasCivilization(sid,CIV_DARKNESS)) then
                     return 1
                 else
                     return 0
@@ -238,7 +238,7 @@ Cards["Blasto, Explosive Soldier"] = {
                 local size = getZoneSize(owner,ZONE_BATTLE)
                 for i=0,(size-1) do
                     local cid = getCardAt(owner,ZONE_BATTLE,i)
-                    if(getCardCiv(cid)==CIV_DARKNESS and getCardType(cid)==TYPE_CREATURE) then
+                    if(cardHasCivilization(cid,CIV_DARKNESS) and getCardType(cid)==TYPE_CREATURE) then
                         setMessageInt("power",getMessageInt("power")+2000)
                         break
                     end
@@ -407,7 +407,7 @@ Cards["Dew Mushroom"] = {
         if(getMessageType()=="get cardcost") then
             if(getCardZone(id)==ZONE_BATTLE) then
                 local card = getMessageInt("card")
-                if(getCardCiv(card)==CIV_DARKNESS) then
+                if(cardHasCivilization(card,CIV_DARKNESS)) then
                     local cost = getMessageInt("cost")
                     setMessageInt("cost",cost+1)
                 end
@@ -472,7 +472,7 @@ Cards["Exploding Cactus"] = {
                 local size = getZoneSize(owner,ZONE_BATTLE)
                 for i=0,(size-1) do
                     local cid = getCardAt(owner,ZONE_BATTLE,i)
-                    if(getCardCiv(cid)==CIV_LIGHT and getCardType(cid)==TYPE_CREATURE) then
+                    if(cardHasCivilization(cid,CIV_LIGHT) and getCardType(cid)==TYPE_CREATURE) then
                         setMessageInt("power",getMessageInt("power")+2000)
                         break
                     end
@@ -499,7 +499,7 @@ Cards["Fu Reil, Seeker of Storms"] = {
 
 	HandleMessage = function(id)
         if(getMessageType()=="get canuseshieldtrigger") then
-            if(getCardCiv(getMessageInt("card"))==CIV_DARKNESS and getCardZone(id)==ZONE_BATTLE) then
+            if(cardHasCivilization(getMessageInt("card"),CIV_DARKNESS) and getCardZone(id)==ZONE_BATTLE) then
                 setMessageInt("canuse",0)
             end
         end
@@ -547,7 +547,7 @@ Cards["Galklife Dragon"] = {
 	HandleMessage = function(id)
         local func = function(id)
             local valid = function(cid,sid)
-                if(Checks.InBattle(cid,sid)==1 and getCardCiv(sid)==CIV_LIGHT and getCreaturePower(sid)<=4000) then
+                if(Checks.InBattle(cid,sid)==1 and cardHasCivilization(sid,CIV_LIGHT) and getCreaturePower(sid)<=4000) then
                     return 1
                 else
                     return 0
@@ -579,7 +579,7 @@ Cards["Gigabolver"] = { --check
 
 	HandleMessage = function(id)
         if(getMessageType()=="get canuseshieldtrigger") then
-            if(getCardCiv(getMessageInt("card"))==CIV_LIGHT and getCardZone(id)==ZONE_BATTLE) then
+            if(cardHasCivilization(getMessageInt("card"),CIV_LIGHT) and getCardZone(id)==ZONE_BATTLE) then
                 setMessageInt("canuse",0)
             end
         end
@@ -653,12 +653,12 @@ Cards["Gulan Rias, Speed Guardian"] = {
 
 	HandleMessage = function(id)
         if(getMessageType()=="get creaturecanblock") then
-		    if(getMessageInt("attacker")==id and getCardCiv(getMessageInt("blocker"))==CIV_DARKNESS) then
+		    if(getMessageInt("attacker")==id and cardHasCivilization(getMessageInt("blocker"),CIV_DARKNESS)) then
 			    setMessageInt("canblock",0)
 		    end
 	    end
         if(getMessageType()=="get creaturecanattackcreature") then
-		    if(getMessageInt("defender")==id and getCardCiv(getMessageInt("attacker"))==CIV_DARKNESS) then
+		    if(getMessageInt("defender")==id and cardHasCivilization(getMessageInt("attacker"),CIV_DARKNESS)) then
 			    setMessageInt("canattack",CANATTACK_NO)
 		    end
 	    end
@@ -699,7 +699,7 @@ Cards["Hydro Hurricane"] = {
 			local owner=getCardOwner(id)
 			local darkness=0
 			for i=0,(getZoneSize(owner,ZONE_BATTLE)-1) do
-				if(getCardCiv(getCardAt(owner,ZONE_BATTLE,i))==CIV_DARKNESS) then darkness=darkness+1 end
+				if(cardHasCivilization(getCardAt(owner,ZONE_BATTLE,i),CIV_DARKNESS)) then darkness=darkness+1 end
 			end
 			if(darkness==0 or getZoneSize(getOpponent(owner),ZONE_BATTLE)==0) then
 				setMessageInt("cancast",0)
@@ -715,11 +715,10 @@ Cards["Hydro Hurricane"] = {
         for i=0,(size-1) do
             local cid = getCardAt(owner,ZONE_BATTLE,i)
             if(getCardType(cid)==TYPE_CREATURE) then
-                local civ = getCardCiv(cid)
-                if(civ==CIV_LIGHT) then
+                if(cardHasCivilization(cid,CIV_LIGHT)) then
                     cl = cl+1
                 end
-                if(civ==CIV_DARKNESS) then
+                if(cardHasCivilization(cid,CIV_DARKNESS)) then
                     cd = cd+1
                 end
             end
@@ -783,7 +782,7 @@ Cards["Keeper of the Sunlit Abyss"] = {
 	HandleMessage = function(id)
         if(getMessageType()=="get creaturepower" and getCardZone(id)==ZONE_BATTLE) then
             local cid = getMessageInt("creature")
-            if(getCardType(cid)==TYPE_CREATURE and getCardZone(cid)==ZONE_BATTLE and (getCardCiv(cid)==CIV_DARKNESS or getCardCiv(cid)==CIV_LIGHT)) then
+            if(getCardType(cid)==TYPE_CREATURE and getCardZone(cid)==ZONE_BATTLE and (cardHasCivilization(cid,CIV_DARKNESS) or cardHasCivilization(cid,CIV_LIGHT))) then
                 setMessageInt("power",getMessageInt("power")+1000)
             end
         end
@@ -938,7 +937,7 @@ Cards["Marinomancer"] = {
                     break
                 end
                 local c = getCardAt(player,ZONE_DECK,size-i)
-                if(getCardCiv(c)==CIV_LIGHT or getCardCiv(c)==CIV_DARKNESS) then
+                if(cardHasCivilization(c,CIV_LIGHT) or cardHasCivilization(c,CIV_DARKNESS)) then
 	                moveCard(c,ZONE_HAND)
                 else
                     moveCard(c,ZONE_GRAVEYARD)
@@ -1004,7 +1003,7 @@ Cards["Milieus, the Daystretcher"] = {
         if(getMessageType()=="get cardcost") then
             if(getCardZone(id)==ZONE_BATTLE) then
                 local card = getMessageInt("card")
-                if(getCardCiv(card)==CIV_DARKNESS) then
+                if(cardHasCivilization(card,CIV_DARKNESS)) then
                     local cost = getMessageInt("cost")
                     setMessageInt("cost",cost+2)
                 end
@@ -1032,7 +1031,7 @@ Cards["Missile Boy"] = {
         if(getMessageType()=="get cardcost") then
             if(getCardZone(id)==ZONE_BATTLE) then
                 local card = getMessageInt("card")
-                if(getCardCiv(card)==CIV_LIGHT) then
+                if(cardHasCivilization(card,CIV_LIGHT)) then
                     local cost = getMessageInt("cost")
                     setMessageInt("cost",cost+1)
                 end
@@ -1129,7 +1128,7 @@ Cards["Niofa, Horned Protector"] = {
 	HandleMessage = function(id)
         Abils.Evolution(id,"Horned Beast")
         local valid = function(cid,sid)
-            if(Checks.CreatureInYourDeck(cid,sid)==1 and getCardCiv(sid)==CIV_NATURE) then
+            if(Checks.CreatureInYourDeck(cid,sid)==1 and cardHasCivilization(sid,CIV_NATURE)) then
                 return 1
             else
                 return 0
@@ -1192,7 +1191,7 @@ Cards["Photocide, Lord of the Wastes"] = {
 	HandleMessage = function(id)
         Abils.cantAttackPlayers(id)
         if(getMessageType()=="get creaturecanattackcreature") then
-		    if(getMessageInt("attacker")==id and getCardCiv(getMessageInt("defender"))==CIV_LIGHT) then
+		    if(getMessageInt("attacker")==id and cardHasCivilization(getMessageInt("defender"),CIV_LIGHT)) then
 			    setMessageInt("canattack",CANATTACK_UNTAPPED)
 		    end
 	    end
@@ -1241,12 +1240,12 @@ Cards["Purple Piercer"] = {
 
 	HandleMessage = function(id)
         if(getMessageType()=="get creaturecanblock") then
-		    if(getMessageInt("attacker")==id and getCardCiv(getMessageInt("defender"))==CIV_LIGHT) then
+		    if(getMessageInt("attacker")==id and cardHasCivilization(getMessageInt("defender"),CIV_LIGHT)) then
 			    setMessageInt("canblock",0)
 		    end
 	    end
         if(getMessageType()=="get creaturecanattackcreature") then
-		    if(getMessageInt("defender")==id and getCardCiv(getMessageInt("attacker"))==CIV_LIGHT) then
+		    if(getMessageInt("defender")==id and cardHasCivilization(getMessageInt("attacker"),CIV_LIGHT)) then
 			    setMessageInt("canblock",CANATTACK_NO)
 		    end
 	    end
@@ -1271,7 +1270,7 @@ Cards["Re Bil, Seeker of Archery"] = {
 	HandleMessage = function(id)
         if(getMessageType()=="get creaturepower" and getCardZone(id)==ZONE_BATTLE) then
             local cid = getMessageInt("creature")
-            if(getCardType(cid)==TYPE_CREATURE and getCardZone(cid)==ZONE_BATTLE and getCardCiv(cid)==CIV_LIGHT and getCardOwner(id)==getCardOwner(cid) and cid~=id) then
+            if(getCardType(cid)==TYPE_CREATURE and getCardZone(cid)==ZONE_BATTLE and cardHasCivilization(cid,CIV_LIGHT) and getCardOwner(id)==getCardOwner(cid) and cid~=id) then
                 setMessageInt("power",getMessageInt("power")+2000)
             end
         end
@@ -1295,7 +1294,7 @@ Cards["Rimuel, Cloudbreak Elemental"] = {
 
 	HandleMessage = function(id)
         local valid = function(cid,sid)
-            if(Checks.InYourMana(cid,sid)==1 and isCardTapped(sid)==0 and getCardCiv(sid)==CIV_LIGHT) then
+            if(Checks.InYourMana(cid,sid)==1 and isCardTapped(sid)==0 and cardHasCivilization(sid,CIV_LIGHT)) then
                 return 1
             else
                 return 0
@@ -1350,7 +1349,7 @@ Cards["Screaming Sunburst"] = {
 		local size = getZoneSize(opp,ZONE_BATTLE)-1
 		for i=0,size,1 do
             local cid = getCardAt(opp,ZONE_BATTLE,i)
-            if(getCardCiv(cid)~=CIV_LIGHT) then
+            if(not cardHasCivilization(cid,CIV_LIGHT)) then
                 tapCard(getCardAt(opp,ZONE_BATTLE,i))
             end
 		end
@@ -1376,7 +1375,7 @@ Cards["Shadow Moon, Cursed Shade"] = {
 	HandleMessage = function(id)
         if(getMessageType()=="get creaturepower" and getCardZone(id)==ZONE_BATTLE) then
             local cid = getMessageInt("creature")
-            if(getCardType(cid)==TYPE_CREATURE and getCardZone(cid)==ZONE_BATTLE and getCardCiv(cid)==CIV_DARKNESS and getCardOwner(id)==getCardOwner(cid) and cid~=id) then
+            if(getCardType(cid)==TYPE_CREATURE and getCardZone(cid)==ZONE_BATTLE and cardHasCivilization(cid,CIV_DARKNESS) and getCardOwner(id)==getCardOwner(cid) and cid~=id) then
                 setMessageInt("power",getMessageInt("power")+2000)
             end
         end
@@ -1459,7 +1458,7 @@ Cards["Soul Gulp"] = {
 			local owner=getCardOwner(id)
 			local hasLightCreature=false
 			for i=0,(getZoneSize(getOpponent(owner),ZONE_BATTLE)-1) do
-				if(getCardCiv(getCardAt(getOpponent(owner),ZONE_BATTLE,i))==CIV_LIGHT) then
+				if(cardHasCivilization(getCardAt(getOpponent(owner),ZONE_BATTLE,i),CIV_LIGHT)) then
 					hasLightCreature=true
 					break
 				end
@@ -1472,7 +1471,7 @@ Cards["Soul Gulp"] = {
 
 	OnCast = function(id)
         local valid = function(cid,sid)
-            if(Checks.InOppBattle(cid,sid)==1 and getCardCiv(sid)==CIV_LIGHT) then
+            if(Checks.InOppBattle(cid,sid)==1 and cardHasCivilization(sid,CIV_LIGHT)) then
                 return 1
             else
                 return 0
@@ -1526,7 +1525,7 @@ Cards["Sword of Benevolent Life"] = {
 
 	OnCast = function(id)
         local valid = function(cid,sid)
-            if(Checks.InYourBattle(cid,sid)==1 and getCardCiv(sid)==CIV_LIGHT) then
+            if(Checks.InYourBattle(cid,sid)==1 and cardHasCivilization(sid,CIV_LIGHT)) then
                 return 1
             else
                 return 0
@@ -1560,7 +1559,7 @@ Cards["Sword of Malevolent Death"] = {
 
 	OnCast = function(id)
         local valid = function(cid,sid)
-            if(Checks.InYourMana(cid,sid)==1 and getCardCiv(sid)==CIV_DARKNESS) then
+            if(Checks.InYourMana(cid,sid)==1 and cardHasCivilization(sid,CIV_DARKNESS)) then
                 return 1
             else
                 return 0
@@ -1661,7 +1660,7 @@ Cards["Trox, General of Destruction"] = {
             local size = getZoneSize(owner,ZONE_BATTLE)
             for i=0,(size-1) do
                 local cid = getCardAt(owner,ZONE_BATTLE,i)
-                if(getCardCiv(cid)==CIV_DARKNESS and getCardType(cid)==TYPE_CREATURE and cid~=id) then
+                if(cardHasCivilization(cid,CIV_DARKNESS) and getCardType(cid)==TYPE_CREATURE and cid~=id) then
                     discardCardAtRandom(getOpponent(owner))
                 end
             end
@@ -1689,7 +1688,7 @@ Cards["Volcano Smog, Deceptive Shade"] = {
         if(getMessageType()=="get cardcost") then
             if(getCardZone(id)==ZONE_BATTLE) then
                 local card = getMessageInt("card")
-                if(getCardCiv(card)==CIV_LIGHT) then
+                if(cardHasCivilization(card,CIV_LIGHT)) then
                     local cost = getMessageInt("cost")
                     setMessageInt("cost",cost+2)
                 end

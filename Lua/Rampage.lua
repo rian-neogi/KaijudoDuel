@@ -20,7 +20,7 @@ Cards["Alek, Solidity Enforcer"] = {
         if(getMessageType()=="get creaturepower") then
             if(getMessageInt("creature")==id) then
                 local valid = function(cid,sid)
-                    if(getCardOwner(cid)==getCardOwner(sid) and getCardZone(cid)==ZONE_BATTLE and getCardZone(sid)==ZONE_BATTLE and getCardCiv(sid)==CIV_LIGHT and cid~=sid) then
+                    if(getCardOwner(cid)==getCardOwner(sid) and getCardZone(cid)==ZONE_BATTLE and getCardZone(sid)==ZONE_BATTLE and cardHasCivilization(sid,CIV_LIGHT) and cid~=sid) then
                         return 1
                     else
                         return 0
@@ -80,7 +80,7 @@ Cards["Angler Cluster"] = {
                 local size = getZoneSize(owner,ZONE_MANA)
                 local flag = 0
                 for i=0,(size-1) do
-                    if(getCardCiv(getCardAt(owner,ZONE_MANA,i))~=CIV_WATER) then
+                    if(not cardHasCivilization(getCardAt(owner,ZONE_MANA,i),CIV_WATER)) then
                         flag = 1
                     end
                 end
@@ -144,7 +144,7 @@ Cards["Armored Warrior Quelos"] = {
 	HandleMessage = function(id)
         local func = function(id)
             local valid1 = function(cid,sid)
-                if(getCardOwner(sid)==getCardOwner(cid) and getCardZone(sid)==ZONE_MANA and getCardCiv(sid)==CIV_FIRE) then
+                if(getCardOwner(sid)==getCardOwner(cid) and getCardZone(sid)==ZONE_MANA and cardHasCivilization(sid,CIV_FIRE)) then
 		            return 1
 	            else
 		            return 0
@@ -156,7 +156,7 @@ Cards["Armored Warrior Quelos"] = {
             end
 
             local valid2 = function(cid,sid)
-                if(getCardOwner(sid)~=getCardOwner(cid) and getCardZone(sid)==ZONE_MANA and getCardCiv(sid)==CIV_FIRE) then
+                if(getCardOwner(sid)~=getCardOwner(cid) and getCardZone(sid)==ZONE_MANA and cardHasCivilization(sid,CIV_FIRE)) then
 		            return 1
 	            else
 		            return 0
@@ -216,7 +216,7 @@ Cards["Baby Zoppe"] = {
                 local size = getZoneSize(owner,ZONE_MANA)
                 local flag = 0
                 for i=0,(size-1) do
-                    if(getCardCiv(getCardAt(owner,ZONE_MANA,i))~=CIV_FIRE) then
+                    if(not cardHasCivilization(getCardAt(owner,ZONE_MANA,i),CIV_FIRE)) then
                         flag = 1
                     end
                 end
@@ -284,7 +284,7 @@ Cards["Blaze Cannon"] = {
                 local size = getZoneSize(owner,ZONE_MANA)
                 local flag = 0
                 for i=0,(size-1) do
-                    if(getCardCiv(getCardAt(owner,ZONE_MANA,i))~=CIV_FIRE) then
+                    if(not cardHasCivilization(getCardAt(owner,ZONE_MANA,i),CIV_FIRE)) then
                         flag = 1
                     end
                 end
@@ -384,7 +384,7 @@ Cards["Chaos Fish"] = {
         if(getMessageType()=="get creaturepower") then
             if(getMessageInt("creature")==id) then
                 local valid = function(cid,sid)
-                    if(getCardOwner(cid)==getCardOwner(sid) and getCardZone(cid)==ZONE_BATTLE and getCardZone(sid)==ZONE_BATTLE and getCardCiv(sid)==CIV_WATER and cid~=sid) then
+                    if(getCardOwner(cid)==getCardOwner(sid) and getCardZone(cid)==ZONE_BATTLE and getCardZone(sid)==ZONE_BATTLE and cardHasCivilization(sid,CIV_WATER) and cid~=sid) then
                         return 1
                     else
                         return 0
@@ -396,7 +396,7 @@ Cards["Chaos Fish"] = {
         end
         local func = function(id)
             local valid = function(cid,sid)
-                if(getCardOwner(cid)==getCardOwner(sid) and getCardZone(cid)==ZONE_BATTLE and getCardZone(sid)==ZONE_BATTLE and getCardCiv(sid)==CIV_WATER and cid~=sid) then
+                if(getCardOwner(cid)==getCardOwner(sid) and getCardZone(cid)==ZONE_BATTLE and getCardZone(sid)==ZONE_BATTLE and cardHasCivilization(sid,CIV_WATER) and cid~=sid) then
                     return 1
                 else
                     return 0
@@ -467,7 +467,7 @@ Cards["Eldritch Poison"] = {
 
 	OnCast = function(id)
         local valid = function(cid,sid)
-            if(Checks.InYourBattle(cid,sid)==1 and getCardCiv(sid)==CIV_DARKNESS) then
+            if(Checks.InYourBattle(cid,sid)==1 and cardHasCivilization(sid,CIV_DARKNESS)) then
                 return 1
             else
                 return 0
@@ -612,7 +612,7 @@ Cards["Gamil, Knight of Hatred"] = {
 	HandleMessage = function(id)
         local func = function(id)
             local valid = function(cid,sid)
-                if(Checks.CreatureInYourGraveyard(cid,sid)==1 and getCardCiv(sid)==CIV_DARKNESS) then
+                if(Checks.CreatureInYourGraveyard(cid,sid)==1 and cardHasCivilization(sid,CIV_DARKNESS)) then
                     return 1
                 else
                     return 0
@@ -648,7 +648,7 @@ Cards["Garkago Dragon"] = {
         if(getMessageType()=="get creaturepower") then
             if(getMessageInt("creature")==id) then
                 local valid = function(cid,sid)
-                    if(getCardOwner(cid)==getCardOwner(sid) and getCardZone(cid)==ZONE_BATTLE and getCardZone(sid)==ZONE_BATTLE and getCardCiv(sid)==CIV_FIRE and cid~=sid) then
+                    if(getCardOwner(cid)==getCardOwner(sid) and getCardZone(cid)==ZONE_BATTLE and getCardZone(sid)==ZONE_BATTLE and cardHasCivilization(sid,CIV_FIRE) and cid~=sid) then
                         return 1
                     else
                         return 0
@@ -707,7 +707,7 @@ Cards["Gigamantis"] = {
             local s = getZoneSize(owner,ZONE_BATTLE)
             for i=0,(s-1) do
                 local cid = getCardAt(owner,ZONE_BATTLE,i)
-                if(getCardCiv(cid)==CIV_NATURE and cid~=id) then
+                if(cardHasCivilization(cid,CIV_NATURE) and cid~=id) then
                     Abils.manaAfterDestroyed(cid)
                 end
             end
@@ -775,7 +775,7 @@ Cards["Jack Viper, Shadow of Doom"] = {
             local s = getZoneSize(owner,ZONE_BATTLE)
             for i=0,(s-1) do
                 local cid = getCardAt(owner,ZONE_BATTLE,i)
-                if(getCardCiv(cid)==CIV_DARKNESS and cid~=id) then
+                if(cardHasCivilization(cid,CIV_DARKNESS) and cid~=id) then
                     Abils.returnAfterDestroyed(cid)
                 end
             end
@@ -834,7 +834,7 @@ Cards["King Ponitas"] = {
 	HandleMessage = function(id)
         local func = function(id)
             local valid = function(cid,sid)
-                if(Checks.InYourDeck(cid,sid)==1 and getCardCiv(sid)==CIV_WATER) then
+                if(Checks.InYourDeck(cid,sid)==1 and cardHasCivilization(sid,CIV_WATER)) then
                     return 1
                 else
                     return 0
@@ -876,7 +876,7 @@ Cards["Legendary Bynor"] = {
             local s = getZoneSize(owner,ZONE_BATTLE)
             for i=0,(s-1) do
                 local cid = getCardAt(owner,ZONE_BATTLE,i)
-                if(getCardCiv(cid)==CIV_WATER and cid~=id) then
+                if(cardHasCivilization(cid,CIV_WATER) and cid~=id) then
                     Abils.cantBeBlocked(cid)
                 end
 			end
@@ -1004,7 +1004,7 @@ Cards["Masked Pomegranate"] = {
         if(getMessageType()=="get creaturepower") then
             if(getMessageInt("creature")==id) then
                 local valid = function(cid,sid)
-                    if(getCardOwner(cid)==getCardOwner(sid) and getCardZone(cid)==ZONE_BATTLE and getCardZone(sid)==ZONE_BATTLE and getCardCiv(sid)==CIV_NATURE and cid~=sid) then
+                    if(getCardOwner(cid)==getCardOwner(sid) and getCardZone(cid)==ZONE_BATTLE and getCardZone(sid)==ZONE_BATTLE and cardHasCivilization(sid,CIV_NATURE) and cid~=sid) then
                         return 1
                     else
                         return 0
@@ -1058,7 +1058,7 @@ Cards["Mudman"] = {
                 local size = getZoneSize(owner,ZONE_MANA)
                 local flag = 0
                 for i=0,(size-1) do
-                    if(getCardCiv(getCardAt(owner,ZONE_MANA,i))~=CIV_DARKNESS) then
+                    if(not cardHasCivilization(getCardAt(owner,ZONE_MANA,i),CIV_DARKNESS)) then
                         flag = 1
                     end
                 end
@@ -1148,7 +1148,7 @@ Cards["Psychic Shaper"] = {
                 break
             end
             local c = getCardAt(player,ZONE_DECK,size-i)
-            if(getCardCiv(c)==CIV_WATER) then
+            if(cardHasCivilization(c,CIV_WATER)) then
 	            moveCard(c,ZONE_HAND)
             else
                 moveCard(c,ZONE_GRAVEYARD)
@@ -1175,7 +1175,7 @@ Cards["Psyshroom"] = {
 	HandleMessage = function(id)
         local func = function(id)
             local valid = function(cid,sid)
-                if(Checks.InYourGraveyard(cid,sid)==1 and getCardCiv(sid)==CIV_NATURE) then
+                if(Checks.InYourGraveyard(cid,sid)==1 and cardHasCivilization(sid,CIV_NATURE)) then
                     return 1
                 else
                     return 0
@@ -1208,7 +1208,7 @@ Cards["Ra Vu, Seeker of Lightning"] = {
 	HandleMessage = function(id)
         local func = function(id)
             local valid = function(cid,sid)
-                if(Checks.SpellInYourGraveyard(cid,sid)==1 and getCardCiv(sid)==CIV_LIGHT) then
+                if(Checks.SpellInYourGraveyard(cid,sid)==1 and cardHasCivilization(sid,CIV_LIGHT)) then
                     return 1
                 else
                     return 0
@@ -1245,7 +1245,7 @@ Cards["Raging Dash-Horn"] = {
                 local size = getZoneSize(owner,ZONE_MANA)
                 local flag = 0
                 for i=0,(size-1) do
-                    if(getCardCiv(getCardAt(owner,ZONE_MANA,i))~=CIV_NATURE) then
+                    if(not cardHasCivilization(getCardAt(owner,ZONE_MANA,i),CIV_NATURE)) then
                         flag = 1
                     end
                 end
@@ -1260,7 +1260,7 @@ Cards["Raging Dash-Horn"] = {
                 local size = getZoneSize(owner,ZONE_MANA)
                 local flag = 0
                 for i=0,(size-1) do
-                    if(getCardCiv(getCardAt(owner,ZONE_MANA,i))~=CIV_NATURE) then
+                    if(not cardHasCivilization(getCardAt(owner,ZONE_MANA,i),CIV_NATURE)) then
                         flag = 1
                     end
                 end
@@ -1342,7 +1342,7 @@ Cards["Scratchclaw"] = {
         if(getMessageType()=="get creaturepower") then
             if(getMessageInt("creature")==id) then
                 local valid = function(cid,sid)
-                    if(getCardOwner(cid)==getCardOwner(sid) and getCardZone(cid)==ZONE_BATTLE and getCardZone(sid)==ZONE_BATTLE and getCardCiv(sid)==CIV_DARKNESS and cid~=sid) then
+                    if(getCardOwner(cid)==getCardOwner(sid) and getCardZone(cid)==ZONE_BATTLE and getCardZone(sid)==ZONE_BATTLE and cardHasCivilization(sid,CIV_DARKNESS) and cid~=sid) then
                         return 1
                     else
                         return 0
@@ -1439,7 +1439,7 @@ Cards["Sieg Balicula, the Intense"] = {
             local s = getZoneSize(owner,ZONE_BATTLE)
             for i=0,(s-1) do
                 local cid = getCardAt(owner,ZONE_BATTLE,i)
-                if(getCardCiv(cid)==CIV_LIGHT and cid~=id) then
+                if(cardHasCivilization(cid,CIV_LIGHT) and cid~=id) then
                     Abils.Blocker(cid)
                 end
             end
@@ -1551,7 +1551,7 @@ Cards["Sparkle Flower"] = {
                 local size = getZoneSize(owner,ZONE_MANA)
                 local flag = 0
                 for i=0,(size-1) do
-                    if(getCardCiv(getCardAt(owner,ZONE_MANA,i))~=CIV_LIGHT) then
+                    if(not cardHasCivilization(getCardAt(owner,ZONE_MANA,i),CIV_LIGHT)) then
                         flag = 1
                     end
                 end
@@ -1657,7 +1657,7 @@ Cards["Uberdragon Jabaha"] = {
             local s = getZoneSize(owner,ZONE_BATTLE)
             for i=0,(s-1) do
                 local cid = getCardAt(owner,ZONE_BATTLE,i)
-                if(getCardCiv(cid)==CIV_FIRE and cid~=id) then
+                if(cardHasCivilization(cid,CIV_FIRE) and cid~=id) then
                     Abils.PowerAttacker(cid,2000)
                 end
             end
@@ -1687,7 +1687,7 @@ Cards["Ur Pale, Seeker of Sunlight"] = {
                 local size = getZoneSize(owner,ZONE_MANA)
                 local flag = 0
                 for i=0,(size-1) do
-                    if(getCardCiv(getCardAt(owner,ZONE_MANA,i))~=CIV_LIGHT) then
+                    if(not cardHasCivilization(getCardAt(owner,ZONE_MANA,i),CIV_LIGHT)) then
                         flag = 1
                     end
                 end

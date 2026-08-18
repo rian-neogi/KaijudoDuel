@@ -1404,7 +1404,7 @@ Cards["Stained Glass"] = {
 	HandleMessage = function(id)
         local func = function(id)
             local valid = function(cid,sid)
-                if(getCardOwner(sid)~=getCardOwner(cid) and getCardZone(sid)==ZONE_BATTLE and getCardType(sid)==TYPE_CREATURE and (getCardCiv(sid)==CIV_FIRE or getCardCiv(sid)==CIV_NATURE)) then
+                if(getCardOwner(sid)~=getCardOwner(cid) and getCardZone(sid)==ZONE_BATTLE and getCardType(sid)==TYPE_CREATURE and (cardHasCivilization(sid,CIV_FIRE) or cardHasCivilization(sid,CIV_NATURE))) then
 		            return 1
 	            else
 		            return 0
