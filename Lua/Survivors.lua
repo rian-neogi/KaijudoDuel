@@ -109,7 +109,7 @@ Cards["Balloonshroom Q"] = {
         local func = function(cid)
             Abils.manaAfterDestroyed(cid)
         end
-        Abils.Survivor(id,func)
+		Abils.Survivor(id,func,"mod creaturedestroy","creature")
 	end
 }
 
@@ -129,14 +129,12 @@ Cards["Ballus, Dogfight Enforcer Q"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-        local func = function(cid)
-            if(getMessageType()=="pre endturn") then
-		        if(getMessageInt("player")==getCardOwner(id) and getCardZone(id)==ZONE_BATTLE and isCardTapped(id)==1) then
-                    untapCard(id)
-		        end
-            end
-        end
-        Abils.Survivor(id,func)
+		local func = function(cid)
+			if(getMessageInt("player")==getCardOwner(cid) and isCardTapped(cid)==1) then
+				untapCard(cid)
+			end
+		end
+		Abils.Survivor(id,func,"pre endturn")
 	end
 }
 
@@ -178,7 +176,7 @@ Cards["Bladerush Skyterror Q"] = {
         local func = function(cid)
             Abils.Breaker(cid,2)
         end
-        Abils.Survivor(id,func)
+		Abils.Survivor(id,func,"get creaturebreaker","creature")
 	end
 }
 
@@ -201,7 +199,7 @@ Cards["Blazosaur Q"] = {
         local func = function(cid)
             Abils.PowerAttacker(cid,1000)
         end
-        Abils.Survivor(id,func)
+		Abils.Survivor(id,func,"get creaturepower","creature")
 	end
 }
 
@@ -545,7 +543,7 @@ Cards["Gallia Zohl, Iron Guardian Q"] = {
         local func = function(cid)
             Abils.Blocker(cid)
         end
-        Abils.Survivor(id,func)
+		Abils.Survivor(id,func,"get creatureisblocker","creature")
 	end
 }
 
@@ -601,7 +599,7 @@ Cards["Gigaling Q"] = {
         local func = function(cid)
             Abils.Slayer(cid)
         end
-        Abils.Survivor(id,func)
+		Abils.Survivor(id,func,"post creaturebattle","attacker","defender")
 	end
 }
 
@@ -1268,7 +1266,7 @@ Cards["Skullsweeper Q"] = {
         local func = function(cid)
             Abils.discardOppCardOnAttack(cid,1)
         end
-        Abils.Survivor(id,func)
+		Abils.Survivor(id,func,"post creatureattack","attacker")
 	end
 }
 
@@ -1316,7 +1314,7 @@ Cards["Smash Horn Q"] = {
         local func = function(cid)
             Abils.bonusPower(cid,1000)
         end
-        Abils.Survivor(id,func)
+		Abils.Survivor(id,func,"get creaturepower","creature")
 	end
 }
 
@@ -1397,7 +1395,7 @@ Cards["Spikestrike Ichthys Q"] = {
         local func = function(cid)
             Abils.cantBeBlocked(cid)
         end
-        Abils.Survivor(id,func)
+		Abils.Survivor(id,func,"get creaturecanblock","attacker")
 	end
 }
 
@@ -1420,7 +1418,7 @@ Cards["Split-Head Hydroturtle Q"] = {
         local func = function(cid)
             Abils.drawCardsOnAttack(cid,1)
         end
-        Abils.Survivor(id,func)
+		Abils.Survivor(id,func,"post creatureattack","attacker")
 	end
 }
 

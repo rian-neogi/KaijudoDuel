@@ -174,6 +174,11 @@ int Application::runSmokeTests()
 			std::cerr << "Attack-query smoke test failed." << std::endl;
 			return 2;
 		}
+		if (!exerciseRaceQuerySmoke())
+		{
+			std::cerr << "Survivor race-aura smoke test failed." << std::endl;
+			return 2;
+		}
 		if (!exerciseDecisionPlanSmoke())
 		{
 			std::cerr << "Decision-plan smoke test failed." << std::endl;
@@ -338,11 +343,6 @@ int Application::runSmokeTests()
 			if (smokeNpc == 0 && smokeFrames == 33 && !exerciseMultiCivilizationSmoke())
 			{
 				std::cerr << "Multi-civilization rules smoke test failed." << std::endl;
-				return 2;
-			}
-			if (smokeNpc == 0 && smokeFrames == 34 && !exerciseRaceQuerySmoke())
-			{
-				std::cerr << "Recursive race-query smoke test failed." << std::endl;
 				return 2;
 			}
 			if (smokeNpc == 0 && smokeFrames == 35 && !exerciseCrypticTotemSmoke())
@@ -3875,9 +3875,14 @@ bool Application::exerciseEvolutionSmoke()
 
 bool Application::exerciseRaceQuerySmoke()
 {
-	int ultimateDragonId = getCardIdFromName("Ultimate Dragon");
+	int omnistrainId = getCardIdFromName("Q-tronic Omnistrain");
+	int gargantuaId = getCardIdFromName("Q-tronic Gargantua");
+	int smashHornId = getCardIdFromName("Smash Horn Q");
+	int ballusId = getCardIdFromName("Ballus, Dogfight Enforcer Q");
 	int kanesillId = getCardIdFromName("Kanesill, the Explorer");
-	if (ultimateDragonId < 0 || kanesillId < 0) return false;
+	if (omnistrainId < 0 || gargantuaId < 0 || smashHornId < 0 || ballusId < 0 ||
+		kanesillId < 0)
+		return false;
 
 	std::lock_guard<std::mutex> lock(gMutex);
 	Duel* savedActiveDuel = ActiveDuel;
@@ -3896,11 +3901,36 @@ bool Application::exerciseRaceQuerySmoke()
 			return uid;
 		};
 
-		addBattleCard(ultimateDragonId);
+		addBattleCard(omnistrainId);
+		addBattleCard(smashHornId);
+		addBattleCard(ballusId);
+		int gargantua = addBattleCard(gargantuaId);
 		int kanesill = addBattleCard(kanesillId);
-		passed = test.getCreatureRace(kanesill) == "Gladiator" &&
-			test.isCreatureOfRace(kanesill,"Gladiator") == 1 &&
-			test.mRaceQueryDepth == 0;
+		int printedPower = test.mCardList[kanesill]->mPower;
+		for (std::vector<Card*>::iterator card = test.mBattlezones[0].mCards.begin();
+			card != test.mBattlezones[0].mCards.end(); ++card)
+			(*card)->tap();
+
+		std::string race = test.getCreatureRace(kanesill);
+		int isSurvivor = test.isCreatureOfRace(kanesill,"Survivor");
+		int power = test.getCreaturePower(kanesill);
+		bool dynamicSurvivor = race == "Gladiator/Survivor" && isSurvivor == 1 &&
+			power == printedPower + 1000 && test.getCreatureBreaker(gargantua) == 5;
+		Message endTurn("endturn");
+		endTurn.addValue("player", 0);
+		test.dispatchMessage(endTurn);
+		test.dispatchAllMessages();
+		bool allUntapped = true;
+		for (std::vector<Card*>::iterator card = test.mBattlezones[0].mCards.begin();
+			card != test.mBattlezones[0].mCards.end(); ++card)
+			allUntapped = allUntapped && !(*card)->mIsTapped;
+		passed = dynamicSurvivor && allUntapped && test.mRaceQueryDepth == 0;
+		if (!passed)
+		{
+			std::cerr << "Survivor aura case: race='" << race << "', survivor=" << isSurvivor <<
+				", power=" << power << ", expected-power=" << printedPower + 1000 <<
+				", untapped=" << allUntapped << ", query-depth=" << test.mRaceQueryDepth << std::endl;
+		}
 	}
 	ActiveDuel = savedActiveDuel;
 	return passed;

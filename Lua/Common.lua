@@ -352,17 +352,40 @@ Abils.TurboRush = function(id,func)
 	end
 end
 
-Abils.Survivor = function(id,func)
-    if(getCardZone(id)==ZONE_BATTLE) then
-        local owner = getCardOwner(id)
-        local size = getZoneSize(owner,ZONE_BATTLE)
-        for i=0,(size-1) do
-            local cid = getCardAt(owner,ZONE_BATTLE,i)
-            if(isCreatureOfRace(cid,"Survivor")==1) then
-                func(cid)
-            end
-        end
-    end
+-- Survivor cards grant an ability to every allied Survivor. Most shared
+-- abilities only concern the creature named by the current message; checking
+-- that creature directly avoids a full battle-zone race scan on every rules
+-- query. Leave target nil only for effects that genuinely affect every
+-- Survivor at once, such as end-of-turn untapping.
+Abils.Survivor = function(id,func,message,target,target2)
+	if(getMessageType()~=message or getCardZone(id)~=ZONE_BATTLE) then
+		return
+	end
+
+	local owner = getCardOwner(id)
+	local apply = function(cid)
+		if(cid>=0 and getCardZone(cid)==ZONE_BATTLE and getCardOwner(cid)==owner and
+			isCreatureOfRace(cid,"Survivor")==1) then
+			func(cid)
+		end
+	end
+
+	if(target~=nil) then
+		local cid = getMessageInt(target)
+		apply(cid)
+		if(target2~=nil) then
+			local cid2 = getMessageInt(target2)
+			if(cid2~=cid) then
+				apply(cid2)
+			end
+		end
+		return
+	end
+
+	local size = getZoneSize(owner,ZONE_BATTLE)
+	for i=0,(size-1) do
+		apply(getCardAt(owner,ZONE_BATTLE,i))
+	end
 end
 
 Abils.Stealth = function(id,civ) --test

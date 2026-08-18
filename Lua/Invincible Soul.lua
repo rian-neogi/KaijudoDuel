@@ -526,7 +526,7 @@ Cards["Forbos, Sanctum Guardian Q"] = {
 			end
 			Abils.onSummon(id,summon)
 		end
-		Abils.Survivor(id,func)
+		Abils.Survivor(id,func,"post cardmove","card")
 	end
 }
 
@@ -907,7 +907,7 @@ Cards["Ripple Lotus Q"] = {
 			end
 			Abils.onSummon(id,summon)
 		end
-		Abils.Survivor(id,func)
+		Abils.Survivor(id,func,"post cardmove","card")
 	end
 }
 
@@ -1695,6 +1695,10 @@ Cards["Q-tronic Gargantua"] = {
 
 	HandleMessage = function(id)
 		Abils.Evolution(id,"Survivor")
+		if(getMessageType()~="get creaturebreaker" or getMessageInt("creature")~=id or
+			getCardZone(id)~=ZONE_BATTLE) then
+			return
+		end
 		local owner = getCardOwner(id)
 		local count = Functions.countInZone(id,owner,ZONE_BATTLE,Checks.IsSurvivor)
 		Abils.Breaker(id,count)
@@ -1728,7 +1732,7 @@ Cards["Rumblesaur Q"] = {
 		local func = function(id)
 			Abils.SpeedAttacker(id)
 		end
-		Abils.Survivor(id,func)
+		Abils.Survivor(id,func,"get creatureisspeedattacker","creature")
 	end
 }
 
@@ -1908,7 +1912,7 @@ Cards["Factory Shell Q"] = {
 			end
 			Abils.onSummon(id,summon)
 		end
-		Abils.Survivor(id,func)
+		Abils.Survivor(id,func,"post cardmove","card")
 	end
 }
 
