@@ -189,6 +189,7 @@ private:
 	bool exerciseLiveAndBreatheSmoke();
 	bool exerciseTapAbilitySmoke();
 	bool exerciseAttackQuerySmoke();
+	bool exerciseCountInZoneCardSmoke();
 	bool exerciseDecisionPlanSmoke();
 	bool exerciseMotorcycleMutantSmoke();
 	bool exerciseAvalancheGiantSmoke();

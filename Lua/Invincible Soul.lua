@@ -96,7 +96,7 @@ Cards["Q-tronic Hypermind"] = {
 		Abils.Evolution(id, "Survivor")
 		local func = function(id)
 			local owner = getCardOwner(id)
-			local c = Functions.countInZone(owner,ZONE_BATTLE,Checks.IsSurvivor)
+			local c = Functions.countInZone(id,owner,ZONE_BATTLE,Checks.IsSurvivor)
 			drawCards(owner, c)
 		end
 		Abils.onSummon(id, func)
@@ -1144,7 +1144,7 @@ Cards["Gnarvash, Merchant of Blood"] = {
 	HandleMessage = function(id)
 		if(getMessageType()=="pre endturn") then
 			if(getMessageInt("player")==getCardOwner(id) and getCardZone(id)==ZONE_BATTLE) then
-				local c = Functions.countInZone(getCardOwner(id), ZONE_BATTLE, Checks.True)
+				local c = Functions.countInZone(id, getCardOwner(id), ZONE_BATTLE, Checks.True)
 				if(c<=1) then
 					destroyCreature(id)
 				end
@@ -1248,7 +1248,7 @@ Cards["Lone Tear, Shadow of Solitude"] = {
 	HandleMessage = function(id)
 		if(getMessageType()=="pre endturn") then
 			if(getMessageInt("player")==getCardOwner(id) and getCardZone(id)==ZONE_BATTLE) then
-				local c = Functions.countInZone(getCardOwner(id), ZONE_BATTLE, Checks.True)
+				local c = Functions.countInZone(id, getCardOwner(id), ZONE_BATTLE, Checks.True)
 				if(c<=1) then
 					destroyCreature(id)
 				end
@@ -1323,7 +1323,7 @@ Cards["Skullcutter, Swarm Leader"] = {
 	HandleMessage = function(id) --test
 		if(getMessageType()=="pre endturn") then
 			if(getMessageInt("player")==getCardOwner(id) and getCardZone(id)==ZONE_BATTLE) then
-				local c = Functions.countInZone(getCardOwner(id), ZONE_BATTLE, Checks.True)
+				local c = Functions.countInZone(id, getCardOwner(id), ZONE_BATTLE, Checks.True)
 				if(c<=1) then
 					destroyCreature(id)
 				end

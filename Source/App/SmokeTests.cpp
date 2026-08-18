@@ -179,6 +179,11 @@ int Application::runSmokeTests()
 			std::cerr << "Survivor race-aura smoke test failed." << std::endl;
 			return 2;
 		}
+		if (!exerciseCountInZoneCardSmoke())
+		{
+			std::cerr << "Battle-zone card-count smoke test failed." << std::endl;
+			return 2;
+		}
 		if (!exerciseDecisionPlanSmoke())
 		{
 			std::cerr << "Decision-plan smoke test failed." << std::endl;
@@ -1066,7 +1071,9 @@ bool Application::exerciseTapAbilitySmoke()
 	std::lock_guard<std::mutex> lock(gMutex);
 	int poppleId = getCardIdFromName("Popple, Flowerpetal Dancer");
 	int deckCardId = getCardIdFromName("Bone Spider");
-	if (poppleId < 0 || deckCardId < 0) return false;
+	int kachuaId = getCardIdFromName("Kachua, Keeper of the Icegate");
+	int narielId = getCardIdFromName("Nariel, the Oracle");
+	if (poppleId < 0 || deckCardId < 0 || kachuaId < 0 || narielId < 0) return false;
 
 	Duel duel;
 	duel.mIsSimulation = true;
@@ -1085,31 +1092,86 @@ bool Application::exerciseTapAbilitySmoke()
 	};
 
 	int popple = addCard(poppleId, ZONE_BATTLE);
-	duel.mCardList[popple]->mSummoningSickness = 0;
 	addCard(deckCardId, ZONE_DECK);
 	addCard(deckCardId, ZONE_DECK);
+	bool valid = true;
+	bool sickNotOffered = true;
+	bool sickRejected = false;
 	{
 		ActiveDuelGuard activeGuard(duel);
 		Message tapAbility("creatureusetapability");
 		tapAbility.addValue("creature", popple);
+		std::vector<Message> sickMoves = duel.getPossibleMoves();
+		for (std::vector<Message>::iterator move = sickMoves.begin(); move != sickMoves.end(); ++move)
+			sickNotOffered = sickNotOffered && !(move->getType() == "creatureusetapability" &&
+				move->getInt("creature") == popple);
+		duel.handleInterfaceInput(tapAbility);
+		duel.dispatchAllMessages();
+		sickRejected = !duel.mCardList[popple]->mIsTapped && duel.mTurnPhase == TURN_PHASE_MAIN &&
+			duel.mDecks[0].mCards.size() == 2 && duel.mManazones[0].mCards.empty();
+		valid = valid && sickNotOffered && sickRejected;
+
+		duel.mCardList[popple]->mSummoningSickness = 0;
 		duel.handleInterfaceInput(tapAbility);
 		duel.dispatchAllMessages();
 	}
-	bool valid = duel.mCardList[popple]->mIsTapped &&
+	bool directCase = duel.mCardList[popple]->mIsTapped && duel.mTurnPhase == TURN_PHASE_ATTACK &&
 		duel.mDecks[0].mCards.size() == 1 &&
 		duel.mManazones[0].mCards.size() == 1;
+	valid = valid && directCase;
+
+	Duel restrictedDuel;
+	restrictedDuel.mIsSimulation = true;
+	restrictedDuel.mInputLoopRunning = false;
+	restrictedDuel.mTurn = 0;
+	restrictedDuel.mTurnPhase = TURN_PHASE_MAIN;
+	auto addRestrictedCard = [&restrictedDuel](int cardId, int owner) -> int
+	{
+		int uid = (int)restrictedDuel.mCardList.size();
+		Card* card = new Card(uid, cardId, owner);
+		restrictedDuel.mCardList.push_back(card);
+		restrictedDuel.mBattlezones[owner].addCard(card);
+		card->mZone = ZONE_BATTLE;
+		card->mSummoningSickness = 0;
+		restrictedDuel.mNextUniqueId = uid + 1;
+		return uid;
+	};
+	int kachua = addRestrictedCard(kachuaId, 0);
+	addRestrictedCard(narielId, 1);
+	restrictedDuel.mCardList[kachua]->mPower = 4000;
+	bool restrictedEligibility = false;
+	bool restrictedNotOffered = true;
+	{
+		ActiveDuelGuard activeGuard(restrictedDuel);
+		restrictedEligibility = restrictedDuel.getCreatureHasTapAbility(kachua) == 1 &&
+			!restrictedDuel.canCreatureAttackNow(kachua);
+		valid = valid && restrictedEligibility;
+		std::vector<Message> restrictedMoves = restrictedDuel.getPossibleMoves();
+		for (std::vector<Message>::iterator move = restrictedMoves.begin();
+			move != restrictedMoves.end(); ++move)
+			restrictedNotOffered = restrictedNotOffered &&
+				!(move->getType() == "creatureusetapability" && move->getInt("creature") == kachua);
+		valid = valid && restrictedNotOffered;
+		Message tapAbility("creatureusetapability");
+		tapAbility.addValue("creature", kachua);
+		restrictedDuel.handleInterfaceInput(tapAbility);
+		restrictedDuel.dispatchAllMessages();
+	}
+	bool restrictedCase = !restrictedDuel.mCardList[kachua]->mIsTapped &&
+		restrictedDuel.mTurnPhase == TURN_PHASE_MAIN;
+	valid = valid && restrictedCase;
 
 	Duel auraDuel;
 	auraDuel.mIsSimulation = true;
 	auraDuel.mInputLoopRunning = false;
 	auraDuel.mTurn = 0;
 	auraDuel.mTurnPhase = TURN_PHASE_MAIN;
-	auto addAuraCard = [&auraDuel](int cardId, int zone) -> int
+	auto addAuraCard = [&auraDuel](int cardId, int zone, int owner = 0) -> int
 	{
 		int uid = (int)auraDuel.mCardList.size();
-		Card* card = new Card(uid, cardId, 0);
+		Card* card = new Card(uid, cardId, owner);
 		auraDuel.mCardList.push_back(card);
-		auraDuel.getZone(0, zone)->addCard(card);
+		auraDuel.getZone(owner, zone)->addCard(card);
 		card->mZone = zone;
 		auraDuel.mNextUniqueId = uid + 1;
 		return uid;
@@ -1140,13 +1202,18 @@ bool Application::exerciseTapAbilitySmoke()
 	}
 	addAuraCard(deckCardId, ZONE_DECK);
 	addAuraCard(deckCardId, ZONE_DECK);
+	int attackTarget = addAuraCard(deckCardId, ZONE_BATTLE, 1);
+	auraDuel.mCardList[attackTarget]->tap();
+	bool allAurasGranted = true;
+	bool allAurasOffered = true;
+	bool attackPhaseFollowupOffered = false;
 	{
 		ActiveDuelGuard activeGuard(auraDuel);
 		std::vector<Message> moves = auraDuel.getPossibleMoves();
 		for (std::vector<int>::iterator creature = auraCreatures.begin();
 			creature != auraCreatures.end(); ++creature)
 		{
-			valid = valid && auraDuel.getCreatureHasTapAbility(*creature) == 1;
+			allAurasGranted = allAurasGranted && auraDuel.getCreatureHasTapAbility(*creature) == 1;
 			bool foundTapAbility = false;
 			for (std::vector<Message>::iterator move = moves.begin(); move != moves.end(); ++move)
 			{
@@ -1157,16 +1224,46 @@ bool Application::exerciseTapAbilitySmoke()
 					break;
 				}
 			}
-			valid = valid && foundTapAbility;
+			allAurasOffered = allAurasOffered && foundTapAbility;
+			if (!foundTapAbility)
+				std::cerr << "Inherited tap ability was not offered for " <<
+					auraDuel.mCardList[*creature]->mName << std::endl;
 		}
+		valid = valid && allAurasGranted && allAurasOffered;
 		Message tapAbility("creatureusetapability");
 		tapAbility.addValue("creature", auraCreatures.back());
 		auraDuel.handleInterfaceInput(tapAbility);
 		auraDuel.dispatchAllMessages();
+		std::vector<Message> attackPhaseMoves = auraDuel.getPossibleMoves();
+		for (std::vector<Message>::iterator move = attackPhaseMoves.begin();
+			move != attackPhaseMoves.end(); ++move)
+		{
+			if (move->getType() == "creatureusetapability" &&
+				move->getInt("creature") == auraCreatures.front())
+			{
+				attackPhaseFollowupOffered = true;
+				break;
+			}
+		}
 	}
-	valid = valid && auraDuel.mCardList[auraCreatures.back()]->mIsTapped &&
+	bool auraCase = auraDuel.mCardList[auraCreatures.back()]->mIsTapped &&
+		auraDuel.mTurnPhase == TURN_PHASE_ATTACK &&
+		attackPhaseFollowupOffered &&
 		auraDuel.mDecks[0].mCards.size() == 1 &&
 		auraDuel.mManazones[0].mCards.size() == 1;
+	valid = valid && auraCase;
+	if (!valid)
+	{
+		std::cerr << "Tap ability case: direct=" << directCase <<
+			", restricted=" << restrictedCase << ", aura=" << auraCase <<
+			", sick-not-offered=" << sickNotOffered << ", sick-rejected=" << sickRejected <<
+			", restricted-eligibility=" << restrictedEligibility <<
+			", restricted-not-offered=" << restrictedNotOffered <<
+			", auras-granted=" << allAurasGranted << ", auras-offered=" << allAurasOffered <<
+			", attack-followup=" << attackPhaseFollowupOffered <<
+			", direct-phase=" << duel.mTurnPhase << ", restricted-phase=" <<
+			restrictedDuel.mTurnPhase << ", aura-phase=" << auraDuel.mTurnPhase << std::endl;
+	}
 	return valid;
 }
 
@@ -1202,6 +1299,88 @@ bool Application::exerciseAttackQuerySmoke()
 		valid = valid && attackDuel.getCreatureCanAttackPlayers(snipStriker) != CANATTACK_NO &&
 			attackDuel.getCreatureCanAttackCreature(snipStriker, opponentCreature) != CANATTACK_NO;
 	}
+	return valid;
+}
+
+bool Application::exerciseCountInZoneCardSmoke()
+{
+	std::lock_guard<std::mutex> lock(gMutex);
+	const char* lonelyNames[] = {
+		"Gnarvash, Merchant of Blood",
+		"Lone Tear, Shadow of Solitude",
+		"Skullcutter, Swarm Leader"
+	};
+	int allyId = getCardIdFromName("Bone Spider");
+	int hypermindId = getCardIdFromName("Q-tronic Hypermind");
+	int smashHornId = getCardIdFromName("Smash Horn Q");
+	int blazosaurId = getCardIdFromName("Blazosaur Q");
+	if (allyId < 0 || hypermindId < 0 || smashHornId < 0 || blazosaurId < 0)
+		return false;
+
+	Duel* savedActiveDuel = ActiveDuel;
+	bool valid = true;
+	for (size_t index = 0; index < sizeof(lonelyNames) / sizeof(lonelyNames[0]); ++index)
+	{
+		int lonelyId = getCardIdFromName(lonelyNames[index]);
+		if (lonelyId < 0)
+		{
+			valid = false;
+			continue;
+		}
+		for (int hasAlly = 0; hasAlly <= 1; ++hasAlly)
+		{
+			Duel test;
+			test.mIsSimulation = true;
+			ActiveDuel = &test;
+			auto addBattleCard = [&test](int cardId) -> int
+			{
+				int uid = static_cast<int>(test.mCardList.size());
+				Card* card = new Card(uid, cardId, 0);
+				test.mCardList.push_back(card);
+				test.mBattlezones[0].addCard(card);
+				card->mZone = ZONE_BATTLE;
+				return uid;
+			};
+			int lonely = addBattleCard(lonelyId);
+			if (hasAlly) addBattleCard(allyId);
+			Message endTurn("endturn");
+			endTurn.addValue("player", 0);
+			test.dispatchMessage(endTurn);
+			test.dispatchAllMessages();
+			valid = valid && test.mCardList[lonely]->mZone ==
+				(hasAlly ? ZONE_BATTLE : ZONE_GRAVEYARD);
+		}
+	}
+
+	{
+		Duel test;
+		test.mIsSimulation = true;
+		ActiveDuel = &test;
+		auto addCard = [&test](int cardId, int zone) -> int
+		{
+			int uid = static_cast<int>(test.mCardList.size());
+			Card* card = new Card(uid, cardId, 0);
+			test.mCardList.push_back(card);
+			test.getZone(0, zone)->addCard(card);
+			card->mZone = zone;
+			return uid;
+		};
+		int bait = addCard(smashHornId, ZONE_BATTLE);
+		addCard(blazosaurId, ZONE_BATTLE);
+		int hypermind = addCard(hypermindId, ZONE_HAND);
+		for (int card = 0; card < 3; ++card) addCard(allyId, ZONE_DECK);
+		Message summon("cardmove");
+		summon.addValue("card", hypermind);
+		summon.addValue("from", ZONE_HAND);
+		summon.addValue("to", ZONE_BATTLE);
+		summon.addValue("evobait", bait);
+		test.dispatchMessage(summon);
+		test.dispatchAllMessages();
+		valid = valid && test.mCardList[hypermind]->mZone == ZONE_BATTLE &&
+			test.mCardList[bait]->mZone == ZONE_EVOLVED &&
+			test.mHands[0].mCards.size() == 2 && test.mDecks[0].mCards.size() == 1;
+	}
+	ActiveDuel = savedActiveDuel;
 	return valid;
 }
 
