@@ -1,5 +1,6 @@
 #include "App/Application.h"
 #include "AI/AiMatchRunner.h"
+#include "CRandom.h"
 #include "Game/Card.h"
 #include "LuaTrace.h"
 
@@ -32,7 +33,7 @@ namespace
 			<< "--full-visibility reveals both hands in direct-duel mode.\n"
 			<< "--ai-duel renders both AI players and reveals both hands.\n"
 			<< "--headless-ai-duel runs without SDL and prints one AI_MATCH_RESULT line.\n"
-			<< "--seed controls deck shuffling and game randomness for direct AI duels.\n"
+			<< "Duels use a fresh random seed unless --seed is provided for an AI duel.\n"
 			<< "--max-actions bounds headless matches (default 10000).\n"
 			<< "--lua-trace writes real-duel Lua calls (excluding MCTS simulations) "
 			<< "to Logs/lua-trace.log.\n";
@@ -64,7 +65,7 @@ int main(int argc, char* argv[])
 	bool seedSpecified = false;
 	bool maxActionsSpecified = false;
 	bool invalidOption = false;
-	std::uint32_t duelSeed = 4357U;
+	std::uint32_t duelSeed = 0;
 	int maxActions = 10000;
 	std::string playerDeck;
 	std::string aiDeck;
@@ -162,6 +163,8 @@ int main(int argc, char* argv[])
 		printUsage(argv[0]);
 		return 2;
 	}
+	if (!seedSpecified && !playerDeck.empty() && !aiDeck.empty())
+		duelSeed = CRandom::GenerateRandomSeed();
 
 	if (!initCards())
 	{

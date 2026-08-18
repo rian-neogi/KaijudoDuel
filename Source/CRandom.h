@@ -1,5 +1,4 @@
 #pragma once
-#include "time.h"
 
 /* Period parameters */
 #define CMATH_N 624
@@ -30,7 +29,8 @@ public:
    unsigned int     Random( unsigned int n );
    void   SetRandomSeed(unsigned int n);
    unsigned int     GetRandomSeed(void);
-   void   Randomize(void);
+	void   Randomize(void);
+	static unsigned int GenerateRandomSeed(void);
 };
 
 

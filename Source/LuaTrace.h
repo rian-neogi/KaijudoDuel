@@ -7,6 +7,16 @@
 
 namespace LuaTrace
 {
+	class ScopedSuppression
+	{
+	public:
+		ScopedSuppression();
+		~ScopedSuppression();
+
+		ScopedSuppression(const ScopedSuppression&) = delete;
+		ScopedSuppression& operator=(const ScopedSuppression&) = delete;
+	};
+
 	void setEnabled(bool enabled);
 	bool isEnabled();
 	void logCallback(const char* direction, const char* callback, const std::string& subject,

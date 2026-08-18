@@ -1124,7 +1124,7 @@ Cards["Niofa, Horned Protector"] = {
 	blocker = 0,
 
 	power = 9000,
-	breaker = 1,
+	breaker = 2,
 
 	HandleMessage = function(id)
         Abils.Evolution(id,"Horned Beast")

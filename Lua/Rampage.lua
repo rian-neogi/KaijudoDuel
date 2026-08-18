@@ -1491,10 +1491,10 @@ Cards["Snip Striker Bullraizer"] = {
 
 	HandleMessage = function(id)
         if(getMessageType()=="get creaturecanattackcreature" or getMessageType()=="get creaturecanattackplayers") then
-            if(getMessageInt("creature")==id) then
+            if(getMessageInt("attacker")==id) then
                 local owner = getCardOwner(id)
-                local count = countCreaturesInBattle(owner)
-                local count2 = countCreaturesInBattle(getOpponent(owner))
+                local count = Functions.countCreaturesInBattle(owner)
+                local count2 = Functions.countCreaturesInBattle(getOpponent(owner))
                 if(count2>count) then
                     Abils.cantAttack(id)
                 end

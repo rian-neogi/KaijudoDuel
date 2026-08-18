@@ -133,6 +133,7 @@ Duel::Duel()
 	mWinner = -1;
 
 	mCurrentMoveCount = 0;
+	mStateRevision = 0;
 
 	mRandomGen.Randomize();
 
@@ -244,6 +245,7 @@ bool Duel::copyFrom(const Duel& duel)
 	mMoveHistory = duel.mMoveHistory;
 	mMovePlayers = duel.mMovePlayers;
 	mCurrentMoveCount = duel.mCurrentMoveCount;
+	mStateRevision = duel.mStateRevision;
 	mRandomGen = duel.mRandomGen;
 
 	mAttacker = duel.mAttacker;
@@ -1467,6 +1469,8 @@ bool Duel::dispatchAllMessages()
 		dispatchMessage(msg);
 		worldchanged = true;
 	}
+	if (worldchanged)
+		mStateRevision++;
 	return worldchanged;
 }
 

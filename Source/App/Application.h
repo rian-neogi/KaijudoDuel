@@ -35,7 +35,7 @@ public:
 	int run(bool smokeTest = false, const std::string& directPlayerDeck = "",
 		const std::string& directAiDeck = "", bool worldBuilder = false,
 		bool fullVisibility = false, bool aiVsAi = false,
-		unsigned int duelSeed = 4357U);
+		unsigned int duelSeed = 0);
 
 private:
 	enum class Screen
@@ -187,7 +187,8 @@ private:
 	bool exerciseModifierDestroySmoke();
 	bool exerciseSimulationChoiceSmoke();
 	bool exerciseLiveAndBreatheSmoke();
-	bool exercisePoppleTapAbilitySmoke();
+	bool exerciseTapAbilitySmoke();
+	bool exerciseAttackQuerySmoke();
 	bool exerciseDecisionPlanSmoke();
 	bool exerciseMotorcycleMutantSmoke();
 	bool exerciseAvalancheGiantSmoke();
@@ -283,12 +284,13 @@ private:
 
 	void startDuel(int npcIndex, bool ignoreProgressLimit = false);
 	bool startDuelWithDecks(const std::string& playerDeck, const std::string& aiDeck,
-		int npcIndex, bool aiVsAi = false, unsigned int duelSeed = 4357U);
+		int npcIndex, bool aiVsAi = false, unsigned int duelSeed = 0);
 	void stopDuel();
 	void handleDuelEvent(const SDL_Event& event);
 	bool handleGraveyardEvent(const SDL_Event& event);
 	void updateDuel(Uint32 deltaTime);
 	void renderDuel();
+	void refreshDisplayedCreaturePowers();
 	void renderGraveyardPile(int player);
 	void renderGraveyardOverlay();
 	SDL_Rect graveyardPileRect(int player) const;
@@ -503,7 +505,8 @@ private:
 	BackgroundMctsSearch* mAiSearch;
 	int mAiSearchPlayer;
 	Uint32 mAiSearchStartedAt;
-	std::vector<int> mAiCreaturePowers;
+	std::vector<int> mDisplayedCreaturePowers;
+	unsigned long long mDisplayedPowerRevision;
 	int mDuelResult;
 	Uint32 mDuelResultAt;
 	int mRewardCardId;

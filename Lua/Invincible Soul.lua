@@ -1525,7 +1525,6 @@ Cards["Crisis Boulder"] = {
 	shieldtrigger = 1,
 
 	HandleMessage = function(id)
-		Abils.PreferRemovalTarget(id,Checks.InOppBattle)
 		if(getMessageType()=="get cardaicancast" and getMessageInt("card")==id) then
 			local opponent=getOpponent(getCardOwner(id))
 			if(getZoneSize(opponent,ZONE_BATTLE)==0 and getZoneSize(opponent,ZONE_MANA)==0) then
@@ -1535,11 +1534,35 @@ Cards["Crisis Boulder"] = {
 	end,
 
 	OnCast = function(id) --test
+		local opponent=getOpponent(getCardOwner(id))
 		local check = function(cid,sid)
-			return (Checks.InOppMana(cid,sid)==1 or Checks.InOppBattle(cid,sid)==1)
+			if(Checks.InOppMana(cid,sid)==1 or Checks.InOppBattle(cid,sid)==1) then
+				return 1
+			end
+			return 0
 		end
-		
-		local ch = createChoice("Choose an card in your battle zone or mana zone",0,id,getOpponent(getCardOwner(id)),check)
+
+		local preferred=RETURN_NOTHING
+		local lowestValue=math.huge
+		for i=0,(getZoneSize(opponent,ZONE_BATTLE)-1) do
+			local card=getCardAt(opponent,ZONE_BATTLE,i)
+			local value=getCardBattleValue(card)
+			if(check(id,card)==1 and value<lowestValue) then
+				preferred=card
+				lowestValue=value
+			end
+		end
+		for i=0,(getZoneSize(opponent,ZONE_MANA)-1) do
+			local card=getCardAt(opponent,ZONE_MANA,i)
+			local value=getCardHandValue(card)
+			if(check(id,card)==1 and value<lowestValue) then
+				preferred=card
+				lowestValue=value
+			end
+		end
+
+		local ch=createChoice("Choose one of your creatures or mana cards to destroy",0,id,opponent,check,preferred)
+		if(ch<0) then ch=preferred end
 		if(ch>=0) then
 			if(getCardZone(ch)==ZONE_BATTLE) then
 				destroyCreature(ch)

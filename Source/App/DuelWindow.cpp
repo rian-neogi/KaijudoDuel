@@ -3,6 +3,7 @@
 #include "AI/AiDriver.h"
 #include "AppSupport.h"
 #include "Game/Card.h"
+#include "LuaTrace.h"
 
 #include <algorithm>
 #include <cmath>
@@ -168,7 +169,10 @@ bool Application::startDuelWithDecks(const std::string& playerDeck,
 	mActiveNpc = npcIndex;
 	mDuel = new Duel();
 	ActiveDuel = mDuel;
-	mDuel->mRandomGen.SetRandomSeed(duelSeed);
+	if (duelSeed == 0)
+		mDuel->mRandomGen.Randomize();
+	else
+		mDuel->mRandomGen.SetRandomSeed(duelSeed);
 	if (aiVsAi)
 	{
 		mDuel->mPlayerType[0] = PLAYER_AI;
@@ -200,7 +204,8 @@ bool Application::startDuelWithDecks(const std::string& playerDeck,
 	mAiSearch = NULL;
 	mAiSearchPlayer = -1;
 	mAiSearchStartedAt = 0;
-	mAiCreaturePowers.clear();
+	mDisplayedCreaturePowers.clear();
+	mDisplayedPowerRevision = ~0ULL;
 	mDuelResult = -1;
 	mDuelResultAt = 0;
 	mDialogueNpc = -1;
@@ -219,7 +224,8 @@ void Application::stopDuel()
 		mAiSearch = NULL;
 		mAiSearchPlayer = -1;
 		mAiSearchStartedAt = 0;
-		mAiCreaturePowers.clear();
+		mDisplayedCreaturePowers.clear();
+		mDisplayedPowerRevision = ~0ULL;
 		return;
 	}
 	mDuel->stopInputLoop();
@@ -230,7 +236,8 @@ void Application::stopDuel()
 	mAiSearchStartedAt = 0;
 	mDuel->mAiThinking = false;
 	mDuel->mAiThinkingPlayer = -1;
-	mAiCreaturePowers.clear();
+	mDisplayedCreaturePowers.clear();
+	mDisplayedPowerRevision = ~0ULL;
 	delete mDuel;
 	mDuel = NULL;
 	ActiveDuel = NULL;
@@ -497,6 +504,32 @@ bool Application::handleActionLogEvent(const SDL_Event& event)
 	return true;
 }
 
+void Application::refreshDisplayedCreaturePowers()
+{
+	if (mDuel == NULL || mDuel->mAiThinking.load() ||
+		mDuel->mLuaCallbackSuspended.load())
+		return;
+	if (mDisplayedPowerRevision == mDuel->mStateRevision &&
+		mDisplayedCreaturePowers.size() == mDuel->mCardList.size())
+		return;
+
+	mDisplayedCreaturePowers.resize(mDuel->mCardList.size());
+	for (size_t card = 0; card < mDuel->mCardList.size(); ++card)
+		mDisplayedCreaturePowers[card] = mDuel->mCardList[card]->mPower;
+	for (int player = 0; player < 2; ++player)
+	{
+		for (std::vector<Card*>::const_iterator card =
+			mDuel->mBattlezones[player].mCards.begin();
+			card != mDuel->mBattlezones[player].mCards.end(); ++card)
+		{
+			if ((*card)->mType == TYPE_CREATURE)
+				mDisplayedCreaturePowers[(*card)->mUniqueId] =
+					mDuel->getCreaturePower((*card)->mUniqueId);
+		}
+	}
+	mDisplayedPowerRevision = mDuel->mStateRevision;
+}
+
 void Application::updateDuel(Uint32 deltaTime)
 {
 	if (mDuel == NULL) return;
@@ -507,6 +540,7 @@ void Application::updateDuel(Uint32 deltaTime)
 	bool chooseAutomaticAction = false;
 	{
 		std::lock_guard<std::mutex> lock(gMutex);
+		refreshDisplayedCreaturePowers();
 		winner = mDuel->mWinner;
 		int playerToMove = mDuel->getPlayerToMove();
 		bool aiBoundary = winner == -1 && playerToMove >= 0 && playerToMove <= 1 &&
@@ -524,7 +558,6 @@ void Application::updateDuel(Uint32 deltaTime)
 				mAiSearchStartedAt = 0;
 				mDuel->mAiThinking = false;
 				mDuel->mAiThinkingPlayer = -1;
-				mAiCreaturePowers.clear();
 
 				const std::string personality = aiPlayer == 1 && mActiveNpc >= 0 ?
 					mNpcs[mActiveNpc].aiPersonality : "balanced";
@@ -592,20 +625,6 @@ void Application::updateDuel(Uint32 deltaTime)
 							bool searchStarted = false;
 							if (mDuel->isCloneable())
 							{
-								mAiCreaturePowers.resize(mDuel->mCardList.size());
-								for (size_t card = 0; card < mDuel->mCardList.size(); ++card)
-									mAiCreaturePowers[card] = mDuel->mCardList[card]->mPower;
-								for (int player = 0; player < 2; ++player)
-								{
-									for (std::vector<Card*>::const_iterator card =
-										mDuel->mBattlezones[player].mCards.begin();
-										card != mDuel->mBattlezones[player].mCards.end(); ++card)
-									{
-										mAiCreaturePowers[(*card)->mUniqueId] =
-											mDuel->getCreaturePower((*card)->mUniqueId);
-									}
-								}
-
 								mDuel->mAiThinkingPlayer = aiPlayer;
 								mDuel->mAiThinking = true;
 								MctsConfig searchConfig = liveMctsConfig(
@@ -631,7 +650,6 @@ void Application::updateDuel(Uint32 deltaTime)
 									mAiSearchPlayer = -1;
 									mDuel->mAiThinking = false;
 									mDuel->mAiThinkingPlayer = -1;
-									mAiCreaturePowers.clear();
 								}
 							}
 							// Suspended Lua choices are intentionally not cloneable MCTS roots.
@@ -1278,6 +1296,9 @@ void Application::renderGraveyardOverlay()
 
 void Application::renderDuel()
 {
+	// The action panel repeatedly queries Lua-backed rules and would otherwise
+	// duplicate the same presentation-only trace every frame.
+	LuaTrace::ScopedSuppression suppressRenderTrace;
 	if (mBoardTexture != NULL)
 		SDL_RenderCopy(mRenderer, mBoardTexture, NULL, NULL);
 	else

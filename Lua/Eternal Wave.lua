@@ -314,7 +314,7 @@ Cards["Miraculous Truce"] = {
 		local mod=function(cid,mid)
 			if(getMessageType()=="get creaturecanattackplayers") then
 				local attacker=getMessageInt("attacker")
-				if(getCardOwner(attacker)~=owner and cardHasCivilization(attacker,civilization)==1) then
+				if(getCardOwner(attacker)~=owner and cardHasCivilization(attacker,civilization)) then
 					setMessageInt("canattack",CANATTACK_NO)
 				end
 			elseif(getMessageType()=="pre startturn" and getMessageInt("player")==owner) then
@@ -351,7 +351,7 @@ Cards["Baraid, the Explorer"] = {
 			buffUntilEnd(id,function(cid)
 				if(getMessageType()=="get creaturecanblock") then
 					local attacker=getMessageInt("attacker")
-					if(getCardOwner(attacker)==owner and cardHasCivilization(attacker,CIV_LIGHT)==1) then setMessageInt("canblock",0) end
+					if(getCardOwner(attacker)==owner and cardHasCivilization(attacker,CIV_LIGHT)) then setMessageInt("canblock",0) end
 				end
 			end)
 		end)
@@ -805,7 +805,7 @@ Cards["Gankloak, Rogue Commando"] = {
 			buffUntilEnd(id,function(cid)
 				if(getMessageType()=="get creaturebreaker") then
 					local creature=getMessageInt("creature")
-					if(getCardOwner(creature)==owner and cardHasCivilization(creature,CIV_FIRE)==1 and getMessageInt("breaker")<2) then setMessageInt("breaker",2) end
+					if(getCardOwner(creature)==owner and cardHasCivilization(creature,CIV_FIRE) and getMessageInt("breaker")<2) then setMessageInt("breaker",2) end
 				end
 			end)
 		end)
@@ -955,7 +955,7 @@ Cards["Rainbow Gate"] = {
 			if(Checks.CreatureInYourDeck(cid,sid)==0) then return 0 end
 			local count=0
 			for civ=0,4 do
-				if(cardHasCivilization(sid,civ)==1) then count=count+1 end
+				if(cardHasCivilization(sid,civ)) then count=count+1 end
 			end
 			if(count>=2) then return 1 end
 			return 0

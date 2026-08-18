@@ -46,6 +46,7 @@ public:
 	std::vector<Message> mMoveHistory;
 	std::vector<int> mMovePlayers;
 	int mCurrentMoveCount;
+	unsigned long long mStateRevision;
 
 	CRandom mRandomGen;
 

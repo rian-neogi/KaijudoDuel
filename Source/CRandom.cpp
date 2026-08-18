@@ -1,5 +1,9 @@
 #include "CRandom.h"
 
+#include <atomic>
+#include <chrono>
+#include <cstdint>
+
 CRandom::CRandom(void)
 {
    rseed = 1;
@@ -66,5 +70,21 @@ unsigned int CRandom::GetRandomSeed(void)
 
 void CRandom::Randomize(void)
 {
-   SetRandomSeed(time(NULL));
+	SetRandomSeed(GenerateRandomSeed());
+}
+
+unsigned int CRandom::GenerateRandomSeed(void)
+{
+	static std::atomic<unsigned long long> sequence(0);
+	std::uint64_t value = static_cast<std::uint64_t>(
+		std::chrono::high_resolution_clock::now().time_since_epoch().count());
+	value ^= (sequence.fetch_add(1, std::memory_order_relaxed) + 1) *
+		UINT64_C(0x9e3779b97f4a7c15);
+	value ^= value >> 30;
+	value *= UINT64_C(0xbf58476d1ce4e5b9);
+	value ^= value >> 27;
+	value *= UINT64_C(0x94d049bb133111eb);
+	value ^= value >> 31;
+	unsigned int seed = static_cast<unsigned int>(value ^ (value >> 32));
+	return seed == 0 ? 1U : seed;
 }

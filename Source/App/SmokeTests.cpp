@@ -164,9 +164,14 @@ int Application::runSmokeTests()
 			std::cerr << "Live and Breathe smoke test failed." << std::endl;
 			return 2;
 		}
-		if (!exercisePoppleTapAbilitySmoke())
+		if (!exerciseTapAbilitySmoke())
 		{
-			std::cerr << "Popple tap-ability smoke test failed." << std::endl;
+			std::cerr << "Tap-ability smoke test failed." << std::endl;
+			return 2;
+		}
+		if (!exerciseAttackQuerySmoke())
+		{
+			std::cerr << "Attack-query smoke test failed." << std::endl;
 			return 2;
 		}
 		if (!exerciseDecisionPlanSmoke())
@@ -246,7 +251,7 @@ int Application::runSmokeTests()
 		}
 		ensurePlayerDataLoaded();
 		if (mNpcs.empty() || !startDuelWithDecks(mActiveDeckPath,
-			mNpcs[0].deckForBattle(0), 0))
+			mNpcs[0].deckForBattle(0), 0, false, 4357U))
 		{
 			std::cerr << "Unable to start smoke-test duel." << std::endl;
 			return 2;
@@ -1056,7 +1061,7 @@ bool Application::exerciseLiveAndBreatheSmoke()
 		duel.mDecks[0].mCards.size() == 1;
 }
 
-bool Application::exercisePoppleTapAbilitySmoke()
+bool Application::exerciseTapAbilitySmoke()
 {
 	std::lock_guard<std::mutex> lock(gMutex);
 	int poppleId = getCardIdFromName("Popple, Flowerpetal Dancer");
@@ -1090,9 +1095,114 @@ bool Application::exercisePoppleTapAbilitySmoke()
 		duel.handleInterfaceInput(tapAbility);
 		duel.dispatchAllMessages();
 	}
-	return duel.mCardList[popple]->mIsTapped &&
+	bool valid = duel.mCardList[popple]->mIsTapped &&
 		duel.mDecks[0].mCards.size() == 1 &&
 		duel.mManazones[0].mCards.size() == 1;
+
+	Duel auraDuel;
+	auraDuel.mIsSimulation = true;
+	auraDuel.mInputLoopRunning = false;
+	auraDuel.mTurn = 0;
+	auraDuel.mTurnPhase = TURN_PHASE_MAIN;
+	auto addAuraCard = [&auraDuel](int cardId, int zone) -> int
+	{
+		int uid = (int)auraDuel.mCardList.size();
+		Card* card = new Card(uid, cardId, 0);
+		auraDuel.mCardList.push_back(card);
+		auraDuel.getZone(0, zone)->addCard(card);
+		card->mZone = zone;
+		auraDuel.mNextUniqueId = uid + 1;
+		return uid;
+	};
+	struct AuraCase
+	{
+		const char* evolution;
+		const char* creature;
+	};
+	const AuraCase auraCases[] = {
+		{ "Phantasmal Horror Gigazald", "Bone Spider" },
+		{ "Lava Walker Executo", "Deadly Fighter Braid Claw" },
+		{ "Arc Bine, the Astounding", "Senatine Jade Tree" },
+		{ "Fort Megacluster", "Aqua Hulcus" },
+		{ "Living Citadel Vosh", "Bronze-Arm Tribe" },
+	};
+	std::vector<int> auraCreatures;
+	for (size_t index = 0; index < sizeof(auraCases) / sizeof(auraCases[0]); ++index)
+	{
+		int evolutionId = getCardIdFromName(auraCases[index].evolution);
+		int creatureId = getCardIdFromName(auraCases[index].creature);
+		if (evolutionId < 0 || creatureId < 0) return false;
+		int evolution = addAuraCard(evolutionId, ZONE_BATTLE);
+		int creature = addAuraCard(creatureId, ZONE_BATTLE);
+		auraDuel.mCardList[evolution]->mSummoningSickness = 0;
+		auraDuel.mCardList[creature]->mSummoningSickness = 0;
+		auraCreatures.push_back(creature);
+	}
+	addAuraCard(deckCardId, ZONE_DECK);
+	addAuraCard(deckCardId, ZONE_DECK);
+	{
+		ActiveDuelGuard activeGuard(auraDuel);
+		std::vector<Message> moves = auraDuel.getPossibleMoves();
+		for (std::vector<int>::iterator creature = auraCreatures.begin();
+			creature != auraCreatures.end(); ++creature)
+		{
+			valid = valid && auraDuel.getCreatureHasTapAbility(*creature) == 1;
+			bool foundTapAbility = false;
+			for (std::vector<Message>::iterator move = moves.begin(); move != moves.end(); ++move)
+			{
+				if (move->getType() == "creatureusetapability" &&
+					move->getInt("creature") == *creature)
+				{
+					foundTapAbility = true;
+					break;
+				}
+			}
+			valid = valid && foundTapAbility;
+		}
+		Message tapAbility("creatureusetapability");
+		tapAbility.addValue("creature", auraCreatures.back());
+		auraDuel.handleInterfaceInput(tapAbility);
+		auraDuel.dispatchAllMessages();
+	}
+	valid = valid && auraDuel.mCardList[auraCreatures.back()]->mIsTapped &&
+		auraDuel.mDecks[0].mCards.size() == 1 &&
+		auraDuel.mManazones[0].mCards.size() == 1;
+	return valid;
+}
+
+bool Application::exerciseAttackQuerySmoke()
+{
+	std::lock_guard<std::mutex> lock(gMutex);
+	int snipStrikerId = getCardIdFromName("Snip Striker Bullraizer");
+	int creatureId = getCardIdFromName("Bone Spider");
+	if (snipStrikerId < 0 || creatureId < 0) return false;
+
+	Duel attackDuel;
+	attackDuel.mIsSimulation = true;
+	attackDuel.mInputLoopRunning = false;
+	auto addAttackCard = [&attackDuel](int cardId, int owner) -> int
+	{
+		int uid = (int)attackDuel.mCardList.size();
+		Card* card = new Card(uid, cardId, owner);
+		attackDuel.mCardList.push_back(card);
+		attackDuel.mBattlezones[owner].addCard(card);
+		card->mZone = ZONE_BATTLE;
+		attackDuel.mNextUniqueId = uid + 1;
+		return uid;
+	};
+	int opponentCreature = addAttackCard(creatureId, 1);
+	addAttackCard(creatureId, 1);
+	int snipStriker = addAttackCard(snipStrikerId, 0);
+	bool valid = false;
+	{
+		ActiveDuelGuard activeGuard(attackDuel);
+		valid = attackDuel.getCreatureCanAttackPlayers(snipStriker) == CANATTACK_NO &&
+			attackDuel.getCreatureCanAttackCreature(snipStriker, opponentCreature) == CANATTACK_NO;
+		addAttackCard(creatureId, 0);
+		valid = valid && attackDuel.getCreatureCanAttackPlayers(snipStriker) != CANATTACK_NO &&
+			attackDuel.getCreatureCanAttackCreature(snipStriker, opponentCreature) != CANATTACK_NO;
+	}
+	return valid;
 }
 
 bool Application::exerciseDecisionPlanSmoke()
@@ -1891,6 +2001,65 @@ bool Application::exerciseDecisionPlanSmoke()
 		valid = valid && emptyBoardRejected && emptyHandRejected && strongTargetRestrictions &&
 			manaTargetAccepted && tappedTargetRejected && restrictedTargetsAccepted &&
 			occupiedHandAccepted;
+	}
+
+	{
+		Duel root;
+		root.mIsSimulation = true;
+		root.mInputLoopRunning = false;
+		root.mTurn = 0;
+		root.mTurnPhase = TURN_PHASE_MAIN;
+		auto addCard = [&root](int cardId, int owner, int zone) -> int
+		{
+			int uid = (int)root.mCardList.size();
+			Card* card = new Card(uid, cardId, owner);
+			root.mCardList.push_back(card);
+			root.getZone(owner, zone)->addCard(card);
+			card->mZone = zone;
+			root.mNextUniqueId = uid + 1;
+			return uid;
+		};
+
+		int crisisBoulder = addCard(crisisBoulderId, 0, ZONE_HAND);
+		int lowValueMana = addCard(fireCreatureId, 1, ZONE_MANA);
+		int strongCreature = addCard(bolshackDragonId, 1, ZONE_BATTLE);
+		bool mandatoryChoice = false;
+		int preferredChoice = RETURN_NOTHING;
+		root.setChoiceResolver(
+			[&](const Duel& position) -> int
+			{
+				preferredChoice = position.mChoice == NULL ? RETURN_NOTHING :
+					position.mChoice->mAiPreferredSelection;
+				mandatoryChoice = position.mChoice != NULL &&
+					position.mChoicePlayer == 1 && position.mChoice->mButtonCount == 0 &&
+					position.mChoiceValidCards.size() == 2 &&
+					position.choiceCanBeSelected(lowValueMana) &&
+					position.choiceCanBeSelected(strongCreature) &&
+					preferredChoice == lowValueMana;
+				return preferredChoice;
+			}, 1);
+		{
+			ActiveDuelGuard activeGuard(root);
+			Message cast("cardmove");
+			cast.addValue("card", crisisBoulder);
+			cast.addValue("from", ZONE_HAND);
+			cast.addValue("to", ZONE_BATTLE);
+			cast.addValue("evobait", -1);
+			root.mMsgMngr.sendMessage(cast);
+			root.dispatchAllMessages();
+		}
+		bool crisisChoiceReady = mandatoryChoice && !root.hasSimulationChoiceFailure() &&
+			root.mCardList[crisisBoulder]->mZone == ZONE_GRAVEYARD &&
+			root.mCardList[lowValueMana]->mZone == ZONE_GRAVEYARD &&
+			root.mCardList[strongCreature]->mZone == ZONE_BATTLE;
+		if (!crisisChoiceReady)
+			std::cerr << "Crisis Boulder choice state: mandatory=" << mandatoryChoice <<
+				" preferred=" << preferredChoice << " expected=" << lowValueMana <<
+				" simulation-failed=" << root.hasSimulationChoiceFailure() <<
+				" spell-zone=" << root.mCardList[crisisBoulder]->mZone <<
+				" mana-zone=" << root.mCardList[lowValueMana]->mZone <<
+				" creature-zone=" << root.mCardList[strongCreature]->mZone << std::endl;
+		valid = valid && crisisChoiceReady;
 	}
 
 	{
@@ -2832,17 +3001,17 @@ bool Application::exerciseBackgroundMctsSmoke()
 			addCard(0, ZONE_DECK);
 			addCard(1, ZONE_DECK);
 		}
-		mAiCreaturePowers.resize(live.mCardList.size());
+		mDisplayedCreaturePowers.resize(live.mCardList.size());
 		for (size_t card = 0; card < live.mCardList.size(); ++card)
-			mAiCreaturePowers[card] = live.mCardList[card]->mPower;
-		mAiCreaturePowers[attacker] = live.getCreaturePower(attacker);
+			mDisplayedCreaturePowers[card] = live.mCardList[card]->mPower;
+		mDisplayedCreaturePowers[attacker] = live.getCreaturePower(attacker);
 		live.mAiThinkingPlayer = live.getPlayerToMove();
 		live.mAiThinking = true;
 		if (!search.start(live))
 		{
 			live.mAiThinking = false;
 			live.mAiThinkingPlayer = -1;
-			mAiCreaturePowers.clear();
+			mDisplayedCreaturePowers.clear();
 			return false;
 		}
 	}
@@ -2890,7 +3059,7 @@ bool Application::exerciseBackgroundMctsSmoke()
 		committed = finished && result.hasPlan &&
 			commitDecisionPlan(live, result.plan) == DecisionPlanCommitStatus::Committed;
 	}
-	mAiCreaturePowers.clear();
+	mDisplayedCreaturePowers.clear();
 	return uiMutexAvailable && liveStateStayedFrozen && finished && finishedReuse &&
 		result.iterationsCompleted == config.iterations && result.failedIterations == 0 &&
 		result.reusedTree && result.reusedRootVisits == config.iterations &&
@@ -3414,6 +3583,48 @@ bool Application::exerciseHollowCardsSmoke()
 		payment.mCardList[fireMana]->mCivilizations = 1 << CIV_WATER;
 		payment.mCardList[fireMana]->mCivilization = CIV_WATER;
 		valid = valid && !payment.canPayForCard(0, dualCard);
+	}
+	{
+		Duel display;
+		ActiveDuel = &display;
+		auto addCard = [&display](int cardId) -> int
+		{
+			int uid = (int)display.mCardList.size();
+			Card* card = new Card(uid, cardId, 0);
+			display.mCardList.push_back(card);
+			display.mBattlezones[0].addCard(card);
+			card->mZone = ZONE_BATTLE;
+			return uid;
+		};
+		int soldier = addCard(ids["Hollow Soldier"]);
+		int pure = addCard(ids["Pure Hollow"]);
+		Message tap("cardtap");
+		tap.addValue("card", soldier);
+		display.mMsgMngr.sendMessage(tap);
+		bool firstChange = display.dispatchAllMessages();
+		valid = valid && firstChange && display.mStateRevision == 1;
+
+		Duel* savedDisplayedDuel = mDuel;
+		std::vector<int> savedDisplayedPowers = mDisplayedCreaturePowers;
+		unsigned long long savedDisplayedRevision = mDisplayedPowerRevision;
+		mDuel = &display;
+		mDisplayedCreaturePowers.clear();
+		mDisplayedPowerRevision = ~0ULL;
+		refreshDisplayedCreaturePowers();
+		valid = valid && mDisplayedCreaturePowers[soldier] == 7000;
+
+		Message removeAura("cardmove");
+		removeAura.addValue("card", pure);
+		removeAura.addValue("from", ZONE_BATTLE);
+		removeAura.addValue("to", ZONE_GRAVEYARD);
+		display.mMsgMngr.sendMessage(removeAura);
+		bool secondChange = display.dispatchAllMessages();
+		valid = valid && secondChange && display.mStateRevision == 2;
+		refreshDisplayedCreaturePowers();
+		valid = valid && mDisplayedCreaturePowers[soldier] == 3000;
+		mDuel = savedDisplayedDuel;
+		mDisplayedCreaturePowers = savedDisplayedPowers;
+		mDisplayedPowerRevision = savedDisplayedRevision;
 	}
 	ActiveDuel = savedActiveDuel;
 	return valid;
@@ -4883,58 +5094,6 @@ bool Application::exerciseOverworldMovementSmoke()
 			(mWorld.maps[from].indoor || mWorld.maps[to].indoor);
 	}
 
-	const int dx[] = { 1, 0, -1, 0 };
-	const int dy[] = { 0, 1, 0, -1 };
-	auto reachableFrom = [this, &dx, &dy](int area, int x, int y)
-	{
-		mCurrentWorldArea = area;
-		std::set<std::pair<int, int> > reachable;
-		std::vector<std::pair<int, int> > frontier;
-		if (!isWalkable(x, y)) return reachable;
-		reachable.insert(std::make_pair(x, y));
-		frontier.push_back(std::make_pair(x, y));
-		for (size_t next = 0; next < frontier.size(); ++next)
-			for (int direction = 0; direction < 4; ++direction)
-			{
-				int nextX = frontier[next].first + dx[direction];
-				int nextY = frontier[next].second + dy[direction];
-				if (!isWalkable(nextX, nextY) ||
-					!reachable.insert(std::make_pair(nextX, nextY)).second) continue;
-				frontier.push_back(std::make_pair(nextX, nextY));
-			}
-		return reachable;
-	};
-	std::set<std::pair<int, int> > reachable;
-	if (seamlessWorldReady)
-	{
-		reachable = reachableFrom(overworldArea, mWorld.start.x, mWorld.start.y);
-		seamlessWorldReady = reachable.count(std::make_pair(
-			overworldOffsetX, 19 + overworldOffsetY)) != 0 &&
-			reachable.count(std::make_pair(95 + overworldOffsetX,
-				39 + overworldOffsetY)) != 0 &&
-			reachable.count(std::make_pair(96 + overworldOffsetX,
-				39 + overworldOffsetY)) != 0 &&
-			reachable.count(std::make_pair(95 + overworldOffsetX,
-				61 + overworldOffsetY)) != 0 &&
-			reachable.count(std::make_pair(96 + overworldOffsetX,
-				61 + overworldOffsetY)) != 0 &&
-			reachable.count(std::make_pair(47 + overworldOffsetX,
-				107 + overworldOffsetY)) != 0 &&
-			reachable.count(std::make_pair(95 + overworldOffsetX,
-				97 + overworldOffsetY)) != 0 &&
-			reachable.count(std::make_pair(223 + overworldOffsetX,
-				53 + overworldOffsetY)) != 0 &&
-			reachable.count(std::make_pair(224 + overworldOffsetX,
-				53 + overworldOffsetY)) != 0 &&
-			reachable.count(std::make_pair(259 + overworldOffsetX,
-				47 + overworldOffsetY)) != 0 &&
-			reachable.count(std::make_pair(260 + overworldOffsetX,
-				47 + overworldOffsetY)) != 0 &&
-			reachable.count(std::make_pair(355 + overworldOffsetX,
-				48 + overworldOffsetY)) != 0 &&
-			reachable.count(std::make_pair(356 + overworldOffsetX,
-				48 + overworldOffsetY)) != 0;
-	}
 	std::set<std::string> landmarkIds;
 	for (size_t landmark = 0; landmark < Landmarks::COUNT; ++landmark)
 	{
@@ -4944,50 +5103,17 @@ bool Application::exerciseOverworldMovementSmoke()
 			if (mWorld.regions[candidate].mapId == "overworld" &&
 				mWorld.regions[candidate].id == definition.regionId)
 				region = &mWorld.regions[candidate];
-		bool discoverable = false;
-		if (region != NULL && definition.localX >= 0 && definition.localY >= 0 &&
+		bool definitionReady = region != NULL && definition.localX >= 0 &&
+			definition.localY >= 0 &&
 			definition.localX < region->width && definition.localY < region->height &&
-			definition.discoveryRadius > 0 && definition.goldReward > 0)
-		{
-			int centerX = region->x + definition.localX;
-			int centerY = region->y + definition.localY;
-			for (int y = centerY - definition.discoveryRadius;
-				y <= centerY + definition.discoveryRadius && !discoverable; ++y)
-				for (int x = centerX - definition.discoveryRadius;
-					x <= centerX + definition.discoveryRadius; ++x)
-					if (std::abs(x - centerX) + std::abs(y - centerY) <=
-						definition.discoveryRadius &&
-						reachable.count(std::make_pair(x, y)) != 0)
-						discoverable = true;
-		}
+			definition.discoveryRadius > 0 && definition.goldReward > 0;
 		seamlessWorldReady = seamlessWorldReady && definition.id[0] != '\0' &&
 			definition.name[0] != '\0' && landmarkIds.insert(definition.id).second &&
-			discoverable;
+			definitionReady;
 	}
 	for (std::set<std::string>::const_iterator discovered = mDiscoveredLandmarks.begin();
 		discovered != mDiscoveredLandmarks.end(); ++discovered)
 		seamlessWorldReady = seamlessWorldReady && Landmarks::find(*discovered) != NULL;
-	const char* regionalNpcs[] = { "rook", "kipp", "ansa", "holt",
-		"neris", "pell", "iri", "sol", "oren", "fern", "toma", "moss",
-	};
-	const char* expectedRegions[] = { "old_road", "cinderrail", "cinderrail", "cinderrail",
-		"glasswater", "glasswater", "glasswater", "glasswater",
-		"rootmaze", "rootmaze", "rootmaze", "rootmaze" };
-	for (size_t expected = 0; expected < 12; ++expected)
-	{
-		bool found = false;
-		for (size_t i = 0; i < mNpcs.size(); ++i)
-			if (mNpcs[i].id == regionalNpcs[expected])
-			{
-				const WorldRegion* region = worldRegionAt(mNpcs[i].mapId, mNpcs[i].x, mNpcs[i].y);
-				found = mNpcs[i].mapId == "overworld" && region != NULL &&
-					region->id == expectedRegions[expected] &&
-					reachable.count(std::make_pair(mNpcs[i].x, mNpcs[i].y)) != 0 &&
-					(mNpcs[i].id != "neris" || mNpcs[i].crestId == "tidal") &&
-					(mNpcs[i].id != "oren" || mNpcs[i].crestId == "verdant");
-			}
-		seamlessWorldReady = seamlessWorldReady && found;
-	}
 	int routeDuelists = 0;
 	int townNpcs = 0;
 	int traders = 0;

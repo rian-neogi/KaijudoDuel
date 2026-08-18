@@ -323,7 +323,7 @@ Cards["Typhoon Crawler"] = {
 	HandleMessage = function(id)
 		if(getMessageType()=="get creaturecanattackcreature" and getMessageInt("defender")==id) then
 			local attacker=getMessageInt("attacker")
-			if(cardHasCivilization(attacker,CIV_FIRE)==1 or cardHasCivilization(attacker,CIV_NATURE)==1) then
+			if(cardHasCivilization(attacker,CIV_FIRE) or cardHasCivilization(attacker,CIV_NATURE)) then
 				setMessageInt("canattack",CANATTACK_NO)
 			end
 		end
@@ -789,7 +789,7 @@ Cards["Mizoy, the Oracle"] = {
 		Abils.onSummon(id,function(id)
 			local creature=createChoice("Choose a darkness or fire creature to tap",1,id,getCardOwner(id),function(cid,sid)
 				if(Checks.InBattle(cid,sid)==1 and
-					(cardHasCivilization(sid,CIV_DARKNESS)==1 or cardHasCivilization(sid,CIV_FIRE)==1)) then return 1 end
+					(cardHasCivilization(sid,CIV_DARKNESS) or cardHasCivilization(sid,CIV_FIRE))) then return 1 end
 				return 0
 			end)
 			if(creature>=0) then tapCard(creature) end
@@ -926,7 +926,7 @@ Cards["Gigarayze"] = {
 		Abils.onSummon(id,function(id)
 			local creature=createChoice("Choose a water or fire creature in your graveyard",1,id,getCardOwner(id),function(cid,sid)
 				if(Checks.CreatureInYourGraveyard(cid,sid)==1 and
-					(cardHasCivilization(sid,CIV_WATER)==1 or cardHasCivilization(sid,CIV_FIRE)==1)) then return 1 end
+					(cardHasCivilization(sid,CIV_WATER) or cardHasCivilization(sid,CIV_FIRE))) then return 1 end
 				return 0
 			end)
 			if(creature>=0) then moveCard(creature,ZONE_HAND) end
