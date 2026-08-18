@@ -1054,7 +1054,7 @@ Cards["Live and Breathe"] = {
 	OnCast = function(id) --test
 		local owner=getCardOwner(id)
 		local mod=function(cid,mid)
-			if(getMessageType()=="post cardmove" and getMessageInt("to")==ZONE_BATTLE) then
+			if(getMessageType()=="post cardplay") then
 				local summoned=getMessageInt("card")
 				if(getCardOwner(summoned)==owner and getCardType(summoned)==TYPE_CREATURE) then
 					local name=getCardName(summoned)

@@ -217,20 +217,21 @@ double HeuristicBot::scoreManaPayment(Duel& duel, int cardId) const
 	if (selected->mOwner != mPlayer || selected->mZone != ZONE_MANA || selected->mIsTapped)
 		return -std::numeric_limits<double>::infinity();
 
-	int remainingCivilizations[CIV_DARKNESS + 1] = {};
+	int remainingCivilizations[CIV_HOLLOW + 1] = {};
 	for (std::vector<Card*>::const_iterator mana = duel.mManazones[mPlayer].mCards.begin();
 		mana != duel.mManazones[mPlayer].mCards.end(); ++mana)
 	{
 		if ((*mana)->mIsTapped || (*mana)->mUniqueId == cardId ||
 			std::find(duel.mCastingManaCards.begin(), duel.mCastingManaCards.end(),
 				(*mana)->mUniqueId) != duel.mCastingManaCards.end()) continue;
-		for (int civilization = CIV_LIGHT; civilization <= CIV_DARKNESS; ++civilization)
-			if (((*mana)->mCivilizations & (1 << civilization)) != 0)
+		bool hollowMana = ((*mana)->mCivilizations & (1 << CIV_HOLLOW)) != 0;
+		for (int civilization = CIV_LIGHT; civilization <= CIV_HOLLOW; ++civilization)
+			if (hollowMana || ((*mana)->mCivilizations & (1 << civilization)) != 0)
 				remainingCivilizations[civilization]++;
 	}
 
 	double score = 0.0;
-	for (int civilization = CIV_LIGHT; civilization <= CIV_DARKNESS; ++civilization)
+	for (int civilization = CIV_LIGHT; civilization <= CIV_HOLLOW; ++civilization)
 	{
 		if (remainingCivilizations[civilization] > 0)
 			score += aiParam("heuristic.mana_payment.civilization_coverage_score");
@@ -246,10 +247,12 @@ double HeuristicBot::scoreManaPayment(Duel& duel, int cardId) const
 		card != duel.mHands[mPlayer].mCards.end(); ++card)
 	{
 		if ((*card)->mUniqueId == duel.mCastingCard) continue;
+		bool hollowCard = ((*card)->mCivilizations & (1 << CIV_HOLLOW)) != 0;
 		bool covered = true;
-		for (int civilization = CIV_LIGHT; civilization <= CIV_DARKNESS; ++civilization)
+		for (int civilization = CIV_LIGHT; civilization <= CIV_HOLLOW; ++civilization)
 		{
-			if (((*card)->mCivilizations & (1 << civilization)) != 0 &&
+			if (!hollowCard &&
+				((*card)->mCivilizations & (1 << civilization)) != 0 &&
 				remainingCivilizations[civilization] == 0)
 			{
 				covered = false;

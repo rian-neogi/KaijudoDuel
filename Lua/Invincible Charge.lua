@@ -1169,7 +1169,7 @@ Cards["Popple, Flowerpetal Dancer"] = {
 
 	HandleMessage = function(id)
 		local tap = function(id)
-			moveTopCardsFromDeck(getCardOwner(id), ZONE_MANA, 1)
+			Functions.moveTopCardsFromDeck(getCardOwner(id), ZONE_MANA, 1)
 		end
 		Abils.TapAbility(id,tap)
 	end

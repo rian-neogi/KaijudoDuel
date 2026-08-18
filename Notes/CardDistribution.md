@@ -678,7 +678,7 @@ Misha, Channeler of Suns
 Nastasha, Channeler of Suns
 Sasha, Channeler of Suns
 Petrova, Channeler of Suns
-
+Yuliana, Channeler of Suns
 
 ## Special Cards
 

@@ -22,8 +22,10 @@ namespace
 
 	int civilizationCount(int civilizations)
 	{
+		if ((civilizations & (1 << CIV_HOLLOW)) != 0)
+			return CIV_HOLLOW + 1;
 		int count = 0;
-		for (int civilization = CIV_LIGHT; civilization <= CIV_DARKNESS; ++civilization)
+		for (int civilization = CIV_LIGHT; civilization <= CIV_HOLLOW; ++civilization)
 			if ((civilizations & (1 << civilization)) != 0) ++count;
 		return count;
 	}

@@ -1044,10 +1044,10 @@ void Application::renderDeckBuilder()
 		{
 			int civilizations = card.Civilizations;
 			if (civilizations == 0 && card.Civilization >= CIV_LIGHT &&
-				card.Civilization <= CIV_DARKNESS)
+				card.Civilization <= CIV_HOLLOW)
 				civilizations = 1 << card.Civilization;
 			std::vector<int> colors;
-			for (int civilization = CIV_LIGHT; civilization <= CIV_DARKNESS; ++civilization)
+			for (int civilization = CIV_LIGHT; civilization <= CIV_HOLLOW; ++civilization)
 				if ((civilizations & (1 << civilization)) != 0)
 					colors.push_back(civilization);
 			if (colors.empty()) colors.push_back(card.Civilization);

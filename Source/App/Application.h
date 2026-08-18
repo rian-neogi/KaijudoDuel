@@ -186,6 +186,8 @@ private:
 	bool exerciseDuelCloneSmoke();
 	bool exerciseModifierDestroySmoke();
 	bool exerciseSimulationChoiceSmoke();
+	bool exerciseLiveAndBreatheSmoke();
+	bool exercisePoppleTapAbilitySmoke();
 	bool exerciseDecisionPlanSmoke();
 	bool exerciseMotorcycleMutantSmoke();
 	bool exerciseAvalancheGiantSmoke();
@@ -302,6 +304,7 @@ private:
 	bool exerciseHeuristicManaConservationSmoke();
 	bool exerciseKnockoutScoringSmoke();
 	bool exerciseMultiCivilizationSmoke();
+	bool exerciseHollowCardsSmoke();
 	bool exerciseRaceQuerySmoke();
 	bool exerciseCrypticTotemSmoke();
 	bool exerciseUntapAfterBlockSmoke();

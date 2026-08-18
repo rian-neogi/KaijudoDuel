@@ -5,6 +5,8 @@ Decks/
 !Decks/
 Decks/*
 !Decks/VeiledOne.txt
+!Decks/Executo.txt
+!Decks/BaleskBaj.txt
 PlayerData/
 Resources/
 !Resources/
@@ -16,6 +18,15 @@ Resources/Textures/*
 Resources/Sprites/*
 !Resources/Sprites/Crests/
 !Resources/Sprites/Crests/*.png
+!Resources/Cards/
+Resources/Cards/*
+!Resources/Cards/Hollow/
+Resources/Cards/Hollow/*/
+!Resources/Cards/Hollow/*.png
+!Resources/Sets XML/
+Resources/Sets XML/*
+!Resources/Sets XML/Hollow/
+!Resources/Sets XML/Hollow/set.xml
 .vscode/
 
 # User-specific files

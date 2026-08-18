@@ -159,6 +159,16 @@ int Application::runSmokeTests()
 			std::cerr << "Simulation choice smoke test failed." << std::endl;
 			return 2;
 		}
+		if (!exerciseLiveAndBreatheSmoke())
+		{
+			std::cerr << "Live and Breathe smoke test failed." << std::endl;
+			return 2;
+		}
+		if (!exercisePoppleTapAbilitySmoke())
+		{
+			std::cerr << "Popple tap-ability smoke test failed." << std::endl;
+			return 2;
+		}
 		if (!exerciseDecisionPlanSmoke())
 		{
 			std::cerr << "Decision-plan smoke test failed." << std::endl;
@@ -207,6 +217,11 @@ int Application::runSmokeTests()
 		if (!exerciseWorldObjectsSmoke())
 		{
 			std::cerr << "World-object template smoke test failed." << std::endl;
+			return 2;
+		}
+		if (!exerciseHollowCardsSmoke())
+		{
+			std::cerr << "Hollow-card rules smoke test failed." << std::endl;
 			return 2;
 		}
 		if (!exerciseBundledDecksSmoke())
@@ -973,6 +988,111 @@ bool Application::exerciseSimulationChoiceSmoke()
 	}
 	ActiveDuel = savedActiveDuel;
 	return valid;
+}
+
+bool Application::exerciseLiveAndBreatheSmoke()
+{
+	std::lock_guard<std::mutex> lock(gMutex);
+	int spellId = getCardIdFromName("Live and Breathe");
+	int creatureId = getCardIdFromName("Deadly Fighter Braid Claw");
+	if (spellId < 0 || creatureId < 0) return false;
+
+	Duel duel;
+	duel.mIsSimulation = true;
+	duel.mInputLoopRunning = false;
+	auto addCard = [&duel](int cardId, int zone) -> int
+	{
+		int uid = (int)duel.mCardList.size();
+		Card* card = new Card(uid, cardId, 0);
+		duel.mCardList.push_back(card);
+		duel.getZone(0, zone)->addCard(card);
+		card->mZone = zone;
+		duel.mNextUniqueId = uid + 1;
+		return uid;
+	};
+
+	int spell = addCard(spellId, ZONE_HAND);
+	int summoned = addCard(creatureId, ZONE_HAND);
+	for (int copy = 0; copy < 3; ++copy) addCard(creatureId, ZONE_DECK);
+
+	auto chooseFirst = [](const Duel& position) -> int
+	{
+		return position.mChoiceValidCards.empty() ? RETURN_QUIT :
+			position.mChoiceValidCards.front();
+	};
+	duel.setChoiceResolver(chooseFirst, 1);
+	{
+		ActiveDuelGuard activeGuard(duel);
+		Message cast("cardmove");
+		cast.addValue("card", spell);
+		cast.addValue("from", ZONE_HAND);
+		cast.addValue("to", ZONE_BATTLE);
+		duel.mMsgMngr.sendMessage(cast);
+		duel.dispatchAllMessages();
+
+		Message summon("cardplay");
+		summon.addValue("card", summoned);
+		summon.addValue("evobait", -1);
+		summon.addValue("evobait2", -1);
+		duel.mMsgMngr.sendMessage(summon);
+		duel.dispatchAllMessages();
+	}
+	bool valid = !duel.mSimulationChoiceFailed && !duel.mIsChoiceActive &&
+		duel.mBattlezones[0].mCards.size() == 2 &&
+		duel.mDecks[0].mCards.size() == 2;
+
+	int placed = duel.mDecks[0].mCards.back()->mUniqueId;
+	{
+		ActiveDuelGuard activeGuard(duel);
+		Message putIntoBattle("cardmove");
+		putIntoBattle.addValue("card", placed);
+		putIntoBattle.addValue("from", ZONE_DECK);
+		putIntoBattle.addValue("to", ZONE_BATTLE);
+		duel.mMsgMngr.sendMessage(putIntoBattle);
+		duel.dispatchAllMessages();
+	}
+	return valid && !duel.mSimulationChoiceFailed && !duel.mIsChoiceActive &&
+		duel.mBattlezones[0].mCards.size() == 3 &&
+		duel.mDecks[0].mCards.size() == 1;
+}
+
+bool Application::exercisePoppleTapAbilitySmoke()
+{
+	std::lock_guard<std::mutex> lock(gMutex);
+	int poppleId = getCardIdFromName("Popple, Flowerpetal Dancer");
+	int deckCardId = getCardIdFromName("Bone Spider");
+	if (poppleId < 0 || deckCardId < 0) return false;
+
+	Duel duel;
+	duel.mIsSimulation = true;
+	duel.mInputLoopRunning = false;
+	duel.mTurn = 0;
+	duel.mTurnPhase = TURN_PHASE_MAIN;
+	auto addCard = [&duel](int cardId, int zone) -> int
+	{
+		int uid = (int)duel.mCardList.size();
+		Card* card = new Card(uid, cardId, 0);
+		duel.mCardList.push_back(card);
+		duel.getZone(0, zone)->addCard(card);
+		card->mZone = zone;
+		duel.mNextUniqueId = uid + 1;
+		return uid;
+	};
+
+	int popple = addCard(poppleId, ZONE_BATTLE);
+	duel.mCardList[popple]->mSummoningSickness = 0;
+	addCard(deckCardId, ZONE_DECK);
+	addCard(deckCardId, ZONE_DECK);
+	{
+		ActiveDuelGuard activeGuard(duel);
+		Message tapAbility("creatureusetapability");
+		tapAbility.addValue("creature", popple);
+		duel.handleInterfaceInput(tapAbility);
+		duel.dispatchAllMessages();
+	}
+	return duel.mCardList[popple]->mIsTapped &&
+		duel.mDecks[0].mCards.size() == 1 &&
+		duel.mManazones[0].mCards.size() == 1;
 }
 
 bool Application::exerciseDecisionPlanSmoke()
@@ -3061,6 +3181,239 @@ bool Application::exerciseMultiCivilizationSmoke()
 		test.dispatchAllMessages();
 		valid = valid && test.mCardList[tappedDual]->mZone == ZONE_MANA &&
 			test.mCardList[tappedDual]->mIsTapped;
+	}
+	ActiveDuel = savedActiveDuel;
+	return valid;
+}
+
+bool Application::exerciseHollowCardsSmoke()
+{
+	std::lock_guard<std::mutex> lock(gMutex);
+	struct ExpectedCard
+	{
+		const char* name;
+		int cost;
+		int power;
+		int breaker;
+		int blocker;
+	};
+	const ExpectedCard expected[] = {
+		{ "Hollow Soldier", 1, 3000, 1, 0 },
+		{ "Hollow Hulcus", 3, 3000, 1, 0 },
+		{ "Hollow Tribe", 3, 3000, 1, 0 },
+		{ "Hollow Knight", 3, 6000, 2, 0 },
+		{ "Hollow Dragon", 7, 15000, 3, 0 },
+		{ "Hollow Guardian", 2, 5000, 1, 1 },
+		{ "Hollow Angel", 6, 10000, 1, 1 },
+		{ "Hollow Demon", 6, 6000, 2, 0 },
+		{ "Hollow Giant", 5, 7000, 2, 0 },
+		{ "Pure Hollow", 7, 11000, 2, 0 }
+	};
+	std::map<std::string, int> ids;
+	for (size_t index = 0; index < sizeof(expected) / sizeof(expected[0]); ++index)
+	{
+		int cardId = getCardIdFromName(expected[index].name);
+		if (cardId < 0) return false;
+		Card card((int)index, cardId, 0);
+		if (card.mCivilization != CIV_HOLLOW ||
+			(card.mCivilizations & (1 << CIV_HOLLOW)) == 0 || card.mRace != "Hollow" ||
+			card.mManaCost != expected[index].cost || card.mPower != expected[index].power ||
+			card.mBreaker != expected[index].breaker || card.mIsBlocker != expected[index].blocker ||
+			cardTextureById(cardId) == NULL)
+			return false;
+		ids[expected[index].name] = cardId;
+	}
+	int pitId = getCardIdFromName("Pit of Hollows");
+	if (pitId < 0) return false;
+	Card pitCard(100, pitId, 0);
+	if (pitCard.mCivilization != CIV_HOLLOW ||
+		(pitCard.mCivilizations & (1 << CIV_HOLLOW)) == 0 ||
+		pitCard.mType != TYPE_SPELL || pitCard.mManaCost != 6 ||
+		pitCard.mIsShieldTrigger != 1 || cardTextureById(pitId) == NULL)
+		return false;
+	ids["Pit of Hollows"] = pitId;
+
+	int nonHollowId = getCardIdFromName("Bone Spider");
+	if (nonHollowId < 0) return false;
+	Duel* savedActiveDuel = ActiveDuel;
+	bool valid = true;
+	{
+		Duel test;
+		test.mIsSimulation = true;
+		ActiveDuel = &test;
+		auto addCard = [&test](int cardId, int owner, int zone) -> int
+		{
+			int uid = (int)test.mCardList.size();
+			Card* card = new Card(uid, cardId, owner);
+			test.mCardList.push_back(card);
+			test.getZone(owner, zone)->addCard(card);
+			card->mZone = zone;
+			return uid;
+		};
+
+		int soldier = addCard(ids["Hollow Soldier"], 0, ZONE_BATTLE);
+		int knight = addCard(ids["Hollow Knight"], 0, ZONE_BATTLE);
+		int pure = addCard(ids["Pure Hollow"], 0, ZONE_BATTLE);
+		int guardian = addCard(ids["Hollow Guardian"], 0, ZONE_BATTLE);
+		int angel = addCard(ids["Hollow Angel"], 0, ZONE_BATTLE);
+		int nonHollow = addCard(nonHollowId, 0, ZONE_BATTLE);
+		int enemyHollow = addCard(ids["Hollow Soldier"], 1, ZONE_BATTLE);
+		int pureInHand = addCard(ids["Pure Hollow"], 0, ZONE_HAND);
+
+		valid = test.cardHasCivilization(soldier, CIV_HOLLOW) &&
+			!test.cardHasCivilization(soldier, CIV_DARKNESS) &&
+			test.getCreaturePower(soldier) == 7000 && test.getCreatureBreaker(soldier) == 2 &&
+			test.getCreaturePower(knight) == 10000 && test.getCreatureBreaker(knight) == 3 &&
+			test.getCreaturePower(pure) == 11000 && test.getCreatureBreaker(pure) == 2 &&
+			test.getCreaturePower(enemyHollow) == 3000 &&
+			test.getCreatureCanEvolve(pureInHand, soldier) == 1 &&
+			test.getCreatureCanEvolve(pureInHand, nonHollow) == 0 &&
+			test.getCreatureIsBlocker(guardian) == 1 &&
+			test.getCreatureCanAttackPlayers(guardian) == CANATTACK_NO &&
+			test.getCreatureCanAttackCreature(guardian, enemyHollow) == CANATTACK_NO &&
+			test.getCreatureIsBlocker(angel) == 1 &&
+			test.getCreatureCanBlockRepeatedly(angel) == 1;
+	}
+	{
+		Duel abilities;
+		abilities.mIsSimulation = true;
+		ActiveDuel = &abilities;
+		auto addCard = [&abilities](int cardId, int owner, int zone) -> int
+		{
+			int uid = (int)abilities.mCardList.size();
+			Card* card = new Card(uid, cardId, owner);
+			abilities.mCardList.push_back(card);
+			abilities.getZone(owner, zone)->addCard(card);
+			card->mZone = zone;
+			return uid;
+		};
+		auto summon = [&abilities](int card)
+		{
+			Message move("cardmove");
+			move.addValue("card", card);
+			move.addValue("from", ZONE_HAND);
+			move.addValue("to", ZONE_BATTLE);
+			abilities.dispatchMessage(move);
+			abilities.dispatchAllMessages();
+		};
+
+		for (int card = 0; card < 5; ++card) addCard(nonHollowId, 0, ZONE_DECK);
+		int hulcus = addCard(ids["Hollow Hulcus"], 0, ZONE_HAND);
+		int tribe = addCard(ids["Hollow Tribe"], 0, ZONE_HAND);
+		summon(hulcus);
+		valid = valid && abilities.mHands[0].mCards.size() == 3 &&
+			abilities.mDecks[0].mCards.size() == 3;
+		summon(tribe);
+		valid = valid && abilities.mManazones[0].mCards.size() == 2 &&
+			abilities.mDecks[0].mCards.size() == 1;
+
+		addCard(nonHollowId, 1, ZONE_MANA);
+		addCard(nonHollowId, 1, ZONE_MANA);
+		addCard(nonHollowId, 1, ZONE_BATTLE);
+		int giant = addCard(ids["Hollow Giant"], 0, ZONE_HAND);
+		int demon = addCard(ids["Hollow Demon"], 0, ZONE_HAND);
+		auto chooseFirst = [](const Duel& position) -> int
+		{
+			return position.mChoiceValidCards.empty() ? RETURN_QUIT :
+				position.mChoiceValidCards.front();
+		};
+		abilities.setChoiceResolver(chooseFirst, 2);
+		summon(giant);
+		valid = valid && !abilities.mSimulationChoiceFailed &&
+			abilities.mManazones[1].mCards.empty() &&
+			abilities.mGraveyards[1].mCards.size() == 2;
+		abilities.setChoiceResolver(chooseFirst, 1);
+		summon(demon);
+		valid = valid && !abilities.mSimulationChoiceFailed &&
+			abilities.mBattlezones[1].mCards.empty() &&
+			abilities.mGraveyards[1].mCards.size() == 3;
+	}
+	{
+		Duel spell;
+		spell.mIsSimulation = true;
+		spell.mRandomGen.SetRandomSeed(65537U);
+		ActiveDuel = &spell;
+		auto addCard = [&spell](int cardId, int owner, int zone) -> int
+		{
+			int uid = (int)spell.mCardList.size();
+			Card* card = new Card(uid, cardId, owner);
+			spell.mCardList.push_back(card);
+			spell.getZone(owner, zone)->addCard(card);
+			card->mZone = zone;
+			return uid;
+		};
+
+		int pit = addCard(ids["Pit of Hollows"], 0, ZONE_HAND);
+		for (int i = 0; i < 2; ++i)
+		{
+			addCard(nonHollowId, 1, ZONE_HAND);
+			addCard(nonHollowId, 1, ZONE_BATTLE);
+			addCard(nonHollowId, 1, ZONE_MANA);
+		}
+		Message cast("cardmove");
+		cast.addValue("card", pit);
+		cast.addValue("from", ZONE_HAND);
+		cast.addValue("to", ZONE_BATTLE);
+		spell.dispatchMessage(cast);
+		spell.dispatchAllMessages();
+		valid = valid && spell.mCardList[pit]->mZone == ZONE_GRAVEYARD &&
+			spell.mHands[1].mCards.size() == 1 &&
+			spell.mBattlezones[1].mCards.size() == 1 &&
+			spell.mManazones[1].mCards.size() == 1 &&
+			spell.mGraveyards[1].mCards.size() == 3;
+	}
+	{
+		Duel payment;
+		payment.mIsSimulation = true;
+		ActiveDuel = &payment;
+		auto addCard = [&payment](int cardId, int zone) -> int
+		{
+			int uid = (int)payment.mCardList.size();
+			Card* card = new Card(uid, cardId, 0);
+			payment.mCardList.push_back(card);
+			payment.getZone(0, zone)->addCard(card);
+			card->mZone = zone;
+			return uid;
+		};
+		auto setCivilization = [&payment](int card, int civilization)
+		{
+			payment.mCardList[card]->mCivilization = civilization;
+			payment.mCardList[card]->mCivilizations = 1 << civilization;
+		};
+
+		int hollowMana = addCard(ids["Hollow Soldier"], ZONE_MANA);
+		int fireMana = addCard(nonHollowId, ZONE_MANA);
+		int waterMana = addCard(nonHollowId, ZONE_MANA);
+		setCivilization(fireMana, CIV_FIRE);
+		setCivilization(waterMana, CIV_WATER);
+		int fireCard = addCard(nonHollowId, ZONE_HAND);
+		setCivilization(fireCard, CIV_FIRE);
+		payment.mCardList[fireCard]->mManaCost = 1;
+		valid = valid && payment.canPayForCard(0, fireCard) &&
+			payment.isThereUntappedManaOfCiv(0, CIV_NATURE);
+
+		int hollowCard = addCard(ids["Hollow Guardian"], ZONE_HAND);
+		payment.mCardList[hollowMana]->tap();
+		valid = valid && payment.canPayForCard(0, hollowCard) &&
+			payment.isThereUntappedManaOfCiv(0, CIV_HOLLOW);
+		payment.mTurn = 0;
+		payment.mCastingCard = hollowCard;
+		payment.mCastingCivilizations = 1 << CIV_HOLLOW;
+		payment.mCastingCost = 2;
+		valid = valid && payment.canTapManaForCasting(fireMana) &&
+			payment.canTapManaForCasting(waterMana);
+		payment.resetCasting();
+		payment.mCardList[hollowMana]->untap();
+
+		int dualCard = addCard(nonHollowId, ZONE_HAND);
+		payment.mCardList[dualCard]->mManaCost = 2;
+		payment.mCardList[dualCard]->mCivilization = CIV_FIRE;
+		payment.mCardList[dualCard]->mCivilizations =
+			(1 << CIV_FIRE) | (1 << CIV_DARKNESS);
+		valid = valid && payment.canPayForCard(0, dualCard);
+		payment.mCardList[fireMana]->mCivilizations = 1 << CIV_WATER;
+		payment.mCardList[fireMana]->mCivilization = CIV_WATER;
+		valid = valid && !payment.canPayForCard(0, dualCard);
 	}
 	ActiveDuel = savedActiveDuel;
 	return valid;

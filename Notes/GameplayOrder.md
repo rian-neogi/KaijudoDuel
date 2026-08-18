@@ -12,11 +12,11 @@ Darkness is the first seal that the player can access. After completing the dark
 
 Each seal opens up a dungeon area. Beating the boss of the dungeon gives the player a card reward which he can use for map traversal to previously locked areas.
 
-Darkness -> <some darkness card> -> Nightvision -> Can see inside dark caves
+Darkness -> Night Raven-> Nightvision -> Can see inside dark caves
 Nature -> Xeno Mantis -> Cut -> Player can cut down bushes
 Fire -> Smashwarrior Stragandu -> Rock Smash -> Player can break rocks
 Water -> Aqua Surfer -> Surf -> Player can traverse water bodies
-Light -> ??? -> ???
+Light -> Aeris, Flight Elemental -> Glide or Fly?
 
 After completing the 3 crest battles and the fire/nature seals, Dragon Keep opens up. Here the player can beat Kestrel and continue the Hollow storyline.
 

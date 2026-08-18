@@ -553,12 +553,32 @@ static int getCardCiv(lua_State* L)
 	return 1;
 }
 
+static int getRandomCardInZone(lua_State* L)
+{
+	int player = lua_tointeger(L, 1);
+	int zoneId = lua_tointeger(L, 2);
+	Zone* zone = validPlayer(player) && validZone(zoneId) ?
+		ActiveDuel->getZone(player, zoneId) : NULL;
+	if (zone == NULL || zone->mCards.empty())
+	{
+		lua_pushinteger(L, -1);
+	}
+	else
+	{
+		unsigned int index = ActiveDuel->mRandomGen.Random(
+			static_cast<unsigned int>(zone->mCards.size()));
+		lua_pushinteger(L, zone->mCards[index]->mUniqueId);
+	}
+
+	return 1;
+}
+
 static int cardHasCivilization(lua_State* L)
 {
 	Card* card = cardFromLua(L, 1);
 	int civilization = (int)lua_tointeger(L, 2);
 	lua_pushboolean(L, card != NULL && civilization >= CIV_LIGHT &&
-		civilization <= CIV_DARKNESS &&
+		civilization <= CIV_HOLLOW &&
 		(card->mCivilizations & (1 << civilization)) != 0);
 	return 1;
 }
@@ -829,6 +849,7 @@ void registerLua(lua_State* L)
 	lua_register(L, "creatureBreakShield", creatureBreakShield);
 
 	lua_register(L, "getCardAt", getCardAt);
+	lua_register(L, "getRandomCardInZone", getRandomCardInZone);
 	lua_register(L, "getTotalCardCount", getTotalCardCount);
 	lua_register(L, "getZoneSize", getZoneSize);
 	lua_register(L, "getTurn", getTurn);

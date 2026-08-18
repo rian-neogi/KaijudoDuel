@@ -457,6 +457,7 @@ void loadSet(std::string path, std::string set_name)
 						else if (civilizationName == "Water") parsed = CIV_WATER;
 						else if (civilizationName == "Fire") parsed = CIV_FIRE;
 						else if (civilizationName == "Darkness") parsed = CIV_DARKNESS;
+						else if (civilizationName == "Hollow") parsed = CIV_HOLLOW;
 						if (parsed >= 0)
 						{
 							if (civ < 0) civ = parsed;
@@ -560,6 +561,7 @@ bool initCards()
 	loadSet("Resources/Sets XML/DM-11 Eternal Wave/set.xml", "DM-11 Eternal Wave");
 	loadSet("Resources/Sets XML/DM-12 Eternal Vortex/set.xml", "DM-12 Eternal Vortex");
 	loadSet("Resources/Sets XML/Promo and DMC Packs/set.xml", "Promo and DMC Packs");
+	loadSet("Resources/Sets XML/Hollow/set.xml", "Hollow");
 
 	return true;
 }

@@ -5,6 +5,7 @@ require("Lua/AIParams")
 require("Lua/Eternal Arms")
 require("Lua/Eternal Wave")
 require("Lua/Eternal Vortex")
+require("Lua/Hollow")
 
 loadCards = function()
 	for k,v in pairs(Cards) do loadcard(k,v.set) end

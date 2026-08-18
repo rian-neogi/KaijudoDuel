@@ -285,7 +285,7 @@ SDL_Texture* Application::cardTextureById(int cardId)
 	static const char* pngSets[] = {
 		"Base Set", "Evo-Crushinators of Doom", "Rampage of the Super Warriors",
 		"Shadowclash of Blinding Night", "Survivors of the Megapocalypse",
-		"Stomp-A-Trons of Invincible Wrath", "Promo"
+		"Stomp-A-Trons of Invincible Wrath", "Promo", "Hollow"
 	};
 	SDL_Texture* loaded = NULL;
 	for (size_t i = 0; i < sizeof(pngSets) / sizeof(pngSets[0]) && loaded == NULL; ++i)

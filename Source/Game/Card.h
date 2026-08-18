@@ -5,7 +5,7 @@
 #include <boost/property_tree/xml_parser.hpp>
 
 enum ZoneType { ZONE_HAND, ZONE_DECK, ZONE_BATTLE, ZONE_MANA, ZONE_SHIELD, ZONE_GRAVEYARD, ZONE_EVOLVED };
-enum Civilization { CIV_LIGHT, CIV_NATURE, CIV_WATER, CIV_FIRE, CIV_DARKNESS };
+enum Civilization { CIV_LIGHT, CIV_NATURE, CIV_WATER, CIV_FIRE, CIV_DARKNESS, CIV_HOLLOW };
 enum CardType { TYPE_CREATURE, TYPE_SPELL };
 enum DefenderType { DEFENDER_CREATURE, DEFENDER_PLAYER };
 

@@ -1990,7 +1990,7 @@ Cards["Living Citadel Vosh"] = {
 	HandleMessage = function(id)
 		Abils.Evolution(id,"Colony Beetle")
 		local tap = function(id)
-			moveTopCardsFromDeck(getCardOwner(id),ZONE_MANA,1)
+			Functions.moveTopCardsFromDeck(getCardOwner(id),ZONE_MANA,1)
 		end
 		Abils.TapAbilityForCiv(id, tap, CIV_NATURE)
 	end

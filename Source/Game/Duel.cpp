@@ -2060,7 +2060,7 @@ int Duel::getCardCivilizations(int uid) const
 bool Duel::cardHasCivilization(int uid, int civ) const
 {
 	return uid >= 0 && uid < static_cast<int>(mCardList.size()) && civ >= CIV_LIGHT &&
-		civ <= CIV_DARKNESS && (mCardList.at(uid)->mCivilizations & (1 << civ)) != 0;
+		civ <= CIV_HOLLOW && (mCardList.at(uid)->mCivilizations & (1 << civ)) != 0;
 }
 
 int Duel::isCreatureOfRace(int uid, std::string race)
@@ -2302,9 +2302,12 @@ int Duel::getCreatureHasTapAbility(int uid)
 
 bool Duel::isThereUntappedManaOfCiv(int player,int civ)
 {
+	if (player < 0 || player > 1 || civ < CIV_LIGHT || civ > CIV_HOLLOW) return false;
 	for (std::vector<Card*>::iterator i = mManazones[player].mCards.begin(); i != mManazones[player].mCards.end(); i++)
 	{
-		if ((*i)->mIsTapped == false && cardHasCivilization((*i)->mUniqueId, civ))
+		if ((*i)->mIsTapped == false && (civ == CIV_HOLLOW ||
+			cardHasCivilization((*i)->mUniqueId, civ) ||
+			cardHasCivilization((*i)->mUniqueId, CIV_HOLLOW)))
 			return true;
 	}
 	return false;
@@ -2313,21 +2316,26 @@ bool Duel::isThereUntappedManaOfCiv(int player,int civ)
 bool Duel::canSatisfyCivilizations(int required, const std::vector<int>& fixedCards,
 	const std::vector<int>& availableCards, int futureSlots) const
 {
+	const int hollow = 1 << CIV_HOLLOW;
+	// Hollow cards accept mana of any civilization. Hollow mana is a wildcard
+	// for conventional and multi-civilization cards.
+	if ((required & hollow) != 0) required = 0;
 	if (required == 0) return true;
 	if (futureSlots < 0) return false;
-	const int maskCount = 1 << (CIV_DARKNESS + 1);
+	const int maskCount = 1 << (CIV_HOLLOW + 1);
 	std::vector<char> fixedCoverage(maskCount, 0);
 	fixedCoverage[0] = 1;
 	for (size_t cardIndex = 0; cardIndex < fixedCards.size(); ++cardIndex)
 	{
 		int uid = fixedCards[cardIndex];
 		if (uid < 0 || uid >= static_cast<int>(mCardList.size())) return false;
-		int colors = mCardList[uid]->mCivilizations & required;
+		int colors = (mCardList[uid]->mCivilizations & hollow) != 0 ?
+			required : mCardList[uid]->mCivilizations & required;
 		std::vector<char> next = fixedCoverage;
 		for (int covered = 0; covered < maskCount; ++covered)
 		{
 			if (!fixedCoverage[covered]) continue;
-			for (int civ = CIV_LIGHT; civ <= CIV_DARKNESS; ++civ)
+			for (int civ = CIV_LIGHT; civ <= CIV_HOLLOW; ++civ)
 				if ((colors & (1 << civ)) != 0) next[covered | (1 << civ)] = 1;
 		}
 		fixedCoverage.swap(next);
@@ -2340,14 +2348,15 @@ bool Duel::canSatisfyCivilizations(int required, const std::vector<int>& fixedCa
 	{
 		int uid = availableCards[cardIndex];
 		if (uid < 0 || uid >= static_cast<int>(mCardList.size())) continue;
-		int colors = mCardList[uid]->mCivilizations & required;
+		int colors = (mCardList[uid]->mCivilizations & hollow) != 0 ?
+			required : mCardList[uid]->mCivilizations & required;
 		std::vector<std::vector<char> > next = coverage;
 		for (int used = 0; used < futureSlots; ++used)
 		{
 			for (int covered = 0; covered < maskCount; ++covered)
 			{
 				if (!coverage[used][covered]) continue;
-				for (int civ = CIV_LIGHT; civ <= CIV_DARKNESS; ++civ)
+				for (int civ = CIV_LIGHT; civ <= CIV_HOLLOW; ++civ)
 					if ((colors & (1 << civ)) != 0)
 						next[used + 1][covered | (1 << civ)] = 1;
 			}

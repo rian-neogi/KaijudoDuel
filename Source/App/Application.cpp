@@ -358,6 +358,7 @@ SDL_Color Application::civilizationColor(int civilization) const
 		case CIV_WATER: return color(42, 116, 177);
 		case CIV_FIRE: return color(190, 63, 42);
 		case CIV_DARKNESS: return color(101, 53, 125);
+		case CIV_HOLLOW: return color(151, 54, 214);
 		default: return color(105, 105, 105);
 	}
 }
