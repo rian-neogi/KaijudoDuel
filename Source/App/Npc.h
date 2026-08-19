@@ -118,6 +118,7 @@ public:
 	bool wanders;
 	int sightRange;
 	std::string aiPersonality;
+	std::string aiDifficulty;
 	std::map<std::string, std::string> dialogue;
 
 private:

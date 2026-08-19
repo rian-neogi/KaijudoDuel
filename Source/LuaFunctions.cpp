@@ -466,6 +466,40 @@ static int setCardVisibility(lua_State* L)
 	return 0;
 }
 
+static int displayCard(lua_State* L)
+{
+	Card* card = cardFromLua(L, 1);
+	int viewer = static_cast<int>(lua_tointeger(L, 2));
+	if (card == NULL || !validPlayer(viewer) || ActiveDuel->mIsSimulation ||
+		ActiveDuel->mPlayerType[viewer] != PLAYER_HUMAN)
+		return 0;
+
+	int source = lua_gettop(L) >= 3 ? static_cast<int>(lua_tointeger(L, 3)) : card->mUniqueId;
+	if (source < 0 || source >= static_cast<int>(ActiveDuel->mCardList.size()))
+		source = card->mUniqueId;
+	std::string prompt;
+	if (lua_gettop(L) >= 4 && lua_isstring(L, 4))
+		prompt = lua_tostring(L, 4);
+	if (prompt.empty())
+		prompt = "Rival reveals " + card->mName;
+
+	// Presentation-only choices must not alter the message being handled by the
+	// card callback. Drain pending rule messages before suspending, just like the
+	// regular Lua choice helpers, and restore the outer callback afterward.
+	Message outerMessage = ActiveDuel->mCurrentMessage;
+	ActiveDuel->dispatchAllMessages();
+	ActiveDuel->mCurrentMessage = outerMessage;
+	bool wasVisible = card->mIsVisible[viewer];
+	ActiveDuel->setCardVisibility(card->mUniqueId, viewer, 1);
+	ActiveDuel->addChoice(prompt, 1, source, viewer, LUA_REFNIL, LUA_REFNIL,
+		RETURN_BUTTON1);
+	if (ActiveDuel->mIsChoiceActive)
+		ActiveDuel->resolveChoice();
+	ActiveDuel->mCurrentMessage = outerMessage;
+	ActiveDuel->setCardVisibility(card->mUniqueId, viewer, wasVisible ? 1 : 0);
+	return 0;
+}
+
 static int seperateEvolution(lua_State* L)
 {
 	if (cardFromLua(L, 1) == NULL)
@@ -845,6 +879,7 @@ void registerLua(lua_State* L)
 	lua_register(L, "flipCard", flipCard);
 	lua_register(L, "unflipCard", unflipCard);
 	lua_register(L, "setCardVisibility", setCardVisibility);
+	lua_register(L, "displayCard", displayCard);
 	lua_register(L, "seperateEvolution", seperateEvolution);
 	lua_register(L, "creatureBreakShield", creatureBreakShield);
 

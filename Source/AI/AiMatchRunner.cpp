@@ -13,7 +13,8 @@ AiMatchResult::AiMatchResult()
 }
 
 AiMatchResult runHeadlessAiMatch(const std::string& deck0, const std::string& deck1,
-	std::uint32_t seed, int maxActions)
+	std::uint32_t seed, int maxActions, const std::string& personality,
+	const std::string& difficulty)
 {
 	AiMatchResult result;
 	Duel duel;
@@ -48,8 +49,10 @@ AiMatchResult runHeadlessAiMatch(const std::string& deck0, const std::string& de
 			if (!duel.mMsgMngr.hasMoreMessages())
 			{
 				int player = duel.getPlayerToMove();
-				MctsConfig config = liveMctsConfig(duel.mTurnPhase == TURN_PHASE_ATTACK);
-				AiDecisionOutcome decision = playAiDecision(duel, player, "balanced", config);
+				MctsConfig config = liveMctsConfig(
+					duel.mTurnPhase == TURN_PHASE_ATTACK, difficulty, personality);
+				AiDecisionOutcome decision = playAiDecision(
+					duel, player, personality, config);
 				if (decision.source == AiDecisionSource::None)
 				{
 					consecutiveStalls++;

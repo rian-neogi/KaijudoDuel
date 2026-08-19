@@ -17,10 +17,12 @@ public:
 	int ManaCost;
 	int Power;
 	int PriceTier;
+	int ShieldTrigger;
 
 	CardData();
 	CardData(int id, std::string n, std::string s, std::string r, int civ,
-		int civilizations, int type, int cost, int power, int priceTier);
+		int civilizations, int type, int cost, int power, int priceTier,
+		int shieldTrigger);
 	~CardData();
 };
 

@@ -90,25 +90,28 @@ bool HeuristicBot::chooseManaPlacement(Duel& duel, const std::vector<Message>& m
 	if (duel.mTurnPhase != TURN_PHASE_MANA || duel.mManaUsed != 0 ||
 		duel.mCastingCard != -1 || duel.mIsChoiceActive || duel.mAttackphase != PHASE_NONE)
 		return false;
-	if (duel.mHands[mPlayer].mCards.size() <=
-		static_cast<size_t>(std::max(0, aiIntParam("heuristic.low_hand_card_count"))))
-	{
-		int maximumDeckCost = 0;
-		for (std::vector<Card*>::const_iterator card = duel.mCardList.begin();
-			card != duel.mCardList.end(); ++card)
-		{
-			if ((*card)->mOwner == mPlayer)
-				maximumDeckCost = std::max(maximumDeckCost, (*card)->mManaCost);
-		}
-		if (maximumDeckCost > 0 &&
-			duel.mManazones[mPlayer].mCards.size() > static_cast<size_t>(maximumDeckCost))
-			return false;
-	}
+	bool conserveHand = duel.mHands[mPlayer].mCards.size() <=
+		static_cast<size_t>(std::max(0, aiIntParam("heuristic.low_hand_card_count")));
+	int manaCount = static_cast<int>(duel.mManazones[mPlayer].mCards.size());
 	double bestScore = -std::numeric_limits<double>::infinity();
 	bool found = false;
 	for (std::vector<Message>::const_iterator move = moves.begin(); move != moves.end(); ++move)
 	{
 		if (messageType(*move) != "cardmana") continue;
+		int candidate = messageInt(*move, "card");
+		if (conserveHand)
+		{
+			int maximumRetainedCost = 0;
+			for (std::vector<Card*>::const_iterator card = duel.mHands[mPlayer].mCards.begin();
+				card != duel.mHands[mPlayer].mCards.end(); ++card)
+			{
+				if ((*card)->mUniqueId == candidate) continue;
+				maximumRetainedCost = std::max(maximumRetainedCost, (*card)->mManaCost);
+			}
+			// With a scarce hand, spend a card only when it advances toward a
+			// different card that will remain available to cast.
+			if (manaCount >= maximumRetainedCost) continue;
+		}
 		double score = scoreMove(duel, *move);
 		if (!found || score > bestScore)
 		{
@@ -274,34 +277,83 @@ double HeuristicBot::scoreAttack(Duel& duel, const Message& move) const
 	if (attacker < 0 || attacker >= (int)duel.mCardList.size())
 		return -std::numeric_limits<double>::infinity();
 	int defenderType = messageInt(move, "defendertype");
-	int defender = defenderType == DEFENDER_CREATURE ? messageInt(move, "defender") : -1;
-	int attackerPower = attackingPower(duel, attacker);
-	if (hasStrongerBlocker(duel, attacker, attackerPower, defender))
+	int defender = messageInt(move, "defender");
+	if ((defenderType == DEFENDER_CREATURE &&
+		(defender < 0 || defender >= (int)duel.mCardList.size())) ||
+		(defenderType == DEFENDER_PLAYER && (defender < 0 || defender > 1)) ||
+		(defenderType != DEFENDER_CREATURE && defenderType != DEFENDER_PLAYER))
 		return -std::numeric_limits<double>::infinity();
+	int previousAttacker = duel.mAttacker;
+	int previousDefender = duel.mDefender;
+	int previousDefenderType = duel.mDefenderType;
+	duel.mAttacker = attacker;
+	duel.mDefender = defender;
+	duel.mDefenderType = defenderType;
+	struct AttackContextRestorer
+	{
+		Duel& duel;
+		int attacker;
+		int defender;
+		int defenderType;
+		~AttackContextRestorer()
+		{
+			duel.mAttacker = attacker;
+			duel.mDefender = defender;
+			duel.mDefenderType = defenderType;
+		}
+	} restore = { duel, previousAttacker, previousDefender, previousDefenderType };
+	int attackerPower = attackingPower(duel, attacker);
+	double attackerValue = cardValue(duel, attacker, true);
+	auto losingBattleScore = [attackerValue, attackerPower](int opposingPower)
+	{
+		return aiParam("heuristic.attack.losing_creature_base") -
+			attackerValue * aiParam("heuristic.attack.losing_attacker_value_weight") -
+			((opposingPower - attackerPower) / 1000.0) *
+				aiParam("heuristic.attack.losing_power_gap_weight");
+	};
+	auto battleScore = [&](int opposingCreature)
+	{
+		int opposingPower = duel.getCreaturePower(opposingCreature);
+		double opposingValue = cardValue(duel, opposingCreature, true);
+		if (attackerPower > opposingPower)
+			return aiParam("heuristic.attack.winning_creature_base") +
+				opposingValue * aiParam("heuristic.attack.winning_target_weight");
+		if (attackerPower == opposingPower)
+			return aiParam("heuristic.attack.trade_base") +
+				(opposingValue - attackerValue) *
+					aiParam("heuristic.attack.trade_value_weight");
+		return losingBattleScore(opposingPower);
+	};
+	std::vector<int> legalBlockers;
+	for (size_t i = 0; i < duel.mBattlezones[1 - mPlayer].mCards.size(); ++i)
+	{
+		Card* blocker = duel.mBattlezones[1 - mPlayer].mCards[i];
+		if (blocker->mIsTapped ||
+			(defenderType == DEFENDER_CREATURE && blocker->mUniqueId == defender) ||
+			!duel.getCreatureCanBlock(attacker, blocker->mUniqueId))
+			continue;
+		legalBlockers.push_back(blocker->mUniqueId);
+	}
 
 	if (defenderType == DEFENDER_PLAYER)
 	{
-		if (duel.mShields[1 - mPlayer].mCards.empty())
-			return aiParam("heuristic.attack.lethal_score");
 		double score = aiParam("heuristic.attack.player_base") +
 			duel.getCreatureBreaker(attacker) * aiParam("heuristic.attack.breaker_weight");
-		for (size_t i = 0; i < duel.mBattlezones[1 - mPlayer].mCards.size(); ++i)
-			if (duel.getCreatureIsBlocker(duel.mBattlezones[1 - mPlayer].mCards[i]->mUniqueId))
-				score -= aiParam("heuristic.attack.blocker_penalty");
+		for (std::vector<int>::const_iterator blocker = legalBlockers.begin();
+			blocker != legalBlockers.end(); ++blocker)
+			score = std::min(score, battleScore(*blocker));
+		score -= legalBlockers.size() * aiParam("heuristic.attack.blocker_penalty");
+		if (duel.mShields[1 - mPlayer].mCards.empty() && legalBlockers.empty())
+			return aiParam("heuristic.attack.lethal_score");
 		return score;
 	}
 
-	if (defenderType != DEFENDER_CREATURE || defender < 0 || defender >= (int)duel.mCardList.size())
-		return -std::numeric_limits<double>::infinity();
-	int defenderPower = duel.getCreaturePower(defender);
-	if (defenderPower > attackerPower) return -std::numeric_limits<double>::infinity();
-	double attackerValue = cardValue(duel, attacker, true);
-	double defenderValue = cardValue(duel, defender, true);
-	if (attackerPower > defenderPower)
-		return aiParam("heuristic.attack.winning_creature_base") +
-			defenderValue * aiParam("heuristic.attack.winning_target_weight");
-	return aiParam("heuristic.attack.trade_base") +
-		(defenderValue - attackerValue) * aiParam("heuristic.attack.trade_value_weight");
+	double score = battleScore(defender);
+	for (std::vector<int>::const_iterator blocker = legalBlockers.begin();
+		blocker != legalBlockers.end(); ++blocker)
+		score = std::min(score, battleScore(*blocker));
+	score -= legalBlockers.size() * aiParam("heuristic.attack.blocker_penalty");
+	return score;
 }
 
 int HeuristicBot::attackingPower(Duel& duel, int attacker) const
@@ -311,20 +363,6 @@ int HeuristicBot::attackingPower(Duel& duel, int attacker) const
 	int power = duel.getCreaturePower(attacker);
 	duel.mAttacker = previousAttacker;
 	return power;
-}
-
-bool HeuristicBot::hasStrongerBlocker(
-	Duel& duel, int attacker, int attackerPower, int attackedCreature) const
-{
-	const std::vector<Card*>& defenders = duel.mBattlezones[1 - mPlayer].mCards;
-	for (size_t i = 0; i < defenders.size(); ++i)
-	{
-		Card* blocker = defenders[i];
-		if (blocker->mUniqueId == attackedCreature || blocker->mIsTapped) continue;
-		if (!duel.getCreatureCanBlock(attacker, blocker->mUniqueId)) continue;
-		if (duel.getCreaturePower(blocker->mUniqueId) > attackerPower) return true;
-	}
-	return false;
 }
 
 double HeuristicBot::scoreBlock(Duel& duel, int blocker) const
@@ -393,39 +431,6 @@ double HeuristicBot::scoreMove(Duel& duel, const Message& move) const
 double HeuristicBot::adjustForPersonality(const std::string& moveType, double score) const
 {
 	if (!std::isfinite(score)) return score;
-	if (mPersonality == "aggressive")
-	{
-		if (moveType == "creatureattack") score += aiParam("heuristic.personality.aggressive_attack");
-		else if (moveType == "cardplay") score += aiParam("heuristic.personality.aggressive_cardplay");
-		else if (moveType == "blockskip") score += aiParam("heuristic.personality.aggressive_blockskip");
-	}
-	else if (mPersonality == "defensive")
-	{
-		if (moveType == "creatureblock" || moveType == "triggeruse")
-			score += aiParam("heuristic.personality.defensive_block_or_trigger");
-		else if (moveType == "creatureattack") score += aiParam("heuristic.personality.defensive_attack");
-	}
-	else if (mPersonality == "control")
-	{
-		if (moveType == "choiceselect" || moveType == "creatureusetapability")
-			score += aiParam("heuristic.personality.control_choice_or_tap");
-		else if (moveType == "triggeruse") score += aiParam("heuristic.personality.control_trigger");
-	}
-	else if (mPersonality == "tempo")
-	{
-		if (moveType == "cardplay" || moveType == "creatureattack")
-			score += aiParam("heuristic.personality.tempo_cardplay_or_attack");
-		else if (moveType == "cardmana") score += aiParam("heuristic.personality.tempo_mana");
-	}
-	else if (mPersonality == "ramp")
-	{
-		if (moveType == "cardmana") score += aiParam("heuristic.personality.ramp_mana");
-		else if (moveType == "cardplay") score += aiParam("heuristic.personality.ramp_cardplay");
-	}
-	else if (mPersonality == "sacrifice")
-	{
-		if (moveType == "choiceselect" || moveType == "cardplay")
-			score += aiParam("heuristic.personality.sacrifice_choice_or_cardplay");
-	}
-	return score;
+	return score + aiPersonalityParam(mPersonality,
+		"move_adjustment." + moveType);
 }

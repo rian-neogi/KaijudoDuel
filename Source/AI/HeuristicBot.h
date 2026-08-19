@@ -7,7 +7,7 @@
 class HeuristicBot
 {
 public:
-	explicit HeuristicBot(int player, const std::string& personality = "balanced");
+	explicit HeuristicBot(int player, const std::string& personality = "tempo");
 
 	Message chooseMove(Duel& duel, const std::vector<Message>& moves) const;
 	double scoreMove(Duel& duel, const Message& move) const;
@@ -26,6 +26,5 @@ private:
 	double scoreAttack(Duel& duel, const Message& move) const;
 	double scoreBlock(Duel& duel, int blocker) const;
 	int attackingPower(Duel& duel, int attacker) const;
-	bool hasStrongerBlocker(Duel& duel, int attacker, int attackerPower, int attackedCreature) const;
 	double adjustForPersonality(const std::string& moveType, double score) const;
 };

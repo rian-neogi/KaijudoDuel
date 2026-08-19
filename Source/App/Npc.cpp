@@ -1,5 +1,6 @@
 #include "Npc.h"
 
+#include "AI/AiParams.h"
 #include "Game/Card.h"
 #include "Game/Deck.h"
 #include "LuaInclude.h"
@@ -204,7 +205,7 @@ Npc::Npc(int xValue, int yValue, const std::string& npcName,
 	  maxWins((int)battleRewards.size()), kind(npcKind), appearance(characterAppearance),
 	  spriteIndex(-1),
 	  duelEnabled(npcKind != NpcKind::Town), tradeEnabled(false), wanders(false),
-	  sightRange(0),
+	  sightRange(0), aiPersonality("tempo"), aiDifficulty("medium"),
 	  mWanderState((unsigned int)(xValue * 73856093u) ^
 		(unsigned int)(yValue * 19349663u) ^ (unsigned int)npcName.size() * 83492791u)
 {
@@ -581,8 +582,22 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 
 		lua_getfield(state, entry, "ai");
 		const std::string aiPersonality = lua_istable(state, -1) ?
-			luaStringField(state, -1, "personality", "balanced") : "none";
+			luaStringField(state, -1, "personality") : "";
+		const std::string aiDifficulty = lua_istable(state, -1) ?
+			luaStringField(state, -1, "difficulty") : "";
 		lua_pop(state, 1);
+		if (duelEnabled && !hasAiPersonality(aiPersonality))
+		{
+			error = "NPC '" + id + "' has unknown AI personality: " + aiPersonality;
+			lua_close(state);
+			return false;
+		}
+		if (duelEnabled && !hasAiDifficulty(aiDifficulty))
+		{
+			error = "NPC '" + id + "' has unknown AI difficulty: " + aiDifficulty;
+			lua_close(state);
+			return false;
+		}
 		std::map<std::string, std::string> dialogue;
 		readDialogue(state, entry, dialogue);
 		const std::string greeting = dialogue.count("greeting") ? dialogue["greeting"] : "";
@@ -599,6 +614,7 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 		npc.spriteIndex = spriteIndex;
 		npc.crestId = crestId;
 		npc.aiPersonality = aiPersonality;
+		npc.aiDifficulty = aiDifficulty;
 		npc.dialogue = dialogue;
 		npc.maxWins = maxBattles;
 		npcs.push_back(npc);

@@ -1,5 +1,6 @@
 #include "App/Application.h"
 #include "AI/AiMatchRunner.h"
+#include "AI/AiParams.h"
 #include "CRandom.h"
 #include "Game/Card.h"
 #include "LuaTrace.h"
@@ -20,17 +21,20 @@ namespace
 			<< "Usage:\n"
 			<< "  " << executable << "\n"
 			<< "  " << executable << " [--lua-trace] [--full-visibility] --duel "
-				"<player-deck> <ai-deck>\n"
+				"<player-deck> <ai-deck> [--ai-personality NAME] [--ai-difficulty NAME]\n"
 			<< "  " << executable << " [--lua-trace] [--seed N] --ai-duel "
-				"<deck-0> <deck-1>\n"
+				"<deck-0> <deck-1> [--ai-personality NAME] [--ai-difficulty NAME]\n"
 			<< "  " << executable << " [--lua-trace] [--seed N] [--max-actions N] "
-				"--headless-ai-duel <deck-0> <deck-1>\n"
+				"--headless-ai-duel <deck-0> <deck-1> [--ai-personality NAME] "
+				"[--ai-difficulty NAME]\n"
 			<< "  " << executable << " --world-builder\n"
 			<< "  " << executable << " [--lua-trace] --smoke-test\n"
 			<< "  " << executable << " --help\n\n"
 			<< "Decks are searched beneath Decks/ by default; quote paths containing spaces.\n"
 			<< "The player deck is listed first.\n"
 			<< "--full-visibility reveals both hands in direct-duel mode.\n"
+			<< "AI personalities: rush, tempo (default), control.\n"
+			<< "AI difficulties: easy, medium (default), hard.\n"
 			<< "--ai-duel renders both AI players and reveals both hands.\n"
 			<< "--headless-ai-duel runs without SDL and prints one AI_MATCH_RESULT line.\n"
 			<< "Duels use a fresh random seed unless --seed is provided for an AI duel.\n"
@@ -64,11 +68,15 @@ int main(int argc, char* argv[])
 	bool headlessAiDuel = false;
 	bool seedSpecified = false;
 	bool maxActionsSpecified = false;
+	bool aiPersonalitySpecified = false;
+	bool aiDifficultySpecified = false;
 	bool invalidOption = false;
 	std::uint32_t duelSeed = 0;
 	int maxActions = 10000;
 	std::string playerDeck;
 	std::string aiDeck;
+	std::string aiPersonality = "tempo";
+	std::string aiDifficulty = "medium";
 	std::vector<std::string> arguments;
 	for (int i = 1; i < argc; i++)
 	{
@@ -96,6 +104,26 @@ int main(int argc, char* argv[])
 			{
 				maxActions = static_cast<int>(parsed);
 				maxActionsSpecified = true;
+			}
+		}
+		else if (std::string(argv[i]) == "--ai-personality" ||
+			std::string(argv[i]) == "--personality")
+		{
+			if (i + 1 >= argc) invalidOption = true;
+			else
+			{
+				aiPersonality = argv[++i];
+				aiPersonalitySpecified = true;
+			}
+		}
+		else if (std::string(argv[i]) == "--ai-difficulty" ||
+			std::string(argv[i]) == "--difficulty")
+		{
+			if (i + 1 >= argc) invalidOption = true;
+			else
+			{
+				aiDifficulty = argv[++i];
+				aiDifficultySpecified = true;
 			}
 		}
 		else arguments.push_back(argv[i]);
@@ -163,6 +191,13 @@ int main(int argc, char* argv[])
 		printUsage(argv[0]);
 		return 2;
 	}
+	if ((aiPersonalitySpecified || aiDifficultySpecified) &&
+		playerDeck.empty() && aiDeck.empty())
+	{
+		std::cerr << "AI profile options require a direct duel mode.\n\n";
+		printUsage(argv[0]);
+		return 2;
+	}
 	if (!seedSpecified && !playerDeck.empty() && !aiDeck.empty())
 		duelSeed = CRandom::GenerateRandomSeed();
 
@@ -171,11 +206,19 @@ int main(int argc, char* argv[])
 		std::cerr << "Unable to initialize the Lua card database." << std::endl;
 		return 1;
 	}
+	if (!hasAiPersonality(aiPersonality) || !hasAiDifficulty(aiDifficulty))
+	{
+		std::cerr << "Unknown AI personality or difficulty. Use rush/tempo/control "
+			"and easy/medium/hard.\n\n";
+		printUsage(argv[0]);
+		cleanupCards();
+		return 2;
+	}
 
 	if (headlessAiDuel)
 	{
 		AiMatchResult match = runHeadlessAiMatch(
-			playerDeck, aiDeck, duelSeed, maxActions);
+			playerDeck, aiDeck, duelSeed, maxActions, aiPersonality, aiDifficulty);
 		if (!match.started)
 		{
 			std::cerr << "Unable to start headless AI duel: " << match.error << std::endl;
@@ -201,7 +244,7 @@ int main(int argc, char* argv[])
 	{
 		Application application(worldBuilder);
 		result = application.run(smokeTest, playerDeck, aiDeck, worldBuilder,
-			fullVisibility, aiDuel, duelSeed);
+			fullVisibility, aiDuel, duelSeed, aiPersonality, aiDifficulty);
 	}
 	cleanupCards();
 	return result;

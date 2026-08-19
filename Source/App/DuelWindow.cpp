@@ -18,10 +18,13 @@ using namespace AppSupport;
 namespace
 {
 	constexpr int GRAVEYARD_PAGE_SIZE = 5;
+	constexpr int REVEAL_PAGE_SIZE = 14;
 	const SDL_Rect GRAVEYARD_OVERLAY = { 105, 145, 770, 510 };
 	const SDL_Rect GRAVEYARD_CLOSE = { 810, 160, 44, 36 };
 	const SDL_Rect GRAVEYARD_PREVIOUS = { 135, 590, 145, 42 };
 	const SDL_Rect GRAVEYARD_NEXT = { 700, 590, 145, 42 };
+	const SDL_Rect REVEAL_PREVIOUS = { 70, 677, 145, 42 };
+	const SDL_Rect REVEAL_NEXT = { 765, 677, 145, 42 };
 	const SDL_Rect ACTION_LOG_BUTTON = { 1004, 746, 252, 40 };
 	const SDL_Rect ACTION_LOG_OVERLAY = { 115, 75, 1050, 650 };
 	const SDL_Rect ACTION_LOG_CLOSE = { 1095, 91, 44, 36 };
@@ -141,7 +144,9 @@ namespace
 			std::ostringstream line;
 			line << std::fixed << std::setprecision(3) << "  " <<
 				(selected ? "* " : "  ") << diagnosticMove(duel, child->plan) <<
-				": eval=" << child->meanValue << ", visits=" << child->visits;
+				": eval=" << child->meanValue << ", visits=" << child->visits <<
+				", prior=" << child->policyPrior <<
+				", decision=" << child->selectionValue;
 			std::cout << line.str() << std::endl;
 		}
 	}
@@ -160,6 +165,20 @@ void Application::startDuel(int npcIndex, bool ignoreProgressLimit)
 		mNotice = "Unable to load one of the duel decks.";
 		mNoticeUntil = SDL_GetTicks() + 5000;
 	}
+}
+
+std::string Application::aiPersonalityForPlayer(int player) const
+{
+	if (player == 1 && mActiveNpc >= 0 && mActiveNpc < (int)mNpcs.size())
+		return mNpcs[mActiveNpc].aiPersonality;
+	return mDirectDuelMode ? mDirectAiPersonality : "tempo";
+}
+
+std::string Application::aiDifficultyForPlayer(int player) const
+{
+	if (player == 1 && mActiveNpc >= 0 && mActiveNpc < (int)mNpcs.size())
+		return mNpcs[mActiveNpc].aiDifficulty;
+	return mDirectDuelMode ? mDirectAiDifficulty : "medium";
 }
 
 bool Application::startDuelWithDecks(const std::string& playerDeck,
@@ -199,6 +218,8 @@ bool Application::startDuelWithDecks(const std::string& playerDeck,
 	mGraveyardOffset = 0;
 	mActionLogOpen = false;
 	mActionLogScroll = 0;
+	mRevealOffset = 0;
+	mLastRevealCards.clear();
 	mNextAiMove = SDL_GetTicks() + 700;
 	delete mAiSearch;
 	mAiSearch = NULL;
@@ -248,6 +269,8 @@ void Application::stopDuel()
 	mGraveyardOffset = 0;
 	mActionLogOpen = false;
 	mActionLogScroll = 0;
+	mRevealOffset = 0;
+	mLastRevealCards.clear();
 	mHoveredCard = -1;
 	mHoverCandidateCard = -1;
 	mHoverCandidateSince = 0;
@@ -259,6 +282,12 @@ void Application::stopDuel()
 
 void Application::handleDuelEvent(const SDL_Event& event)
 {
+	bool revealActive = false;
+	{
+		std::lock_guard<std::mutex> lock(gMutex);
+		revealActive = revealOverlayActive();
+	}
+	if (revealActive && handleRevealEvent(event)) return;
 	if (mActionLogOpen && handleActionLogEvent(event)) return;
 	if (mOpenGraveyardPlayer >= 0 && handleGraveyardEvent(event)) return;
 	if (event.type == SDL_KEYDOWN && !event.key.repeat)
@@ -470,6 +499,130 @@ bool Application::handleGraveyardEvent(const SDL_Event& event)
 	return true;
 }
 
+bool Application::revealOverlayActive() const
+{
+	if (mDuel == NULL || !mDuel->mIsChoiceActive || mDuel->mChoicePlayer != 0)
+		return false;
+	for (std::vector<Card*>::const_iterator card = mDuel->mCardList.begin();
+		card != mDuel->mCardList.end(); ++card)
+	{
+		const bool normallyHidden = (*card)->mZone == ZONE_DECK ||
+			(*card)->mZone == ZONE_SHIELD ||
+			((*card)->mZone == ZONE_HAND && (*card)->mOwner != 0);
+		if (normallyHidden && (*card)->mIsVisible[0]) return true;
+	}
+	return false;
+}
+
+std::vector<Card*> Application::revealOverlayCards() const
+{
+	std::vector<Card*> cards;
+	if (!revealOverlayActive()) return cards;
+	std::set<int> added;
+	auto addCard = [&](int uid)
+	{
+		if (uid < 0 || uid >= static_cast<int>(mDuel->mCardList.size()) ||
+			!added.insert(uid).second) return;
+		cards.push_back(mDuel->mCardList[uid]);
+	};
+
+	for (std::vector<Card*>::const_iterator card = mDuel->mCardList.begin();
+		card != mDuel->mCardList.end(); ++card)
+	{
+		const bool normallyHidden = (*card)->mZone == ZONE_DECK ||
+			(*card)->mZone == ZONE_SHIELD ||
+			((*card)->mZone == ZONE_HAND && (*card)->mOwner != 0);
+		if (normallyHidden && (*card)->mIsVisible[0]) addCard((*card)->mUniqueId);
+	}
+	for (std::vector<int>::const_iterator card = mDuel->mChoiceValidCards.begin();
+		card != mDuel->mChoiceValidCards.end(); ++card)
+		addCard(*card);
+	return cards;
+}
+
+bool Application::handleRevealEvent(const SDL_Event& event)
+{
+	if (event.type == SDL_MOUSEMOTION)
+	{
+		logicalMouse(event.motion.x, event.motion.y, mMouseX, mMouseY);
+		return true;
+	}
+	if (event.type == SDL_KEYDOWN && !event.key.repeat)
+	{
+		if (event.key.keysym.sym >= SDLK_1 && event.key.keysym.sym <= SDLK_9)
+		{
+			int index = static_cast<int>(event.key.keysym.sym - SDLK_1);
+			if (index >= 0 && index < static_cast<int>(mActionButtons.size()))
+				playAction(mActionButtons[index].message);
+			return true;
+		}
+		int direction = 0;
+		if (event.key.keysym.sym == SDLK_LEFT) direction = -REVEAL_PAGE_SIZE;
+		if (event.key.keysym.sym == SDLK_RIGHT) direction = REVEAL_PAGE_SIZE;
+		if (direction != 0)
+		{
+			int count = 0;
+			{
+				std::lock_guard<std::mutex> lock(gMutex);
+				count = static_cast<int>(revealOverlayCards().size());
+			}
+			int maximum = count == 0 ? 0 : ((count - 1) / REVEAL_PAGE_SIZE) * REVEAL_PAGE_SIZE;
+			mRevealOffset = std::max(0, std::min(maximum, mRevealOffset + direction));
+		}
+		return true;
+	}
+	if (event.type == SDL_MOUSEWHEEL)
+	{
+		int count = 0;
+		{
+			std::lock_guard<std::mutex> lock(gMutex);
+			count = static_cast<int>(revealOverlayCards().size());
+		}
+		int maximum = count == 0 ? 0 : ((count - 1) / REVEAL_PAGE_SIZE) * REVEAL_PAGE_SIZE;
+		int direction = event.wheel.y > 0 ? -REVEAL_PAGE_SIZE : REVEAL_PAGE_SIZE;
+		mRevealOffset = std::max(0, std::min(maximum, mRevealOffset + direction));
+		return true;
+	}
+	if (event.type != SDL_MOUSEBUTTONDOWN || event.button.button != SDL_BUTTON_LEFT)
+		return true;
+
+	int x, y;
+	logicalMouse(event.button.x, event.button.y, x, y);
+	for (size_t action = 0; action < mActionButtons.size(); ++action)
+	{
+		if (!contains(mActionButtons[action].rect, x, y)) continue;
+		playAction(mActionButtons[action].message);
+		return true;
+	}
+	int count = 0;
+	{
+		std::lock_guard<std::mutex> lock(gMutex);
+		count = static_cast<int>(revealOverlayCards().size());
+	}
+	int maximum = count == 0 ? 0 : ((count - 1) / REVEAL_PAGE_SIZE) * REVEAL_PAGE_SIZE;
+	if (contains(REVEAL_PREVIOUS, x, y))
+	{
+		mRevealOffset = std::max(0, mRevealOffset - REVEAL_PAGE_SIZE);
+		return true;
+	}
+	if (contains(REVEAL_NEXT, x, y))
+	{
+		mRevealOffset = std::min(maximum, mRevealOffset + REVEAL_PAGE_SIZE);
+		return true;
+	}
+
+	CardHitbox clickedCard;
+	if (duelClickHitboxAt(x, y, clickedCard))
+	{
+		Message choice;
+		if (findClickAction(clickedCard.cardId, choice))
+			playAction(choice);
+		else
+			mSelectedCard = mSelectedCard == clickedCard.cardId ? -1 : clickedCard.cardId;
+	}
+	return true;
+}
+
 bool Application::handleActionLogEvent(const SDL_Event& event)
 {
 	if (event.type == SDL_MOUSEMOTION)
@@ -559,8 +712,7 @@ void Application::updateDuel(Uint32 deltaTime)
 				mDuel->mAiThinking = false;
 				mDuel->mAiThinkingPlayer = -1;
 
-				const std::string personality = aiPlayer == 1 && mActiveNpc >= 0 ?
-					mNpcs[mActiveNpc].aiPersonality : "balanced";
+				const std::string personality = aiPersonalityForPlayer(aiPlayer);
 				AiDecisionOutcome decision;
 				if (result.hasPlan && commitDecisionPlan(*mDuel, result.plan) ==
 					DecisionPlanCommitStatus::Committed)
@@ -581,8 +733,8 @@ void Application::updateDuel(Uint32 deltaTime)
 		else if (aiBoundary && now >= mNextAiMove)
 		{
 			int aiPlayer = playerToMove;
-			const std::string personality = aiPlayer == 1 && mActiveNpc >= 0 ?
-				mNpcs[mActiveNpc].aiPersonality : "balanced";
+			const std::string personality = aiPersonalityForPlayer(aiPlayer);
+			const std::string difficulty = aiDifficultyForPlayer(aiPlayer);
 			AiDecisionOutcome shieldTrigger = playHeuristicShieldTrigger(
 				*mDuel, aiPlayer, personality);
 			if (shieldTrigger.source == AiDecisionSource::ShieldTriggerHeuristic)
@@ -628,7 +780,8 @@ void Application::updateDuel(Uint32 deltaTime)
 								mDuel->mAiThinkingPlayer = aiPlayer;
 								mDuel->mAiThinking = true;
 								MctsConfig searchConfig = liveMctsConfig(
-									mDuel->mTurnPhase == TURN_PHASE_ATTACK);
+									mDuel->mTurnPhase == TURN_PHASE_ATTACK,
+									difficulty, personality);
 								if (mAiSearch != NULL && mAiSearchPlayer != aiPlayer)
 								{
 									delete mAiSearch;
@@ -674,7 +827,8 @@ void Application::updateDuel(Uint32 deltaTime)
 		bool canChoose = winner == -1 && mAutoChooseOnlyAction &&
 			playerToMove == 0 && mDuel->mPlayerType[0] == PLAYER_HUMAN &&
 			!mDuel->mMsgMngr.hasMoreMessages() &&
-			!mActionLogOpen && mOpenGraveyardPlayer < 0 && mDraggingCard < 0;
+			!mActionLogOpen && mOpenGraveyardPlayer < 0 && mDraggingCard < 0 &&
+			!revealOverlayActive();
 		if (canChoose)
 		{
 			std::vector<Message> actions = mDuel->getPossibleMoves();
@@ -1294,6 +1448,85 @@ void Application::renderGraveyardOverlay()
 	}
 }
 
+void Application::renderRevealOverlay()
+{
+	std::vector<Card*> cards = revealOverlayCards();
+	std::vector<int> cardIds;
+	cardIds.reserve(cards.size());
+	for (std::vector<Card*>::const_iterator card = cards.begin(); card != cards.end(); ++card)
+		cardIds.push_back((*card)->mUniqueId);
+	if (cardIds != mLastRevealCards)
+	{
+		mLastRevealCards = cardIds;
+		mRevealOffset = 0;
+	}
+	int maximum = cards.empty() ? 0 :
+		((static_cast<int>(cards.size()) - 1) / REVEAL_PAGE_SIZE) * REVEAL_PAGE_SIZE;
+	mRevealOffset = std::max(0, std::min(maximum, mRevealOffset));
+
+	mCardHitboxes.clear();
+	fillRect({ 0, 0, 980, LOGICAL_HEIGHT }, 4, 7, 13, 218);
+	fillRect({ 25, 55, 930, 690 }, 18, 25, 40, 252);
+	outlineRect({ 25, 55, 930, 690 }, 115, 173, 224, 255, 4);
+	drawText("REVEALED CARDS", 56, 76, color(167, 218, 255), 28);
+	std::string prompt = mDuel->mChoice == NULL ? "Review the revealed cards." :
+		mDuel->mChoice->mInfotext;
+	drawText(prompt, 56, 113, color(233, 238, 247), 16, 855);
+	drawText("Select a highlighted card when required, or use the choice button on the right.",
+		56, 140, color(168, 188, 216), 13, 855);
+
+	const int shown = std::min(REVEAL_PAGE_SIZE,
+		std::max(0, static_cast<int>(cards.size()) - mRevealOffset));
+	const int columns = 7;
+	const int cardWidth = 105;
+	const int cardHeight = 147;
+	const int horizontalGap = 20;
+	const int rowHeight = 237;
+	for (int index = 0; index < shown; ++index)
+	{
+		int row = index / columns;
+		int column = index % columns;
+		int rowCount = std::min(columns, shown - row * columns);
+		int rowWidth = rowCount * cardWidth + std::max(0, rowCount - 1) * horizontalGap;
+		int startX = 25 + (930 - rowWidth) / 2;
+		Card* card = cards[mRevealOffset + index];
+		SDL_Rect rect = { startX + column * (cardWidth + horizontalGap),
+			175 + row * rowHeight, cardWidth, cardHeight };
+		const bool normallyVisible = card->mZone == ZONE_BATTLE ||
+			card->mZone == ZONE_MANA || card->mZone == ZONE_GRAVEYARD ||
+			(card->mZone == ZONE_HAND && card->mOwner == 0);
+		const bool faceUp = normallyVisible || card->mIsVisible[0];
+		drawCard(card, rect, faceUp, card->mUniqueId == mSelectedCard, true);
+		drawText(faceUp ? card->mName : "Hidden card", rect.x, rect.y + rect.h + 7,
+			color(229, 234, 244), 12, rect.w);
+		std::string owner = card->mOwner == 0 ? "YOUR " : "RIVAL ";
+		std::string zone = card->mZone == ZONE_HAND ? "HAND" :
+			(card->mZone == ZONE_SHIELD ? "SHIELD" :
+			(card->mZone == ZONE_DECK ? "DECK" :
+			(card->mZone == ZONE_MANA ? "MANA" :
+			(card->mZone == ZONE_GRAVEYARD ? "GRAVEYARD" : "BATTLE"))));
+		drawText(owner + zone, rect.x, rect.y + rect.h + 36,
+			color(137, 170, 210), 10, rect.w);
+	}
+	if (cards.empty())
+		drawText("There are no cards to display.", 330, 360, color(182, 195, 216), 18);
+
+	if (maximum > 0)
+	{
+		fillRect(REVEAL_PREVIOUS, 31, 45, 68, 245);
+		outlineRect(REVEAL_PREVIOUS, 112, 146, 196, 255, 2);
+		drawText("< PREVIOUS", REVEAL_PREVIOUS.x + 25, REVEAL_PREVIOUS.y + 11,
+			color(232, 237, 246), 14);
+		fillRect(REVEAL_NEXT, 31, 45, 68, 245);
+		outlineRect(REVEAL_NEXT, 112, 146, 196, 255, 2);
+		drawText("NEXT >", REVEAL_NEXT.x + 42, REVEAL_NEXT.y + 11,
+			color(232, 237, 246), 14);
+		drawText(std::to_string(mRevealOffset + 1) + "-" +
+			std::to_string(mRevealOffset + shown) + " of " + std::to_string(cards.size()),
+			430, 689, color(190, 202, 221), 13);
+	}
+}
+
 void Application::renderDuel()
 {
 	// The action panel repeatedly queries Lua-backed rules and would otherwise
@@ -1378,10 +1611,23 @@ void Application::renderDuel()
 	drawText("ACTION LOG  [L]", ACTION_LOG_BUTTON.x + 55, ACTION_LOG_BUTTON.y + 10,
 		color(242, 221, 250), 15);
 
-	if (mOpenGraveyardPlayer >= 0) renderGraveyardOverlay();
-	renderDragOverlay();
-	renderHoverPreview();
-	if (mActionLogOpen) renderActionLogOverlay();
+	if (revealOverlayActive())
+	{
+		mOpenGraveyardPlayer = -1;
+		mActionLogOpen = false;
+		cancelDrag();
+		renderRevealOverlay();
+		renderHoverPreview();
+	}
+	else
+	{
+		mRevealOffset = 0;
+		mLastRevealCards.clear();
+		if (mOpenGraveyardPlayer >= 0) renderGraveyardOverlay();
+		renderDragOverlay();
+		renderHoverPreview();
+		if (mActionLogOpen) renderActionLogOverlay();
+	}
 
 	if (mDuelResult != -1)
 	{

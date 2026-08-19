@@ -328,7 +328,10 @@ Cards["Cyclolink, Spectral Knight"] = {
 			openDeck(owner)
 			local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,Checks.SpellInYourDeck)
 			local ch = createChoice("Choose a spell in your deck",1,id,owner,Checks.SpellInYourDeck,preferred)
-			if(ch>=0) then moveCard(ch,ZONE_HAND) end
+			if(ch>=0) then
+				displayCard(ch,getOpponent(owner),id)
+				moveCard(ch,ZONE_HAND)
+			end
 			shuffleDeck(owner)
 			closeDeck(owner)
 		end)
@@ -1087,7 +1090,10 @@ Cards["Cavern Raider"] = {
 			openDeck(owner)
 			local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,Checks.CreatureInYourDeck)
 			local ch = createChoice("Choose a creature in your deck",1,id,owner,Checks.CreatureInYourDeck,preferred)
-			if(ch>=0) then moveCard(ch,ZONE_HAND) end
+			if(ch>=0) then
+				displayCard(ch,getOpponent(owner),id)
+				moveCard(ch,ZONE_HAND)
+			end
 			shuffleDeck(owner)
 			closeDeck(owner)
 		end)
@@ -1284,7 +1290,10 @@ Cards["Whispering Totem"] = {
 			openDeck(owner)
 			local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,valid)
 			local ch = createChoice("Choose a Whispering Totem in your deck",1,id,owner,valid,preferred)
-			if(ch>=0) then moveCard(ch,ZONE_HAND) end
+			if(ch>=0) then
+				displayCard(ch,getOpponent(owner),id)
+				moveCard(ch,ZONE_HAND)
+			end
 			shuffleDeck(owner)
 			closeDeck(owner)
 		end

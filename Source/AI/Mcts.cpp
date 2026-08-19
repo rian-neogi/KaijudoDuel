@@ -47,14 +47,17 @@ namespace
 		DecisionChoice incomingChoice;
 		bool hasIncomingChoice;
 		bool leaf;
+		bool usePolicyPriors;
 		int player;
 		int visits;
 		double valueSum;
+		double policyPrior;
 		std::vector<std::unique_ptr<PlanNode> > children;
 		std::unique_ptr<MctsNode> stateChild;
 
 		PlanNode()
-			: hasIncomingChoice(false), leaf(false), player(-1), visits(0), valueSum(0.0)
+			: hasIncomingChoice(false), leaf(false), usePolicyPriors(false), player(-1),
+			  visits(0), valueSum(0.0), policyPrior(1.0)
 		{
 		}
 	};
@@ -386,6 +389,79 @@ namespace
 		return true;
 	}
 
+	void assignCombatPolicyPriors(Duel& position, int player,
+		const std::string& personality, PlanNode& root)
+	{
+		if (root.children.empty()) return;
+		std::vector<size_t> combatActions;
+		bool hasDirectCombatAction = false;
+		for (size_t i = 0; i < root.children.size(); ++i)
+		{
+			if (isDirectCombatAction(messageType(root.children[i]->plan.action)))
+				hasDirectCombatAction = true;
+		}
+		for (size_t i = 0; i < root.children.size(); ++i)
+		{
+			const std::string type = messageType(root.children[i]->plan.action);
+			if (isDirectCombatAction(type) || (hasDirectCombatAction && type == "endturn"))
+				combatActions.push_back(i);
+		}
+
+		if (combatActions.size() <= 1) return;
+		std::vector<double> weights(root.children.size(), 1.0);
+		HeuristicBot bot(player, personality);
+		std::vector<double> scores(combatActions.size(),
+			-std::numeric_limits<double>::infinity());
+		double maximumScore = -std::numeric_limits<double>::infinity();
+		size_t finiteCount = 0;
+		for (size_t i = 0; i < combatActions.size(); ++i)
+		{
+			scores[i] = bot.scoreMove(position,
+				root.children[combatActions[i]]->plan.action);
+			if (std::isfinite(scores[i]))
+			{
+				maximumScore = std::max(maximumScore, scores[i]);
+				finiteCount++;
+			}
+		}
+		if (finiteCount == 0) return;
+		std::vector<double> exponentials(combatActions.size(), 0.0);
+		double exponentialSum = 0.0;
+		double temperature = std::max(0.000001,
+			aiParam("search.tree_combat_temperature"));
+		for (size_t i = 0; i < combatActions.size(); ++i)
+		{
+			if (!std::isfinite(scores[i])) continue;
+			exponentials[i] = std::exp((scores[i] - maximumScore) / temperature);
+			exponentialSum += exponentials[i];
+		}
+		double uniformExploration = std::max(0.0, std::min(1.0,
+			aiParam("search.tree_uniform_exploration")));
+		for (size_t i = 0; i < combatActions.size(); ++i)
+		{
+			if (!std::isfinite(scores[i]))
+			{
+				weights[combatActions[i]] = 0.0;
+				continue;
+			}
+			double probability =
+				(1.0 - uniformExploration) * exponentials[i] / exponentialSum +
+				uniformExploration / finiteCount;
+			// Preserve the combat group's aggregate weight so unrelated action
+			// classes keep the same neutral prior they had before.
+			weights[combatActions[i]] = combatActions.size() * probability;
+		}
+
+		double totalWeight = 0.0;
+		for (std::vector<double>::const_iterator weight = weights.begin();
+			weight != weights.end(); ++weight)
+			totalWeight += *weight;
+		if (totalWeight <= 0.0) return;
+		for (size_t i = 0; i < root.children.size(); ++i)
+			root.children[i]->policyPrior = weights[i] / totalWeight;
+		root.usePolicyPriors = true;
+	}
+
 	double evaluate(Duel& duel, int rootPlayer)
 	{
 		if (duel.mWinner == rootPlayer) return aiParam("evaluation.win_value");
@@ -396,8 +472,9 @@ namespace
 		return std::tanh(difference / scale);
 	}
 
-	bool initializeNode(MctsNode& node, Duel& position,
-		const std::function<bool()>& shouldStop, std::mt19937& random)
+	bool initializeNode(MctsNode& node, Duel& position, int rootPlayer,
+		const std::string& personality, const std::function<bool()>& shouldStop,
+		std::mt19937& random)
 	{
 		if (node.initialized) return true;
 		if (shouldStop && shouldStop()) return false;
@@ -426,13 +503,15 @@ namespace
 		}
 		std::unique_ptr<PlanNode> plansRoot(new PlanNode());
 		if (!buildPlanTree(plans, player, *plansRoot, shouldStop)) return false;
+		assignCombatPolicyPriors(position, player,
+			player == rootPlayer ? personality : "tempo", *plansRoot);
 		node.plans = std::move(plansRoot);
 		node.initialized = true;
 		return true;
 	}
 
 	PlanNode* selectBanditChild(PlanNode& node, int rootPlayer, double exploration,
-		std::mt19937& random)
+		std::mt19937& random, bool usePolicyPrior)
 	{
 		std::vector<PlanNode*> unvisited;
 		for (std::vector<std::unique_ptr<PlanNode> >::iterator child = node.children.begin();
@@ -454,8 +533,16 @@ namespace
 		{
 			double exploitation = meanValue(**child);
 			if (node.player != rootPlayer) exploitation = -exploitation;
-			double explorationTerm = exploration *
-				std::sqrt(std::log(parentVisits) / (*child)->visits);
+			double explorationTerm = 0.0;
+			if (usePolicyPrior)
+			{
+				double prior = std::max(0.0, (*child)->policyPrior);
+				explorationTerm = exploration * prior * node.children.size() *
+					std::sqrt(parentVisits) / (1.0 + (*child)->visits);
+			}
+			else
+				explorationTerm = exploration *
+					std::sqrt(std::log(parentVisits) / (*child)->visits);
 			double score = exploitation + explorationTerm;
 			if (selected == NULL || score > bestScore)
 			{
@@ -470,19 +557,22 @@ namespace
 		std::mt19937& random, std::vector<PlanNode*>& path)
 	{
 		PlanNode* node = &root;
+		bool primaryAction = true;
 		path.push_back(node);
 		while (!node->leaf)
 		{
 			if (node->children.empty()) return NULL;
-			node = selectBanditChild(*node, rootPlayer, exploration, random);
+			node = selectBanditChild(*node, rootPlayer, exploration, random,
+				primaryAction && node->usePolicyPriors);
 			if (node == NULL) return NULL;
 			path.push_back(node);
+			primaryAction = false;
 		}
 		return node;
 	}
 
 	bool selectRolloutPlan(Duel& position, const std::vector<DecisionPlan>& plans, int player,
-		std::mt19937& random, DecisionPlan& selected,
+		const std::string& personality, std::mt19937& random, DecisionPlan& selected,
 		const std::function<bool()>& shouldStop)
 	{
 		std::unique_ptr<PlanNode> root(new PlanNode());
@@ -515,7 +605,7 @@ namespace
 				if (combatActions.size() > 1)
 				{
 					ActiveDuelGuard activeGuard(position);
-					HeuristicBot bot(player);
+					HeuristicBot bot(player, personality);
 					std::vector<double> scores(combatActions.size(),
 						-std::numeric_limits<double>::infinity());
 					double maximumScore = -std::numeric_limits<double>::infinity();
@@ -584,7 +674,8 @@ namespace
 		return executeDecisionPlan(duel, plan).status == DecisionPlanStatus::Complete;
 	}
 
-	bool rollout(Duel& position, int& depth, int maxDepth, std::mt19937& random,
+	bool rollout(Duel& position, int& depth, int maxDepth, int rootPlayer,
+		const std::string& personality, std::mt19937& random,
 		const std::function<bool()>& shouldStop, bool& stopped, TurnHorizon& horizon,
 		int& forcedMovesApplied, MctsTimingCounters& timings)
 	{
@@ -631,8 +722,8 @@ namespace
 			{
 				std::chrono::steady_clock::time_point selectionStarted =
 					std::chrono::steady_clock::now();
-				bool selectedPlan = selectRolloutPlan(position, plans, player, random,
-					selected, shouldStop);
+				bool selectedPlan = selectRolloutPlan(position, plans, player,
+					player == rootPlayer ? personality : "tempo", random, selected, shouldStop);
 				timings.rolloutSelectionNs += elapsedNanoseconds(selectionStarted);
 				if (!selectedPlan)
 				{
@@ -692,7 +783,8 @@ namespace
 			bool needsEnumeration = !node->initialized;
 			std::chrono::steady_clock::time_point enumerationStarted =
 				std::chrono::steady_clock::now();
-			bool initialized = initializeNode(*node, position, shouldStop, random);
+			bool initialized = initializeNode(*node, position, rootPlayer,
+				config.personality, shouldStop, random);
 			if (needsEnumeration)
 				timings.treeEnumerationNs += elapsedNanoseconds(enumerationStarted);
 			if (!initialized)
@@ -784,8 +876,8 @@ namespace
 			if (horizon.cutoff || newStateChild) break;
 		}
 
-		if (!rollout(position, depth, config.maxDepth, random, shouldStop, stopped, horizon,
-			forcedMovesApplied, timings))
+		if (!rollout(position, depth, config.maxDepth, rootPlayer, config.personality,
+			random, shouldStop, stopped, horizon, forcedMovesApplied, timings))
 			return false;
 		horizonCutoff = horizon.cutoff;
 		std::chrono::steady_clock::time_point evaluationStarted =
@@ -833,6 +925,17 @@ namespace
 		return node;
 	}
 
+	double rootActionSelectionValue(const PlanNode& root, const PlanNode& action)
+	{
+		double score = meanValue(action);
+		if (!root.usePolicyPriors || action.visits <= 0 || root.children.empty())
+			return score;
+		double uniformPrior = 1.0 / root.children.size();
+		double policyAdjustment = aiParam("search.final_policy_influence") *
+			(action.policyPrior - uniformPrior) / std::sqrt(action.visits);
+		return score + policyAdjustment;
+	}
+
 	MctsResult collectResult(const MctsNode& rootNode, int rootPlayer,
 		int iterationsCompleted, int failedIterations, bool timeBudgetExpired,
 		int turnHorizonCutoffs, int forcedMovesApplied)
@@ -850,6 +953,8 @@ namespace
 			statistics.plan = rootNode.forcedPlan;
 			statistics.visits = rootNode.visits;
 			statistics.meanValue = meanValue(rootNode);
+			statistics.policyPrior = 1.0;
+			statistics.selectionValue = statistics.meanValue;
 			result.rootChildren.push_back(statistics);
 			result.hasPlan = true;
 			result.plan = rootNode.forcedPlan;
@@ -858,6 +963,7 @@ namespace
 			return result;
 		}
 		const PlanNode* bestAction = NULL;
+		double bestSelectionValue = -std::numeric_limits<double>::infinity();
 		if (rootNode.plans != NULL)
 		{
 			for (std::vector<std::unique_ptr<PlanNode> >::const_iterator child =
@@ -869,9 +975,20 @@ namespace
 				statistics.plan = representative->plan;
 				statistics.visits = (*child)->visits;
 				statistics.meanValue = meanValue(**child);
+				statistics.policyPrior = (*child)->policyPrior;
+				statistics.selectionValue = rootActionSelectionValue(*rootNode.plans, **child);
 				result.rootChildren.push_back(statistics);
+				if ((*child)->visits <= 0) continue;
 
-				if (bestAction == NULL || (*child)->visits > bestAction->visits ||
+				if (rootNode.plans->usePolicyPriors)
+				{
+					if (bestAction == NULL || statistics.selectionValue > bestSelectionValue)
+					{
+						bestAction = child->get();
+						bestSelectionValue = statistics.selectionValue;
+					}
+				}
+				else if (bestAction == NULL || (*child)->visits > bestAction->visits ||
 					((*child)->visits == bestAction->visits &&
 					 meanValue(**child) > meanValue(*bestAction)))
 					bestAction = child->get();
@@ -895,13 +1012,14 @@ namespace
 MctsConfig::MctsConfig()
 	: iterations(aiIntParam("search.max_rollouts")),
 	  maxDepth(aiIntParam("search.max_depth")),
-	  timeBudgetMs(aiIntParam("search.default_time_budget_ms")),
+	  timeBudgetMs(aiDifficultyIntParam("medium", "default_time_budget_ms")),
 	  exploration(aiParam("search.uct_exploration")),
-	  seed(aiSeedParam("search.random_seed"))
+	  seed(aiSeedParam("search.random_seed")), personality("tempo")
 {
 }
 
-MctsChildStatistics::MctsChildStatistics() : visits(0), meanValue(0.0)
+MctsChildStatistics::MctsChildStatistics()
+	: visits(0), meanValue(0.0), policyPrior(0.0), selectionValue(0.0)
 {
 }
 

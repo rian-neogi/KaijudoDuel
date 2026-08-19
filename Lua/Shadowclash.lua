@@ -1141,6 +1141,7 @@ Cards["Niofa, Horned Protector"] = {
 	        local ch = createChoice("Choose a nature creature in your deck",1,id,owner,valid,preferred)
             closeDeck(owner)
 	        if(ch>=0) then
+				displayCard(ch,getOpponent(owner),id)
                 moveCard(ch,ZONE_HAND)
                 shuffleDeck(getCardOwner(ch))
             end

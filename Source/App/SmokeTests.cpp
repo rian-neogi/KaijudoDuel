@@ -189,6 +189,11 @@ int Application::runSmokeTests()
 			std::cerr << "Decision-plan smoke test failed." << std::endl;
 			return 2;
 		}
+		if (!exerciseHeuristicManaConservationSmoke())
+		{
+			std::cerr << "Heuristic mana conservation smoke test failed." << std::endl;
+			return 2;
+		}
 		if (!exerciseMotorcycleMutantSmoke())
 		{
 			std::cerr << "Motorcycle Mutant smoke test failed." << std::endl;
@@ -242,6 +247,16 @@ int Application::runSmokeTests()
 		if (!exerciseMultiCivilizationSmoke())
 		{
 			std::cerr << "Multi-civilization rules smoke test failed." << std::endl;
+			return 2;
+		}
+		if (!exerciseRevealVisibilitySmoke())
+		{
+			std::cerr << "Hidden-card reveal smoke test failed." << std::endl;
+			return 2;
+		}
+		if (!exerciseDeckStatisticsSmoke())
+		{
+			std::cerr << "Deck statistics smoke test failed." << std::endl;
 			return 2;
 		}
 		if (!exerciseBundledDecksSmoke())
@@ -338,11 +353,6 @@ int Application::runSmokeTests()
 			if (smokeNpc == 0 && smokeFrames == 31 && !exerciseHeuristicBlockChoiceSmoke())
 			{
 				std::cerr << "Heuristic blocker choice smoke test failed." << std::endl;
-				return 2;
-			}
-			if (smokeNpc == 0 && smokeFrames == 32 && !exerciseHeuristicManaConservationSmoke())
-			{
-				std::cerr << "Heuristic mana conservation smoke test failed." << std::endl;
 				return 2;
 			}
 			if (smokeNpc == 0 && smokeFrames == 36 && !exerciseKnockoutScoringSmoke())
@@ -2407,8 +2417,9 @@ bool Application::exerciseMctsSmoke()
 	std::lock_guard<std::mutex> lock(gMutex);
 	int attackerId = getCardIdFromName("Burning Mane");
 	int blockerId = getCardIdFromName("Spiral Grass");
+	int targetId = getCardIdFromName("Corile");
 	int bombazarId = getCardIdFromName("Bombazar, Dragon of Destiny");
-	if (attackerId < 0 || blockerId < 0 || bombazarId < 0) return false;
+	if (attackerId < 0 || blockerId < 0 || targetId < 0 || bombazarId < 0) return false;
 
 	auto prepareDuel = [attackerId, blockerId](Duel& duel, bool addBlocker) -> int
 	{
@@ -2537,28 +2548,91 @@ bool Application::exerciseMctsSmoke()
 	{
 		Duel root;
 		int attacker = prepareDuel(root, true);
-		// Keep the safety case meaningful under the power/1000 + breaker*2
-		// evaluator: attacking must sacrifice a materially valuable creature.
+		// The tapped target is weak, but the stronger untapped blocker can
+		// intercept either attack. This mirrors low-budget live combat roots.
 		root.mCardList[attacker]->mPower = 7000;
 		root.mBattlezones[1].mCards.front()->mPower = 8000;
-		MctsSearch search(0, config);
+		int target = static_cast<int>(root.mCardList.size());
+		Card* targetCard = new Card(target, targetId, 1);
+		root.mCardList.push_back(targetCard);
+		root.mBattlezones[1].addCard(targetCard);
+		targetCard->mZone = ZONE_BATTLE;
+		targetCard->mPower = 1000;
+		targetCard->mIsTapped = true;
+		root.mNextUniqueId = target + 1;
+		Message riskyAttack("creatureattack");
+		riskyAttack.addValue("attacker", attacker);
+		riskyAttack.addValue("defender", 1);
+		riskyAttack.addValue("defendertype", DEFENDER_PLAYER);
+		double riskyAttackScore = 0.0;
+		{
+			ActiveDuelGuard activeGuard(root);
+			riskyAttackScore = HeuristicBot(0).scoreMove(root, riskyAttack);
+		}
+		bool attackContextRestored = root.mAttacker == -1 && root.mDefender == -1 &&
+			root.mDefenderType == -1;
+		MctsConfig blockerConfig = config;
+		blockerConfig.iterations = 30;
+		MctsSearch search(0, blockerConfig);
 		MctsResult result = search.search(root);
-		bool caseValid = result.hasPlan && result.failedIterations == 0 &&
-			result.iterationsCompleted == config.iterations &&
+		int endTurnVisits = -1;
+		int playerAttackVisits = -1;
+		int creatureAttackVisits = -1;
+		double endTurnPrior = 0.0;
+		double playerAttackPrior = 0.0;
+		double creatureAttackPrior = 0.0;
+		double selectedDecisionValue = -std::numeric_limits<double>::infinity();
+		double maximumDecisionValue = -std::numeric_limits<double>::infinity();
+		for (std::vector<MctsChildStatistics>::iterator child = result.rootChildren.begin();
+			child != result.rootChildren.end(); ++child)
+		{
+			if (child->plan.action.getType() == "endturn")
+			{
+				endTurnVisits = child->visits;
+				endTurnPrior = child->policyPrior;
+			}
+			else if (child->plan.action.getType() == "creatureattack" &&
+				child->plan.action.getInt("defendertype") == DEFENDER_PLAYER)
+			{
+				playerAttackVisits = child->visits;
+				playerAttackPrior = child->policyPrior;
+			}
+			else if (child->plan.action.getType() == "creatureattack")
+			{
+				creatureAttackVisits = child->visits;
+				creatureAttackPrior = child->policyPrior;
+			}
+			maximumDecisionValue = std::max(maximumDecisionValue, child->selectionValue);
+			if (result.hasPlan && child->plan.action.map == result.plan.action.map &&
+				child->plan.manaCards == result.plan.manaCards)
+				selectedDecisionValue = child->selectionValue;
+		}
+		bool caseValid = std::isfinite(riskyAttackScore) && riskyAttackScore < 0.0 &&
+			attackContextRestored &&
+			result.hasPlan &&
+			result.failedIterations == 0 &&
+			result.iterationsCompleted == blockerConfig.iterations &&
 			result.plan.action.getType() == "endturn" && root.mWinner == -1 &&
 			root.mCardList[attacker]->mZone == ZONE_BATTLE &&
-			!root.mCardList[attacker]->mIsTapped;
+			!root.mCardList[attacker]->mIsTapped && result.rootChildren.size() == 3 &&
+			endTurnVisits > playerAttackVisits && endTurnVisits > creatureAttackVisits &&
+			playerAttackVisits > 0 && creatureAttackVisits > 0 &&
+			playerAttackPrior > 0.0 && creatureAttackPrior > 0.0 &&
+			endTurnPrior > playerAttackPrior && endTurnPrior > creatureAttackPrior &&
+			std::fabs(selectedDecisionValue - maximumDecisionValue) < 0.000001;
 		if (!caseValid)
 		{
 			std::cerr << "MCTS blocker case: plan=" <<
 				(result.hasPlan ? result.plan.action.getType() : "none") <<
+				", attack-score=" << riskyAttackScore <<
 				", completed=" << result.iterationsCompleted <<
 				", failed=" << result.failedIterations << std::endl;
 			for (std::vector<MctsChildStatistics>::iterator child = result.rootChildren.begin();
 				child != result.rootChildren.end(); ++child)
 			{
 				std::cerr << "  " << child->plan.action.getType() << ": visits=" <<
-					child->visits << ", mean=" << child->meanValue << std::endl;
+					child->visits << ", mean=" << child->meanValue << ", prior=" <<
+					child->policyPrior << ", decision=" << child->selectionValue << std::endl;
 			}
 		}
 		valid = valid && caseValid;
@@ -2884,7 +2958,18 @@ bool Application::exerciseAiDriverSmoke()
 	MctsConfig liveMainConfig = liveMctsConfig();
 	MctsConfig liveCombatConfig = liveMctsConfig(true);
 	bool valid = liveMainConfig.iterations == 1024 && liveCombatConfig.iterations == 1024 &&
-		liveMainConfig.timeBudgetMs == 1500 && liveCombatConfig.timeBudgetMs == 2500;
+		liveMainConfig.timeBudgetMs == 1500 && liveCombatConfig.timeBudgetMs == 2500 &&
+		hasAiPersonality("rush") && hasAiPersonality("Tempo") &&
+		hasAiPersonality("CONTROL") && !hasAiPersonality("unknown") &&
+		hasAiDifficulty("easy") && hasAiDifficulty("Medium") &&
+		hasAiDifficulty("HARD") && !hasAiDifficulty("unknown") &&
+		aiPersonalityParam("rush", "move_adjustment.creatureattack") == 16.0 &&
+		aiPersonalityParam("tempo", "move_adjustment.cardmana") == -2.0 &&
+		aiPersonalityParam("control", "move_adjustment.creatureblock") == 12.0 &&
+		liveMctsConfig(false, "easy").timeBudgetMs == 500 &&
+		liveMctsConfig(true, "easy").timeBudgetMs == 800 &&
+		liveMctsConfig(false, "hard").timeBudgetMs == 3000 &&
+		liveMctsConfig(true, "hard").timeBudgetMs == 5000;
 
 	Duel live;
 	live.mInputLoopRunning = false;
@@ -2913,7 +2998,7 @@ bool Application::exerciseAiDriverSmoke()
 	config.iterations = 64;
 	config.maxDepth = 6;
 	config.seed = 49979687U;
-	AiDecisionOutcome searched = playAiDecision(live, 0, "balanced", config);
+	AiDecisionOutcome searched = playAiDecision(live, 0, "tempo", config);
 	valid = valid && searched.source == AiDecisionSource::Mcts &&
 		searched.action.getType() == "creatureattack" &&
 		!live.mMsgMngr.messages.empty() && !live.mCardList[attacker]->mIsTapped &&
@@ -2932,7 +3017,7 @@ bool Application::exerciseAiDriverSmoke()
 	fallback.mNextUniqueId = 1;
 	MctsConfig disabled;
 	disabled.iterations = 0;
-	AiDecisionOutcome heuristic = playAiDecision(fallback, 0, "balanced", disabled);
+	AiDecisionOutcome heuristic = playAiDecision(fallback, 0, "tempo", disabled);
 	valid = valid && heuristic.source == AiDecisionSource::Heuristic &&
 		heuristic.action.getType() == "creatureattack" && fallback.mTurn == 0 &&
 		!fallback.mMsgMngr.messages.empty();
@@ -2942,7 +3027,7 @@ bool Application::exerciseAiDriverSmoke()
 	forced.mPlayerType[0] = PLAYER_AI;
 	forced.mTurn = 0;
 	forced.mTurnPhase = TURN_PHASE_MAIN;
-	AiDecisionOutcome onlyMove = playAiDecision(forced, 0, "balanced", config);
+	AiDecisionOutcome onlyMove = playAiDecision(forced, 0, "tempo", config);
 	valid = valid && onlyMove.source == AiDecisionSource::Forced &&
 		onlyMove.action.getType() == "endturn" && !forced.mMsgMngr.messages.empty();
 
@@ -2961,7 +3046,7 @@ bool Application::exerciseAiDriverSmoke()
 		manaPlacement.mNextUniqueId = uid + 1;
 	}
 	AiDecisionOutcome placed = playHeuristicManaPlacement(
-		manaPlacement, 0, "balanced");
+		manaPlacement, 0, "tempo");
 	valid = valid && placed.source == AiDecisionSource::ManaHeuristic &&
 		placed.action.getType() == "cardmana" && manaPlacement.mManaUsed == 1 &&
 		manaPlacement.mTurnPhase == TURN_PHASE_MAIN &&
@@ -2990,7 +3075,7 @@ bool Application::exerciseAiDriverSmoke()
 	cast.addValue("evobait", -1);
 	cast.addValue("evobait2", -1);
 	manaPayment.handleInterfaceInput(cast);
-	AiDecisionOutcome paid = playHeuristicManaPayment(manaPayment, 0, "balanced");
+	AiDecisionOutcome paid = playHeuristicManaPayment(manaPayment, 0, "tempo");
 	valid = valid && paid.source == AiDecisionSource::ManaHeuristic &&
 		paid.action.getType() == "manatap" && manaPayment.mCastingCard == -1 &&
 		manaPayment.mMsgMngr.messages.size() == 3;
@@ -3046,7 +3131,7 @@ bool Application::exerciseAiDriverSmoke()
 	Duel creatureTrigger;
 	int creatureTriggerCard = prepareTrigger(creatureTrigger, shieldCreatureId, TYPE_CREATURE);
 	AiDecisionOutcome usedCreature = playHeuristicShieldTrigger(
-		creatureTrigger, 1, "balanced");
+		creatureTrigger, 1, "tempo");
 	valid = valid && usedCreature.source == AiDecisionSource::ShieldTriggerHeuristic &&
 		usedCreature.action.getType() == "triggeruse" &&
 		usedCreature.action.getInt("trigger") == creatureTriggerCard &&
@@ -3055,7 +3140,7 @@ bool Application::exerciseAiDriverSmoke()
 	Duel uncastableSpellTrigger;
 	prepareTrigger(uncastableSpellTrigger, shieldSpellId, TYPE_SPELL);
 	AiDecisionOutcome skippedSpell = playHeuristicShieldTrigger(
-		uncastableSpellTrigger, 1, "balanced");
+		uncastableSpellTrigger, 1, "tempo");
 	valid = valid && skippedSpell.source == AiDecisionSource::ShieldTriggerHeuristic &&
 		skippedSpell.action.getType() == "triggerskip" &&
 		!uncastableSpellTrigger.mAiThinking.load();
@@ -3068,7 +3153,7 @@ bool Application::exerciseAiDriverSmoke()
 	spellTarget->mZone = ZONE_BATTLE;
 	castableSpellTrigger.mNextUniqueId = 2;
 	AiDecisionOutcome usedSpell = playHeuristicShieldTrigger(
-		castableSpellTrigger, 1, "balanced");
+		castableSpellTrigger, 1, "tempo");
 	valid = valid && usedSpell.source == AiDecisionSource::ShieldTriggerHeuristic &&
 		usedSpell.action.getType() == "triggeruse" &&
 		usedSpell.action.getInt("trigger") == spellTriggerCard;
@@ -3090,7 +3175,7 @@ bool Application::exerciseAiDriverSmoke()
 	triggerChoice.mChoiceValidCards.push_back(highTarget->mUniqueId);
 	triggerChoice.mLuaCallbackSuspended = true;
 	AiDecisionOutcome targetedTrigger = playHeuristicShieldTrigger(
-		triggerChoice, 1, "balanced");
+		triggerChoice, 1, "tempo");
 	valid = valid && targetedTrigger.source == AiDecisionSource::ShieldTriggerHeuristic &&
 		targetedTrigger.action.getType() == "choiceselect" &&
 		targetedTrigger.action.getInt("selection") == highTarget->mUniqueId &&
@@ -3118,7 +3203,7 @@ bool Application::exerciseAiDriverSmoke()
 	suspendedChoice.mChoiceValidCards.push_back(firstChoice);
 	suspendedChoice.mChoiceValidCards.push_back(secondChoice);
 	suspendedChoice.mLuaCallbackSuspended = true;
-	AiDecisionOutcome transient = playHeuristicDecision(suspendedChoice, 1, "balanced");
+	AiDecisionOutcome transient = playHeuristicDecision(suspendedChoice, 1, "tempo");
 	valid = valid && !suspendedChoice.isCloneable() &&
 		transient.source == AiDecisionSource::Heuristic &&
 		transient.action.getType() == "choiceselect" &&
@@ -3284,6 +3369,21 @@ bool Application::exerciseBundledDecksSmoke()
 	return valid;
 }
 
+bool Application::exerciseDeckStatisticsSmoke()
+{
+	int hulcusId = getCardIdFromName("Aqua Hulcus");
+	int holyAweId = getCardIdFromName("Holy Awe");
+	if (hulcusId < 0 || holyAweId < 0) return false;
+	PlayerDeck deck;
+	deck.cards[hulcusId] = 2;
+	deck.cards[holyAweId] = 1;
+	DeckStatistics statistics = deckStatistics(deck);
+	return statistics.cards == 3 && statistics.totalCost == 12 &&
+		statistics.shieldTriggers == 1 && statistics.creatures == 2 &&
+		statistics.spells == 1 && gCardDatabase[hulcusId].ShieldTrigger == 0 &&
+		gCardDatabase[holyAweId].ShieldTrigger == 1;
+}
+
 bool Application::exerciseNpcRewardsSmoke()
 {
 	const int expectedGoldTiers[] = { 200, 400, 800, 1500, 3000 };
@@ -3293,6 +3393,9 @@ bool Application::exerciseNpcRewardsSmoke()
 	for (size_t npcIndex = 0; npcIndex < mNpcs.size(); ++npcIndex)
 	{
 		const Npc& npc = mNpcs[npcIndex];
+		if (npc.isDuelist() && (!hasAiPersonality(npc.aiPersonality) ||
+			!hasAiDifficulty(npc.aiDifficulty)))
+			return false;
 		for (size_t rewardIndex = 0; rewardIndex < npc.rewards.size(); ++rewardIndex)
 		{
 			const int tier = npc.rewards[rewardIndex].goldTier;
@@ -3568,6 +3671,158 @@ bool Application::exerciseMultiCivilizationSmoke()
 			aura.mCardList[fireCreature]->mZone == ZONE_GRAVEYARD;
 	}
 	ActiveDuel = savedActiveDuel;
+	return valid;
+}
+
+bool Application::exerciseRevealVisibilitySmoke()
+{
+	std::lock_guard<std::mutex> lock(gMutex);
+	int liquidScopeId = getCardIdFromName("Liquid Scope");
+	int schemingHandsId = getCardIdFromName("Scheming Hands");
+	int dimensionGateId = getCardIdFromName("Dimension Gate");
+	int creatureId = getCardIdFromName("Deadly Fighter Braid Claw");
+	if (liquidScopeId < 0 || schemingHandsId < 0 || dimensionGateId < 0 ||
+		creatureId < 0) return false;
+
+	auto addCard = [](Duel& duel, int cardId, int owner, int zone) -> int
+	{
+		int uid = static_cast<int>(duel.mCardList.size());
+		Card* card = new Card(uid, cardId, owner);
+		duel.mCardList.push_back(card);
+		duel.getZone(owner, zone)->addCard(card);
+		card->mZone = zone;
+		duel.mNextUniqueId = uid + 1;
+		return uid;
+	};
+	bool valid = true;
+	Duel* savedDuel = mDuel;
+	{
+		Duel scopeDuel;
+		scopeDuel.mIsSimulation = true;
+		scopeDuel.mInputLoopRunning = false;
+		int scope = addCard(scopeDuel, liquidScopeId, 0, ZONE_HAND);
+		int hand = addCard(scopeDuel, creatureId, 1, ZONE_HAND);
+		int shield = addCard(scopeDuel, creatureId, 1, ZONE_SHIELD);
+		bool reviewSeen = false;
+		scopeDuel.setChoiceResolver(
+			[&](const Duel& position) -> int
+			{
+				std::vector<Card*> overlay = revealOverlayCards();
+				bool overlayHasHand = std::find(overlay.begin(), overlay.end(),
+					position.mCardList[hand]) != overlay.end();
+				bool overlayHasShield = std::find(overlay.begin(), overlay.end(),
+					position.mCardList[shield]) != overlay.end();
+				reviewSeen = position.mChoice != NULL &&
+					position.mChoice->mInfotext == "Review your opponent's hand and shields" &&
+					position.mCardList[hand]->mIsVisible[0] &&
+					position.mCardList[shield]->mIsVisible[0] && revealOverlayActive() &&
+					overlayHasHand && overlayHasShield;
+				return RETURN_BUTTON1;
+			}, 1);
+		mDuel = &scopeDuel;
+		{
+			ActiveDuelGuard activeGuard(scopeDuel);
+			Message cast("cardmove");
+			cast.addValue("card", scope);
+			cast.addValue("from", ZONE_HAND);
+			cast.addValue("to", ZONE_BATTLE);
+			scopeDuel.mMsgMngr.sendMessage(cast);
+			scopeDuel.dispatchAllMessages();
+		}
+		mDuel = savedDuel;
+		valid = valid && reviewSeen && !scopeDuel.hasSimulationChoiceFailure() &&
+			!scopeDuel.mCardList[hand]->mIsVisible[0] &&
+			!scopeDuel.mCardList[shield]->mIsVisible[0];
+	}
+	{
+		Duel handsDuel;
+		handsDuel.mIsSimulation = true;
+		handsDuel.mInputLoopRunning = false;
+		int spell = addCard(handsDuel, schemingHandsId, 0, ZONE_HAND);
+		int chosen = addCard(handsDuel, creatureId, 1, ZONE_HAND);
+		int remaining = addCard(handsDuel, creatureId, 1, ZONE_HAND);
+		bool handSeen = false;
+		handsDuel.setChoiceResolver(
+			[&](const Duel& position) -> int
+			{
+				std::vector<Card*> overlay = revealOverlayCards();
+				bool overlayHasChosen = std::find(overlay.begin(), overlay.end(),
+					position.mCardList[chosen]) != overlay.end();
+				bool overlayHasRemaining = std::find(overlay.begin(), overlay.end(),
+					position.mCardList[remaining]) != overlay.end();
+				handSeen = position.mChoice != NULL &&
+					position.mChoice->mInfotext == "Choose a card from your opponent's hand" &&
+					position.mCardList[chosen]->mIsVisible[0] &&
+					position.mCardList[remaining]->mIsVisible[0] && revealOverlayActive() &&
+					overlayHasChosen && overlayHasRemaining &&
+					position.choiceCanBeSelected(chosen);
+				return chosen;
+			}, 1);
+		mDuel = &handsDuel;
+		{
+			ActiveDuelGuard activeGuard(handsDuel);
+			Message cast("cardmove");
+			cast.addValue("card", spell);
+			cast.addValue("from", ZONE_HAND);
+			cast.addValue("to", ZONE_BATTLE);
+			handsDuel.mMsgMngr.sendMessage(cast);
+			handsDuel.dispatchAllMessages();
+		}
+		mDuel = savedDuel;
+		valid = valid && handSeen && !handsDuel.hasSimulationChoiceFailure() &&
+			handsDuel.mCardList[chosen]->mZone == ZONE_GRAVEYARD &&
+			handsDuel.mCardList[remaining]->mZone == ZONE_HAND &&
+			!handsDuel.mCardList[remaining]->mIsVisible[0];
+	}
+	{
+		Duel displayDuel;
+		displayDuel.mIsSimulation = false;
+		displayDuel.mInputLoopRunning = false;
+		int gate = addCard(displayDuel, dimensionGateId, 1, ZONE_HAND);
+		int tutored = addCard(displayDuel, creatureId, 1, ZONE_DECK);
+		bool selectionSeen = false;
+		bool displaySeen = false;
+		displayDuel.setChoiceResolver(
+			[&](const Duel& position) -> int
+			{
+				if (position.mChoice == NULL) return RETURN_NOTHING;
+				if (position.mChoice->mInfotext == "Choose a creature in your deck")
+				{
+					selectionSeen = position.mChoicePlayer == 1 &&
+						position.choiceCanBeSelected(tutored);
+					return tutored;
+				}
+				if (position.mChoice->mInfotext ==
+					"Rival reveals Deadly Fighter Braid Claw")
+				{
+					std::vector<Card*> overlay = revealOverlayCards();
+					displaySeen = position.mChoicePlayer == 0 &&
+						position.mCardList[tutored]->mZone == ZONE_DECK &&
+						position.mCardList[tutored]->mIsVisible[0] &&
+						revealOverlayActive() &&
+						std::find(overlay.begin(), overlay.end(),
+							position.mCardList[tutored]) != overlay.end();
+					return RETURN_BUTTON1;
+				}
+				return RETURN_NOTHING;
+			}, 2);
+		mDuel = &displayDuel;
+		{
+			ActiveDuelGuard activeGuard(displayDuel);
+			Message cast("cardmove");
+			cast.addValue("card", gate);
+			cast.addValue("from", ZONE_HAND);
+			cast.addValue("to", ZONE_BATTLE);
+			displayDuel.mMsgMngr.sendMessage(cast);
+			displayDuel.dispatchAllMessages();
+		}
+		mDuel = savedDuel;
+		valid = valid && selectionSeen && displaySeen &&
+			displayDuel.mCardList[tutored]->mZone == ZONE_HAND &&
+			!displayDuel.mCardList[tutored]->mIsVisible[0] &&
+			!displayDuel.mIsChoiceActive;
+	}
+	mDuel = savedDuel;
 	return valid;
 }
 
@@ -4311,6 +4566,7 @@ bool Application::exerciseHeuristicAttackSafetySmoke()
 	attackPlayer.addValue("defendertype", DEFENDER_PLAYER);
 	double strongerBlockerScore = rival.scoreMove(*mDuel, attackPlayer);
 	Message endTurn("endturn");
+	double endTurnScore = rival.scoreMove(*mDuel, endTurn);
 	std::vector<Message> choices;
 	choices.push_back(attackCreature);
 	choices.push_back(attackPlayer);
@@ -4323,9 +4579,9 @@ bool Application::exerciseHeuristicAttackSafetySmoke()
 	defender->mPower = savedDefenderPower;
 	defender->mIsBlocker = savedBlocker;
 	defender->mIsTapped = savedTapped;
-	return std::isinf(strongerCreatureScore) && strongerCreatureScore < 0.0 &&
-		std::isinf(strongerBlockerScore) && strongerBlockerScore < 0.0 &&
-		selected.getType() == "endturn" && forcedSelection.getType() == "creatureattack";
+	return std::isfinite(strongerCreatureScore) && strongerCreatureScore < endTurnScore &&
+		std::isfinite(strongerBlockerScore) && selected.getType() == "endturn" &&
+		forcedSelection.getType() == "creatureattack";
 }
 
 bool Application::exerciseHeuristicBlockChoiceSmoke()
@@ -4422,10 +4678,10 @@ bool Application::exerciseHeuristicManaConservationSmoke()
 			(aiParam("evaluation.shield_count_5_value") +
 				2.0 * aiParam("evaluation.shield_above_5_value"))) < 0.0001;
 	bool valid = found && messageInt(placement, "card") == expensive &&
-		expensiveDelta > cheapDelta && std::abs(battleValue - 11.0) < 0.0001 &&
-		std::abs(manaValue - 4.1) < 0.0001 &&
-		std::abs(unaffordableValue - 1.0) < 0.0001 &&
-		std::abs(affordableValue - 1.5) < 0.0001 && shieldValues;
+		expensiveDelta + 0.0001 >= cheapDelta && std::abs(battleValue - 13.0) < 0.0001 &&
+		std::abs(manaValue - 6.1) < 0.0001 &&
+		std::abs(unaffordableValue - 2.0) < 0.0001 &&
+		std::abs(affordableValue - 2.1) < 0.0001 && shieldValues;
 
 	for (int mana = 0; mana < 5; ++mana)
 		addCard(ZONE_MANA, 1, 1 << CIV_LIGHT);
@@ -4435,6 +4691,22 @@ bool Application::exerciseHeuristicManaConservationSmoke()
 	removedFromHand->mZone = ZONE_GRAVEYARD;
 	Message boundaryPlacement;
 	bool placesAtMaximumCost = bot.chooseManaPlacement(duel, moves, boundaryPlacement);
+	AiDecisionOutcome liveBoundaryPlacement;
+	std::vector<DecisionPlan> boundaryPlans;
+	{
+		ActiveDuelGuard activeGuard(duel);
+		liveBoundaryPlacement = playHeuristicManaPlacement(duel, 0, "tempo");
+		DecisionPlanEnumerationOptions options;
+		options.heuristicMana = true;
+		boundaryPlans = enumerateDecisionPlans(duel, options);
+	}
+	bool searchSkipsBoundaryPlacement = true;
+	for (std::vector<DecisionPlan>::iterator plan = boundaryPlans.begin();
+		plan != boundaryPlans.end(); ++plan)
+		if (plan->action.getType() == "cardmana") searchSkipsBoundaryPlacement = false;
+	bool liveSkipsBoundaryPlacement =
+		liveBoundaryPlacement.source == AiDecisionSource::None && duel.mManaUsed == 0 &&
+		duel.mTurnPhase == TURN_PHASE_MANA;
 
 	addCard(ZONE_MANA, 1, 1 << CIV_LIGHT);
 	Message scarcePlacement;
@@ -4447,8 +4719,23 @@ bool Application::exerciseHeuristicManaConservationSmoke()
 	Message fullHandPlacement;
 	bool placesAboveMaximumWithThreeCards =
 		bot.chooseManaPlacement(duel, moves, fullHandPlacement);
-	return valid && placesAtMaximumCost && !placesAboveMaximumWithScarceHand &&
-		placesAboveMaximumWithThreeCards;
+	bool conservationValid = valid && !placesAtMaximumCost && liveSkipsBoundaryPlacement &&
+		searchSkipsBoundaryPlacement &&
+		!placesAboveMaximumWithScarceHand && !placesAboveMaximumWithThreeCards;
+	if (!conservationValid)
+	{
+		std::cerr << "Mana conservation: initial=" << found << ", selected=" <<
+			messageInt(placement, "card") << ", expensive=" << expensiveDelta <<
+			", cheap=" << cheapDelta << ", battle=" << battleValue <<
+			", mana=" << manaValue << ", unaffordable=" << unaffordableValue <<
+			", affordable=" << affordableValue << ", shields=" << shieldValues <<
+			", at-limit=" << placesAtMaximumCost <<
+			", live-at-limit=" << !liveSkipsBoundaryPlacement <<
+			", search-at-limit=" << !searchSkipsBoundaryPlacement <<
+			", above-scarce=" << placesAboveMaximumWithScarceHand <<
+			", above-three=" << placesAboveMaximumWithThreeCards << std::endl;
+	}
+	return conservationValid;
 }
 
 bool Application::exerciseKnockoutScoringSmoke()
@@ -5680,11 +5967,23 @@ bool Application::exerciseMenuScreensSmoke()
 	mMouseX = 300;
 	mMouseY = 200;
 	renderDeckBuilder();
-	if (mDeckHoveredCard < 0) return false;
+	if (mDeckHoveredCard < 0)
+	{
+		std::cerr << "Deck builder collection hover was unavailable." << std::endl;
+		return false;
+	}
 	mMouseX = 1000;
-	mMouseY = 210;
+	mMouseY = 270;
 	renderDeckBuilder();
-	if (mDeckHoveredCard < 0) return false;
+	if (mDeckHoveredCard < 0)
+	{
+		std::cerr << "Deck builder contents hover was unavailable: editing=" <<
+			mEditingDeckIndex << ", decks=" << mPlayerDecks.size() <<
+			", entries=" << (mEditingDeckIndex >= 0 &&
+			mEditingDeckIndex < (int)mPlayerDecks.size() ?
+				mPlayerDecks[mEditingDeckIndex].cards.size() : 0) << std::endl;
+		return false;
+	}
 	SDL_Event back = {};
 	back.type = SDL_KEYDOWN;
 	back.key.keysym.sym = SDLK_ESCAPE;

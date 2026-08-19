@@ -44,11 +44,6 @@ AIParams = {
 		max_rollouts = 1024,
 		-- Maximum complete decisions in an ordinary simulation trajectory.
 		max_depth = 12,
-		-- Generic/test search deadline. Zero means no wall-clock deadline.
-		default_time_budget_ms = 0,
-		-- Live-play deadlines for ordinary and combat-phase decisions.
-		main_time_budget_ms = 1500,
-		combat_time_budget_ms = 2500,
 		-- C in UCT: mean + C * sqrt(log(parent visits) / child visits).
 		-- Larger values spend more visits exploring less-tested actions.
 		uct_exploration = math.sqrt(2.0),
@@ -59,6 +54,13 @@ AIParams = {
 		rollout_combat_temperature = 20.0,
 		-- Fraction of combat rollout probability reserved for uniform exploration.
 		rollout_uniform_exploration = 0.1,
+		-- Combat policy used while expanding the adversarial search tree. The
+		-- uniform floor keeps every legal attack and block explorable.
+		tree_combat_temperature = 20.0,
+		tree_uniform_exploration = 0.1,
+		-- Small decaying policy adjustment used only when recommending the final
+		-- root action. Observed rollout value dominates as visits accumulate.
+		final_policy_influence = 0.2,
 		-- Number of extra full depth allowances granted for consecutive extra turns.
 		max_extra_turn_depth_extensions = 2,
 		-- Safety cap when the heuristic repeatedly taps mana for one cast.
@@ -66,7 +68,8 @@ AIParams = {
 	},
 
 	heuristic = {
-		-- At or below this hand size, excess mana encourages skipping a charge.
+		-- At or below this hand size, charge only to reach the cost of another
+		-- card that will remain in hand.
 		low_hand_card_count = 4,
 
 		card = {
@@ -136,12 +139,12 @@ AIParams = {
 		},
 
 		attack = {
-			-- Dominating rollout score for attacking a player with no shields.
+			-- Dominating score for attacking a player with no shields and no legal blocker.
 			lethal_score = 100000.0,
 			-- Direct-player attack score before breaker and blocker adjustments.
 			player_base = 35.0,
 			breaker_weight = 8.0,
-			-- Penalty applied once for each opposing blocker on the field.
+			-- Penalty applied once for each legal untapped opposing blocker.
 			blocker_penalty = 4.0,
 			-- Score for safely attacking a weaker creature.
 			winning_creature_base = 65.0,
@@ -149,6 +152,11 @@ AIParams = {
 			-- Equal-power trade score uses (defender value - attacker value).
 			trade_base = 35.0,
 			trade_value_weight = 5.0,
+			-- Attacking a stronger creature is discouraged, but remains available
+			-- for attack triggers, blocker bait, and other tactical sequences.
+			losing_creature_base = -20.0,
+			losing_attacker_value_weight = 5.0,
+			losing_power_gap_weight = 2.0,
 		},
 
 		block = {
@@ -182,34 +190,60 @@ AIParams = {
 			trigger_base = 70.0,
 			trigger_skip_score = 0.0,
 			tap_ability_score = 35.0,
-			-- Negative value makes productive actions preferable to ending early.
-			end_turn_score = -100.0,
+			-- Neutral baseline lets risky combat remain possible without treating
+			-- every legal attack as automatically preferable to ending the turn.
+			end_turn_score = 0.0,
 			-- Score for any move type without a dedicated heuristic.
 			default_score = 0.0,
 		},
 
-		personality = {
-			-- Additive adjustments applied after the base move score. Positive
-			-- values encourage an action type; negative values discourage it.
-			-- Aggressive favors attacking/playing cards and is more willing to
-			-- decline blocks during rollout decisions.
-			aggressive_attack = 16.0,
-			aggressive_cardplay = 6.0,
-			aggressive_blockskip = 3.0,
-			-- Defensive favors blocking/triggers and suppresses attacks.
-			defensive_block_or_trigger = 12.0,
-			defensive_attack = -5.0,
-			-- Control favors targeted choices, tap abilities, and triggers.
-			control_choice_or_tap = 5.0,
-			control_trigger = 7.0,
-			-- Tempo favors immediate board actions and is less eager to charge mana.
-			tempo_cardplay_or_attack = 7.0,
-			tempo_mana = -2.0,
-			-- Ramp favors charging mana, with a smaller preference for card plays.
-			ramp_mana = 10.0,
-			ramp_cardplay = 2.0,
-			-- Sacrifice favors choices and plays that may enable sacrifice lines.
-			sacrifice_choice_or_cardplay = 4.0,
+	},
+
+	-- Add a table here to create another personality. Move keys are engine
+	-- message types; omitted keys have a neutral adjustment of zero.
+	personalities = {
+		rush = {
+			move_adjustment = {
+				cardplay = 6.0,
+				creatureattack = 16.0,
+				blockskip = 3.0,
+			},
+		},
+		tempo = {
+			move_adjustment = {
+				cardmana = -2.0,
+				cardplay = 7.0,
+				creatureattack = 7.0,
+			},
+		},
+		control = {
+			move_adjustment = {
+				choiceselect = 5.0,
+				creatureattack = -5.0,
+				creatureblock = 12.0,
+				creatureusetapability = 5.0,
+				triggeruse = 12.0,
+			},
+		},
+	},
+
+	-- Difficulty changes only the thinking deadline. Medium preserves the old
+	-- live-play timings; zero disables a deadline for non-live/test searches.
+	difficulties = {
+		easy = {
+			default_time_budget_ms = 0,
+			main_time_budget_ms = 500,
+			combat_time_budget_ms = 1000,
+		},
+		medium = {
+			default_time_budget_ms = 0,
+			main_time_budget_ms = 1500,
+			combat_time_budget_ms = 2500,
+		},
+		hard = {
+			default_time_budget_ms = 0,
+			main_time_budget_ms = 2000,
+			combat_time_budget_ms = 3000,
 		},
 	},
 }

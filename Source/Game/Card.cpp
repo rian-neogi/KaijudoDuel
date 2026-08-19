@@ -505,6 +505,7 @@ void loadSet(std::string path, std::string set_name)
 		if (civ < 0 || type < 0 || cost < 0)
 			continue;
 		int priceTier = 1;
+		int shieldTrigger = 0;
 		int stackTop = lua_gettop(LuaCards);
 		lua_getglobal(LuaCards, "Cards");
 		if (lua_istable(LuaCards, -1))
@@ -514,12 +515,16 @@ void loadSet(std::string path, std::string set_name)
 			{
 				lua_getfield(LuaCards, -1, "price_tier");
 				if (lua_isnumber(LuaCards, -1)) priceTier = (int)lua_tointeger(LuaCards, -1);
+				lua_pop(LuaCards, 1);
+				lua_getfield(LuaCards, -1, "shieldtrigger");
+				if (lua_isnumber(LuaCards, -1))
+					shieldTrigger = lua_tointeger(LuaCards, -1) != 0 ? 1 : 0;
 			}
 		}
 		lua_settop(LuaCards, stackTop);
 		priceTier = std::max(1, std::min(5, priceTier));
 		CardData cd(gCardDatabase.size(), name, set_name, race, civ, civilizations,
-			type, cost, power, priceTier);
+			type, cost, power, priceTier, shieldTrigger);
 		gCardDatabase.push_back(cd);
 	}
 }

@@ -20,13 +20,15 @@ AiDecisionOutcome::AiDecisionOutcome() : source(AiDecisionSource::None)
 {
 }
 
-MctsConfig liveMctsConfig(bool combatPhase)
+MctsConfig liveMctsConfig(bool combatPhase, const std::string& difficulty,
+	const std::string& personality)
 {
 	MctsConfig config;
 	config.iterations = aiIntParam("search.max_rollouts");
 	config.maxDepth = aiIntParam("search.max_depth");
-	config.timeBudgetMs = aiIntParam(combatPhase ?
-		"search.combat_time_budget_ms" : "search.main_time_budget_ms");
+	config.timeBudgetMs = aiDifficultyIntParam(difficulty, combatPhase ?
+		"combat_time_budget_ms" : "main_time_budget_ms");
+	config.personality = personality;
 	return config;
 }
 
@@ -56,7 +58,9 @@ AiDecisionOutcome playAiDecision(Duel& duel, int player,
 
 	if (duel.isCloneable())
 	{
-		MctsSearch search(player, config);
+		MctsConfig personalizedConfig = config;
+		personalizedConfig.personality = personality;
+		MctsSearch search(player, personalizedConfig);
 		MctsResult result = search.search(duel);
 		if (result.hasPlan &&
 			commitDecisionPlan(duel, result.plan) == DecisionPlanCommitStatus::Committed)

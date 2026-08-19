@@ -23,7 +23,8 @@ void Application::drawZone(const std::vector<Card*>& cards, int x, int y, int wi
 	for (size_t i = 0; i < cards.size(); ++i)
 	{
 		SDL_Rect rect = { start + (int)i * step, y, cardWidth, cardHeight };
-		drawCard(cards[i], rect, faceUp, cards[i]->mUniqueId == mSelectedCard, clickable);
+		const bool visible = faceUp || cards[i]->mIsVisible[0];
+		drawCard(cards[i], rect, visible, cards[i]->mUniqueId == mSelectedCard, clickable);
 	}
 }
 
@@ -44,6 +45,7 @@ void Application::drawHand(const std::vector<Card*>& cards, bool opponent)
 	const float degreesToRadians = 3.14159265f / 180.f;
 	for (size_t i = 0; i < cards.size(); ++i)
 	{
+		const bool visible = !opponent || revealedOpponent || cards[i]->mIsVisible[0];
 		const float offset = (float)i - midpoint;
 		const float angle = offset * angleStep * (opponent ? -1.f : 1.f);
 		const float radians = angle * degreesToRadians;
@@ -56,8 +58,8 @@ void Application::drawHand(const std::vector<Card*>& cards, bool opponent)
 			(int)std::round(centerY - cardHeight * 0.5f),
 			cardWidth, cardHeight
 		};
-		drawCard(cards[i], rect, !opponent || revealedOpponent,
-			cards[i]->mUniqueId == mSelectedCard, !opponent || revealedOpponent, angle);
+		drawCard(cards[i], rect, visible,
+			cards[i]->mUniqueId == mSelectedCard, visible, angle);
 	}
 }
 

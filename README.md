@@ -47,8 +47,15 @@ deck first and AI deck second:
 ```bash
 ./Bin/KaijudoDuel --duel \
   "My Decks/7 - L Tappy Tappy.txt" \
-  "VeiledOne.txt"
+  "VeiledOne.txt" \
+  --ai-personality control \
+  --ai-difficulty hard
 ```
+
+Available personalities are `rush`, `tempo` (default), and `control`.
+Available difficulties are `easy`, `medium` (default), and `hard`; difficulty
+selects the AI's main- and combat-phase thinking deadlines from
+`Lua/AIParams.lua`.
 
 Add `--full-visibility` to reveal and inspect the AI hand during a direct duel:
 

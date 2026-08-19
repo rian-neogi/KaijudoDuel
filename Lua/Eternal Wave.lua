@@ -962,7 +962,10 @@ Cards["Rainbow Gate"] = {
 		end
 		local preferred=Functions.HighestCostChoice(id,owner,ZONE_DECK,valid)
 		local creature=createChoice("Choose a multicolored creature from your deck",1,id,owner,valid,preferred)
-		if(creature>=0) then moveCard(creature,ZONE_HAND) end
+		if(creature>=0) then
+			displayCard(creature,getOpponent(owner),id)
+			moveCard(creature,ZONE_HAND)
+		end
 		shuffleDeck(getCardOwner(id))
 	end
 }

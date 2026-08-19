@@ -873,6 +873,7 @@ Cards["Laguna, Lightning Enforcer"] = {
 	        local ch = createChoice("Choose a spell in your deck",0,id,owner,Checks.SpellInYourDeck,preferred)
             closeDeck(owner)
 	        if(ch>=0) then
+				displayCard(ch,getOpponent(owner),id)
                 moveCard(ch,ZONE_HAND)
                 shuffleDeck(getCardOwner(ch))
             end
@@ -948,6 +949,7 @@ Cards["Logic Cube"] = {
 	    local ch = createChoice("Choose a spell in your deck",0,id,owner,Checks.SpellInYourDeck,preferred)
         closeDeck(owner)
 	    if(ch>=0) then
+			displayCard(ch,getOpponent(owner),id)
             moveCard(ch,ZONE_HAND)
             shuffleDeck(getCardOwner(ch))
         end
@@ -1224,7 +1226,7 @@ Cards["Recon Operation"] = { --check if works
             local ch = createChoiceNoCheck("Look at cards",1,id,owner,Checks.False)
             for k,v in pairs(cardsflipped) do 
                 flipCard(v) 
-				setCardVisibility(ch, owner, 0)
+				setCardVisibility(v, owner, 0)
             end
         end
 	end
@@ -1296,6 +1298,7 @@ Cards["Rumbling Terahorn"] = {
 	        local ch = createChoice("Choose a creature in your deck",0,id,owner,Checks.CreatureInYourDeck,preferred)
             closeDeck(owner)
 	        if(ch>=0) then
+				displayCard(ch,getOpponent(owner),id)
                 moveCard(ch,ZONE_HAND)
             end
 			shuffleDeck(owner)
@@ -1476,9 +1479,12 @@ Cards["Wyn, the Oracle"] = {
         local func = function(id)
             local ch = createChoice("Choose an opponent's shield",1,id,getCardOwner(id),Checks.InOppShields)
             if(ch>=0) then
-                unflipCard(ch,owner)
+				local owner = getCardOwner(id)
+				unflipCard(ch)
+				setCardVisibility(ch,owner,1)
                 createChoiceNoCheck("Look at card",1,id,getCardOwner(id),Checks.False)
                 flipCard(ch)
+				setCardVisibility(ch,owner,0)
             end
         end
         Abils.onAttack(id,func)

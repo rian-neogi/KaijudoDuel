@@ -106,7 +106,8 @@ if(BUILD_TESTING)
         COMMAND KaijudoDuel --help
     )
 	add_test(NAME headless_ai_duel
-		COMMAND KaijudoDuel --seed 7 --max-actions 2 --headless-ai-duel
+		COMMAND KaijudoDuel --seed 7 --max-actions 2
+			--ai-personality control --ai-difficulty easy --headless-ai-duel
 			"NPC/Nyx 3.txt" "NPC/Nyx 4.txt"
 		WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
 	)

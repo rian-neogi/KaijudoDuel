@@ -294,6 +294,7 @@ Cards["Brutal Charge"] = {
 						local preferred = Functions.HighestCostChoice(cid,owner,ZONE_DECK,Checks.CreatureInYourDeck)
 						local creature = createChoice("Choose a creature in your deck",1,cid,owner,Checks.CreatureInYourDeck,preferred)
 						if(creature<0) then break end
+						displayCard(creature,getOpponent(owner),cid)
 						moveCard(creature,ZONE_HAND)
 					end
 					closeDeck(owner)
@@ -1181,6 +1182,7 @@ Cards["Scissor Scarab"] = {
             local ch = createChoice("Choose a Giant Insect in your deck",1,id,owner,valid,preferred)
             closeDeck(owner)
             if(ch>=0) then
+				displayCard(ch,getOpponent(owner),id)
                 moveCard(ch,ZONE_HAND)
                 shuffleDeck(owner)
             end

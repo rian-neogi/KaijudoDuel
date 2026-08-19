@@ -50,8 +50,8 @@ void Hand::addCard(Card* c)
 	//c->setPosition(glm::vec3(mPos.x + CONST_CARDSEPERATION*cards.size(), mPos.y, mPos.z + (mPos.z+mHeight)/2));
 	c->unflip();
 	c->untap();
-	c->mIsVisible[mMyPlayer] = true;
-	c->mIsVisible[(mMyPlayer+1)%2] = false;
+	c->mIsVisible[c->mOwner] = true;
+	c->mIsVisible[(c->mOwner+1)%2] = false;
 	mCards.push_back(c);
 	//update(-1);
 }

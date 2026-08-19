@@ -14,6 +14,8 @@
 #include <cstdlib>
 #include <dirent.h>
 #include <fstream>
+#include <iomanip>
+#include <sstream>
 #include <sys/stat.h>
 
 using namespace AppSupport;
@@ -22,6 +24,9 @@ namespace
 {
 	constexpr int COLLECTION_PAGE_SIZE = 15;
 	constexpr int MINIMUM_DECK_SIZE = 40;
+	constexpr int DECK_CONTENTS_TOP = 263;
+	constexpr int DECK_CONTENTS_ROW_HEIGHT = 33;
+	constexpr int DECK_CONTENTS_VISIBLE_ROWS = 13;
 	const char* PLAYER_DATA_DIRECTORY = "PlayerData";
 	const SDL_Rect BACK_BUTTON = { 20, 20, 120, 46 };
 	const SDL_Rect NEW_DECK_BUTTON = { 154, 20, 150, 46 };
@@ -597,6 +602,24 @@ int Application::deckCardCount(const PlayerDeck& deck) const
 	return count;
 }
 
+Application::DeckStatistics Application::deckStatistics(const PlayerDeck& deck) const
+{
+	DeckStatistics statistics;
+	for (std::map<int, int>::const_iterator card = deck.cards.begin();
+		card != deck.cards.end(); ++card)
+	{
+		if (card->first < 0 || card->first >= (int)gCardDatabase.size() || card->second <= 0)
+			continue;
+		const CardData& data = gCardDatabase[card->first];
+		statistics.cards += card->second;
+		statistics.totalCost += data.ManaCost * card->second;
+		statistics.shieldTriggers += data.ShieldTrigger * card->second;
+		if (data.Type == TYPE_CREATURE) statistics.creatures += card->second;
+		else if (data.Type == TYPE_SPELL) statistics.spells += card->second;
+	}
+	return statistics;
+}
+
 bool Application::deckHasMinimumCards(const PlayerDeck& deck) const
 {
 	return deckCardCount(deck) >= MINIMUM_DECK_SIZE;
@@ -825,7 +848,8 @@ void Application::handleDeckBuilderEvent(const SDL_Event& event)
 			int cards = mEditingDeckIndex >= 0 && mEditingDeckIndex < (int)mPlayerDecks.size() ?
 				(int)mPlayerDecks[mEditingDeckIndex].cards.size() : 0;
 			mDeckContentsScroll = std::max(0,
-				std::min(std::max(0, cards - 15), mDeckContentsScroll - wheel));
+				std::min(std::max(0, cards - DECK_CONTENTS_VISIBLE_ROWS),
+					mDeckContentsScroll - wheel));
 		}
 		if ((previousPage != mDeckCollectionPage || previousListScroll != mDeckListScroll ||
 			previousContentsScroll != mDeckContentsScroll) && mSoundManager != NULL)
@@ -913,11 +937,12 @@ void Application::handleDeckBuilderEvent(const SDL_Event& event)
 		}
 		return;
 	}
-	if (contains(DECK_PANEL, x, y) && y >= 205)
+	if (contains(DECK_PANEL, x, y) && y >= DECK_CONTENTS_TOP)
 	{
-		int row = (y - 205) / 33;
+		int row = (y - DECK_CONTENTS_TOP) / DECK_CONTENTS_ROW_HEIGHT;
 		int position = mDeckContentsScroll + row;
-		if (row >= 0 && row < 15 && position >= 0 && position < (int)deck.cards.size())
+		if (row >= 0 && row < DECK_CONTENTS_VISIBLE_ROWS &&
+			position >= 0 && position < (int)deck.cards.size())
 		{
 			std::map<int, int>::iterator card = deck.cards.begin();
 			std::advance(card, position);
@@ -1069,18 +1094,47 @@ void Application::renderDeckBuilder()
 		};
 		std::string title = mDeckRenameFocused ? mDeckNameInput + "_" : deck.name;
 		drawText(title, 975, 136, color(231, 236, 244), 18, 265);
-		int total = deckCardCount(deck);
+		DeckStatistics statistics = deckStatistics(deck);
+		int total = statistics.cards;
 		drawText(std::to_string(total) + " cards  •  40 minimum" +
 			(deck.dirty ? "  (unsaved)" : ""), 975, 169,
 			deckHasMinimumCards(deck) ? color(105, 222, 132) : color(236, 169, 87), 14, 265);
-		int visibleRows = 15;
-		mDeckContentsScroll = std::min(mDeckContentsScroll, std::max(0, (int)deck.cards.size() - visibleRows));
+
+		std::ostringstream averageCost;
+		if (statistics.cards > 0)
+			averageCost << std::fixed << std::setprecision(1) <<
+				(double)statistics.totalCost / statistics.cards;
+		else
+			averageCost << "-";
+		const SDL_Rect statisticsPanel = { 970, 193, 274, 58 };
+		fillRect(statisticsPanel, 23, 34, 52, 250);
+		outlineRect(statisticsPanel, 75, 101, 140, 255, 1);
+		fillRect({ statisticsPanel.x + statisticsPanel.w / 2, statisticsPanel.y, 1,
+			statisticsPanel.h }, 75, 101, 140, 255);
+		fillRect({ statisticsPanel.x, statisticsPanel.y + statisticsPanel.h / 2,
+			statisticsPanel.w, 1 }, 75, 101, 140, 255);
+		auto drawStatistic = [this](int x, int y, const std::string& label,
+			const std::string& value)
+		{
+			drawText(label, x + 7, y + 2, color(142, 163, 193), 8, 123);
+			drawText(value, x + 7, y + 13, color(239, 218, 157), 12, 123);
+		};
+		drawStatistic(970, 193, "AVG COST", averageCost.str());
+		drawStatistic(1107, 193, "SHIELD TRIGGERS",
+			std::to_string(statistics.shieldTriggers));
+		drawStatistic(970, 222, "CREATURES", std::to_string(statistics.creatures));
+		drawStatistic(1107, 222, "SPELLS", std::to_string(statistics.spells));
+
+		mDeckContentsScroll = std::min(mDeckContentsScroll,
+			std::max(0, (int)deck.cards.size() - DECK_CONTENTS_VISIBLE_ROWS));
 		int i = 0;
 		for (std::map<int, int>::const_iterator card = deck.cards.begin(); card != deck.cards.end(); ++card, ++i)
 		{
-			if (i < mDeckContentsScroll || i >= mDeckContentsScroll + visibleRows) continue;
+			if (i < mDeckContentsScroll ||
+				i >= mDeckContentsScroll + DECK_CONTENTS_VISIBLE_ROWS) continue;
 			int visible = i - mDeckContentsScroll;
-			SDL_Rect row = { 970, 205 + visible * 33, 274, 29 };
+			SDL_Rect row = { 970, DECK_CONTENTS_TOP + visible * DECK_CONTENTS_ROW_HEIGHT,
+				274, 29 };
 			drawCivilizationRow(row, gCardDatabase[card->first], visible % 2 != 0);
 			drawText(gCardDatabase[card->first].Name, row.x + 6, row.y + 6,
 				color(242, 245, 249), 12, 225);

@@ -24,9 +24,12 @@ struct AiDecisionOutcome
 	AiDecisionOutcome();
 };
 
-// The live rollout ceiling is still bounded by a wall-clock budget. Combat
-// decisions receive extra time because their attacker/target branches are wider.
-MctsConfig liveMctsConfig(bool combatPhase = false);
+// The live rollout ceiling is still bounded by the selected difficulty's
+// wall-clock budget. Combat decisions receive extra time because their
+// attacker/target branches are wider.
+MctsConfig liveMctsConfig(bool combatPhase = false,
+	const std::string& difficulty = "medium",
+	const std::string& personality = "tempo");
 
 // Chooses and queues one complete MCTS decision. If search is unavailable or
 // cannot commit a plan, queues one legal HeuristicBot action instead. The

@@ -1039,7 +1039,10 @@ Cards["Turtle Horn, the Imposing"] = {
 				local owner=getCardOwner(id)
 				local preferred=Functions.HighestCostChoice(id,owner,ZONE_DECK,Checks.CreatureInYourDeck)
 				local creature=createChoice("Choose a creature from your deck",1,id,owner,Checks.CreatureInYourDeck,preferred)
-				if(creature>=0) then moveCard(creature,ZONE_HAND) end
+				if(creature>=0) then
+					displayCard(creature,getOpponent(owner),id)
+					moveCard(creature,ZONE_HAND)
+				end
 				shuffleDeck(getCardOwner(id))
 			end
 		end

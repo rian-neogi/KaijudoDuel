@@ -35,7 +35,8 @@ public:
 	int run(bool smokeTest = false, const std::string& directPlayerDeck = "",
 		const std::string& directAiDeck = "", bool worldBuilder = false,
 		bool fullVisibility = false, bool aiVsAi = false,
-		unsigned int duelSeed = 0);
+		unsigned int duelSeed = 0, const std::string& aiPersonality = "tempo",
+		const std::string& aiDifficulty = "medium");
 
 private:
 	enum class Screen
@@ -143,6 +144,15 @@ private:
 		bool dirty = false;
 	};
 
+	struct DeckStatistics
+	{
+		int cards = 0;
+		int totalCost = 0;
+		int shieldTriggers = 0;
+		int creatures = 0;
+		int spells = 0;
+	};
+
 	struct DeckCardHitbox
 	{
 		SDL_Rect rect;
@@ -197,6 +207,7 @@ private:
 	bool exerciseLiveDecisionPlanSmoke();
 	bool exerciseAiDriverSmoke();
 	bool exerciseBackgroundMctsSmoke();
+	bool exerciseDeckStatisticsSmoke();
 	bool exerciseBundledDecksSmoke();
 	bool exerciseNpcRewardsSmoke();
 	bool exerciseAtmosphereSmoke();
@@ -286,12 +297,18 @@ private:
 	void startDuel(int npcIndex, bool ignoreProgressLimit = false);
 	bool startDuelWithDecks(const std::string& playerDeck, const std::string& aiDeck,
 		int npcIndex, bool aiVsAi = false, unsigned int duelSeed = 0);
+	std::string aiPersonalityForPlayer(int player) const;
+	std::string aiDifficultyForPlayer(int player) const;
 	void stopDuel();
 	void handleDuelEvent(const SDL_Event& event);
 	bool handleGraveyardEvent(const SDL_Event& event);
+	bool handleRevealEvent(const SDL_Event& event);
 	void updateDuel(Uint32 deltaTime);
 	void renderDuel();
 	void refreshDisplayedCreaturePowers();
+	bool revealOverlayActive() const;
+	std::vector<Card*> revealOverlayCards() const;
+	void renderRevealOverlay();
 	void renderGraveyardPile(int player);
 	void renderGraveyardOverlay();
 	SDL_Rect graveyardPileRect(int player) const;
@@ -308,6 +325,7 @@ private:
 	bool exerciseKnockoutScoringSmoke();
 	bool exerciseMultiCivilizationSmoke();
 	bool exerciseHollowCardsSmoke();
+	bool exerciseRevealVisibilitySmoke();
 	bool exerciseRaceQuerySmoke();
 	bool exerciseCrypticTotemSmoke();
 	bool exerciseUntapAfterBlockSmoke();
@@ -370,6 +388,7 @@ private:
 	bool saveDeck(int deckIndex);
 	void setActiveDeck(int deckIndex);
 	int deckCardCount(const PlayerDeck& deck) const;
+	DeckStatistics deckStatistics(const PlayerDeck& deck) const;
 	bool deckHasMinimumCards(const PlayerDeck& deck) const;
 	std::vector<int> filteredCollection() const;
 	std::string availableDeckPath(const std::string& name, const std::string& currentPath) const;
@@ -496,12 +515,16 @@ private:
 	bool mDirectDuelMode;
 	bool mDirectDuelFullVisibility;
 	bool mDirectAiVsAi;
+	std::string mDirectAiPersonality;
+	std::string mDirectAiDifficulty;
 	int mSelectedCard;
 	int mActionScroll;
 	int mOpenGraveyardPlayer;
 	int mGraveyardOffset;
 	bool mActionLogOpen;
 	int mActionLogScroll;
+	int mRevealOffset;
+	std::vector<int> mLastRevealCards;
 	Uint32 mNextAiMove;
 	BackgroundMctsSearch* mAiSearch;
 	int mAiSearchPlayer;

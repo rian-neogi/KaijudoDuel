@@ -53,8 +53,11 @@ Application::Application(bool worldBuilder)
 	  mWorldBuilderDirty(false), mWorldBuilderNoticeError(false),
 	  mWorldBuilderNoticeUntil(0),
 	  mDuel(NULL), mActiveNpc(-1), mDirectDuelMode(false),
-	  mDirectDuelFullVisibility(false), mDirectAiVsAi(false), mSelectedCard(-1), mActionScroll(0),
+	  mDirectDuelFullVisibility(false), mDirectAiVsAi(false),
+	  mDirectAiPersonality("tempo"), mDirectAiDifficulty("medium"),
+	  mSelectedCard(-1), mActionScroll(0),
 	  mOpenGraveyardPlayer(-1), mGraveyardOffset(0), mActionLogOpen(false), mActionLogScroll(0),
+	  mRevealOffset(0),
 	  mNextAiMove(0), mAiSearch(NULL), mAiSearchPlayer(-1), mAiSearchStartedAt(0),
 	  mDisplayedPowerRevision(~0ULL), mDuelResult(-1),
 	  mDuelResultAt(0), mRewardCardId(-1),
@@ -196,7 +199,8 @@ void Application::shutdown()
 
 int Application::run(bool smokeTest, const std::string& directPlayerDeck,
 	const std::string& directAiDeck, bool worldBuilder, bool fullVisibility,
-	bool aiVsAi, unsigned int duelSeed)
+	bool aiVsAi, unsigned int duelSeed, const std::string& aiPersonality,
+	const std::string& aiDifficulty)
 {
 	if (!initialize())
 		return 1;
@@ -208,6 +212,8 @@ int Application::run(bool smokeTest, const std::string& directPlayerDeck,
 	mDirectDuelMode = !directPlayerDeck.empty() || !directAiDeck.empty();
 	mDirectAiVsAi = mDirectDuelMode && aiVsAi;
 	mDirectDuelFullVisibility = mDirectDuelMode && (fullVisibility || aiVsAi);
+	mDirectAiPersonality = aiPersonality;
+	mDirectAiDifficulty = aiDifficulty;
 	if (mDirectDuelMode)
 	{
 		if (directPlayerDeck.empty() || directAiDeck.empty() ||

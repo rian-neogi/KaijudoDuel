@@ -110,11 +110,12 @@ local addPowerForTappedMana = function(id,multiplier,player)
 	Abils.bonusPower(id,count*multiplier)
 end
 
-local searchDeck = function(id,check,prompt)
+local searchDeck = function(id,check,prompt,reveal)
 	local owner = getCardOwner(id)
 	local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,check)
 	local card = createChoice(prompt,1,id,owner,check,preferred)
 	if(card>=0) then
+		if(reveal) then displayCard(card,getOpponent(owner),id) end
 		moveCard(card,ZONE_HAND)
 	end
 	shuffleDeck(owner)
@@ -667,7 +668,7 @@ Cards["Logic Cube"] = {
 	shieldtrigger = 1,
 
 	OnCast = function(id)
-		searchDeck(id,Checks.SpellInYourDeck,"Choose a spell from your deck")
+		searchDeck(id,Checks.SpellInYourDeck,"Choose a spell from your deck",true)
 	end
 }
 
@@ -981,6 +982,9 @@ Cards["Recon Operation"] = {
 			seen[ch]=true
 			unflipCard(ch)
 			setCardVisibility(ch,getCardOwner(id),1)
+		end
+		if(next(seen)~=nil) then
+			createChoiceNoCheck("Look at shields",1,id,getCardOwner(id),Checks.False)
 		end
 		for card in pairs(seen) do
 			flipCard(card)
@@ -1856,7 +1860,7 @@ Cards["Sporeblast Erengi"] = {
 	breaker = 1,
 
 	HandleMessage = function(id) --test
-		silentSkill(id,function(id) searchDeck(id,Checks.CreatureInYourDeck,"Choose a creature from your deck") end)
+		silentSkill(id,function(id) searchDeck(id,Checks.CreatureInYourDeck,"Choose a creature from your deck",true) end)
 	end
 }
 
@@ -1924,6 +1928,7 @@ Cards["Estol, Vizier of Aqua"] = {
 			if(ch>=0) then
 				unflipCard(ch)
 				setCardVisibility(ch,getCardOwner(id),1)
+				createChoiceNoCheck("Look at the shield",1,id,getCardOwner(id),Checks.False)
 				flipCard(ch)
 				setCardVisibility(ch,getCardOwner(id),0)
 			end
@@ -1972,6 +1977,7 @@ Cards["Pointa, the Aqua Shadow"] = {
 			if(ch>=0) then
 				unflipCard(ch)
 				setCardVisibility(ch,getCardOwner(id),1)
+				createChoiceNoCheck("Look at the shield",1,id,getCardOwner(id),Checks.False)
 				flipCard(ch)
 				setCardVisibility(ch,getCardOwner(id),0)
 			end

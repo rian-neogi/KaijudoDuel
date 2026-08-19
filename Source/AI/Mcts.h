@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <vector>
 
 struct MctsConfig
@@ -15,6 +16,7 @@ struct MctsConfig
 	int timeBudgetMs;
 	double exploration;
 	std::uint32_t seed;
+	std::string personality;
 
 	MctsConfig();
 };
@@ -24,6 +26,8 @@ struct MctsChildStatistics
 	DecisionPlan plan;
 	int visits;
 	double meanValue;
+	double policyPrior;
+	double selectionValue;
 
 	MctsChildStatistics();
 };

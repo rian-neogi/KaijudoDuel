@@ -520,6 +520,7 @@ Cards["Forbos, Sanctum Guardian Q"] = {
 				local ch = createChoice("Choose a spell in your deck",1,id,owner,Checks.SpellInYourDeck,preferred)
 				closeDeck(owner)
 				if(ch>=0) then
+					displayCard(ch,getOpponent(owner),id)
 					moveCard(ch,ZONE_HAND)
 					shuffleDeck(getCardOwner(ch))
 				end
@@ -1853,6 +1854,7 @@ Cards["Charmilia, the Enticer"] = {
 			local ch = createChoice("Choose a creature in your deck",0,id,owner,Checks.CreatureInYourDeck,preferred)
 			closeDeck(owner)
 			if(ch>=0) then
+				displayCard(ch,getOpponent(owner),id)
 				moveCard(ch,ZONE_HAND)
 			end
 			shuffleDeck(owner)
@@ -1884,6 +1886,7 @@ Cards["Dimension Gate"] = {
 	    local ch = createChoice("Choose a creature in your deck",0,id,owner,Checks.CreatureInYourDeck,preferred)
         closeDeck(owner)
 	    if(ch>=0) then
+			displayCard(ch,getOpponent(owner),id)
             moveCard(ch,ZONE_HAND)
         end
 		shuffleDeck(owner)
@@ -1906,6 +1909,7 @@ Cards["Factory Shell Q"] = {
 				local ch = createChoice("Choose a creature in your deck",0,id,owner,Checks.SurvivorInYourDeck,preferred)
 				closeDeck(owner)
 				if(ch>=0) then
+					displayCard(ch,getOpponent(owner),id)
 					moveCard(ch,ZONE_HAND)
 				end
 				shuffleDeck(owner)

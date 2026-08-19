@@ -34,8 +34,8 @@ NpcGoldTiers = {
 --   stabilize_before, stabilize_after, boss_reveal, act_complete,
 --   shop_early, shop_late
 --
--- AI personalities currently supported by the heuristic bot are:
---   balanced, aggressive, defensive, control, tempo, ramp, sacrifice, adaptive
+-- AI profiles are defined in Lua/AIParams.lua. Current personalities are
+-- rush, tempo, and control; current difficulties are easy, medium, and hard.
 --
 -- Template:
 -- {
@@ -53,7 +53,7 @@ NpcGoldTiers = {
 --         { card = "First Reward Card", gold_tier = 1 },
 --         { card = "Later Reward Card", gold_tier = 2 },
 --     },
---     ai = { personality = "balanced" },
+--     ai = { personality = "tempo", difficulty = "medium" },
 --     dialogue = {
 --         greeting = "Ready to duel?",
 --         defeat = "You won this time.",
@@ -75,7 +75,7 @@ return {
         rewards = {
             { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
         },
-        ai = { personality = "control" },
+        ai = { personality = "control", difficulty = "medium" },
         dialogue = {
             greeting = "Darkness answers my call. Ready to duel?",
             defeat = "The grave remembers that turn. I will not make the same mistake twice.",
@@ -100,7 +100,7 @@ return {
         rewards = {
             { card = "Aqua Sniper", gold_tier = 1 },
         },
-        ai = { personality = "tempo" },
+        ai = { personality = "tempo", difficulty = "medium" },
         dialogue = {
             greeting = "Let us see whether you can read the currents.",
             defeat = "You changed course after I committed. Good. I will account for that next time.",
@@ -124,7 +124,7 @@ return {
         rewards = {
             { card = "Roaring Great-Horn", gold_tier = 1 },
         },
-        ai = { personality = "ramp" },
+        ai = { personality = "tempo", difficulty = "medium" },
         dialogue = {
             greeting = "Strength grows one turn at a time.",
             defeat = "You reached your strength before I reached mine. A solid victory.",
@@ -149,7 +149,7 @@ return {
         rewards = {
             { card = "Hanusa, Radiance Elemental", gold_tier = 1 },
         },
-        ai = { personality = "defensive" },
+        ai = { personality = "control", difficulty = "medium" },
         dialogue = {
             greeting = "The light judges every reckless move. Shall we begin?",
             defeat = "Your attack was measured, not reckless. I concede.",
@@ -177,7 +177,7 @@ return {
 			{ card = "Rothus, the Traveler", gold_tier = 1 },
 			{ card = "Uberdragon Bajula", gold_tier = 1 },
         },
-        ai = { personality = "aggressive" },
+        ai = { personality = "rush", difficulty = "medium" },
         dialogue = {
             greeting = "My dragons have been waiting for a worthy opponent.",
             defeat = "Ha! You survived the heat and struck back harder. Again soon.",
@@ -205,7 +205,7 @@ return {
 			{ card = "Ballom, Master of Death", gold_tier = 1 },
 			{ card = "Phantomach, the Gigatrooper", gold_tier = 1 },
         },
-        ai = { personality = "sacrifice" },
+        ai = { personality = "control", difficulty = "medium" },
         dialogue = {
             greeting = "The abyss remembers every card you lose.",
             defeat = "A worthwhile loss. The graveyard gained a story instead of a silence.",
@@ -229,7 +229,7 @@ return {
         rewards = {
             { card = "King Depthcon", gold_tier = 1 },
         },
-        ai = { personality = "control" },
+        ai = { personality = "control", difficulty = "medium" },
         dialogue = {
             greeting = "The deep favors patience. Can you keep your footing?",
             defeat = "You did not rush when the opening appeared. That restraint won the duel.",
@@ -253,7 +253,7 @@ return {
         rewards = {
             { card = "Deathblade Beetle", gold_tier = 1 },
         },
-        ai = { personality = "ramp" },
+        ai = { personality = "tempo", difficulty = "medium" },
         dialogue = {
             greeting = "Nature rewards the duelist who grows strongest.",
             defeat = "Your deck adapted faster than mine. The forest approves, even if I do not.",
@@ -272,7 +272,7 @@ return {
         kind = "town_npc",
         options = { trade = true, wander = false },
         appearance = "People1-5",
-        ai = { personality = "none" },
+        ai = { personality = "tempo", difficulty = "medium" },
         dialogue = {
             greeting = "Welcome! I trade hard-earned gold for cards.",
             shop_early = "These blank card fragments started appearing after the festival. Bring me gold and I'll keep you supplied.",
@@ -290,7 +290,7 @@ return {
         rewards = {
             { card = "Urth, Purifying Elemental", gold_tier = 2 },
         },
-        ai = { personality = "adaptive" },
+        ai = { personality = "tempo", difficulty = "medium" },
         dialogue = {
             greeting = "Every echo you restored belongs to the Curator. Hand them over.",
             defeat = "The veil is only a shell. The Curator has already measured what you restored.",
@@ -311,7 +311,7 @@ return {
         rewards = {
             { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
         },
-		ai = { personality = "control" },
+		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
 			greeting = "Foundry beetles can chew through slag or shields. Want to see which goes first?",
 			defeat = "You cracked my shell before I could harden the board. Nicely timed.",
@@ -331,7 +331,7 @@ return {
         rewards = {
             { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
         },
-		ai = { personality = "control" },
+		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
 			greeting = "A comet over Cinderrail means sparks, noise, and a very short duel. Interested?",
 			defeat = "You stepped through the blast instead of away from it. Bold move.",
@@ -351,7 +351,7 @@ return {
         rewards = {
             { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
         },
-		ai = { personality = "control" },
+		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
 			greeting = "No gauges, no safety rails—just Fire creatures and nerve. Duel me.",
 			defeat = "You kept your cool better than half the furnace crew.",
@@ -371,7 +371,7 @@ return {
         rewards = {
             { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
         },
-		ai = { personality = "control" },
+		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
 			greeting = "Even this soot cannot dim Urth's light. Let me test the clarity of your deck.",
 			defeat = "Your choices stayed clean when the field became clouded. Well done.",
@@ -391,7 +391,7 @@ return {
         rewards = {
             { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
         },
-		ai = { personality = "control" },
+		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
 			greeting = "Hanusa guards my shields like marble walls. Show me how you breach them.",
 			defeat = "You found the one seam I failed to reinforce.",
@@ -409,9 +409,9 @@ return {
         max_battles = 1,
         decks = { "TrenchdiveShark.txt" },
         rewards = {
-            { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
+            { card = "Trenchdive Shark", gold_tier = 1 },
         },
-		ai = { personality = "control" },
+		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
 			greeting = "The cooling trenches run deep. So does my deck. Care to dive in?",
 			defeat = "You surfaced before the pressure could crush your plan.",
@@ -431,7 +431,7 @@ return {
         rewards = {
             { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
         },
-		ai = { personality = "control" },
+		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
 			greeting = "I race sparks from the rail hammers. Your deck cannot be slower than a spark, can it?",
 			defeat = "Fast and accurate? That hardly seems fair.",
@@ -451,7 +451,7 @@ return {
         rewards = {
             { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
         },
-		ai = { personality = "control" },
+		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
 			greeting = "The furnace casts long shadows. Zagaan prefers to duel inside them.",
 			defeat = "You carried your own light into the dark. I underestimated that.",
@@ -471,7 +471,7 @@ return {
         rewards = {
             { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
         },
-		ai = { personality = "control" },
+		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
 			greeting = "Great-Horn can haul an ore wagon uphill. Can your deck stop that much momentum?",
 			defeat = "You redirected the charge instead of meeting it head-on. Smart.",
@@ -496,7 +496,7 @@ return {
 			{ card = "Crystal Paladin", gold_tier = 1 },
 			{ card = "Hydrooze, the Mutant Emperor", gold_tier = 1 },
 		},
-		ai = { personality = "control" },
+		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
 			greeting = "Glasswater rewards the plan that changes when the current does. Show me yours.",
 			defeat = "You used the information without becoming trapped by it. A precise victory.",
@@ -516,7 +516,7 @@ return {
 		rewards = {
 			{ card = "Emeral", gold_tier = 1 },
 		},
-		ai = { personality = "tempo" },
+		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
 			greeting = "Cargo shifts. Tides shift. A good deck shifts before either one.",
 			defeat = "You changed balance before the load moved. Clean work.",
@@ -535,7 +535,7 @@ return {
 		rewards = {
 			{ card = "Corile", gold_tier = 1 },
 		},
-		ai = { personality = "control" },
+		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
 			greeting = "Cards in hand are assets. I intend to audit yours.",
 			defeat = "Your position reconciles. Mine very much does not.",
@@ -554,7 +554,7 @@ return {
 		rewards = {
 			{ card = "Crystal Memory", gold_tier = 1 },
 		},
-		ai = { personality = "adaptive" },
+		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
 			greeting = "I have mapped every route through the port except the one your deck will take.",
 			defeat = "A useful correction. No chart survives without revisions.",
@@ -576,7 +576,7 @@ return {
 		rewards = {
 			{ card = "Cryptic Totem", gold_tier = 1 },
 		},
-		ai = { personality = "adaptive" },
+		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
 			greeting = "Growth gives us another path, not an order to take it. Which path will your deck choose?",
 			defeat = "You let the board tell you what to grow. Rootmaze recognizes that patience.",
@@ -596,7 +596,7 @@ return {
 		rewards = {
 			{ card = "Barkwhip, the Smasher", gold_tier = 1 },
 		},
-		ai = { personality = "ramp" },
+		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
 			greeting = "I was looking for moonberries, but a good duel is nearly as rare.",
 			defeat = "You found the opening before I found the next trail.",
@@ -615,7 +615,7 @@ return {
 		rewards = {
 			{ card = "Essence Elf", gold_tier = 1 },
 		},
-		ai = { personality = "sacrifice" },
+		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
 			greeting = "Do not worry. The beetles only become agitated when they sense hesitation.",
 			defeat = "They liked that duel. Even the ones in the graveyard are buzzing.",
@@ -634,7 +634,7 @@ return {
 		rewards = {
 			{ card = "Dimension Gate", gold_tier = 1 },
 		},
-		ai = { personality = "adaptive" },
+		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
 			greeting = "Wrong turn. The way back is free; the way forward costs one duel.",
 			defeat = "That route works. I will have to repaint the sign.",
@@ -655,7 +655,7 @@ return {
 		rewards = {
 			{ card = "Bronze-Arm Tribe", gold_tier = 1 },
 		},
-		ai = { personality = "tempo" },
+		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
 			greeting = "The western ford changes every week. A duel is the safest way to learn whether a traveler adapts.",
 			defeat = "You read the current before committing. The long path north may reward that patience.",
@@ -674,7 +674,7 @@ return {
 		rewards = {
 			{ card = "Teleportation", gold_tier = 1 },
 		},
-		ai = { personality = "ramp" },
+		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
 			greeting = "I came to chart the southern pools. They keep turning into paths when I am not looking.",
 			defeat = "Perhaps a route does not need to stay still to be understood.",
@@ -693,7 +693,7 @@ return {
 		rewards = {
 			{ card = "Astrocomet Dragon", gold_tier = 1 },
 		},
-		ai = { personality = "aggressive" },
+		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
 			greeting = "A true duelist turns a crossroads into a launchpad. Come on—let's fire up!",
 			defeat = "Now that was a finishing move! You earned the right of way.",
@@ -712,7 +712,7 @@ return {
 		rewards = {
 			{ card = "Rothus, the Traveler", gold_tier = 1 },
 		},
-		ai = { personality = "aggressive" },
+		ai = { personality = "rush", difficulty = "easy" },
 		dialogue = {
 			greeting = "This crossroads leads everywhere a duelist could dream of going. First, let's fire up!",
 			defeat = "Awesome duel! You found a winning path I never saw coming.",
@@ -731,7 +731,7 @@ return {
 		rewards = {
 			{ card = "Amber Piercer", gold_tier = 1 },
 		},
-		ai = { personality = "aggressive" },
+		ai = { personality = "rush", difficulty = "easy" },
 		dialogue = {
 			greeting = "Travelers drop useful things when startled. Let me startle your hand empty.",
 			defeat = "Hmph. You held on to exactly the cards I needed gone.",
@@ -750,7 +750,7 @@ return {
 		rewards = {
 			{ card = "Dia Nork, Moonlight Guardian", gold_tier = 1 },
 		},
-		ai = { personality = "aggressive" },
+		ai = { personality = "rush", difficulty = "easy" },
 		dialogue = {
 			greeting = "These roads need a guardian. Before I let you pass, show me whom your shields protect.",
 			defeat = "You broke my formation without abandoning your own. Passage granted.",
@@ -769,7 +769,7 @@ return {
 		rewards = {
 			{ card = "Fear Fang", gold_tier = 1 },
 		},
-		ai = { personality = "aggressive" },
+		ai = { personality = "rush", difficulty = "easy" },
 		dialogue = {
 			greeting = "I have crossed deserts for rare creatures. A rare duel is harder to find—will you provide one?",
 			defeat = "Yes, that will be worth telling at the next caravan fire.",
@@ -788,7 +788,7 @@ return {
 		rewards = {
 			{ card = "Rumbling Terahorn", gold_tier = 1 },
 		},
-		ai = { personality = "aggressive" },
+		ai = { personality = "rush", difficulty = "easy" },
 		dialogue = {
 			greeting = "Hear that rumble? The earth already knows how this duel ends.",
 			defeat = "You moved like water around stone. Even Terahorn could not pin you down.",
@@ -807,7 +807,7 @@ return {
 		rewards = {
 			{ card = "Death Smoke", gold_tier = 1 },
 		},
-		ai = { personality = "aggressive" },
+		ai = { personality = "rush", difficulty = "easy" },
 		dialogue = {
 			greeting = "The crossroads is full of weak duelists choosing safe paths. Disappoint me and join them.",
 			defeat = "Do not celebrate. Darkness sharpens humiliation into vengeance.",
@@ -826,7 +826,7 @@ return {
 		rewards = {
 			{ card = "Armored Cannon Balbaro", gold_tier = 1 },
 		},
-		ai = { personality = "aggressive" },
+		ai = { personality = "rush", difficulty = "easy" },
 		dialogue = {
 			greeting = "My cannon can clear a blocked road and a shield line with the same shot. Stand clear—or duel.",
 			defeat = "Direct hit on my blind side. I cannot argue with that aim.",
@@ -847,7 +847,7 @@ return {
 		rewards = {
 			{ card = "Roaring Great-Horn", gold_tier = 1 },
 		},
-		ai = { personality = "adaptive" },
+		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
 			greeting = "Great-Horn and I patrol the eastern loop. Prove you will not become our next rescue.",
 			defeat = "Steady footing, clear choices—you are ready for the broken trail.",
@@ -866,7 +866,7 @@ return {
 		rewards = {
 			{ card = "Ghost Touch", gold_tier = 1 },
 		},
-		ai = { personality = "adaptive" },
+		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
 			greeting = "The old stones remember every traveler. Let us see what your discarded cards remember.",
 			defeat = "You left no regret behind for my darkness to use.",
@@ -885,7 +885,7 @@ return {
 		rewards = {
 			{ card = "Cetibols", gold_tier = 1 },
 		},
-		ai = { personality = "adaptive" },
+		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
 			greeting = "Rain filled the wagon ruts overnight. Perfect conditions for a trench duel.",
 			defeat = "You kept your plan afloat through every undertow.",
@@ -904,7 +904,7 @@ return {
 		rewards = {
 			{ card = "Crimson Hammer", gold_tier = 1 },
 		},
-		ai = { personality = "adaptive" },
+		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
 			greeting = "I light the road beacons with dragon flame. Your duel can be tonight's kindling.",
 			defeat = "You smothered every spark before it reached the dry grass.",
@@ -923,7 +923,7 @@ return {
 		rewards = {
 			{ card = "Volcanic Arrows", gold_tier = 1 },
 		},
-		ai = { personality = "adaptive" },
+		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
 			greeting = "The warning signs say 'no open flame.' Fortunately, my deck cannot read.",
 			defeat = "You put out the blaze and barely singed your sleeves. Impressive.",
@@ -942,7 +942,7 @@ return {
 		rewards = {
 			{ card = "Aqua Sniper", gold_tier = 1 },
 		},
-		ai = { personality = "adaptive" },
+		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
 			greeting = "Bandits hate Aqua Sniper. It returns their ambushes to sender. Want a demonstration?",
 			defeat = "You gave me no safe target to send away. Excellent formation.",
@@ -961,7 +961,7 @@ return {
 		rewards = {
 			{ card = "Vampire Silphy", gold_tier = 1 },
 		},
-		ai = { personality = "adaptive" },
+		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
 			greeting = "These mile markers were grave markers first. Zagaan would like to introduce itself.",
 			defeat = "You showed proper respect to the dead—and none at all to my shields.",
@@ -980,7 +980,7 @@ return {
 		rewards = {
 			{ card = "Gigazoul", gold_tier = 1 },
 		},
-		ai = { personality = "adaptive" },
+		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
 			greeting = "I trade in rumors, but a duel tells me more than travelers ever do.",
 			defeat = "Interesting. Your deck kept its ugliest answer hidden until the perfect moment.",
@@ -999,7 +999,7 @@ return {
 		rewards = {
 			{ card = "Enchanted Soil", gold_tier = 1 },
 		},
-		ai = { personality = "adaptive" },
+		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
 			greeting = "The roadside soil is exhausted. Let us see whether your mana grows any better.",
 			defeat = "You cultivated exactly the board you needed—nothing wasted.",
@@ -1018,7 +1018,7 @@ return {
 		rewards = {
 			{ card = "Psyshroom", gold_tier = 1 },
 		},
-		ai = { personality = "adaptive" },
+		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
 			greeting = "Quiet—my Psyshrooms are predicting the duel. They say you should accept.",
 			defeat = "They predicted that too. Admittedly, only after the final attack.",
@@ -1039,7 +1039,7 @@ return {
 		rewards = {
 			{ card = "Terror Pit", gold_tier = 1 },
 		},
-		ai = { personality = "tempo" },
+		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
 			greeting = "Toll road! Pay in gold, cards, or one humiliating defeat. I recommend the gold.",
 			defeat = "Keep your coins. I suddenly have urgent business somewhere else.",
@@ -1058,7 +1058,7 @@ return {
 		rewards = {
 			{ card = "Deadly Fighter Braid Claw", gold_tier = 1 },
 		},
-		ai = { personality = "rush" },
+		ai = { personality = "rush", difficulty = "easy" },
 		dialogue = {
 			greeting = "Pollo strikes first, Braid Claw strikes second, and questions never get a turn!",
 			defeat = "You were supposed to fall over before I ran out of creatures!",
@@ -1077,7 +1077,7 @@ return {
 		rewards = {
 			{ card = "Blasto, Explosive Soldier", gold_tier = 1 },
 		},
-		ai = { personality = "rush" },
+		ai = { personality = "rush", difficulty = "easy" },
 		dialogue = {
 			greeting = "Fire above, darkness below, and nowhere left for you to run. Perfect ambush, eh?",
 			defeat = "You punched straight through the middle! Who plans for that?",
@@ -1096,7 +1096,7 @@ return {
 		rewards = {
 			{ card = "Tyrant Worm", gold_tier = 1 },
 		},
-		ai = { personality = "control" },
+		ai = { personality = "control", difficulty = "easy" },
 		dialogue = {
 			greeting = "Before I rob your pack, I will empty your hand. Professional pride demands an order.",
 			defeat = "You kept producing answers after I took them all. Infuriating.",
@@ -1115,7 +1115,7 @@ return {
 		rewards = {
 			{ card = "Corile", gold_tier = 2 },
 		},
-		ai = { personality = "tempo" },
+		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
 			greeting = "You embarrassed my crew. Banditlord Brocco will take the reward from your deck personally.",
 			defeat = "Impossible... I planned for every route except the one you made.",

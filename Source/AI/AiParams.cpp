@@ -1,6 +1,7 @@
 #include "AiParams.h"
 
 #include <cmath>
+#include <cctype>
 #include <cstdio>
 #include <limits>
 #include <unordered_map>
@@ -11,6 +12,25 @@ namespace
 	{
 		static std::unordered_map<std::string, double> result;
 		return result;
+	}
+
+	std::string normalized(const std::string& value)
+	{
+		std::string result = value;
+		for (size_t i = 0; i < result.size(); ++i)
+			result[i] = (char)std::tolower((unsigned char)result[i]);
+		return result;
+	}
+
+	bool hasProfile(const std::string& group, const std::string& name)
+	{
+		const std::string prefix = group + "." + normalized(name) + ".";
+		for (std::unordered_map<std::string, double>::const_iterator value =
+			values().begin(); value != values().end(); ++value)
+		{
+			if (value->first.compare(0, prefix.size(), prefix) == 0) return true;
+		}
+		return false;
 	}
 
 	bool readTable(lua_State* state, int table, const std::string& prefix)
@@ -89,4 +109,34 @@ std::uint32_t aiSeedParam(const std::string& path)
 		value > std::numeric_limits<std::uint32_t>::max())
 		return 0;
 	return static_cast<std::uint32_t>(value);
+}
+
+bool hasAiPersonality(const std::string& personality)
+{
+	return hasProfile("personalities", personality);
+}
+
+bool hasAiDifficulty(const std::string& difficulty)
+{
+	return hasProfile("difficulties", difficulty);
+}
+
+double aiPersonalityParam(const std::string& personality,
+	const std::string& path, double fallback)
+{
+	const std::string key = "personalities." + normalized(personality) + "." + path;
+	std::unordered_map<std::string, double>::const_iterator value = values().find(key);
+	return value == values().end() ? fallback : value->second;
+}
+
+int aiDifficultyIntParam(const std::string& difficulty,
+	const std::string& path, int fallback)
+{
+	const std::string key = "difficulties." + normalized(difficulty) + "." + path;
+	std::unordered_map<std::string, double>::const_iterator value = values().find(key);
+	if (value == values().end() || !std::isfinite(value->second) ||
+		value->second < std::numeric_limits<int>::min() ||
+		value->second > std::numeric_limits<int>::max())
+		return fallback;
+	return static_cast<int>(std::lround(value->second));
 }

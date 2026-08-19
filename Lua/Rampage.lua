@@ -846,6 +846,7 @@ Cards["King Ponitas"] = {
             local ch = createChoice("Choose a water card in your deck",1,id,owner,valid,preferred)
             closeDeck(owner)
             if(ch>=0) then
+				displayCard(ch,getOpponent(owner),id)
                 moveCard(ch,ZONE_HAND)
             end
             shuffleDeck(owner)
@@ -921,6 +922,7 @@ Cards["Liquid Scope"] = { --check
 	shieldtrigger = 1,
 
 	OnCast = function(id)
+		local owner = getCardOwner(id)
         local valid = function(cid,sid)
             if((getCardZone(sid)==ZONE_SHIELD or getCardZone(sid)==ZONE_HAND) and getCardOwner(sid)~=getCardOwner(cid)) then
                 return 1
@@ -930,12 +932,14 @@ Cards["Liquid Scope"] = { --check
         end
         local func = function(cid,sid)
             unflipCard(sid)
+			setCardVisibility(sid,owner,1)
         end
         local func2 = function(cid,sid)
             flipCard(sid)
+			setCardVisibility(sid,owner,0)
         end
         Functions.execute(id,valid,func)
-        local ch = createChoiceNoCheck("Look at cards",1,id,getCardOwner(id),Checks.False)
+		createChoiceNoCheck("Review your opponent's hand and shields",1,id,owner,Checks.False)
         Functions.execute(id,valid,func2)
         Functions.EndSpell(id)
 	end
@@ -1582,9 +1586,12 @@ Cards["Stinger Ball"] = {
         local func = function(id)
             local ch = createChoice("Choose an opponent's shield",1,id,getCardOwner(id),Checks.InOppShields)
             if(ch>=0) then
-                unflipCard(ch,owner)
+				local owner = getCardOwner(id)
+				unflipCard(ch)
+				setCardVisibility(ch,owner,1)
                 createChoiceNoCheck("Look at card",1,id,getCardOwner(id),Checks.False)
                 flipCard(ch)
+				setCardVisibility(ch,owner,0)
             end
         end
         Abils.onAttack(id,func)

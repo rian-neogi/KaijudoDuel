@@ -211,6 +211,7 @@ Cards["Neve, the Leveler"] = {
                     local preferred = Functions.HighestCostChoice(id,owner,ZONE_DECK,Checks.CreatureInYourDeck)
                     local ch = createChoice("Choose a creature in your deck",1,id,owner,Checks.CreatureInYourDeck,preferred)
 	                if(ch>=0) then
+						displayCard(ch,getOpponent(owner),id)
                         moveCard(ch,ZONE_HAND)
                         shuffleDeck(getCardOwner(ch))
                     end
@@ -326,6 +327,7 @@ Cards["Velyrika Dragon"] = {
 	        local ch = createChoice("Choose an Armored Dragon in your deck",0,id,owner,func2,preferred)
             closeDeck(owner)
 	        if(ch>=0) then
+				displayCard(ch,getOpponent(owner),id)
                 moveCard(ch,ZONE_HAND)
                 shuffleDeck(getCardOwner(ch))
             end
