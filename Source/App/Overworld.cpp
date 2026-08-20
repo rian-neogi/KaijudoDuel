@@ -694,7 +694,7 @@ void Application::activateNpcMenuAction(NpcMenuAction action)
 				DialogueAction::ReturnToNpcMenu);
 	}
 	else if (action == NpcMenuAction::Trade && npc.canTrade())
-		enterShop();
+		enterShop(npc.shopStockId);
 }
 
 void Application::handleNpcMenuEvent(const SDL_Event& event)

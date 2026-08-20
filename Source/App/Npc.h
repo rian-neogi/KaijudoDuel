@@ -103,6 +103,7 @@ public:
 	std::string id;
 	std::string crestId;
 	std::string mapId;
+	std::string shopStockId;
 	std::string name;
 	std::vector<std::string> decks;
 	std::vector<NpcReward> rewards;

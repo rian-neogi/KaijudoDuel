@@ -49,6 +49,7 @@ set(GAME_SOURCES
 	Source/App/SaveMenu.cpp
 	Source/App/SmokeTests.cpp
 	Source/App/Shop.cpp
+	Source/App/ShopStock.cpp
 	Source/App/SpriteSheetRenderer.cpp
 	Source/App/Story.cpp
 	Source/App/WorldBuilder.cpp

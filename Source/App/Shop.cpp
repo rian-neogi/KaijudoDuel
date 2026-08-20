@@ -25,9 +25,10 @@ namespace
 	}
 }
 
-void Application::enterShop()
+void Application::enterShop(const std::string& stockId)
 {
 	ensurePlayerDataLoaded();
+	mActiveShopStockId = stockId;
 	mDialogueNpc = -1;
 	mDialogueObject = -1;
 	mNpcMenuNpc = -1;
@@ -35,6 +36,7 @@ void Application::enterShop()
 	mScreen = Screen::Shop;
 	mShopHoveredCard = -1;
 	mShopPage = 0;
+	mShopNotice.clear();
 	mShopCardHitboxes.clear();
 }
 
@@ -49,6 +51,17 @@ std::vector<int> Application::shopInventory() const
 {
 	std::vector<int> cards;
 	std::set<int> added;
+	if (mActiveShopStockId != "mercer")
+	{
+		const ShopStock* stock = mShopStock.find(mActiveShopStockId);
+		if (stock == NULL) return cards;
+		for (size_t index = 0; index < stock->initialStock.size(); ++index)
+		{
+			int cardId = getCardIdFromName(stock->initialStock[index]);
+			if (cardId >= 0 && added.insert(cardId).second) cards.push_back(cardId);
+		}
+		return cards;
+	}
 	for (size_t i = 0; i < mMercerStock.initialStock.size(); ++i)
 	{
 		int cardId = getCardIdFromName(mMercerStock.initialStock[i]);
@@ -140,7 +153,7 @@ void Application::handleShopEvent(const SDL_Event& event)
 			mSoundManager->playSound(SOUND_UI_SCROLL);
 		return;
 	}
-	if (contains(SHOP_GIVE_BUTTON, x, y))
+	if (mActiveShopStockId == "mercer" && contains(SHOP_GIVE_BUTTON, x, y))
 	{
 		for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
 		{
@@ -205,9 +218,15 @@ void Application::renderShop()
 	fillRect(SHOP_BACK_BUTTON, 34, 50, 75, 250);
 	outlineRect(SHOP_BACK_BUTTON, 112, 149, 205, 255, 2);
 	drawText("Back", 70, 37, color(238, 241, 247), 18);
-	drawText("MERCER'S CARD SHOP", 205, 30, color(244, 207, 112), 31);
+	const ShopStock* namedStock = mShopStock.find(mActiveShopStockId);
+	const bool mercerShop = mActiveShopStockId == "mercer";
+	const std::string shopName = mercerShop ? "MERCER'S CARD SHOP" :
+		(namedStock == NULL ? "CARD SHOP" : namedStock->name + " CARD SHOP");
+	drawText(shopName, 205, 30, color(244, 207, 112), 31);
 	drawText("Gold: " + std::to_string(mMoney), 1035, 37, color(245, 205, 88), 22);
-	drawText("Buy up to four copies of each card. Give Mercer shards to expand his stock.",
+	drawText(mercerShop ?
+		"Buy up to four copies of each card. Give Mercer shards to expand his stock." :
+		"Buy up to four copies of each card.",
 		205, 68, color(172, 190, 216), 15);
 
 	std::vector<int> cards = shopInventory();
@@ -224,15 +243,18 @@ void Application::renderShop()
 	drawText("PAGE " + std::to_string(mShopPage + 1) + "/" + std::to_string(pages),
 		188, 107, color(172, 190, 216), 14);
 	drawText("W/S, arrows, or mouse wheel", 300, 107, color(143, 163, 190), 14);
-	int heldShards = (int)mCollectedShards.size() - (int)mMercerShards.size();
-	bool canGiveShard = heldShards > 0;
-	fillRect(SHOP_GIVE_BUTTON, canGiveShard ? 66 : 47, canGiveShard ? 52 : 48,
-		canGiveShard ? 94 : 54, 248);
-	outlineRect(SHOP_GIVE_BUTTON, canGiveShard ? 190 : 103, canGiveShard ? 135 : 105,
-		canGiveShard ? 225 : 112, 255, 2);
-	drawText(canGiveShard ? "Give Mercer a shard (" + std::to_string(heldShards) + ")" :
-		"No collected shards", SHOP_GIVE_BUTTON.x + 14, SHOP_GIVE_BUTTON.y + 8,
-		canGiveShard ? color(245, 215, 255) : color(168, 172, 182), 14);
+	if (mercerShop)
+	{
+		int heldShards = (int)mCollectedShards.size() - (int)mMercerShards.size();
+		bool canGiveShard = heldShards > 0;
+		fillRect(SHOP_GIVE_BUTTON, canGiveShard ? 66 : 47, canGiveShard ? 52 : 48,
+			canGiveShard ? 94 : 54, 248);
+		outlineRect(SHOP_GIVE_BUTTON, canGiveShard ? 190 : 103, canGiveShard ? 135 : 105,
+			canGiveShard ? 225 : 112, 255, 2);
+		drawText(canGiveShard ? "Give Mercer a shard (" + std::to_string(heldShards) + ")" :
+			"No collected shards", SHOP_GIVE_BUTTON.x + 14, SHOP_GIVE_BUTTON.y + 8,
+			canGiveShard ? color(245, 215, 255) : color(168, 172, 182), 14);
+	}
 
 	int firstCard = mShopPage * SHOP_CARDS_PER_PAGE;
 	int lastCard = std::min((int)cards.size(), firstCard + SHOP_CARDS_PER_PAGE);

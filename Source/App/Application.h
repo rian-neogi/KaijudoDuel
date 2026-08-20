@@ -2,6 +2,7 @@
 
 #include "App/MercerStock.h"
 #include "App/Npc.h"
+#include "App/ShopStock.h"
 #include "App/OverworldAtmosphere.h"
 #include "App/WorldObject.h"
 #include "App/WorldData.h"
@@ -412,7 +413,7 @@ private:
 	bool handleRewardPopupEvent(const SDL_Event& event);
 	void renderRewardPopup();
 
-	void enterShop();
+	void enterShop(const std::string& stockId);
 	void leaveShop();
 	void handleShopEvent(const SDL_Event& event);
 	void renderShop();
@@ -452,6 +453,7 @@ private:
 	std::vector<WorldObject> mWorldObjects;
 	std::vector<WorldObjectTemplate> mWorldObjectTemplates;
 	MercerStockData mMercerStock;
+	ShopStockData mShopStock;
 	std::string mNpcMetadataError;
 	int mPlayerX;
 	int mPlayerY;
@@ -599,6 +601,7 @@ private:
 	std::vector<DeckCardHitbox> mShopCardHitboxes;
 	int mShopHoveredCard;
 	int mShopPage;
+	std::string mActiveShopStockId;
 	std::string mShopNotice;
 	Uint32 mShopNoticeUntil;
 };

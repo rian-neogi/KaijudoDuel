@@ -455,6 +455,7 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 		bool duelEnabled = kind != NpcKind::Town;
 		bool tradeEnabled = false;
 		bool wanders = kind == NpcKind::Town;
+		const std::string shopStockId = luaStringField(state, entry, "shop_stock");
 		lua_getfield(state, entry, "options");
 		if (lua_istable(state, -1))
 		{
@@ -466,6 +467,12 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 		if (kind != NpcKind::Town && (!duelEnabled || tradeEnabled))
 		{
 			error = "NPC '" + id + "' reserves duel/trade options for town_npc entries";
+			lua_close(state);
+			return false;
+		}
+		if (tradeEnabled != !shopStockId.empty())
+		{
+			error = "NPC '" + id + "' must set shop_stock exactly when trade is enabled";
 			lua_close(state);
 			return false;
 		}
@@ -613,6 +620,7 @@ bool loadNpcsFromLua(const std::string& path, std::vector<Npc>& npcs, std::strin
 		npc.spriteSheet = spriteSheet;
 		npc.spriteIndex = spriteIndex;
 		npc.crestId = crestId;
+		npc.shopStockId = shopStockId;
 		npc.aiPersonality = aiPersonality;
 		npc.aiDifficulty = aiDifficulty;
 		npc.dialogue = dialogue;

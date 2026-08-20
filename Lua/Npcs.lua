@@ -15,8 +15,10 @@ NpcGoldTiers = {
 --   id, name, kind, appearance. Crest Holders also set crest to one of:
 --   dawn, tidal, forge, verdant, confluence, tempest, ashen, mirror, unity.
 -- Town NPC capabilities are declared in options: Talk is always available,
--- while duel, trade, and wandering are independently configurable. Town NPCs
--- with duel enabled, route duelists, and bosses require max_battles plus
+-- while duel, trade, and wandering are independently configurable. Traders
+-- must set shop_stock to an id from Lua/ShopStock.lua, or to "mercer" for
+-- Mercer's shard-based inventory. Town NPCs with duel enabled, route duelists,
+-- and bosses require max_battles plus
 -- non-empty decks and rewards arrays. If max_battles is larger than either
 -- array, that array's final entry is reused for the remaining battles.
 -- Route duelists also require sight = { range = 1..12 }. This is a taxicab
@@ -43,6 +45,7 @@ NpcGoldTiers = {
 --     name = "Display Name",
 --     kind = "town_npc",
 --     options = { duel = true, trade = false, wander = true },
+--     shop_stock = "cinderrail", -- required when trade is true
 --     -- Route duelists use kind = "route_duelist" and:
 --     -- sight = { range = 6 },
 --     appearance = "Actor2-3",
@@ -273,6 +276,7 @@ return {
         name = "Mercer",
         kind = "town_npc",
         options = { trade = true, wander = false },
+		shop_stock = "mercer",
         appearance = "People1-5",
         ai = { personality = "tempo", difficulty = "medium" },
         dialogue = {
@@ -495,7 +499,7 @@ return {
 		decks = { "NPC/Neris Quill.txt", "NPC/Neris Quill 2.txt", "NPC/Neris Quill 3.txt" },
 		rewards = {
 			{ card = "Crystal Paladin", gold_tier = 1 },
-			{ card = "Crystal Paladin", gold_tier = 1 },
+			{ card = "Crystal Lancer", gold_tier = 1 },
 			{ card = "Hydrooze, the Mutant Emperor", gold_tier = 1 },
 		},
 		ai = { personality = "control", difficulty = "medium" },
@@ -514,9 +518,9 @@ return {
 		options = { duel = true },
 		appearance = "People3-5",
 		max_battles = 1,
-		decks = { "KingTsunami.txt" },
+		decks = { "Water Generic 3.txt" },
 		rewards = {
-			{ card = "Emeral", gold_tier = 1 },
+			{ card = "Eureka Charger", gold_tier = 1 },
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
@@ -537,7 +541,7 @@ return {
 		rewards = {
 			{ card = "Corile", gold_tier = 1 },
 		},
-		ai = { personality = "control", difficulty = "medium" },
+		ai = { personality = "control", difficulty = "easy" },
 		dialogue = {
 			greeting = "Cards in hand are assets. I intend to audit yours.",
 			defeat = "Your position reconciles. Mine very much does not.",
@@ -552,11 +556,367 @@ return {
 		options = { duel = true },
 		appearance = "People5-2",
 		max_battles = 1,
+		decks = { "Hanusa.txt" },
+		rewards = {
+			{ card = "Hanusa, Radiance Elemental", gold_tier = 1 },
+		},
+		ai = { personality = "control", difficulty = "medium" },
+		dialogue = {
+			greeting = "I have mapped every route through the port except the one your deck will take.",
+			defeat = "A useful correction. No chart survives without revisions.",
+			victory = "Your route ended exactly where the current said it would.",
+			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+		}
+	},
+	{
+		id = "alexei",
+		name = "Alexei",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "People4-5",
+		max_battles = 1,
+		decks = { "KingDepthcon.txt" },
+		rewards = {
+			{ card = "King Depthcon", gold_tier = 1 },
+		},
+		ai = { personality = "tempo", difficulty = "medium" },
+		dialogue = {
+			greeting = "I have mapped every route through the port except the one your deck will take.",
+			defeat = "A useful correction. No chart survives without revisions.",
+			victory = "Your route ended exactly where the current said it would.",
+			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+		}
+	},
+	{
+		id = "elmira",
+		name = "Elmira",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "People5-2",
+		max_battles = 1,
+		decks = { "Water Generic 2.txt" },
+		rewards = {
+			{ card = "Aqua Guard", gold_tier = 1 },
+		},
+		ai = { personality = "rush", difficulty = "medium" },
+		dialogue = {
+			greeting = "I have mapped every route through the port except the one your deck will take.",
+			defeat = "A useful correction. No chart survives without revisions.",
+			victory = "Your route ended exactly where the current said it would.",
+			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+		}
+	},
+	{ --worker on the port
+		id = "remy",
+		name = "Remy",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "People3-5",
+		max_battles = 1,
+		decks = { "Water Generic 1.txt" },
+		rewards = {
+			{ card = "Marine Flower", gold_tier = 1 },
+		},
+		ai = { personality = "rush", difficulty = "medium" },
+		dialogue = {
+			greeting = "I have mapped every route through the port except the one your deck will take.",
+			defeat = "A useful correction. No chart survives without revisions.",
+			victory = "Your route ended exactly where the current said it would.",
+			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+		}
+	},
+	{
+		id = "captain-brock",
+		name = "Captain Brock",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "People3-4",
+		max_battles = 1,
+		decks = { "KingTsunami.txt" },
+		rewards = {
+			{ card = "Emeral", gold_tier = 1 },
+		},
+		ai = { personality = "control", difficulty = "medium" },
+		dialogue = {
+			greeting = "I have mapped every route through the port except the one your deck will take.",
+			defeat = "A useful correction. No chart survives without revisions.",
+			victory = "Your route ended exactly where the current said it would.",
+			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+		}
+	},
+	{ --a scholar
+		id = "daniel",
+		name = "Daniel",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "People3-2",
+		max_battles = 1,
+		decks = { "AquaSniper.txt" },
+		rewards = {
+			{ card = "Aqua Sniper", gold_tier = 1 },
+		},
+		ai = { personality = "tempo", difficulty = "medium" },
+		dialogue = {
+			greeting = "I have mapped every route through the port except the one your deck will take.",
+			defeat = "A useful correction. No chart survives without revisions.",
+			victory = "Your route ended exactly where the current said it would.",
+			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+		}
+	},
+	{
+		id = "ekki",
+		name = "Ekki",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "People3-1",
+		max_battles = 1,
 		decks = { "KingDepthcon.txt" },
 		rewards = {
 			{ card = "Crystal Memory", gold_tier = 1 },
 		},
+		ai = { personality = "control", difficulty = "easy" },
+		dialogue = {
+			greeting = "I have mapped every route through the port except the one your deck will take.",
+			defeat = "A useful correction. No chart survives without revisions.",
+			victory = "Your route ended exactly where the current said it would.",
+			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+		}
+	},
+	{
+		id = "rama",
+		name = "Rama",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "People2-5",
+		max_battles = 1,
+		decks = { "KingDepthcon.txt" },
+		rewards = {
+			{ card = "Crystal Memory", gold_tier = 1 },
+		},
+		ai = { personality = "tempo", difficulty = "easy" },
+		dialogue = {
+			greeting = "I have mapped every route through the port except the one your deck will take.",
+			defeat = "A useful correction. No chart survives without revisions.",
+			victory = "Your route ended exactly where the current said it would.",
+			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+		}
+	},
+	{ --a child
+		id = "elisa",
+		name = "Elisa",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "People1-2",
+		max_battles = 1,
+		decks = { "Water Generic 3.txt" },
+		rewards = {
+			{ card = "King Mazelan", gold_tier = 1 },
+		},
 		ai = { personality = "tempo", difficulty = "medium" },
+		dialogue = {
+			greeting = "I have mapped every route through the port except the one your deck will take.",
+			defeat = "A useful correction. No chart survives without revisions.",
+			victory = "Your route ended exactly where the current said it would.",
+			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+		}
+	},
+	{ 
+		id = "champion-edison",
+		name = "Champion Edison",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "People4-3",
+		max_battles = 1,
+		decks = { "More2/WN Origins Evo.txt" },
+		rewards = {
+			{ card = "Fighter Dual Fang", gold_tier = 1 },
+		},
+		ai = { personality = "tempo", difficulty = "medium" },
+		dialogue = {
+			greeting = "I have mapped every route through the port except the one your deck will take.",
+			defeat = "A useful correction. No chart survives without revisions.",
+			victory = "Your route ended exactly where the current said it would.",
+			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+		}
+	},
+	{ 
+		id = "mother-melissa",
+		name = "Mother Melissa",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "People6-3",
+		max_battles = 1,
+		decks = { "More2/2 - L Diamond Cut.txt" },
+		rewards = {
+			{ card = "Diamond Cutter", gold_tier = 1 },
+		},
+		ai = { personality = "tempo", difficulty = "medium" },
+		dialogue = {
+			greeting = "I have mapped every route through the port except the one your deck will take.",
+			defeat = "A useful correction. No chart survives without revisions.",
+			victory = "Your route ended exactly where the current said it would.",
+			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+		}
+	},
+	{ 
+		id = "loki",
+		name = "Loki",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "Actor4-1",
+		max_battles = 1,
+		decks = { "Deathliger.txt" },
+		rewards = {
+			{ card = "Deathliger, Lion of Chaos", gold_tier = 1 },
+		},
+		ai = { personality = "tempo", difficulty = "medium" },
+		dialogue = {
+			greeting = "I have mapped every route through the port except the one your deck will take.",
+			defeat = "A useful correction. No chart survives without revisions.",
+			victory = "Your route ended exactly where the current said it would.",
+			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+		}
+	},
+	{ --a child
+		id = "tissa",
+		name = "Tissa",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "Actor4-2",
+		max_battles = 1,
+		decks = { "Water Generic 2.txt" },
+		rewards = {
+			{ card = "Aqua Guard", gold_tier = 1 },
+		},
+		ai = { personality = "tempo", difficulty = "easy" },
+		dialogue = {
+			greeting = "I have mapped every route through the port except the one your deck will take.",
+			defeat = "A useful correction. No chart survives without revisions.",
+			victory = "Your route ended exactly where the current said it would.",
+			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+		}
+	},
+	{ 
+		id = "emma",
+		name = "Emma",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "Actor3-8",
+		max_battles = 1,
+		decks = { "Water Generic 1.txt" },
+		rewards = {
+			{ card = "Aqua Hulcus", gold_tier = 1 },
+		},
+		ai = { personality = "tempo", difficulty = "medium" },
+		dialogue = {
+			greeting = "I have mapped every route through the port except the one your deck will take.",
+			defeat = "A useful correction. No chart survives without revisions.",
+			victory = "Your route ended exactly where the current said it would.",
+			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+		}
+	},
+	{ 
+		id = "professor-macron",
+		name = "Professor Macron",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "People2-1",
+		max_battles = 1,
+		decks = { "LW Generic 1.txt" },
+		rewards = {
+			{ card = "Spiral Gate", gold_tier = 1 },
+		},
+		ai = { personality = "tempo", difficulty = "medium" },
+		dialogue = {
+			greeting = "I have mapped every route through the port except the one your deck will take.",
+			defeat = "A useful correction. No chart survives without revisions.",
+			victory = "Your route ended exactly where the current said it would.",
+			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+		}
+	},
+	{ 
+		id = "lady-aqua",
+		name = "Lady Aqua",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "Actor2-1",
+		max_battles = 1,
+		decks = { "Quix/MonoWater.txt" },
+		rewards = {
+			{ card = "Crystal Lancer", gold_tier = 2 },
+		},
+		ai = { personality = "tempo", difficulty = "medium" },
+		dialogue = {
+			greeting = "I have mapped every route through the port except the one your deck will take.",
+			defeat = "A useful correction. No chart survives without revisions.",
+			victory = "Your route ended exactly where the current said it would.",
+			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+		}
+	},
+	{ 
+		id = "olli",
+		name = "Olli",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "Actor4-7",
+		max_battles = 1,
+		decks = { "FrostSpecter.txt" },
+		rewards = {
+			{ card = "Frost Specter, Shadow of Age", gold_tier = 1 },
+		},
+		ai = { personality = "rush", difficulty = "medium" },
+		dialogue = {
+			greeting = "I have mapped every route through the port except the one your deck will take.",
+			defeat = "A useful correction. No chart survives without revisions.",
+			victory = "Your route ended exactly where the current said it would.",
+			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+		}
+	},
+	{ 
+		id = "oak",
+		name = "Oak",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "Actor5-1",
+		max_battles = 1,
+		decks = { "WN Generic 1.txt" },
+		rewards = {
+			{ card = "Emeral", gold_tier = 1 },
+		},
+		ai = { personality = "rush", difficulty = "medium" },
+		dialogue = {
+			greeting = "I have mapped every route through the port except the one your deck will take.",
+			defeat = "A useful correction. No chart survives without revisions.",
+			victory = "Your route ended exactly where the current said it would.",
+			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+		}
+	},
+	{ --a schoolgirl
+		id = "polina",
+		name = "Polina",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "Actor4-6",
+		max_battles = 1,
+		decks = { "Fire Generic 1.txt" },
+		rewards = {
+			{ card = "Gatling Skyterror", gold_tier = 1 },
+		},
+		ai = { personality = "rush", difficulty = "easy" },
+		dialogue = {
+			greeting = "I have mapped every route through the port except the one your deck will take.",
+			defeat = "A useful correction. No chart survives without revisions.",
+			victory = "Your route ended exactly where the current said it would.",
+			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+		}
+	},
+	{ 
+		id = "shopkeeper-brant",
+		name = "Shopkeeper Brant",
+		kind = "town_npc",
+		options = { trade = true, wander = false },
+		shop_stock = "glasswater",
+		appearance = "People4-5",
 		dialogue = {
 			greeting = "I have mapped every route through the port except the one your deck will take.",
 			defeat = "A useful correction. No chart survives without revisions.",

@@ -90,6 +90,25 @@ Application::Application(bool worldBuilder)
 		mNpcMetadataError += "Unable to load Mercer stock: " + stockError;
 		std::cerr << "Unable to load Mercer stock: " << stockError << std::endl;
 	}
+	std::string shopStockError;
+	if (!loadShopStockFromLua("Lua/ShopStock.lua", mShopStock, shopStockError))
+	{
+		if (!mNpcMetadataError.empty()) mNpcMetadataError += "\n";
+		mNpcMetadataError += "Unable to load shop stock: " + shopStockError;
+		std::cerr << "Unable to load shop stock: " << shopStockError << std::endl;
+	}
+	else
+	{
+		for (size_t index = 0; index < mNpcs.size(); ++index)
+		{
+			const Npc& npc = mNpcs[index];
+			if (!npc.canTrade() || npc.shopStockId == "mercer" ||
+				mShopStock.find(npc.shopStockId) != NULL) continue;
+			if (!mNpcMetadataError.empty()) mNpcMetadataError += "\n";
+			mNpcMetadataError += "Trader '" + npc.id + "' references unknown shop stock '" +
+				npc.shopStockId + "'.";
+		}
+	}
 	std::string objectError;
 	if (!loadWorldObjectsFromLua("Lua/Objects.lua", mWorldObjects,
 		mWorldObjectTemplates, objectError))
