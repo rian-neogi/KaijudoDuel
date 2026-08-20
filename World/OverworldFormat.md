@@ -156,6 +156,8 @@ matching position makes the native manifest invalid instead of silently
 substituting another object.
 
 All of those overworld coordinates use the same 1024-by-1024 coordinate system.
-Use the World Builder to edit normal map content. Direct JSON edits must retain
-valid palette indices, exact layer cell totals, in-bounds tags, and walkable,
-non-overlapping world positions.
+Use the World Builder to edit normal map content and directed portals. Its
+Portals tab places a From endpoint followed by a To endpoint; author a second
+portal for reverse travel. Direct JSON edits must retain valid palette indices,
+exact layer cell totals, in-bounds tags, and walkable, non-overlapping world
+positions.

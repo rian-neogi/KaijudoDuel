@@ -26,10 +26,14 @@ Additional launch modes:
 ```
 
 The World Builder is available only through `--world-builder`. It edits map
-tiles and NPC/object/shard locations. Single-click an entity side-list row to
-select it; double-click it to center its map location. Select entities from the
-Lua-populated side lists or directly on the map, then click or drag them to a
-free walkable tile. The tile palette exposes the complete Dungeon, Inside,
+tiles, NPC/object/shard locations, and directed portals. Single-click an entity
+side-list row to select it; double-click it to center its map location. Select
+entities from the Lua-populated side lists or directly on the map, then click or
+drag them to a free walkable tile. In the Portals tab, click New, place the From
+endpoint, switch maps if needed, and place the To endpoint. Use the From and To
+buttons to locate or move an existing endpoint; create the reverse direction as
+a separate portal. Delete removes the selected portal and `Ctrl+Z` restores it.
+The tile palette exposes the complete Dungeon, Inside,
 Outside, and World tilesets. Use the sheet arrows to browse A1-A5/B/C and hover
 a source-sheet region to see its metadata name. The render layer is inferred
 from the selected tile. The palette preserves each PNG's native rows,
@@ -217,7 +221,8 @@ five decks.
 - Portals are directed transitions. Define both directions explicitly when a
   doorway must support entering and leaving an interior. Exterior regions share
   the `overworld` map and must connect through adjacent walkable tiles, not
-  portals.
+  portals. The World Builder's Portals tab creates, moves, and deletes directed
+  endpoints; both endpoints must occupy distinct free walkable cells.
 - Treat connecting regions as explorable adventures rather than transit
   corridors. The implemented Watershed Crossroads is 128-by-72 tiles and the
   Old Road is 96-by-48; preserve their readable main routes, optional loops,

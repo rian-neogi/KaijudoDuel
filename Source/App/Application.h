@@ -54,7 +54,8 @@ private:
 	{
 		Tiles,
 		Npcs,
-		Objects
+		Objects,
+		Portals
 	};
 	struct WorldBuilderTileUndo
 	{
@@ -76,6 +77,8 @@ private:
 		int entityY = -1;
 		WorldObject objectSnapshot;
 		bool hasObjectSnapshot = false;
+		WorldPortal portalSnapshot;
+		bool hasPortalSnapshot = false;
 		bool dirtyBefore = false;
 	};
 	enum class StoryScene
@@ -212,6 +215,7 @@ private:
 	bool exerciseNpcRewardsSmoke();
 	bool exerciseAtmosphereSmoke();
 	bool exerciseWorldObjectsSmoke();
+	bool exerciseWorldBuilderPortalsSmoke();
 	bool exerciseOverworldMovementSmoke();
 	bool exerciseStorySmoke();
 	void initializeStory();
@@ -264,12 +268,14 @@ private:
 	void drawWorldBuilderNpcPortrait(const Npc& npc, const SDL_Rect& rect);
 	int worldBuilderHoveredNpc() const;
 	int worldBuilderHoveredObject() const;
+	int worldBuilderHoveredPortal(bool& fromEndpoint) const;
 	SDL_Rect worldBuilderTileRect(const SDL_Rect& rect) const;
 	bool worldBuilderBrushResizable() const;
 	void beginWorldBuilderUndoAction();
 	void recordWorldBuilderTileUndo(int x, int y, RtpRenderLayer layer);
 	void recordWorldBuilderEntityUndo(int kind, int index,
 		const std::string& mapId, int x, int y);
+	void recordWorldBuilderPortalUndo(int index);
 	void commitWorldBuilderUndoAction();
 	void undoWorldBuilder();
 	void clearWorldBuilderUndoHistory();
@@ -280,6 +286,10 @@ private:
 		bool erasing);
 	bool addWorldBuilderObject(int templateIndex, int x, int y);
 	void deleteWorldBuilderObject();
+	void beginWorldBuilderPortalCreation();
+	void cancelWorldBuilderPortalCreation();
+	void placeWorldBuilderPortalEndpoint(int x, int y);
+	void deleteWorldBuilderPortal();
 	bool worldBuilderRequiresWalkable(int x, int y) const;
 	const RtpTileReference* worldTileLayer(const WorldMap& area, int x, int y,
 		RtpRenderLayer layer) const;
@@ -290,6 +300,8 @@ private:
 		RtpRenderLayer layer, const SDL_Rect& destination);
 	void placeWorldBuilderSelection(int x, int y);
 	bool worldBuilderCanPlace(int x, int y, int ignoredNpc, int ignoredObject) const;
+	bool worldBuilderCanPlacePortal(int x, int y, int ignoredPortal,
+		bool ignoredFromEndpoint) const;
 	bool saveWorldBuilder(std::string& error);
 	void showWorldBuilderNotice(const std::string& notice, bool error = false);
 
@@ -484,6 +496,10 @@ private:
 	int mWorldBuilderSelectedObject;
 	bool mWorldBuilderObjectPalette;
 	int mWorldBuilderSelectedObjectTemplate;
+	int mWorldBuilderSelectedPortal;
+	int mWorldBuilderPortalEndpoint;
+	bool mWorldBuilderPortalCreating;
+	WorldPosition mWorldBuilderPortalDraftOrigin;
 	int mWorldBuilderListScroll;
 	float mWorldBuilderCameraX;
 	float mWorldBuilderCameraY;

@@ -22,11 +22,15 @@ namespace
 	const SDL_Rect BUILDER_PREVIOUS_MAP = { 1022, 61, 32, 34 };
 	const SDL_Rect BUILDER_NEXT_MAP = { 1218, 61, 32, 34 };
 	const SDL_Rect BUILDER_GRID = { 1162, 27, 88, 25 };
-	const SDL_Rect BUILDER_TILES_TAB = { 1022, 105, 70, 35 };
-	const SDL_Rect BUILDER_NPCS_TAB = { 1096, 105, 70, 35 };
-	const SDL_Rect BUILDER_OBJECTS_TAB = { 1170, 105, 80, 35 };
+	const SDL_Rect BUILDER_TILES_TAB = { 1022, 105, 50, 35 };
+	const SDL_Rect BUILDER_NPCS_TAB = { 1074, 105, 50, 35 };
+	const SDL_Rect BUILDER_OBJECTS_TAB = { 1126, 105, 64, 35 };
+	const SDL_Rect BUILDER_PORTALS_TAB = { 1192, 105, 58, 35 };
 	const SDL_Rect BUILDER_OBJECT_ADD = { 1022, 663, 108, 28 };
 	const SDL_Rect BUILDER_OBJECT_PLACED = { 1142, 663, 108, 28 };
+	const SDL_Rect BUILDER_PORTAL_NEW = { 1022, 663, 70, 28 };
+	const SDL_Rect BUILDER_PORTAL_FROM = { 1096, 663, 70, 28 };
+	const SDL_Rect BUILDER_PORTAL_TO = { 1170, 663, 80, 28 };
 	const SDL_Rect BUILDER_UNDO = { 1022, 724, 91, 44 };
 	const SDL_Rect BUILDER_SAVE = { 1119, 724, 131, 44 };
 	const int BUILDER_LIST_Y = 151;
@@ -47,6 +51,9 @@ namespace
 	const int BUILDER_UNDO_SHARD = 3;
 	const int BUILDER_UNDO_OBJECT_CREATED = 4;
 	const int BUILDER_UNDO_OBJECT_DELETED = 5;
+	const int BUILDER_UNDO_PORTAL = 6;
+	const int BUILDER_UNDO_PORTAL_CREATED = 7;
+	const int BUILDER_UNDO_PORTAL_DELETED = 8;
 	const int BUILDER_ZOOM_PERCENTAGES[] = {
 		10, 20, 30, 40, 50, 60, 70, 80, 90, 100
 	};
@@ -59,6 +66,13 @@ namespace
 	};
 	const int BUILDER_ZOOM_LEVEL_COUNT = sizeof(BUILDER_ZOOM_LEVELS) /
 		sizeof(BUILDER_ZOOM_LEVELS[0]);
+
+	bool samePortal(const WorldPortal& first, const WorldPortal& second)
+	{
+		return first.fromMap == second.fromMap && first.fromX == second.fromX &&
+			first.fromY == second.fromY && first.toMap == second.toMap &&
+			first.toX == second.toX && first.toY == second.toY;
+	}
 
 	int builderZoomLevel(int tileSize)
 	{
@@ -417,6 +431,10 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 	mWorldObjects.swap(candidateObjects);
 	loadedWorld.swap(mWorld);
 	clearWorldBuilderUndoHistory();
+	mWorldBuilderSelectedPortal = -1;
+	mWorldBuilderPortalEndpoint = 0;
+	mWorldBuilderPortalCreating = false;
+	mWorldBuilderPortalDraftOrigin = WorldPosition();
 	mCurrentWorldArea = worldAreaIndex(mWorld.start.mapId);
 	mPlayerX = mWorld.start.x;
 	mPlayerY = mWorld.start.y;
@@ -835,6 +853,10 @@ bool Application::loadDeprecatedLuaWorldMap(const std::string& path, std::string
 	if (!loadedWorld.validateStructure(error)) return false;
 	mWorld.swap(loadedWorld);
 	clearWorldBuilderUndoHistory();
+	mWorldBuilderSelectedPortal = -1;
+	mWorldBuilderPortalEndpoint = 0;
+	mWorldBuilderPortalCreating = false;
+	mWorldBuilderPortalDraftOrigin = WorldPosition();
 	mCurrentWorldArea = worldAreaIndex(startMap);
 	mPlayerX = startX;
 	mPlayerY = startY;
@@ -1005,6 +1027,16 @@ void Application::recordWorldBuilderEntityUndo(int kind, int index,
 	mWorldBuilderPendingUndo.entityY = y;
 }
 
+void Application::recordWorldBuilderPortalUndo(int index)
+{
+	if (!mWorldBuilderUndoPending || mWorldBuilderPendingUndo.entityKind != 0 ||
+		index < 0 || index >= (int)mWorld.portals.size()) return;
+	mWorldBuilderPendingUndo.entityKind = BUILDER_UNDO_PORTAL;
+	mWorldBuilderPendingUndo.entityIndex = index;
+	mWorldBuilderPendingUndo.portalSnapshot = mWorld.portals[index];
+	mWorldBuilderPendingUndo.hasPortalSnapshot = true;
+}
+
 void Application::commitWorldBuilderUndoAction()
 {
 	if (!mWorldBuilderUndoPending) return;
@@ -1051,6 +1083,11 @@ void Application::commitWorldBuilderUndoAction()
 			mWorldBuilderPendingUndo.entityMapId ||
 			mMercerStock.shards[entity].x != mWorldBuilderPendingUndo.entityX ||
 			mMercerStock.shards[entity].y != mWorldBuilderPendingUndo.entityY;
+	else if (kind == BUILDER_UNDO_PORTAL &&
+		mWorldBuilderPendingUndo.hasPortalSnapshot && entity >= 0 &&
+		entity < (int)mWorld.portals.size())
+		entityChanged = !samePortal(mWorld.portals[entity],
+			mWorldBuilderPendingUndo.portalSnapshot);
 	if (mWorldBuilderPendingUndo.tiles.empty() && !entityChanged)
 	{
 		mWorldBuilderPendingUndo = WorldBuilderUndoAction();
@@ -1067,6 +1104,11 @@ void Application::commitWorldBuilderUndoAction()
 
 void Application::undoWorldBuilder()
 {
+	if (mWorldBuilderPortalCreating)
+	{
+		cancelWorldBuilderPortalCreation();
+		return;
+	}
 	commitWorldBuilderUndoAction();
 	mWorldBuilderPainting = false;
 	mWorldBuilderErasing = false;
@@ -1127,6 +1169,31 @@ void Application::undoWorldBuilder()
 		mWorldObjects.insert(mWorldObjects.begin() + index, undo.objectSnapshot);
 		mWorldBuilderSelectedObject = index;
 	}
+	else if (undo.entityKind == BUILDER_UNDO_PORTAL &&
+		undo.hasPortalSnapshot && undo.entityIndex >= 0 &&
+		undo.entityIndex < (int)mWorld.portals.size())
+	{
+		mWorld.portals[undo.entityIndex] = undo.portalSnapshot;
+		mWorldBuilderSelectedPortal = undo.entityIndex;
+	}
+	else if (undo.entityKind == BUILDER_UNDO_PORTAL_CREATED &&
+		undo.hasPortalSnapshot && undo.entityIndex >= 0 &&
+		undo.entityIndex < (int)mWorld.portals.size() &&
+		samePortal(mWorld.portals[undo.entityIndex], undo.portalSnapshot))
+	{
+		mWorld.portals.erase(mWorld.portals.begin() + undo.entityIndex);
+		if (mWorldBuilderSelectedPortal == undo.entityIndex)
+			mWorldBuilderSelectedPortal = -1;
+		else if (mWorldBuilderSelectedPortal > undo.entityIndex)
+			--mWorldBuilderSelectedPortal;
+	}
+	else if (undo.entityKind == BUILDER_UNDO_PORTAL_DELETED &&
+		undo.hasPortalSnapshot && undo.entityIndex >= 0)
+	{
+		int index = std::min(undo.entityIndex, (int)mWorld.portals.size());
+		mWorld.portals.insert(mWorld.portals.begin() + index, undo.portalSnapshot);
+		mWorldBuilderSelectedPortal = index;
+	}
 	mWorldBuilderDirty = undo.dirtyBefore;
 	showWorldBuilderNotice("Undid the last editor action.");
 }
@@ -1167,6 +1234,35 @@ bool Application::worldBuilderCanPlace(int x, int y, int ignoredNpc, int ignored
 			mMercerStock.shards[i].mapId == currentMapId() &&
 			mMercerStock.shards[i].x == x &&
 			mMercerStock.shards[i].y == y) return false;
+	return true;
+}
+
+bool Application::worldBuilderCanPlacePortal(int x, int y, int ignoredPortal,
+	bool ignoredFromEndpoint) const
+{
+	if (!isWalkable(x, y) ||
+		(currentMapId() == mWorld.start.mapId && x == mWorld.start.x &&
+			y == mWorld.start.y)) return false;
+	for (size_t index = 0; index < mWorld.portals.size(); ++index)
+	{
+		const WorldPortal& portal = mWorld.portals[index];
+		if (!((int)index == ignoredPortal && ignoredFromEndpoint) &&
+			portal.fromMap == currentMapId() && portal.fromX == x && portal.fromY == y)
+			return false;
+		if (!((int)index == ignoredPortal && !ignoredFromEndpoint) &&
+			portal.toMap == currentMapId() && portal.toX == x && portal.toY == y)
+			return false;
+	}
+	for (size_t index = 0; index < mNpcs.size(); ++index)
+		if (mNpcs[index].mapId == currentMapId() && mNpcs[index].x == x &&
+			mNpcs[index].y == y) return false;
+	for (size_t index = 0; index < mWorldObjects.size(); ++index)
+		if (mWorldObjects[index].mapId == currentMapId() &&
+			mWorldObjects[index].x == x && mWorldObjects[index].y == y) return false;
+	for (size_t index = 0; index < mMercerStock.shards.size(); ++index)
+		if (mMercerStock.shards[index].mapId == currentMapId() &&
+			mMercerStock.shards[index].x == x &&
+			mMercerStock.shards[index].y == y) return false;
 	return true;
 }
 
@@ -1240,6 +1336,120 @@ void Application::deleteWorldBuilderObject()
 		mWorldBuilderUndoHistory.erase(mWorldBuilderUndoHistory.begin());
 	mWorldBuilderDirty = true;
 	showWorldBuilderNotice("Removed " + name + ". Ctrl+Z restores it.");
+}
+
+void Application::beginWorldBuilderPortalCreation()
+{
+	commitWorldBuilderUndoAction();
+	mWorldBuilderPortalCreating = true;
+	mWorldBuilderPortalEndpoint = 0;
+	mWorldBuilderPortalDraftOrigin = WorldPosition();
+	mWorldBuilderSelectedPortal = -1;
+	showWorldBuilderNotice("Click an empty walkable tile for the portal origin.");
+}
+
+void Application::cancelWorldBuilderPortalCreation()
+{
+	mWorldBuilderPortalCreating = false;
+	mWorldBuilderPortalEndpoint = 0;
+	mWorldBuilderPortalDraftOrigin = WorldPosition();
+	showWorldBuilderNotice("Portal creation cancelled.");
+}
+
+void Application::placeWorldBuilderPortalEndpoint(int x, int y)
+{
+	if (mWorldBuilderPortalCreating)
+	{
+		if (!worldBuilderCanPlacePortal(x, y, -1, false))
+		{
+			showWorldBuilderNotice("Portal endpoints require an empty walkable tile.", true);
+			return;
+		}
+		if (mWorldBuilderPortalEndpoint == 0)
+		{
+			mWorldBuilderPortalDraftOrigin = { currentMapId(), x, y };
+			mWorldBuilderPortalEndpoint = 1;
+			showWorldBuilderNotice(
+				"Origin set. Switch maps if needed, then click the destination.");
+			return;
+		}
+		if (mWorldBuilderPortalDraftOrigin.mapId == currentMapId() &&
+			mWorldBuilderPortalDraftOrigin.x == x &&
+			mWorldBuilderPortalDraftOrigin.y == y)
+		{
+			showWorldBuilderNotice("Portal origin and destination must be distinct.", true);
+			return;
+		}
+		WorldPortal portal;
+		portal.fromMap = mWorldBuilderPortalDraftOrigin.mapId;
+		portal.fromX = mWorldBuilderPortalDraftOrigin.x;
+		portal.fromY = mWorldBuilderPortalDraftOrigin.y;
+		portal.toMap = currentMapId();
+		portal.toX = x;
+		portal.toY = y;
+		WorldBuilderUndoAction undo;
+		undo.entityKind = BUILDER_UNDO_PORTAL_CREATED;
+		undo.entityIndex = (int)mWorld.portals.size();
+		undo.portalSnapshot = portal;
+		undo.hasPortalSnapshot = true;
+		undo.dirtyBefore = mWorldBuilderDirty;
+		mWorld.portals.push_back(portal);
+		mWorldBuilderUndoHistory.push_back(undo);
+		if ((int)mWorldBuilderUndoHistory.size() > BUILDER_MAX_UNDO_ACTIONS)
+			mWorldBuilderUndoHistory.erase(mWorldBuilderUndoHistory.begin());
+		mWorldBuilderSelectedPortal = (int)mWorld.portals.size() - 1;
+		mWorldBuilderPortalCreating = false;
+		mWorldBuilderPortalEndpoint = 0;
+		mWorldBuilderPortalDraftOrigin = WorldPosition();
+		mWorldBuilderDirty = true;
+		showWorldBuilderNotice(
+			"Directed portal added. Add a reverse portal separately if needed.");
+		return;
+	}
+
+	if (mWorldBuilderSelectedPortal < 0 ||
+		mWorldBuilderSelectedPortal >= (int)mWorld.portals.size()) return;
+	bool fromEndpoint = mWorldBuilderPortalEndpoint == 0;
+	if (!worldBuilderCanPlacePortal(x, y, mWorldBuilderSelectedPortal, fromEndpoint))
+	{
+		showWorldBuilderNotice("Portal endpoints require an empty walkable tile.", true);
+		return;
+	}
+	WorldPortal& portal = mWorld.portals[mWorldBuilderSelectedPortal];
+	std::string& mapId = fromEndpoint ? portal.fromMap : portal.toMap;
+	int& portalX = fromEndpoint ? portal.fromX : portal.toX;
+	int& portalY = fromEndpoint ? portal.fromY : portal.toY;
+	if (mapId == currentMapId() && portalX == x && portalY == y) return;
+	recordWorldBuilderPortalUndo(mWorldBuilderSelectedPortal);
+	mapId = currentMapId();
+	portalX = x;
+	portalY = y;
+	mWorldBuilderDirty = true;
+}
+
+void Application::deleteWorldBuilderPortal()
+{
+	if (mWorldBuilderPortalCreating)
+	{
+		cancelWorldBuilderPortalCreation();
+		return;
+	}
+	commitWorldBuilderUndoAction();
+	if (mWorldBuilderSelectedPortal < 0 ||
+		mWorldBuilderSelectedPortal >= (int)mWorld.portals.size()) return;
+	WorldBuilderUndoAction undo;
+	undo.entityKind = BUILDER_UNDO_PORTAL_DELETED;
+	undo.entityIndex = mWorldBuilderSelectedPortal;
+	undo.portalSnapshot = mWorld.portals[mWorldBuilderSelectedPortal];
+	undo.hasPortalSnapshot = true;
+	undo.dirtyBefore = mWorldBuilderDirty;
+	mWorld.portals.erase(mWorld.portals.begin() + mWorldBuilderSelectedPortal);
+	mWorldBuilderSelectedPortal = -1;
+	mWorldBuilderUndoHistory.push_back(undo);
+	if ((int)mWorldBuilderUndoHistory.size() > BUILDER_MAX_UNDO_ACTIONS)
+		mWorldBuilderUndoHistory.erase(mWorldBuilderUndoHistory.begin());
+	mWorldBuilderDirty = true;
+	showWorldBuilderNotice("Portal removed. Ctrl+Z restores it.");
 }
 
 void Application::paintWorldBuilderTile(int x, int y)
@@ -1503,10 +1713,17 @@ void Application::placeWorldBuilderSelection(int x, int y)
 		}
 		mWorldBuilderDirty = true;
 	}
+	else if (mWorldBuilderTab == WorldBuilderTab::Portals)
+		placeWorldBuilderPortalEndpoint(x, y);
 }
 
 bool Application::saveWorldBuilder(std::string& error)
 {
+	if (mWorldBuilderPortalCreating)
+	{
+		error = "finish or cancel the new portal before saving";
+		return false;
+	}
 	commitWorldBuilderUndoAction();
 	mWorld.npcPositions.clear();
 	for (size_t index = 0; index < mNpcs.size(); ++index)
@@ -1633,6 +1850,11 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		SDL_Keycode key = event.key.keysym.sym;
 		if (key == SDLK_ESCAPE)
 		{
+			if (mWorldBuilderPortalCreating)
+			{
+				cancelWorldBuilderPortalCreation();
+				return;
+			}
 			mRunning = false;
 			return;
 		}
@@ -1644,7 +1866,7 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		if (key == SDLK_s && (event.key.keysym.mod & KMOD_CTRL))
 		{
 			std::string error;
-			if (saveWorldBuilder(error)) showWorldBuilderNotice("Catalog maps saved.");
+			if (saveWorldBuilder(error)) showWorldBuilderNotice("World saved.");
 			else showWorldBuilderNotice("Save failed: " + error, true);
 			return;
 		}
@@ -1658,6 +1880,12 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 			!mWorldBuilderObjectPalette)
 		{
 			deleteWorldBuilderObject();
+			return;
+		}
+		if ((key == SDLK_DELETE || key == SDLK_BACKSPACE) &&
+			mWorldBuilderTab == WorldBuilderTab::Portals)
+		{
+			deleteWorldBuilderPortal();
 			return;
 		}
 		if (key == SDLK_LEFTBRACKET || key == SDLK_RIGHTBRACKET)
@@ -1708,6 +1936,7 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		if (key == SDLK_t) mWorldBuilderTab = WorldBuilderTab::Tiles;
 		else if (key == SDLK_n) mWorldBuilderTab = WorldBuilderTab::Npcs;
 		else if (key == SDLK_o) mWorldBuilderTab = WorldBuilderTab::Objects;
+		else if (key == SDLK_p) mWorldBuilderTab = WorldBuilderTab::Portals;
 		else if (key == SDLK_PAGEUP)
 		{
 			mCurrentWorldArea = (mCurrentWorldArea + (int)mWorld.maps.size() - 1) % (int)mWorld.maps.size();
@@ -1737,8 +1966,9 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 			return;
 		}
 		int count = mWorldBuilderTab == WorldBuilderTab::Npcs ? (int)mNpcs.size() :
+			(mWorldBuilderTab == WorldBuilderTab::Portals ? (int)mWorld.portals.size() :
 			(mWorldBuilderObjectPalette ? (int)mWorldObjectTemplates.size() :
-			(int)(mWorldObjects.size() + mMercerStock.shards.size()));
+			(int)(mWorldObjects.size() + mMercerStock.shards.size())));
 		int maximum = std::max(0, count - BUILDER_LIST_ROWS);
 		mWorldBuilderListScroll = std::max(0,
 			std::min(maximum, mWorldBuilderListScroll - event.wheel.y));
@@ -1801,7 +2031,7 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 	if (contains(BUILDER_SAVE, x, y))
 	{
 		std::string error;
-		if (saveWorldBuilder(error)) showWorldBuilderNotice("Catalog maps saved.");
+		if (saveWorldBuilder(error)) showWorldBuilderNotice("World saved.");
 		else showWorldBuilderNotice("Save failed: " + error, true);
 		return;
 	}
@@ -1832,6 +2062,11 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		mWorldBuilderTab = WorldBuilderTab::Objects;
 		mWorldBuilderListScroll = 0;
 	}
+	else if (contains(BUILDER_PORTALS_TAB, x, y))
+	{
+		mWorldBuilderTab = WorldBuilderTab::Portals;
+		mWorldBuilderListScroll = 0;
+	}
 	else
 	{
 		if (mWorldBuilderTab == WorldBuilderTab::Objects &&
@@ -1842,6 +2077,36 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 			if (mWorldBuilderObjectPalette && mWorldBuilderSelectedObjectTemplate < 0 &&
 				!mWorldObjectTemplates.empty()) mWorldBuilderSelectedObjectTemplate = 0;
 			mWorldBuilderListScroll = 0;
+			return;
+		}
+		if (mWorldBuilderTab == WorldBuilderTab::Portals &&
+			contains(BUILDER_PORTAL_NEW, x, y))
+		{
+			if (mWorldBuilderPortalCreating) cancelWorldBuilderPortalCreation();
+			else beginWorldBuilderPortalCreation();
+			return;
+		}
+		if (mWorldBuilderTab == WorldBuilderTab::Portals &&
+			(contains(BUILDER_PORTAL_FROM, x, y) ||
+			contains(BUILDER_PORTAL_TO, x, y)))
+		{
+			if (!mWorldBuilderPortalCreating && mWorldBuilderSelectedPortal >= 0 &&
+				mWorldBuilderSelectedPortal < (int)mWorld.portals.size())
+			{
+				mWorldBuilderPortalEndpoint = contains(BUILDER_PORTAL_FROM, x, y) ? 0 : 1;
+				const WorldPortal& portal = mWorld.portals[mWorldBuilderSelectedPortal];
+				const std::string& mapId = mWorldBuilderPortalEndpoint == 0 ?
+					portal.fromMap : portal.toMap;
+				int portalX = mWorldBuilderPortalEndpoint == 0 ? portal.fromX : portal.toX;
+				int portalY = mWorldBuilderPortalEndpoint == 0 ? portal.fromY : portal.toY;
+				int map = worldAreaIndex(mapId);
+				if (map >= 0)
+				{
+					mCurrentWorldArea = map;
+					centerMapCamera(currentMap(), portalX, portalY, mWorldBuilderCameraX,
+						mWorldBuilderCameraY, mWorldBuilderTileSize);
+				}
+			}
 			return;
 		}
 		if (mWorldBuilderTab == WorldBuilderTab::Tiles)
@@ -1944,6 +2209,30 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 					}
 				}
 			}
+			else if (mWorldBuilderTab == WorldBuilderTab::Portals &&
+				selected < (int)mWorld.portals.size())
+			{
+				mWorldBuilderPortalCreating = false;
+				mWorldBuilderPortalDraftOrigin = WorldPosition();
+				mWorldBuilderSelectedPortal = selected;
+				mWorldBuilderPortalEndpoint = 0;
+				if (event.button.clicks >= 2)
+				{
+					const WorldPortal& portal = mWorld.portals[selected];
+					const std::string& mapId = mWorldBuilderPortalEndpoint == 0 ?
+						portal.fromMap : portal.toMap;
+					int portalX = mWorldBuilderPortalEndpoint == 0 ? portal.fromX : portal.toX;
+					int portalY = mWorldBuilderPortalEndpoint == 0 ? portal.fromY : portal.toY;
+					int map = worldAreaIndex(mapId);
+					if (map >= 0)
+					{
+						mCurrentWorldArea = map;
+						centerMapCamera(currentMap(), portalX, portalY,
+							mWorldBuilderCameraX, mWorldBuilderCameraY,
+							mWorldBuilderTileSize);
+					}
+				}
+			}
 			return;
 		}
 		int cellX, cellY;
@@ -1976,14 +2265,15 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 			if (hit >= 0) mWorldBuilderSelectedNpc = hit;
 			else placeWorldBuilderSelection(cellX, cellY);
 		}
-		else if (mWorldBuilderObjectPalette)
+		else if (mWorldBuilderTab == WorldBuilderTab::Objects &&
+			mWorldBuilderObjectPalette)
 		{
 			if (event.button.button == SDL_BUTTON_LEFT &&
 				mWorldBuilderSelectedObjectTemplate >= 0)
 				addWorldBuilderObject(mWorldBuilderSelectedObjectTemplate, cellX, cellY);
 			return;
 		}
-		else
+		else if (mWorldBuilderTab == WorldBuilderTab::Objects)
 		{
 			beginWorldBuilderUndoAction();
 			int hit = -1;
@@ -1995,6 +2285,41 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 					mMercerStock.shards[i].x == cellX && mMercerStock.shards[i].y == cellY)
 					hit = (int)mWorldObjects.size() + (int)i;
 			if (hit >= 0) mWorldBuilderSelectedObject = hit;
+			else placeWorldBuilderSelection(cellX, cellY);
+		}
+		else if (mWorldBuilderTab == WorldBuilderTab::Portals)
+		{
+			if (mWorldBuilderPortalCreating)
+			{
+				placeWorldBuilderPortalEndpoint(cellX, cellY);
+				return;
+			}
+			beginWorldBuilderUndoAction();
+			int hit = -1;
+			bool hitFrom = true;
+			for (size_t index = 0; index < mWorld.portals.size(); ++index)
+			{
+				const WorldPortal& portal = mWorld.portals[index];
+				if (portal.fromMap == currentMapId() && portal.fromX == cellX &&
+					portal.fromY == cellY)
+				{
+					hit = (int)index;
+					hitFrom = true;
+					break;
+				}
+				if (portal.toMap == currentMapId() && portal.toX == cellX &&
+					portal.toY == cellY)
+				{
+					hit = (int)index;
+					hitFrom = false;
+					break;
+				}
+			}
+			if (hit >= 0)
+			{
+				mWorldBuilderSelectedPortal = hit;
+				mWorldBuilderPortalEndpoint = hitFrom ? 0 : 1;
+			}
 			else placeWorldBuilderSelection(cellX, cellY);
 		}
 		mWorldBuilderDragging = true;
@@ -2041,6 +2366,28 @@ int Application::worldBuilderHoveredObject() const
 		if (mMercerStock.shards[i].mapId == currentMapId() &&
 			mMercerStock.shards[i].x == cellX && mMercerStock.shards[i].y == cellY)
 			return (int)mWorldObjects.size() + (int)i;
+	return -1;
+}
+
+int Application::worldBuilderHoveredPortal(bool& fromEndpoint) const
+{
+	fromEndpoint = true;
+	int cellX = -1;
+	int cellY = -1;
+	if (!mapCellAt(mMouseX, mMouseY, currentMap(), mWorldBuilderCameraX,
+		mWorldBuilderCameraY, mWorldBuilderTileSize, cellX, cellY)) return -1;
+	for (size_t index = 0; index < mWorld.portals.size(); ++index)
+	{
+		const WorldPortal& portal = mWorld.portals[index];
+		if (portal.fromMap == currentMapId() && portal.fromX == cellX &&
+			portal.fromY == cellY) return (int)index;
+		if (portal.toMap == currentMapId() && portal.toX == cellX &&
+			portal.toY == cellY)
+		{
+			fromEndpoint = false;
+			return (int)index;
+		}
+	}
 	return -1;
 }
 
@@ -2602,16 +2949,43 @@ void Application::renderWorldBuilder()
 			drawText("P", startX + tileSize / 2 - 5, startY + tileSize / 2 - 9,
 				color(215, 232, 255), std::min(16, tileSize / 3));
 	}
-	for (size_t i = 0; i < mWorld.portals.size(); ++i)
-		if (mWorld.portals[i].fromMap == currentMapId() &&
-			visibleTiles.contains(mWorld.portals[i].fromX, mWorld.portals[i].fromY))
-		{
-			int inset = std::max(2, tileSize / 12);
-			outlineRect({ mapX + mWorld.portals[i].fromX * tileSize + inset,
-				mapY + mWorld.portals[i].fromY * tileSize + inset,
-				tileSize - inset * 2, tileSize - inset * 2 },
-				91, 222, 232, 255, std::max(2, tileSize / 24));
-		}
+	auto drawPortalEndpoint = [this, mapX, mapY, tileSize](int portalIndex,
+		const std::string& mapId, int x, int y, bool fromEndpoint)
+	{
+		if (mapId != currentMapId()) return;
+		int inset = std::max(2, tileSize / 12);
+		int red = fromEndpoint ? 64 : 174;
+		int green = fromEndpoint ? 214 : 119;
+		int blue = fromEndpoint ? 229 : 231;
+		bool selected = mWorldBuilderTab == WorldBuilderTab::Portals &&
+			portalIndex == mWorldBuilderSelectedPortal &&
+			(mWorldBuilderPortalEndpoint == 0) == fromEndpoint;
+		SDL_Rect marker = { mapX + x * tileSize + inset, mapY + y * tileSize + inset,
+			tileSize - inset * 2, tileSize - inset * 2 };
+		fillRect(marker, red / 3, green / 3, blue / 3, 125);
+		outlineRect(marker, selected ? 247 : red, selected ? 207 : green,
+			selected ? 83 : blue, 255, selected ? std::max(3, tileSize / 16) :
+			std::max(2, tileSize / 24));
+		if (tileSize >= 24)
+			drawText(fromEndpoint ? "F" : "T", marker.x + marker.w / 2 - 4,
+				marker.y + marker.h / 2 - 7,
+				color(selected ? 255 : 219, selected ? 231 : 235,
+					selected ? 141 : 250), std::min(13, tileSize / 3));
+	};
+	for (size_t index = 0; index < mWorld.portals.size(); ++index)
+	{
+		const WorldPortal& portal = mWorld.portals[index];
+		if (visibleTiles.contains(portal.fromX, portal.fromY))
+			drawPortalEndpoint((int)index, portal.fromMap, portal.fromX, portal.fromY, true);
+		if (visibleTiles.contains(portal.toX, portal.toY))
+			drawPortalEndpoint((int)index, portal.toMap, portal.toX, portal.toY, false);
+	}
+	if (mWorldBuilderPortalCreating && mWorldBuilderPortalEndpoint == 1 &&
+		mWorldBuilderPortalDraftOrigin.mapId == currentMapId() &&
+		visibleTiles.contains(mWorldBuilderPortalDraftOrigin.x,
+			mWorldBuilderPortalDraftOrigin.y))
+		drawPortalEndpoint(-1, mWorldBuilderPortalDraftOrigin.mapId,
+			mWorldBuilderPortalDraftOrigin.x, mWorldBuilderPortalDraftOrigin.y, true);
 	for (size_t i = 0; i < mWorldObjects.size(); ++i)
 	{
 		const WorldObject& object = mWorldObjects[i];
@@ -2760,6 +3134,31 @@ void Application::renderWorldBuilder()
 		drawText(name, labelX + 8, labelY + 5, color(247, 221, 151), 12,
 			labelWidth - 16);
 	}
+	bool hoveredPortalFrom = true;
+	int hoveredPortal = mWorldBuilderTab == WorldBuilderTab::Portals ?
+		worldBuilderHoveredPortal(hoveredPortalFrom) : -1;
+	if (hoveredPortal >= 0)
+	{
+		const WorldPortal& portal = mWorld.portals[hoveredPortal];
+		int portalX = hoveredPortalFrom ? portal.fromX : portal.toX;
+		int portalY = hoveredPortalFrom ? portal.fromY : portal.toY;
+		const std::string& otherMap = hoveredPortalFrom ? portal.toMap : portal.fromMap;
+		int otherX = hoveredPortalFrom ? portal.toX : portal.fromX;
+		int otherY = hoveredPortalFrom ? portal.toY : portal.fromY;
+		std::string label = std::string(hoveredPortalFrom ? "FROM to " : "TO from ") +
+			otherMap + " " + std::to_string(otherX) + "," + std::to_string(otherY);
+		int screenX = mapX + portalX * tileSize;
+		int screenY = mapY + portalY * tileSize;
+		int labelWidth = std::max(90, std::min(270, 18 + (int)label.size() * 8));
+		int labelX = std::max(MAP_X + 3, std::min(MAP_X + MAP_VIEW_WIDTH - labelWidth - 3,
+			screenX + tileSize / 2 - labelWidth / 2));
+		int labelY = screenY - 27;
+		if (labelY < MAP_Y + 3) labelY = screenY + tileSize + 3;
+		fillRect({ labelX, labelY, labelWidth, 24 }, 12, 20, 34, 244);
+		outlineRect({ labelX, labelY, labelWidth, 24 }, 108, 218, 235, 255, 2);
+		drawText(label, labelX + 8, labelY + 5, color(211, 237, 247), 11,
+			labelWidth - 16);
+	}
 	SDL_RenderSetClipRect(mRenderer, NULL);
 
 	fillRect(BUILDER_PANEL, 20, 28, 44, 248);
@@ -2789,6 +3188,7 @@ void Application::renderWorldBuilder()
 	tab(BUILDER_TILES_TAB, "TILES", mWorldBuilderTab == WorldBuilderTab::Tiles);
 	tab(BUILDER_NPCS_TAB, "NPCS", mWorldBuilderTab == WorldBuilderTab::Npcs);
 	tab(BUILDER_OBJECTS_TAB, "OBJECTS", mWorldBuilderTab == WorldBuilderTab::Objects);
+	tab(BUILDER_PORTALS_TAB, "PORTALS", mWorldBuilderTab == WorldBuilderTab::Portals);
 
 	if (mWorldBuilderTab == WorldBuilderTab::Tiles)
 	{
@@ -2890,11 +3290,13 @@ void Application::renderWorldBuilder()
 		bool objectPalette = mWorldBuilderTab == WorldBuilderTab::Objects &&
 			mWorldBuilderObjectPalette;
 		int count = mWorldBuilderTab == WorldBuilderTab::Npcs ? (int)mNpcs.size() :
+			(mWorldBuilderTab == WorldBuilderTab::Portals ? (int)mWorld.portals.size() :
 			(objectPalette ? (int)mWorldObjectTemplates.size() :
-			(int)(mWorldObjects.size() + mMercerStock.shards.size()));
+			(int)(mWorldObjects.size() + mMercerStock.shards.size())));
 		int selected = mWorldBuilderTab == WorldBuilderTab::Npcs ?
-			mWorldBuilderSelectedNpc : (objectPalette ?
-			mWorldBuilderSelectedObjectTemplate : mWorldBuilderSelectedObject);
+			mWorldBuilderSelectedNpc : (mWorldBuilderTab == WorldBuilderTab::Portals ?
+			mWorldBuilderSelectedPortal : (objectPalette ?
+			mWorldBuilderSelectedObjectTemplate : mWorldBuilderSelectedObject));
 		for (int row = 0; row < BUILDER_LIST_ROWS; ++row)
 		{
 			int index = mWorldBuilderListScroll + row;
@@ -2931,6 +3333,18 @@ void Application::renderWorldBuilder()
 				drawText(label, item.x + 38, item.y + 3, color(232, 236, 244), 8, 188);
 				drawText(std::to_string(entityX) + "," + std::to_string(entityY),
 					item.x + 38, item.y + 18, color(173, 193, 220), 9, 100);
+			}
+			else if (mWorldBuilderTab == WorldBuilderTab::Portals)
+			{
+				const WorldPortal& portal = mWorld.portals[index];
+				fillRect({ item.x + 4, item.y + 6, 8, 8 }, 38, 171, 190, 255);
+				fillRect({ item.x + 4, item.y + 21, 8, 8 }, 132, 76, 183, 255);
+				drawText("F " + portal.fromMap + " " + std::to_string(portal.fromX) +
+					"," + std::to_string(portal.fromY), item.x + 18, item.y + 3,
+					color(205, 235, 241), 8, 204);
+				drawText("T " + portal.toMap + " " + std::to_string(portal.toX) +
+					"," + std::to_string(portal.toY), item.x + 18, item.y + 18,
+					color(225, 208, 242), 8, 204);
 			}
 			else
 			{
@@ -2993,6 +3407,42 @@ void Application::renderWorldBuilder()
 				"Drag to move • Delete removes created objects", 1022, 698,
 				color(166, 184, 211), 9, 228);
 		}
+		else if (mWorldBuilderTab == WorldBuilderTab::Portals)
+		{
+			bool hasSelection = !mWorldBuilderPortalCreating &&
+				mWorldBuilderSelectedPortal >= 0 &&
+				mWorldBuilderSelectedPortal < (int)mWorld.portals.size();
+			fillRect(BUILDER_PORTAL_NEW, mWorldBuilderPortalCreating ? 91 : 49,
+				mWorldBuilderPortalCreating ? 48 : 63,
+				mWorldBuilderPortalCreating ? 49 : 82, 245);
+			outlineRect(BUILDER_PORTAL_NEW, mWorldBuilderPortalCreating ? 232 : 123,
+				mWorldBuilderPortalCreating ? 113 : 151,
+				mWorldBuilderPortalCreating ? 101 : 184, 255, 1);
+			drawText(mWorldBuilderPortalCreating ? "CANCEL" : "NEW",
+				BUILDER_PORTAL_NEW.x + (mWorldBuilderPortalCreating ? 13 : 23),
+				BUILDER_PORTAL_NEW.y + 6, color(232, 236, 244), 10);
+			bool fromSelected = hasSelection && mWorldBuilderPortalEndpoint == 0;
+			bool toSelected = hasSelection && mWorldBuilderPortalEndpoint == 1;
+			fillRect(BUILDER_PORTAL_FROM, fromSelected ? 51 : 31,
+				fromSelected ? 88 : 48, fromSelected ? 94 : 67, 245);
+			fillRect(BUILDER_PORTAL_TO, toSelected ? 78 : 43,
+				toSelected ? 57 : 43, toSelected ? 104 : 68, 245);
+			outlineRect(BUILDER_PORTAL_FROM, fromSelected ? 88 : 83,
+				fromSelected ? 220 : 111, fromSelected ? 229 : 137, 255, 1);
+			outlineRect(BUILDER_PORTAL_TO, toSelected ? 193 : 101,
+				toSelected ? 134 : 103, toSelected ? 235 : 141, 255, 1);
+			drawText("FROM", BUILDER_PORTAL_FROM.x + 18, BUILDER_PORTAL_FROM.y + 6,
+				color(hasSelection ? 232 : 126, hasSelection ? 236 : 139,
+					hasSelection ? 244 : 158), 10);
+			drawText("TO", BUILDER_PORTAL_TO.x + 31, BUILDER_PORTAL_TO.y + 6,
+				color(hasSelection ? 232 : 126, hasSelection ? 236 : 139,
+					hasSelection ? 244 : 158), 10);
+			std::string help = mWorldBuilderPortalCreating ?
+				(mWorldBuilderPortalEndpoint == 0 ? "Click the origin tile" :
+				"Switch maps if needed; click destination") :
+				"Directed portals • Delete removes selected";
+			drawText(help, 1022, 698, color(166, 184, 211), 9, 228);
+		}
 		else
 		{
 			if (count > BUILDER_LIST_ROWS)
@@ -3018,7 +3468,7 @@ void Application::renderWorldBuilder()
 		color(245, 226, 181), 13);
 	drawText("Ctrl+S", BUILDER_SAVE.x + 75, BUILDER_SAVE.y + 11,
 		color(201, 211, 225), 9);
-	drawText("T/N/O: tabs  •  G: grid  •  Arrows/WASD: pan  •  Wheel or +/-: zoom  •  [ / ]: brush",
+	drawText("T/N/O/P: tabs  •  G: grid  •  Arrows/WASD: pan  •  Wheel or +/-: zoom  •  [ / ]: brush",
 		32, 650, color(180, 196, 219), 14, 930);
 	drawText("Tiles: paint  •  Entities: place  •  Ctrl+Z: undo  •  PageUp/PageDown: maps",
 		32, 676, color(142, 173, 217), 13);

@@ -243,6 +243,11 @@ int Application::runSmokeTests()
 			std::cerr << "World-object template smoke test failed." << std::endl;
 			return 2;
 		}
+		if (!exerciseWorldBuilderPortalsSmoke())
+		{
+			std::cerr << "World Builder portal smoke test failed." << std::endl;
+			return 2;
+		}
 		if (!exerciseHollowCardsSmoke())
 		{
 			std::cerr << "Hollow-card rules smoke test failed." << std::endl;
@@ -3678,6 +3683,130 @@ bool Application::exerciseWorldObjectsSmoke()
 	mWorldBuilderTab = savedTab;
 	mWorldBuilderObjectPalette = savedPalette;
 	mWorldBuilderSelectedObject = savedSelection;
+	mWorldBuilderDirty = savedDirty;
+	mWorldBuilderUndoPending = savedUndoPending;
+	mWorldBuilderPendingUndo = savedPendingUndo;
+	mWorldBuilderUndoHistory = savedUndoHistory;
+	mWorldBuilderNotice = savedNotice;
+	mWorldBuilderNoticeError = savedNoticeError;
+	mWorldBuilderNoticeUntil = savedNoticeUntil;
+	return valid;
+}
+
+bool Application::exerciseWorldBuilderPortalsSmoke()
+{
+	const int savedArea = mCurrentWorldArea;
+	const WorldBuilderTab savedTab = mWorldBuilderTab;
+	const int savedSelection = mWorldBuilderSelectedPortal;
+	const int savedEndpoint = mWorldBuilderPortalEndpoint;
+	const bool savedCreating = mWorldBuilderPortalCreating;
+	const WorldPosition savedDraftOrigin = mWorldBuilderPortalDraftOrigin;
+	const bool savedDirty = mWorldBuilderDirty;
+	const bool savedUndoPending = mWorldBuilderUndoPending;
+	const WorldBuilderUndoAction savedPendingUndo = mWorldBuilderPendingUndo;
+	const std::vector<WorldBuilderUndoAction> savedUndoHistory =
+		mWorldBuilderUndoHistory;
+	const std::vector<WorldPortal> savedPortals = mWorld.portals;
+	const std::string savedNotice = mWorldBuilderNotice;
+	const bool savedNoticeError = mWorldBuilderNoticeError;
+	const Uint32 savedNoticeUntil = mWorldBuilderNoticeUntil;
+
+	struct FreeEndpoint
+	{
+		int area;
+		int x;
+		int y;
+	};
+	std::vector<FreeEndpoint> endpoints;
+	for (size_t area = 0; area < mWorld.maps.size() && endpoints.size() < 2; ++area)
+	{
+		mCurrentWorldArea = (int)area;
+		bool found = false;
+		for (int y = 0; y < mWorld.maps[area].height() && !found; ++y)
+			for (int x = 0; x < mWorld.maps[area].width(); ++x)
+				if (worldBuilderCanPlacePortal(x, y, -1, false))
+				{
+					endpoints.push_back({ (int)area, x, y });
+					found = true;
+					break;
+				}
+	}
+
+	bool valid = endpoints.size() == 2;
+	clearWorldBuilderUndoHistory();
+	mWorldBuilderTab = WorldBuilderTab::Portals;
+	mWorldBuilderSelectedPortal = -1;
+	mWorldBuilderPortalEndpoint = 0;
+	mWorldBuilderPortalCreating = false;
+	const size_t originalCount = mWorld.portals.size();
+	if (valid)
+	{
+		mCurrentWorldArea = endpoints[0].area;
+		beginWorldBuilderPortalCreation();
+		placeWorldBuilderPortalEndpoint(endpoints[0].x, endpoints[0].y);
+		valid = mWorldBuilderPortalCreating && mWorldBuilderPortalEndpoint == 1 &&
+			mWorldBuilderPortalDraftOrigin.mapId ==
+				mWorld.maps[endpoints[0].area].id;
+		std::string pendingSaveError;
+		valid = valid && !saveWorldBuilder(pendingSaveError) &&
+			pendingSaveError.find("finish or cancel") != std::string::npos;
+		mCurrentWorldArea = endpoints[1].area;
+		placeWorldBuilderPortalEndpoint(endpoints[1].x, endpoints[1].y);
+		valid = valid && !mWorldBuilderPortalCreating &&
+			mWorld.portals.size() == originalCount + 1 &&
+			mWorld.portals.back().fromMap == mWorld.maps[endpoints[0].area].id &&
+			mWorld.portals.back().fromX == endpoints[0].x &&
+			mWorld.portals.back().fromY == endpoints[0].y &&
+			mWorld.portals.back().toMap == mWorld.maps[endpoints[1].area].id &&
+			mWorld.portals.back().toX == endpoints[1].x &&
+			mWorld.portals.back().toY == endpoints[1].y;
+		renderWorldBuilder();
+
+		mCurrentWorldArea = endpoints[0].area;
+		beginWorldBuilderPortalCreation();
+		placeWorldBuilderPortalEndpoint(endpoints[0].x, endpoints[0].y);
+		valid = valid && mWorldBuilderPortalCreating &&
+			mWorldBuilderPortalEndpoint == 0 &&
+			mWorld.portals.size() == originalCount + 1;
+		cancelWorldBuilderPortalCreation();
+
+		int movedX = -1;
+		int movedY = -1;
+		for (int y = 0; y < mWorld.maps[endpoints[0].area].height() && movedX < 0; ++y)
+			for (int x = 0; x < mWorld.maps[endpoints[0].area].width(); ++x)
+				if (worldBuilderCanPlacePortal(x, y, -1, false))
+				{
+					movedX = x;
+					movedY = y;
+					break;
+				}
+		mWorldBuilderSelectedPortal = (int)mWorld.portals.size() - 1;
+		mWorldBuilderPortalEndpoint = 0;
+		beginWorldBuilderUndoAction();
+		if (movedX >= 0) placeWorldBuilderPortalEndpoint(movedX, movedY);
+		commitWorldBuilderUndoAction();
+		valid = valid && movedX >= 0 && mWorld.portals.back().fromX == movedX &&
+			mWorld.portals.back().fromY == movedY;
+		undoWorldBuilder();
+		valid = valid && mWorld.portals.back().fromX == endpoints[0].x &&
+			mWorld.portals.back().fromY == endpoints[0].y;
+		mWorldBuilderSelectedPortal = (int)mWorld.portals.size() - 1;
+		deleteWorldBuilderPortal();
+		valid = valid && mWorld.portals.size() == originalCount;
+		undoWorldBuilder();
+		valid = valid && mWorld.portals.size() == originalCount + 1;
+		undoWorldBuilder();
+		valid = valid && mWorld.portals.size() == originalCount &&
+			mWorldBuilderUndoHistory.empty() && mWorldBuilderDirty == savedDirty;
+	}
+
+	mWorld.portals = savedPortals;
+	mCurrentWorldArea = savedArea;
+	mWorldBuilderTab = savedTab;
+	mWorldBuilderSelectedPortal = savedSelection;
+	mWorldBuilderPortalEndpoint = savedEndpoint;
+	mWorldBuilderPortalCreating = savedCreating;
+	mWorldBuilderPortalDraftOrigin = savedDraftOrigin;
 	mWorldBuilderDirty = savedDirty;
 	mWorldBuilderUndoPending = savedUndoPending;
 	mWorldBuilderPendingUndo = savedPendingUndo;

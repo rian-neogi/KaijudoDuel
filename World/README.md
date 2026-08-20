@@ -6,6 +6,10 @@ shard positions. `World/Maps/*.json` owns visual layers, dimensions, collision,
 and map-local gameplay tags. Gameplay and the World Builder load these files
 directly and never read `Lua/World.lua`.
 
+The World Builder's Portals tab creates directed transitions. Place the From
+endpoint first, switch maps if necessary, and then place the To endpoint. A
+two-way doorway is represented by two separately authored portals.
+
 Objects created from the World Builder's Lua-populated Add palette are recorded
 in the manifest's optional `entities.object_definitions` array. Each definition
 maps its generated object ID to a template in `Lua/Objects.lua`; its location is
