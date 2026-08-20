@@ -1,5 +1,6 @@
 #include "DecisionPlan.h"
 
+#include "AiParams.h"
 #include "HeuristicBot.h"
 
 #include <algorithm>
@@ -109,7 +110,7 @@ namespace
 		{
 			if (options.heuristicMana)
 			{
-				HeuristicBot bot(prefix.player);
+				HeuristicBot bot(prefix.player, options.personality);
 				int option = bot.chooseManaPayment(simulation, result.options);
 				if (option >= 0)
 				{
@@ -203,7 +204,7 @@ DecisionPlanResult::DecisionPlanResult()
 
 DecisionPlanEnumerationOptions::DecisionPlanEnumerationOptions()
 	: heuristicMana(false), heuristicCardPlay(false), heuristicChoices(false),
-	  randomChoices(false), randomShieldTarget(false)
+	  randomChoices(false), randomShieldTarget(false), personality("tempo")
 {
 }
 
@@ -312,6 +313,7 @@ std::vector<DecisionPlan> enumerateDecisionPlans(Duel& root)
 std::vector<DecisionPlan> enumerateDecisionPlans(Duel& root,
 	const DecisionPlanEnumerationOptions& options)
 {
+	AiPersonalityScope personalityScope(options.personality);
 	std::vector<DecisionPlan> plans;
 	if (shouldStop(options) || !root.isCloneable())
 		return plans;
@@ -345,7 +347,7 @@ std::vector<DecisionPlan> enumerateDecisionPlans(Duel& root,
 	}
 	if (options.heuristicMana)
 	{
-		HeuristicBot bot(player);
+		HeuristicBot bot(player, options.personality);
 		if (root.mCastingCard != -1)
 		{
 			std::vector<int> paymentOptions;

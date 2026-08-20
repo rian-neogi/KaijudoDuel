@@ -1407,11 +1407,9 @@ Cards["Skeleton Thief, the Revealer"] = {
                     return 0
                 end
             end
-            for i=1,count do
-                local ch = createChoice("Select a Living Dead in your graveyard",0,id,getCardOwner(id),valid)
-                if(ch>=0) then
-                    moveCard(ch,ZONE_HAND)
-                end
+            local ch = createChoice("Select a Living Dead in your graveyard",1,id,getCardOwner(id),valid)
+            if(ch>=0) then
+                moveCard(ch,ZONE_HAND)
             end
         end
         Abils.onSummon(id,func)

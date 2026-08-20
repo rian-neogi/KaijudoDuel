@@ -23,12 +23,9 @@ AiDecisionOutcome::AiDecisionOutcome() : source(AiDecisionSource::None)
 MctsConfig liveMctsConfig(bool combatPhase, const std::string& difficulty,
 	const std::string& personality)
 {
-	MctsConfig config;
-	config.iterations = aiIntParam("search.max_rollouts");
-	config.maxDepth = aiIntParam("search.max_depth");
+	MctsConfig config(personality);
 	config.timeBudgetMs = aiDifficultyIntParam(difficulty, combatPhase ?
 		"combat_time_budget_ms" : "main_time_budget_ms");
-	config.personality = personality;
 	return config;
 }
 
@@ -130,7 +127,7 @@ AiDecisionOutcome playHeuristicManaPayment(Duel& duel, int player,
 		return outcome;
 	HeuristicBot bot(player, personality);
 	for (int safety = 0; duel.mCastingCard != -1 &&
-		safety < aiIntParam("search.max_mana_payment_steps"); ++safety)
+		safety < aiIntParam("search.max_mana_payment_steps", personality); ++safety)
 	{
 		std::vector<Message> moves = duel.getPossibleMoves();
 		std::vector<int> options;

@@ -53,7 +53,9 @@ NpcGoldTiers = {
 --         { card = "First Reward Card", gold_tier = 1 },
 --         { card = "Later Reward Card", gold_tier = 2 },
 --     },
---     ai = { personality = "tempo", difficulty = "medium" },
+--     ai = { personality = "default", difficulty = "medium" },
+-- personality may be default, rush, tempo, or control. "default" uses the
+-- unmodified base evaluation, search, and heuristic parameters.
 --     dialogue = {
 --         greeting = "Ready to duel?",
 --         defeat = "You won this time.",

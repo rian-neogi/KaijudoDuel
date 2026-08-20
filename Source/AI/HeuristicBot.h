@@ -26,5 +26,4 @@ private:
 	double scoreAttack(Duel& duel, const Message& move) const;
 	double scoreBlock(Duel& duel, int blocker) const;
 	int attackingPower(Duel& duel, int attacker) const;
-	double adjustForPersonality(const std::string& moveType, double score) const;
 };

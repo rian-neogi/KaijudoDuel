@@ -3,6 +3,7 @@
 #include "Game/Duel.h"
 
 #include <functional>
+#include <string>
 #include <vector>
 
 struct DecisionChoice
@@ -68,6 +69,9 @@ struct DecisionPlanEnumerationOptions
 	bool randomChoices;
 	// MCTS treats shield targeting as a random policy rather than a tree branch.
 	bool randomShieldTarget;
+	// Sparse AI parameter overrides used by every heuristic and Lua scoring
+	// query performed while enumerating these plans.
+	std::string personality;
 	std::function<size_t(size_t)> randomIndex;
 	// Optional deadline/cancellation predicate checked between recursive plans.
 	std::function<bool()> shouldStop;

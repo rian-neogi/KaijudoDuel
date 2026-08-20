@@ -188,6 +188,8 @@ bool Application::startDuelWithDecks(const std::string& playerDeck,
 	mActiveNpc = npcIndex;
 	mDuel = new Duel();
 	ActiveDuel = mDuel;
+	mDuel->mAiPersonality[0] = aiPersonalityForPlayer(0);
+	mDuel->mAiPersonality[1] = aiPersonalityForPlayer(1);
 	if (duelSeed == 0)
 		mDuel->mRandomGen.Randomize();
 	else

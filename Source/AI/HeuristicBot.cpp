@@ -39,6 +39,7 @@ HeuristicBot::HeuristicBot(int player, const std::string& personality)
 
 Message HeuristicBot::chooseMove(Duel& duel, const std::vector<Message>& moves) const
 {
+	AiPersonalityScope personalityScope(mPersonality);
 	if (moves.empty()) return Message();
 	int preferredPriority = 3;
 	bool ordinaryTurn = !duel.mIsChoiceActive && duel.mAttackphase == PHASE_NONE &&
@@ -87,6 +88,7 @@ Message HeuristicBot::chooseMove(Duel& duel, const std::vector<Message>& moves) 
 bool HeuristicBot::chooseManaPlacement(Duel& duel, const std::vector<Message>& moves,
 	Message& result) const
 {
+	AiPersonalityScope personalityScope(mPersonality);
 	if (duel.mTurnPhase != TURN_PHASE_MANA || duel.mManaUsed != 0 ||
 		duel.mCastingCard != -1 || duel.mIsChoiceActive || duel.mAttackphase != PHASE_NONE)
 		return false;
@@ -125,6 +127,7 @@ bool HeuristicBot::chooseManaPlacement(Duel& duel, const std::vector<Message>& m
 
 int HeuristicBot::chooseManaPayment(Duel& duel, const std::vector<int>& options) const
 {
+	AiPersonalityScope personalityScope(mPersonality);
 	int selected = -1;
 	double bestScore = -std::numeric_limits<double>::infinity();
 	for (std::vector<int>::const_iterator option = options.begin(); option != options.end(); ++option)
@@ -209,7 +212,8 @@ double HeuristicBot::scoreChoice(Duel& duel, int selection) const
 
 double HeuristicBot::scoreManaCharge(Duel& duel, int cardId) const
 {
-	return AiScoring::manaPlacementDelta(duel, mPlayer, cardId);
+	return AiScoring::manaPlacementDelta(duel, mPlayer, cardId) +
+		aiParam("heuristic.move.mana_charge_bias");
 }
 
 double HeuristicBot::scoreManaPayment(Duel& duel, int cardId) const
@@ -393,13 +397,10 @@ double HeuristicBot::scoreBlock(Duel& duel, int blocker) const
 
 double HeuristicBot::scoreMove(Duel& duel, const Message& move) const
 {
+	AiPersonalityScope personalityScope(mPersonality);
 	const std::string type = messageType(move);
-	auto adjusted = [this, &type](double score)
-	{
-		return adjustForPersonality(type, score);
-	};
-	if (type == "choiceselect") return adjusted(scoreChoice(duel, messageInt(move, "selection")));
-	if (type == "cardmana") return adjusted(scoreManaCharge(duel, messageInt(move, "card")));
+	if (type == "choiceselect") return scoreChoice(duel, messageInt(move, "selection"));
+	if (type == "cardmana") return scoreManaCharge(duel, messageInt(move, "card"));
 	if (type == "cardplay")
 	{
 		int card = messageInt(move, "card");
@@ -411,26 +412,19 @@ double HeuristicBot::scoreMove(Duel& duel, const Message& move) const
 			score += aiParam("heuristic.move.evolution_bait_bonus");
 		if (messageInt(move, "evobait2") >= 0)
 			score += aiParam("heuristic.move.evolution_bait_bonus");
-		return adjusted(score);
+		return score;
 	}
-	if (type == "manatap") return adjusted(aiParam("heuristic.move.mana_tap_score"));
-	if (type == "creatureattack") return adjusted(scoreAttack(duel, move));
-	if (type == "creatureblock") return adjusted(scoreBlock(duel, messageInt(move, "blocker")));
-	if (type == "blockskip") return adjusted(aiParam("heuristic.move.block_skip_score"));
-	if (type == "targetshield") return adjusted(aiParam("heuristic.move.shield_target_score"));
+	if (type == "manatap") return aiParam("heuristic.move.mana_tap_score");
+	if (type == "creatureattack") return scoreAttack(duel, move);
+	if (type == "creatureblock") return scoreBlock(duel, messageInt(move, "blocker"));
+	if (type == "blockskip") return aiParam("heuristic.move.block_skip_score");
+	if (type == "targetshield") return aiParam("heuristic.move.shield_target_score");
 	if (type == "triggeruse")
-		return adjusted(aiParam("heuristic.move.trigger_base") +
-			cardValue(duel, messageInt(move, "trigger"), false));
-	if (type == "triggerskip") return adjusted(aiParam("heuristic.move.trigger_skip_score"));
+		return aiParam("heuristic.move.trigger_base") +
+			cardValue(duel, messageInt(move, "trigger"), false);
+	if (type == "triggerskip") return aiParam("heuristic.move.trigger_skip_score");
 	if (type == "creatureusetapability")
-		return adjusted(aiParam("heuristic.move.tap_ability_score"));
-	if (type == "endturn") return adjusted(aiParam("heuristic.move.end_turn_score"));
-	return adjusted(aiParam("heuristic.move.default_score"));
-}
-
-double HeuristicBot::adjustForPersonality(const std::string& moveType, double score) const
-{
-	if (!std::isfinite(score)) return score;
-	return score + aiPersonalityParam(mPersonality,
-		"move_adjustment." + moveType);
+		return aiParam("heuristic.move.tap_ability_score");
+	if (type == "endturn") return aiParam("heuristic.move.end_turn_score");
+	return aiParam("heuristic.move.default_score");
 }

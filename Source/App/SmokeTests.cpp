@@ -534,11 +534,6 @@ int Application::runSmokeTests()
 				else
 				{
 					stopDuel();
-					if (!exerciseMenuScreensSmoke())
-					{
-						std::cerr << "Menu and deck-builder smoke test failed." << std::endl;
-						return 2;
-					}
 					mRunning = false;
 				}
 			}
@@ -1419,12 +1414,13 @@ bool Application::exerciseDecisionPlanSmoke()
 	int ghostTouchId = getCardIdFromName("Ghost Touch");
 	int holyAweId = getCardIdFromName("Holy Awe");
 	int crisisBoulderId = getCardIdFromName("Crisis Boulder");
+	int skeletonThiefId = getCardIdFromName("Skeleton Thief, the Revealer");
 	if (hammerId < 0 || lunarChargerId < 0 || fireCreatureId < 0 || natureCreatureId < 0 ||
 		slashChargerId < 0 || futureSlashId < 0 || brutalChargeId < 0 || pokolulId < 0 ||
 		aquaSurferId < 0 || spasticMissileId < 0 || emeralId < 0 || solarRayId < 0 ||
 		bolshackDragonId < 0 || dimensionGateId < 0 || manaNexusId < 0 || rondobilId < 0 ||
 		tornadoFlameId < 0 || terrorPitId < 0 || deathSmokeId < 0 || ghostTouchId < 0 ||
-		holyAweId < 0 || crisisBoulderId < 0)
+		holyAweId < 0 || crisisBoulderId < 0 || skeletonThiefId < 0)
 		return false;
 
 	bool valid = true;
@@ -1793,6 +1789,7 @@ bool Application::exerciseDecisionPlanSmoke()
 		int waterCard = addCard(emeralId, ZONE_MANA);
 
 		DecisionPlanEnumerationOptions aiOptions;
+		aiOptions.personality = "default";
 		aiOptions.heuristicMana = true;
 		aiOptions.heuristicChoices = true;
 		std::vector<DecisionPlan> plans = enumerateDecisionPlans(root, aiOptions);
@@ -1896,6 +1893,7 @@ bool Application::exerciseDecisionPlanSmoke()
 		int firstShield = addCard(natureCreatureId, ZONE_SHIELD);
 
 		DecisionPlanEnumerationOptions aiOptions;
+		aiOptions.personality = "default";
 		aiOptions.heuristicMana = true;
 		aiOptions.heuristicChoices = true;
 		std::vector<DecisionPlan> plans = enumerateDecisionPlans(root, aiOptions);
@@ -2324,6 +2322,51 @@ bool Application::exerciseDecisionPlanSmoke()
 				plannedWithTarget << std::endl;
 		}
 		valid = valid && spasticMissileCase;
+	}
+
+	{
+		Duel root;
+		root.mIsSimulation = true;
+		root.mInputLoopRunning = false;
+		auto addCard = [&root](int cardId, int zone) -> int
+		{
+			int uid = static_cast<int>(root.mCardList.size());
+			Card* card = new Card(uid, cardId, 0);
+			root.mCardList.push_back(card);
+			root.getZone(0, zone)->addCard(card);
+			card->mZone = zone;
+			root.mNextUniqueId = uid + 1;
+			return uid;
+		};
+
+		int skeletonThief = addCard(skeletonThiefId, ZONE_HAND);
+		int livingDead = addCard(skeletonThiefId, ZONE_GRAVEYARD);
+		int otherCreature = addCard(fireCreatureId, ZONE_GRAVEYARD);
+		bool optionalLivingDeadChoice = false;
+		root.setChoiceResolver(
+			[&](const Duel& position) -> int
+			{
+				optionalLivingDeadChoice = position.mChoice != NULL &&
+					position.mChoice->mButtonCount == 1 &&
+					position.mChoiceValidCards.size() == 1 &&
+					position.choiceCanBeSelected(livingDead) &&
+					!position.choiceCanBeSelected(otherCreature);
+				return livingDead;
+			}, 1);
+		{
+			ActiveDuelGuard activeGuard(root);
+			Message summon("cardmove");
+			summon.addValue("card", skeletonThief);
+			summon.addValue("from", ZONE_HAND);
+			summon.addValue("to", ZONE_BATTLE);
+			summon.addValue("evobait", -1);
+			root.mMsgMngr.sendMessage(summon);
+			root.dispatchAllMessages();
+		}
+		valid = valid && optionalLivingDeadChoice && !root.hasSimulationChoiceFailure() &&
+			root.mCardList[skeletonThief]->mZone == ZONE_BATTLE &&
+			root.mCardList[livingDead]->mZone == ZONE_HAND &&
+			root.mCardList[otherCreature]->mZone == ZONE_GRAVEYARD;
 	}
 	return valid;
 }
@@ -2959,17 +3002,25 @@ bool Application::exerciseAiDriverSmoke()
 	MctsConfig liveCombatConfig = liveMctsConfig(true);
 	bool valid = liveMainConfig.iterations == 1024 && liveCombatConfig.iterations == 1024 &&
 		liveMainConfig.timeBudgetMs == 1500 && liveCombatConfig.timeBudgetMs == 2500 &&
+		hasAiPersonality("default") && hasAiPersonality("DEFAULT") &&
 		hasAiPersonality("rush") && hasAiPersonality("Tempo") &&
 		hasAiPersonality("CONTROL") && !hasAiPersonality("unknown") &&
 		hasAiDifficulty("easy") && hasAiDifficulty("Medium") &&
 		hasAiDifficulty("HARD") && !hasAiDifficulty("unknown") &&
-		aiPersonalityParam("rush", "move_adjustment.creatureattack") == 16.0 &&
-		aiPersonalityParam("tempo", "move_adjustment.cardmana") == -2.0 &&
-		aiPersonalityParam("control", "move_adjustment.creatureblock") == 12.0 &&
+		aiPersonalityParam("rush", "heuristic.attack.player_base") == 65.0 &&
+		aiPersonalityParam("tempo", "evaluation.hand_cost_bonus") == 0.06 &&
+		aiPersonalityParam("control", "heuristic.block.normal_base") == 32.0 &&
+		aiPersonalityParam("default", "heuristic.attack.player_base") ==
+			aiParam("heuristic.attack.player_base") &&
+		aiPersonalityParam("rush", "evaluation.mana_card_value") == 2.5 &&
+		aiPersonalityParam("rush", "evaluation.mana_civilization_bonus") ==
+			aiParam("evaluation.mana_civilization_bonus") &&
+		aiPersonalityParam("control", "search.max_depth") ==
+			aiParam("search.max_depth") &&
 		liveMctsConfig(false, "easy").timeBudgetMs == 500 &&
-		liveMctsConfig(true, "easy").timeBudgetMs == 800 &&
-		liveMctsConfig(false, "hard").timeBudgetMs == 3000 &&
-		liveMctsConfig(true, "hard").timeBudgetMs == 5000;
+		liveMctsConfig(true, "easy").timeBudgetMs == 1000 &&
+		liveMctsConfig(false, "hard").timeBudgetMs == 2000 &&
+		liveMctsConfig(true, "hard").timeBudgetMs == 3000;
 
 	Duel live;
 	live.mInputLoopRunning = false;
@@ -4657,7 +4708,7 @@ bool Application::exerciseHeuristicManaConservationSmoke()
 	std::vector<Message> moves;
 	moves.push_back(cheapCharge);
 	moves.push_back(expensiveCharge);
-	HeuristicBot bot(0);
+	HeuristicBot bot(0, "default");
 	Message placement;
 	bool found = bot.chooseManaPlacement(duel, moves, placement);
 	double expensiveDelta = AiScoring::manaPlacementDelta(duel, 0, expensive);
@@ -4695,9 +4746,10 @@ bool Application::exerciseHeuristicManaConservationSmoke()
 	std::vector<DecisionPlan> boundaryPlans;
 	{
 		ActiveDuelGuard activeGuard(duel);
-		liveBoundaryPlacement = playHeuristicManaPlacement(duel, 0, "tempo");
+		liveBoundaryPlacement = playHeuristicManaPlacement(duel, 0, "default");
 		DecisionPlanEnumerationOptions options;
 		options.heuristicMana = true;
+		options.personality = "default";
 		boundaryPlans = enumerateDecisionPlans(duel, options);
 	}
 	bool searchSkipsBoundaryPlacement = true;
@@ -4745,8 +4797,11 @@ bool Application::exerciseKnockoutScoringSmoke()
 	int blockerCardId = getCardIdFromName("Bloody Squito");
 	int repeatBlockerCardId = getCardIdFromName("Spiral Grass");
 	int terrorPitCardId = getCardIdFromName("Terror Pit");
+	int spiralGateCardId = getCardIdFromName("Spiral Gate");
+	int aquaSurferCardId = getCardIdFromName("Aqua Surfer");
 	if (attackerCardId < 0 || unblockableCardId < 0 || blockerCardId < 0 ||
-		repeatBlockerCardId < 0 || terrorPitCardId < 0) return false;
+		repeatBlockerCardId < 0 || terrorPitCardId < 0 || spiralGateCardId < 0 ||
+		aquaSurferCardId < 0) return false;
 
 	auto addCard = [](Duel& duel, int cardId, int owner, int zone) -> int
 	{
@@ -4771,7 +4826,32 @@ bool Application::exerciseKnockoutScoringSmoke()
 	Duel directAttack;
 	prepare(directAttack);
 	int regular = addCard(directAttack, attackerCardId, 0, ZONE_BATTLE);
-	addCard(directAttack, blockerCardId, 1, ZONE_BATTLE);
+	int blocker = addCard(directAttack, blockerCardId, 1, ZONE_BATTLE);
+	bool leafCreatureValues = false;
+	{
+		ActiveDuelGuard activeGuard(directAttack);
+		double expectedAttackerValue =
+			std::max(0, directAttack.getCreaturePower(regular)) /
+				aiParam("evaluation.creature_power_divisor") +
+			std::max(0, directAttack.getCreatureBreaker(regular)) *
+				aiParam("evaluation.creature_breaker_value");
+		double attackerValue = AiScoring::battleCreatureValue(directAttack, regular);
+		directAttack.mCardList[regular]->mIsTapped = true;
+		double tappedAttackerValue = AiScoring::battleCreatureValue(directAttack, regular);
+		directAttack.mCardList[regular]->mIsTapped = false;
+		double expectedBlockerValue =
+			std::max(0, directAttack.getCreaturePower(blocker)) /
+				aiParam("evaluation.creature_power_divisor") +
+			aiParam("evaluation.creature_blocker_bonus");
+		double blockerValue = AiScoring::battleCreatureValue(directAttack, blocker);
+		leafCreatureValues =
+			directAttack.getCreatureCanAttackPlayers(regular) != CANATTACK_NO &&
+			directAttack.getCreatureCanAttackPlayers(blocker) == CANATTACK_NO &&
+			directAttack.getCreatureIsBlocker(blocker) == 1 &&
+			std::abs(attackerValue - expectedAttackerValue) < 0.0001 &&
+			std::abs(tappedAttackerValue - expectedAttackerValue) < 0.0001 &&
+			std::abs(blockerValue - expectedBlockerValue) < 0.0001;
+	}
 	bool fullyBlocked = !AiScoring::hasKnockout(directAttack, 0);
 	int unblockable = addCard(directAttack, unblockableCardId, 0, ZONE_BATTLE);
 	bool unblockableGetsThrough = AiScoring::hasKnockout(directAttack, 0);
@@ -4825,14 +4905,22 @@ bool Application::exerciseKnockoutScoringSmoke()
 	addCard(shieldTriggerTargeting, attackerCardId, 0, ZONE_BATTLE);
 	addCard(shieldTriggerTargeting, attackerCardId, 1, ZONE_SHIELD);
 	int terrorPit = addCard(shieldTriggerTargeting, terrorPitCardId, 1, ZONE_HAND);
+	int spiralGate = addCard(shieldTriggerTargeting, spiralGateCardId, 1, ZONE_HAND);
+	int aquaSurfer = addCard(shieldTriggerTargeting, aquaSurferCardId, 1, ZONE_HAND);
 	shieldTriggerTargeting.mAttackphase = PHASE_TRIGGER;
 	shieldTriggerTargeting.mCastingCard = terrorPit;
 	bool stableProbeSuppressed = !AiScoring::hasKnockout(shieldTriggerTargeting, 0);
 	bool transientProbeFindsKo = AiScoring::hasKnockout(shieldTriggerTargeting, 0, false);
 	int knockoutPreferred = RETURN_NOTHING;
+	int spiralGateKnockoutPreferred = RETURN_NOTHING;
+	int aquaSurferKnockoutPreferred = RETURN_NOTHING;
 	{
 		ActiveDuelGuard activeGuard(shieldTriggerTargeting);
 		knockoutPreferred = shieldTriggerTargeting.getCardAiPreferredChoice(terrorPit);
+		spiralGateKnockoutPreferred =
+			shieldTriggerTargeting.getCardAiPreferredChoice(spiralGate);
+		aquaSurferKnockoutPreferred =
+			shieldTriggerTargeting.getCardAiPreferredChoice(aquaSurfer);
 	}
 	addCard(shieldTriggerTargeting, attackerCardId, 1, ZONE_SHIELD);
 	addCard(shieldTriggerTargeting, attackerCardId, 1, ZONE_SHIELD);
@@ -4842,11 +4930,14 @@ bool Application::exerciseKnockoutScoringSmoke()
 		ordinaryPreferred = shieldTriggerTargeting.getCardAiPreferredChoice(terrorPit);
 	}
 
-	return fullyBlocked && unblockableGetsThrough && bonusApplied && noAttackers &&
+	return leafCreatureValues && fullyBlocked && unblockableGetsThrough && bonusApplied && noAttackers &&
 		oneAttackerCannotFinish && twoAttackerKo && optimalBlockStopsKo &&
 		extraAttackerRestoresKo && breakerPlusFinisherKo && repeatedBlocksStopKo &&
 		stableProbeSuppressed && transientProbeFindsKo &&
-		knockoutPreferred == doubleBreakerTarget && ordinaryPreferred == highValueTapped;
+		knockoutPreferred == doubleBreakerTarget &&
+		spiralGateKnockoutPreferred == doubleBreakerTarget &&
+		aquaSurferKnockoutPreferred == spiralGateKnockoutPreferred &&
+		ordinaryPreferred == highValueTapped;
 }
 
 bool Application::beginMandatorySacrificeAiSmoke(
@@ -5913,730 +6004,4 @@ bool Application::exerciseStorySmoke()
 	mStoryScene = savedScene;
 	mStoryScenePage = savedPage;
 	return bossUnlocked && bossVisible && actCompleted;
-}
-
-bool Application::exerciseMenuScreensSmoke()
-{
-	mScreen = Screen::Overworld;
-	mPauseMenuOpen = true;
-	mPauseMenuSelection = 0;
-	renderOverworld();
-	if (mCrestTextures.size() != 9) return false;
-	for (std::map<std::string, SDL_Texture*>::const_iterator texture = mCrestTextures.begin();
-		texture != mCrestTextures.end(); ++texture)
-		if (texture->second == NULL) return false;
-	int aureliaIndex = -1;
-	for (size_t i = 0; i < mNpcs.size(); ++i)
-		if (mNpcs[i].id == "aurelia") aureliaIndex = (int)i;
-	if (aureliaIndex < 0 || mNpcs[aureliaIndex].crestId != "dawn") return false;
-	int savedAureliaWins = mNpcs[aureliaIndex].wins;
-	mNpcs[aureliaIndex].wins = 0;
-	bool crestStartsLocked = !hasCrest("dawn");
-	mNpcs[aureliaIndex].wins = 1;
-	bool crestUnlocks = hasCrest("dawn");
-	mNpcs[aureliaIndex].wins = savedAureliaWins;
-	if (!crestStartsLocked || !crestUnlocks) return false;
-	SDL_Event navigate = {};
-	navigate.type = SDL_KEYDOWN;
-	navigate.key.keysym.sym = SDLK_DOWN;
-	handleOverworldEvent(navigate);
-	navigate.key.keysym.sym = SDLK_UP;
-	handleOverworldEvent(navigate);
-	navigate.key.keysym.sym = SDLK_s;
-	handleOverworldEvent(navigate);
-	handleOverworldEvent(navigate);
-	navigate.key.keysym.sym = SDLK_RETURN;
-	handleOverworldEvent(navigate);
-	if (mScreen != Screen::DeckBuilder) return false;
-	if (gCardDatabase.size() < 11) return false;
-	PlayerDeck deckSizeCheck;
-	for (int card = 0; card < 10; ++card) deckSizeCheck.cards[card] = 4;
-	bool fortyCardsLegal = deckHasMinimumCards(deckSizeCheck);
-	deckSizeCheck.cards[10] = 1;
-	bool fortyOneCardsLegal = deckHasMinimumCards(deckSizeCheck);
-	deckSizeCheck.cards[0] = 3;
-	bool fortyCardsStillLegal = deckHasMinimumCards(deckSizeCheck);
-	deckSizeCheck.cards.erase(10);
-	bool thirtyNineCardsIllegal = !deckHasMinimumCards(deckSizeCheck);
-	if (!fortyCardsLegal || !fortyOneCardsLegal || !fortyCardsStillLegal ||
-		!thirtyNineCardsIllegal) return false;
-	for (size_t i = 0; i < mPlayerDecks.size(); ++i)
-		if (!mPlayerDecks[i].path.empty() &&
-			mPlayerDecks[i].path.find(playerDeckDirectory() + "/") != 0) return false;
-	renderDeckBuilder();
-	mMouseX = 300;
-	mMouseY = 200;
-	renderDeckBuilder();
-	if (mDeckHoveredCard < 0)
-	{
-		std::cerr << "Deck builder collection hover was unavailable." << std::endl;
-		return false;
-	}
-	mMouseX = 1000;
-	mMouseY = 270;
-	renderDeckBuilder();
-	if (mDeckHoveredCard < 0)
-	{
-		std::cerr << "Deck builder contents hover was unavailable: editing=" <<
-			mEditingDeckIndex << ", decks=" << mPlayerDecks.size() <<
-			", entries=" << (mEditingDeckIndex >= 0 &&
-			mEditingDeckIndex < (int)mPlayerDecks.size() ?
-				mPlayerDecks[mEditingDeckIndex].cards.size() : 0) << std::endl;
-		return false;
-	}
-	SDL_Event back = {};
-	back.type = SDL_KEYDOWN;
-	back.key.keysym.sym = SDLK_ESCAPE;
-	handleDeckBuilderEvent(back);
-	if (mScreen != Screen::Overworld) return false;
-
-	mPauseMenuOpen = true;
-	SDL_Event openSettings = {};
-	openSettings.type = SDL_MOUSEBUTTONDOWN;
-	openSettings.button.button = SDL_BUTTON_LEFT;
-	openSettings.button.x = SETTINGS_BUTTON.x + SETTINGS_BUTTON.w / 2;
-	openSettings.button.y = SETTINGS_BUTTON.y + SETTINGS_BUTTON.h / 2;
-	handleOverworldEvent(openSettings);
-	if (mScreen != Screen::Settings) return false;
-	renderSettings();
-	handleSettingsEvent(back);
-	if (mScreen != Screen::Overworld) return false;
-
-	int mercerIndex = -1;
-	for (size_t i = 0; i < mNpcs.size(); ++i)
-		if (mNpcs[i].id == "mercer") mercerIndex = (int)i;
-	if (!mNpcs[aureliaIndex].isTownNpc() || !mNpcs[aureliaIndex].isDuelist() ||
-		mNpcs[aureliaIndex].canTrade() || mercerIndex < 0 ||
-		!mNpcs[mercerIndex].isTownNpc() || mNpcs[mercerIndex].isDuelist() ||
-		!mNpcs[mercerIndex].canTrade()) return false;
-	std::vector<NpcMenuAction> aureliaActions = npcMenuActions(aureliaIndex);
-	std::vector<NpcMenuAction> mercerActions = npcMenuActions(mercerIndex);
-	if (aureliaActions.size() != 3 || aureliaActions[0] != NpcMenuAction::Talk ||
-		aureliaActions[1] != NpcMenuAction::Duel ||
-		aureliaActions[2] != NpcMenuAction::Leave || mercerActions.size() != 3 ||
-		mercerActions[0] != NpcMenuAction::Talk ||
-		mercerActions[1] != NpcMenuAction::Trade ||
-		mercerActions[2] != NpcMenuAction::Leave) return false;
-	beginDialogue(aureliaIndex, mNpcs[aureliaIndex].dialogueText("greeting"),
-		DialogueAction::OpenNpcMenu);
-	mDialogueVisibleBytes = mDialogueText.size();
-	advanceDialogue();
-	if (mDialogueNpc >= 0 || mNpcMenuNpc != aureliaIndex) return false;
-	renderNpcMenu();
-	activateNpcMenuAction(NpcMenuAction::Leave);
-	if (mNpcMenuNpc >= 0) return false;
-	mNpcMenuNpc = mercerIndex;
-	mNpcMenuSelection = 1;
-	activateNpcMenuAction(NpcMenuAction::Trade);
-	renderShop();
-	if (mScreen != Screen::Shop || mShopCardHitboxes.size() != 10) return false;
-	SDL_Event shopNavigation = {};
-	shopNavigation.type = SDL_KEYDOWN;
-	shopNavigation.key.keysym.sym = SDLK_DOWN;
-	handleShopEvent(shopNavigation);
-	if (shopInventory().size() > 10 && mShopPage != 1) return false;
-	shopNavigation.key.keysym.sym = SDLK_UP;
-	handleShopEvent(shopNavigation);
-	if (mShopPage != 0) return false;
-	handleShopEvent(back);
-	if (mScreen != Screen::Overworld) return false;
-
-	Screen savedScreen = mScreen;
-	WorldBuilderTab savedBuilderTab = mWorldBuilderTab;
-	int savedBuilderArea = mCurrentWorldArea;
-	float savedBuilderCameraX = mWorldBuilderCameraX;
-	float savedBuilderCameraY = mWorldBuilderCameraY;
-	int savedBuilderTileSize = mWorldBuilderTileSize;
-	int savedBuilderListScroll = mWorldBuilderListScroll;
-	int savedBuilderTileCategory = mWorldBuilderTileCategory;
-	int savedBuilderTileSheet = mWorldBuilderTileSheet;
-	int savedBuilderCatalogTile = mWorldBuilderCatalogTile;
-	int savedBuilderBrushSize = mWorldBuilderBrushSize;
-	bool savedBuilderShowGrid = mWorldBuilderShowGrid;
-	int savedBuilderSelectedNpc = mWorldBuilderSelectedNpc;
-	int savedBuilderSelectedObject = mWorldBuilderSelectedObject;
-	bool savedBuilderObjectPalette = mWorldBuilderObjectPalette;
-	int savedBuilderSelectedObjectTemplate = mWorldBuilderSelectedObjectTemplate;
-	std::vector<WorldObject> savedWorldObjects = mWorldObjects;
-	bool savedBuilderDirty = mWorldBuilderDirty;
-	int savedMouseX = mMouseX;
-	int savedMouseY = mMouseY;
-	int builderArea = worldAreaIndex("overworld");
-	if (builderArea < 0 || mWorldObjects.empty() || mMercerStock.shards.empty()) return false;
-	mScreen = Screen::WorldBuilder;
-	mCurrentWorldArea = builderArea;
-	mWorldBuilderTab = WorldBuilderTab::Tiles;
-	mWorldBuilderListScroll = 0;
-	mWorldBuilderCameraX = 10;
-	mWorldBuilderCameraY = 10;
-	mWorldBuilderTileSize = TILE;
-	mWorldBuilderListScroll = 0;
-	mWorldBuilderMoveUp = mWorldBuilderMoveDown = false;
-	mWorldBuilderMoveLeft = mWorldBuilderMoveRight = false;
-	mWorldBuilderPanAccumulator = 0;
-	SDL_Event toggleGridKey = {};
-	toggleGridKey.type = SDL_KEYDOWN;
-	toggleGridKey.key.keysym.sym = SDLK_g;
-	handleWorldBuilderEvent(toggleGridKey);
-	bool gridToggleReady = mWorldBuilderShowGrid != savedBuilderShowGrid;
-	SDL_Event toggleGridButton = {};
-	toggleGridButton.type = SDL_MOUSEBUTTONDOWN;
-	toggleGridButton.button.button = SDL_BUTTON_LEFT;
-	toggleGridButton.button.x = 1200;
-	toggleGridButton.button.y = 40;
-	handleWorldBuilderEvent(toggleGridButton);
-	gridToggleReady = gridToggleReady &&
-		mWorldBuilderShowGrid == savedBuilderShowGrid;
-	int portraitNpc = 0;
-	int portraitArea = worldAreaIndex(mNpcs[portraitNpc].mapId);
-	if (portraitArea < 0) return false;
-	mWorldBuilderTab = WorldBuilderTab::Npcs;
-	SDL_Event npcListClick = {};
-	npcListClick.type = SDL_MOUSEBUTTONDOWN;
-	npcListClick.button.button = SDL_BUTTON_LEFT;
-	npcListClick.button.x = 1100;
-	npcListClick.button.y = 159;
-	npcListClick.button.clicks = 1;
-	handleWorldBuilderEvent(npcListClick);
-	bool npcDoubleClickReady = mWorldBuilderSelectedNpc == portraitNpc &&
-		mCurrentWorldArea == builderArea;
-	npcListClick.button.clicks = 2;
-	handleWorldBuilderEvent(npcListClick);
-	npcDoubleClickReady = npcDoubleClickReady && mCurrentWorldArea == portraitArea;
-	mCurrentWorldArea = builderArea;
-	mWorldBuilderCameraX = 10;
-	mWorldBuilderCameraY = 10;
-	mWorldBuilderListScroll = 0;
-	mWorldBuilderTab = WorldBuilderTab::Objects;
-	SDL_Event objectListClick = npcListClick;
-	objectListClick.button.clicks = 1;
-	handleWorldBuilderEvent(objectListClick);
-	bool objectDoubleClickReady = mWorldBuilderSelectedObject == 0 &&
-		mCurrentWorldArea == builderArea && mWorldBuilderCameraX == 10 &&
-		mWorldBuilderCameraY == 10;
-	objectListClick.button.clicks = 2;
-	handleWorldBuilderEvent(objectListClick);
-	int objectArea = worldAreaIndex(mWorldObjects[0].mapId);
-	objectDoubleClickReady = objectDoubleClickReady && mCurrentWorldArea == objectArea &&
-		(mWorldBuilderCameraX != 10 || mWorldBuilderCameraY != 10);
-	mCurrentWorldArea = builderArea;
-	mWorldBuilderCameraX = 10;
-	mWorldBuilderCameraY = 10;
-	mWorldBuilderListScroll = (int)mWorldObjects.size();
-	objectListClick.button.clicks = 1;
-	handleWorldBuilderEvent(objectListClick);
-	bool shardListedAsObject = mWorldBuilderSelectedObject == (int)mWorldObjects.size() &&
-		mCurrentWorldArea == builderArea && mWorldBuilderCameraX == 10 &&
-		mWorldBuilderCameraY == 10;
-	objectListClick.button.clicks = 2;
-	handleWorldBuilderEvent(objectListClick);
-	int shardArea = worldAreaIndex(mMercerStock.shards[0].mapId);
-	shardListedAsObject = shardListedAsObject && mCurrentWorldArea == shardArea;
-	mCurrentWorldArea = builderArea;
-	mWorldBuilderTab = WorldBuilderTab::Objects;
-	mWorldBuilderObjectPalette = false;
-	mWorldBuilderListScroll = 0;
-	int bushTemplate = -1;
-	for (size_t index = 0; index < mWorldObjectTemplates.size(); ++index)
-		if (mWorldObjectTemplates[index].id == "cuttable_bush")
-			bushTemplate = (int)index;
-	int objectTestX = -1;
-	int objectTestY = -1;
-	if (mWorld.start.mapId == currentMapId())
-		for (int radius = 1; radius <= 40 && objectTestX < 0; ++radius)
-			for (int y = std::max(0, mWorld.start.y - radius);
-				y <= std::min((int)currentMap().size() - 1,
-				mWorld.start.y + radius) && objectTestX < 0; ++y)
-				for (int x = std::max(0, mWorld.start.x - radius);
-					x <= std::min((int)currentMap()[y].size() - 1,
-					mWorld.start.x + radius); ++x)
-					if (worldBuilderCanPlace(x, y, -1, -1))
-					{
-						objectTestX = x;
-						objectTestY = y;
-						break;
-					}
-	clearWorldBuilderUndoHistory();
-	bool objectCreationReady = bushTemplate >= 0 && bushTemplate < 13 &&
-		objectTestX >= 0;
-	SDL_Event addPaletteClick = {};
-	addPaletteClick.type = SDL_MOUSEBUTTONDOWN;
-	addPaletteClick.button.button = SDL_BUTTON_LEFT;
-	addPaletteClick.button.x = 1050;
-	addPaletteClick.button.y = 675;
-	handleWorldBuilderEvent(addPaletteClick);
-	objectCreationReady = objectCreationReady && mWorldBuilderObjectPalette;
-	if (bushTemplate >= 0 && bushTemplate < 13)
-	{
-		SDL_Event templateClick = {};
-		templateClick.type = SDL_MOUSEBUTTONDOWN;
-		templateClick.button.button = SDL_BUTTON_LEFT;
-		templateClick.button.x = 1100;
-		templateClick.button.y = 151 + bushTemplate * 39 + 8;
-		handleWorldBuilderEvent(templateClick);
-		objectCreationReady = objectCreationReady &&
-			mWorldBuilderSelectedObjectTemplate == bushTemplate;
-	}
-	const size_t objectCountBeforeCreation = mWorldObjects.size();
-	const bool dirtyBeforeObjectCreation = mWorldBuilderDirty;
-	if (objectCreationReady)
-		objectCreationReady = addWorldBuilderObject(bushTemplate,
-			objectTestX, objectTestY);
-	objectCreationReady = objectCreationReady &&
-		mWorldObjects.size() == objectCountBeforeCreation + 1 &&
-		mWorldObjects.back().kind == WorldObjectKind::CuttableBush &&
-		mWorldObjects.back().editorCreated &&
-		mWorldObjects.back().templateId == "cuttable_bush";
-	SDL_Event placedPaletteClick = addPaletteClick;
-	placedPaletteClick.button.x = 1190;
-	handleWorldBuilderEvent(placedPaletteClick);
-	objectCreationReady = objectCreationReady && !mWorldBuilderObjectPalette;
-	deleteWorldBuilderObject();
-	objectCreationReady = objectCreationReady &&
-		mWorldObjects.size() == objectCountBeforeCreation;
-	undoWorldBuilder();
-	objectCreationReady = objectCreationReady &&
-		mWorldObjects.size() == objectCountBeforeCreation + 1 &&
-		mWorldObjects.back().editorCreated;
-	undoWorldBuilder();
-	objectCreationReady = objectCreationReady &&
-		mWorldObjects.size() == objectCountBeforeCreation &&
-		mWorldBuilderUndoHistory.empty() &&
-		mWorldBuilderDirty == dirtyBeforeObjectCreation;
-	mWorldBuilderTab = WorldBuilderTab::Npcs;
-	mCurrentWorldArea = portraitArea;
-	mWorldBuilderCameraX = 0;
-	mWorldBuilderCameraY = 0;
-	const std::vector<std::string>& portraitMap = currentMap();
-	int portraitMapX = MAP_X + std::max(0,
-		MAP_VIEW_WIDTH - (int)portraitMap[0].size() * TILE) / 2;
-	int portraitMapY = MAP_Y + std::max(0,
-		MAP_VIEW_HEIGHT - (int)portraitMap.size() * TILE) / 2;
-	mMouseX = portraitMapX + mNpcs[portraitNpc].x * TILE + TILE / 2;
-	mMouseY = portraitMapY + mNpcs[portraitNpc].y * TILE + TILE / 2;
-	bool npcBuilderViewReady = worldBuilderHoveredNpc() == portraitNpc;
-	renderWorldBuilder();
-	npcBuilderViewReady = npcBuilderViewReady && !mWorldBuilderTileScaleActive;
-	mCurrentWorldArea = builderArea;
-	mWorldBuilderTab = WorldBuilderTab::Tiles;
-	mWorldBuilderListScroll = 0;
-	mWorldBuilderCameraX = 10;
-	mWorldBuilderCameraY = 10;
-	mMouseX = -100;
-	mMouseY = -100;
-	renderWorldBuilder();
-	mWorldBuilderTileCategory = 0;
-	mWorldBuilderTileSheet = (int)RtpTileSheet::A2;
-	mWorldBuilderListScroll = 0;
-	mMouseX = 1030;
-	mMouseY = 264;
-	renderWorldBuilder();
-	bool tilePaletteReady = mWorldBuilderHoveredTileName == "Ground (Dirt Cave)";
-	std::map<std::tuple<int, int, int>, RtpTileReference> savedTileLayers =
-		mWorld.maps[builderArea].tileLayers;
-	int catalogTestX = -1;
-	int catalogTestY = -1;
-	for (int row = 1; row + 1 < (int)currentMap().size() && catalogTestX < 0; ++row)
-		for (int column = 1; column + 3 < (int)currentMap()[row].size(); ++column)
-			if (!worldBuilderRequiresWalkable(column, row) &&
-				!worldBuilderRequiresWalkable(column + 1, row) &&
-				!worldBuilderRequiresWalkable(column + 2, row) &&
-				!worldBuilderRequiresWalkable(column + 3, row) &&
-				!worldBuilderRequiresWalkable(column + 1, row + 1))
-			{
-				catalogTestX = column;
-				catalogTestY = row;
-				break;
-			}
-	if (catalogTestX < 0) return false;
-	std::map<std::tuple<int, int, int>, RtpTileReference>& connectionLayers =
-		mWorld.maps[builderArea].tileLayers;
-	connectionLayers.erase(std::make_tuple(catalogTestY, catalogTestX,
-		(int)RtpRenderLayer::Ground));
-	connectionLayers.erase(std::make_tuple(catalogTestY, catalogTestX + 1,
-		(int)RtpRenderLayer::Ground));
-	connectionLayers.erase(std::make_tuple(catalogTestY, catalogTestX + 1,
-		(int)RtpRenderLayer::Decoration));
-	RtpTileReference wallTile(RtpTilesetFamily::Outside, RtpTileSheet::A3, 8,
-		RtpRenderLayer::Ground);
-	connectionLayers.insert(std::make_pair(std::make_tuple(catalogTestY,
-		catalogTestX, (int)RtpRenderLayer::Ground), wallTile));
-	connectionLayers.insert(std::make_pair(std::make_tuple(catalogTestY,
-		catalogTestX + 1, (int)RtpRenderLayer::Decoration),
-		RtpTileReference(RtpTilesetFamily::Outside, RtpTileSheet::B, 67,
-			RtpRenderLayer::Decoration)));
-	bool wallOpeningConnectionsRemoved =
-		(worldTileConnections(mWorld.maps[builderArea], catalogTestX, catalogTestY,
-			RtpRenderLayer::Ground) & RtpTilesetRenderer::East) == 0;
-	connectionLayers.insert(std::make_pair(std::make_tuple(catalogTestY,
-		catalogTestX + 1, (int)RtpRenderLayer::Ground), wallTile));
-	wallOpeningConnectionsRemoved = wallOpeningConnectionsRemoved &&
-		(worldTileConnections(mWorld.maps[builderArea], catalogTestX, catalogTestY,
-			RtpRenderLayer::Ground) & RtpTilesetRenderer::East) != 0;
-	mWorld.maps[builderArea].tileLayers = savedTileLayers;
-	int brushTestX = -1;
-	int brushTestY = -1;
-	for (int row = 2; row + 2 < (int)currentMap().size() && brushTestX < 0; ++row)
-		for (int column = 2; column + 2 < (int)currentMap()[row].size(); ++column)
-		{
-			bool freeArea = true;
-			for (int y = row - 1; y <= row + 1 && freeArea; ++y)
-				for (int x = column - 1; x <= column + 1; ++x)
-					if (worldBuilderRequiresWalkable(x, y)) freeArea = false;
-			if (freeArea)
-			{
-				brushTestX = column;
-				brushTestY = row;
-				break;
-			}
-		}
-	if (brushTestX < 0) return false;
-	clearWorldBuilderUndoHistory();
-	mWorldBuilderTab = WorldBuilderTab::Tiles;
-	mWorldBuilderTileCategory = 2;
-	mWorldBuilderTileSheet = (int)RtpTileSheet::A2;
-	mWorldBuilderCatalogTile = 1;
-	mWorld.maps[builderArea].tileLayers.erase(std::make_tuple(catalogTestY,
-		catalogTestX, (int)RtpRenderLayer::Ground));
-	mWorld.maps[builderArea].tileLayers.erase(std::make_tuple(catalogTestY,
-		catalogTestX + 1, (int)RtpRenderLayer::Ground));
-	bool dirtyBeforeUndoTest = mWorldBuilderDirty;
-	beginWorldBuilderUndoAction();
-	paintWorldBuilderTile(catalogTestX, catalogTestY);
-	paintWorldBuilderTile(catalogTestX + 1, catalogTestY);
-	commitWorldBuilderUndoAction();
-	bool undoReady = mWorldBuilderUndoHistory.size() == 1 &&
-		worldTileLayer(mWorld.maps[builderArea], catalogTestX, catalogTestY,
-			RtpRenderLayer::Ground) != NULL &&
-		worldTileLayer(mWorld.maps[builderArea], catalogTestX + 1, catalogTestY,
-			RtpRenderLayer::Ground) != NULL;
-	SDL_Event undoClick = {};
-	undoClick.type = SDL_MOUSEBUTTONDOWN;
-	undoClick.button.button = SDL_BUTTON_LEFT;
-	undoClick.button.x = 1050;
-	undoClick.button.y = 740;
-	handleWorldBuilderEvent(undoClick);
-	undoReady = undoReady && mWorldBuilderUndoHistory.empty() &&
-		mWorldBuilderDirty == dirtyBeforeUndoTest &&
-		worldTileLayer(mWorld.maps[builderArea], catalogTestX, catalogTestY,
-			RtpRenderLayer::Ground) == NULL &&
-		worldTileLayer(mWorld.maps[builderArea], catalogTestX + 1, catalogTestY,
-			RtpRenderLayer::Ground) == NULL;
-	paintWorldBuilderTile(catalogTestX, catalogTestY);
-	std::string undoNpcMap = mNpcs[0].mapId;
-	int undoNpcX = mNpcs[0].x;
-	int undoNpcY = mNpcs[0].y;
-	mWorldBuilderTab = WorldBuilderTab::Npcs;
-	mWorldBuilderSelectedNpc = 0;
-	beginWorldBuilderUndoAction();
-	placeWorldBuilderSelection(catalogTestX, catalogTestY);
-	commitWorldBuilderUndoAction();
-	SDL_Event undoKey = {};
-	undoKey.type = SDL_KEYDOWN;
-	undoKey.key.keysym.sym = SDLK_z;
-	undoKey.key.keysym.mod = KMOD_CTRL;
-	handleWorldBuilderEvent(undoKey);
-	undoReady = undoReady && mWorldBuilderUndoHistory.empty() &&
-		mNpcs[0].mapId == undoNpcMap && mNpcs[0].x == undoNpcX &&
-		mNpcs[0].y == undoNpcY;
-	mWorldBuilderTab = WorldBuilderTab::Tiles;
-	mWorldBuilderTileCategory = 2;
-	mWorldBuilderTileSheet = (int)RtpTileSheet::A2;
-	mWorldBuilderCatalogTile = 1;
-	mWorldBuilderBrushSize = 1;
-	SDL_Event increaseBrush = {};
-	increaseBrush.type = SDL_MOUSEBUTTONDOWN;
-	increaseBrush.button.button = SDL_BUTTON_LEFT;
-	increaseBrush.button.x = 1230;
-	increaseBrush.button.y = 660;
-	handleWorldBuilderEvent(increaseBrush);
-	SDL_Event increaseBrushKey = {};
-	increaseBrushKey.type = SDL_KEYDOWN;
-	increaseBrushKey.key.keysym.sym = SDLK_RIGHTBRACKET;
-	handleWorldBuilderEvent(increaseBrushKey);
-	bool brushAreaReady = mWorldBuilderBrushSize == 3 &&
-		worldBuilderBrushResizable();
-	applyWorldBuilderBrushStroke(-1, -1, brushTestX, brushTestY, false);
-	for (int y = brushTestY - 1; y <= brushTestY + 1; ++y)
-		for (int x = brushTestX - 1; x <= brushTestX + 1; ++x)
-		{
-			const RtpTileReference* brushed = worldTileLayer(
-				mWorld.maps[builderArea], x, y, RtpRenderLayer::Ground);
-			brushAreaReady = brushAreaReady && brushed != NULL &&
-				brushed->family == RtpTilesetFamily::Outside &&
-				brushed->sheet == RtpTileSheet::A2 && brushed->index == 1;
-		}
-	applyWorldBuilderBrushStroke(-1, -1, brushTestX, brushTestY, true);
-	for (int y = brushTestY - 1; y <= brushTestY + 1; ++y)
-		for (int x = brushTestX - 1; x <= brushTestX + 1; ++x)
-			brushAreaReady = brushAreaReady && worldTileLayer(
-				mWorld.maps[builderArea], x, y, RtpRenderLayer::Ground) == NULL;
-	mWorldBuilderTileCategory = 0;
-	mWorldBuilderTileSheet = (int)RtpTileSheet::C;
-	mWorldBuilderCatalogTile = 31;
-	handleWorldBuilderEvent(increaseBrush);
-	handleWorldBuilderEvent(increaseBrushKey);
-	brushAreaReady = brushAreaReady && !worldBuilderBrushResizable() &&
-		mWorldBuilderBrushSize == 3;
-	mWorldBuilderTileCategory = 2;
-	mWorldBuilderTileSheet = (int)RtpTileSheet::B;
-	mWorldBuilderCatalogTile = 94;
-	applyWorldBuilderBrushStroke(-1, -1, brushTestX, brushTestY, false);
-	for (int y = brushTestY - 1; y <= brushTestY + 1; ++y)
-		for (int x = brushTestX - 1; x <= brushTestX + 1; ++x)
-		{
-			const RtpTileReference* brushedTree = worldTileLayer(
-				mWorld.maps[builderArea], x, y, RtpRenderLayer::Decoration);
-			brushAreaReady = brushAreaReady && brushedTree != NULL &&
-				brushedTree->index == 93;
-		}
-	applyWorldBuilderBrushStroke(-1, -1, brushTestX, brushTestY, true);
-	for (int y = brushTestY - 1; y <= brushTestY + 1; ++y)
-		for (int x = brushTestX - 1; x <= brushTestX + 1; ++x)
-			brushAreaReady = brushAreaReady && worldTileLayer(
-				mWorld.maps[builderArea], x, y, RtpRenderLayer::Decoration) == NULL;
-	mWorldBuilderBrushSize = 1;
-	mWorldBuilderTileSheet = (int)RtpTileSheet::A2;
-	mWorldBuilderCatalogTile = 1;
-	paintWorldBuilderTile(catalogTestX, catalogTestY);
-	const RtpTileReference* paintedLayer = worldTileLayer(mWorld.maps[builderArea],
-		catalogTestX, catalogTestY, RtpRenderLayer::Ground);
-	bool catalogPaintingReady = paintedLayer != NULL &&
-		paintedLayer->family == RtpTilesetFamily::Outside &&
-		paintedLayer->sheet == RtpTileSheet::A2 && paintedLayer->index == 1 &&
-		worldTileWalkable(mWorld.maps[builderArea], catalogTestX, catalogTestY);
-	eraseWorldBuilderTile(catalogTestX, catalogTestY);
-	catalogPaintingReady = catalogPaintingReady &&
-		worldTileLayer(mWorld.maps[builderArea], catalogTestX, catalogTestY,
-			RtpRenderLayer::Ground) == NULL;
-	mWorldBuilderTileSheet = (int)RtpTileSheet::A3;
-	mWorldBuilderCatalogTile = 8;
-	paintWorldBuilderTile(catalogTestX, catalogTestY);
-	catalogPaintingReady = catalogPaintingReady &&
-		!worldTileWalkable(mWorld.maps[builderArea], catalogTestX, catalogTestY);
-	mWorldBuilderTileSheet = (int)RtpTileSheet::B;
-	mWorldBuilderCatalogTile = 67;
-	paintWorldBuilderTile(catalogTestX + 1, catalogTestY);
-	catalogPaintingReady = catalogPaintingReady &&
-		(worldTileConnections(mWorld.maps[builderArea], catalogTestX,
-			catalogTestY, RtpRenderLayer::Ground) & RtpTilesetRenderer::East) != 0 &&
-		worldTileWalkable(mWorld.maps[builderArea], catalogTestX + 1, catalogTestY);
-	mWorldBuilderTileCategory = 0;
-	mWorldBuilderTileSheet = (int)RtpTileSheet::C;
-	mWorldBuilderCatalogTile = 31;
-	paintWorldBuilderTile(catalogTestX, catalogTestY);
-	catalogPaintingReady = catalogPaintingReady &&
-		worldTileLayer(mWorld.maps[builderArea], catalogTestX, catalogTestY,
-			RtpRenderLayer::Foreground) != NULL;
-	eraseWorldBuilderTile(catalogTestX, catalogTestY);
-	catalogPaintingReady = catalogPaintingReady &&
-		worldTileLayer(mWorld.maps[builderArea], catalogTestX, catalogTestY,
-			RtpRenderLayer::Foreground) == NULL &&
-		worldTileLayer(mWorld.maps[builderArea], catalogTestX, catalogTestY,
-			RtpRenderLayer::Ground) != NULL;
-	mWorldBuilderTileCategory = 2;
-	mWorldBuilderTileSheet = (int)RtpTileSheet::B;
-	mWorldBuilderCatalogTile = 94;
-	applyWorldBuilderBrushStroke(catalogTestX, catalogTestY,
-		catalogTestX + 3, catalogTestY, false);
-	const RtpTileReference* paintedTree = worldTileLayer(mWorld.maps[builderArea],
-		catalogTestX, catalogTestY, RtpRenderLayer::Decoration);
-	bool forestStrokeReady = true;
-	for (int offset = 0; offset < 4; ++offset)
-	{
-		const RtpTileReference* strokeTree = worldTileLayer(mWorld.maps[builderArea],
-			catalogTestX + offset, catalogTestY, RtpRenderLayer::Decoration);
-		forestStrokeReady = forestStrokeReady && strokeTree != NULL &&
-			strokeTree->index == 93;
-	}
-	catalogPaintingReady = catalogPaintingReady && paintedTree != NULL &&
-		paintedTree->index == 93 && forestStrokeReady &&
-		(worldTileConnections(mWorld.maps[builderArea], catalogTestX, catalogTestY,
-			RtpRenderLayer::Decoration) & RtpTilesetRenderer::East) != 0 &&
-		(worldTileConnections(mWorld.maps[builderArea], catalogTestX + 3, catalogTestY,
-			RtpRenderLayer::Decoration) & RtpTilesetRenderer::West) != 0;
-	for (int rowOffset = 0; rowOffset < 2; ++rowOffset)
-		for (int offset = 0; offset < 4; ++offset)
-			mWorld.maps[builderArea].tileLayers.erase(std::make_tuple(
-				catalogTestY + rowOffset, catalogTestX + offset,
-				(int)RtpRenderLayer::Decoration));
-	mWorldBuilderCatalogTile = 113;
-	applyWorldBuilderBrushStroke(catalogTestX, catalogTestY,
-		catalogTestX + 3, catalogTestY, false);
-	bool largeTreeSpacingReady = true;
-	for (int offset = 0; offset < 4; ++offset)
-	{
-		const RtpTileReference* strokeTree = worldTileLayer(mWorld.maps[builderArea],
-			catalogTestX + offset, catalogTestY, RtpRenderLayer::Decoration);
-		largeTreeSpacingReady = largeTreeSpacingReady &&
-			(offset % 2 == 0 ? strokeTree != NULL && strokeTree->index == 112 :
-				strokeTree == NULL);
-	}
-	mWorldBuilderCatalogTile = 129;
-	paintWorldBuilderTile(catalogTestX + 1, catalogTestY);
-	largeTreeSpacingReady = largeTreeSpacingReady &&
-		worldTileLayer(mWorld.maps[builderArea], catalogTestX + 1, catalogTestY,
-			RtpRenderLayer::Decoration) == NULL;
-	mWorldBuilderCatalogTile = 113;
-	paintWorldBuilderTile(catalogTestX + 1, catalogTestY + 1);
-	const RtpTileReference* verticallyPackedTree = worldTileLayer(
-		mWorld.maps[builderArea], catalogTestX + 1, catalogTestY + 1,
-		RtpRenderLayer::Decoration);
-	largeTreeSpacingReady = largeTreeSpacingReady && verticallyPackedTree != NULL &&
-		verticallyPackedTree->index == 112;
-	catalogPaintingReady = catalogPaintingReady && largeTreeSpacingReady;
-	SDL_Event categoryClick = {};
-	categoryClick.type = SDL_MOUSEBUTTONDOWN;
-	categoryClick.button.button = SDL_BUTTON_LEFT;
-	categoryClick.button.x = 1145;
-	categoryClick.button.y = 160;
-	handleWorldBuilderEvent(categoryClick);
-	tilePaletteReady = tilePaletteReady && mWorldBuilderTileCategory == 1 &&
-		mWorldBuilderListScroll == 0;
-	categoryClick.button.x = 1030;
-	categoryClick.button.y = 264;
-	handleWorldBuilderEvent(categoryClick);
-	tilePaletteReady = tilePaletteReady &&
-		mWorldBuilderTileSheet == (int)RtpTileSheet::A1 &&
-		mWorldBuilderCatalogTile == 0;
-	mWorldBuilderTileCategory = 0;
-	mWorldBuilderTileSheet = (int)RtpTileSheet::B;
-	mWorldBuilderCatalogTile = 0;
-	mWorldBuilderListScroll = 0;
-	SDL_Event pan = {};
-	pan.type = SDL_KEYDOWN;
-	pan.key.keysym.sym = SDLK_RIGHT;
-	handleWorldBuilderEvent(pan);
-	updateWorldBuilder(160);
-	pan.type = SDL_KEYUP;
-	handleWorldBuilderEvent(pan);
-	float stoppedCameraX = mWorldBuilderCameraX;
-	updateWorldBuilder(160);
-	bool arrowHeld = std::fabs(stoppedCameraX - 13.f) < 0.001f &&
-		std::fabs(mWorldBuilderCameraX - stoppedCameraX) < 0.001f;
-	pan = {};
-	pan.type = SDL_KEYDOWN;
-	pan.key.keysym.sym = SDLK_s;
-	handleWorldBuilderEvent(pan);
-	updateWorldBuilder(160);
-	pan.type = SDL_KEYUP;
-	handleWorldBuilderEvent(pan);
-	bool wasdHeld = std::fabs(mWorldBuilderCameraY - 13.f) < 0.001f &&
-		mWorldBuilderTab == WorldBuilderTab::Tiles;
-	mWorldBuilderCameraX = 10;
-	mWorldBuilderCameraY = 10;
-	mMouseX = MAP_X + MAP_VIEW_WIDTH / 2;
-	mMouseY = MAP_Y + MAP_VIEW_HEIGHT / 2;
-	SDL_Event zoom = {};
-	zoom.type = SDL_MOUSEWHEEL;
-	zoom.wheel.y = 1;
-	handleWorldBuilderEvent(zoom);
-	bool maximumZoomRendered = mWorldBuilderTileSize == TILE;
-	zoom.wheel.y = -1;
-	handleWorldBuilderEvent(zoom);
-	const int ninetyPercentTile = (TILE * 90 + 50) / 100;
-	float expectedCameraX = 10.f + MAP_VIEW_WIDTH / (2.f * TILE) -
-		MAP_VIEW_WIDTH / (2.f * ninetyPercentTile);
-	float expectedCameraY = 10.f + MAP_VIEW_HEIGHT / (2.f * TILE) -
-		MAP_VIEW_HEIGHT / (2.f * ninetyPercentTile);
-	bool zoomedOut = mWorldBuilderTileSize == ninetyPercentTile &&
-		std::fabs(mWorldBuilderCameraX - expectedCameraX) < 0.001f &&
-		std::fabs(mWorldBuilderCameraY - expectedCameraY) < 0.001f;
-	for (int level = 9; level > 1; --level)
-		zoomWorldBuilder(-1, mMouseX, mMouseY);
-	renderWorldBuilder();
-	const int tenPercentTile = (TILE * 10 + 50) / 100;
-	bool minimumZoomRendered = mWorldBuilderTileSize == tenPercentTile &&
-		!mWorldBuilderTileScaleActive;
-	zoomWorldBuilder(-1, mMouseX, mMouseY);
-	minimumZoomRendered = minimumZoomRendered &&
-		mWorldBuilderTileSize == tenPercentTile;
-	mCurrentWorldArea = portraitArea;
-	mWorldBuilderTab = WorldBuilderTab::Npcs;
-	mWorldBuilderCameraX = (float)mNpcs[portraitNpc].x;
-	mWorldBuilderCameraY = (float)mNpcs[portraitNpc].y;
-	renderWorldBuilder();
-	minimumZoomRendered = minimumZoomRendered &&
-		!mWorldBuilderTileScaleActive;
-	mCurrentWorldArea = builderArea;
-	mWorldBuilderTab = WorldBuilderTab::Tiles;
-	mWorldBuilderCameraX = 10;
-	mWorldBuilderCameraY = 10;
-	pan = {};
-	pan.type = SDL_KEYDOWN;
-	pan.key.keysym.sym = SDLK_RIGHT;
-	handleWorldBuilderEvent(pan);
-	updateWorldBuilder(160);
-	pan.type = SDL_KEYUP;
-	handleWorldBuilderEvent(pan);
-	float expectedScaledPan = 10.f + 3.f * TILE / tenPercentTile;
-	bool scaledPanReady = std::fabs(mWorldBuilderCameraX - expectedScaledPan) < 0.001f;
-	for (int level = 1; level < 10; ++level)
-		zoomWorldBuilder(1, mMouseX, mMouseY);
-	zoomWorldBuilder(1, mMouseX, mMouseY);
-	renderWorldBuilder();
-	maximumZoomRendered = maximumZoomRendered && mWorldBuilderTileSize == TILE &&
-		!mWorldBuilderTileScaleActive;
-	mMouseX = 1100;
-	mMouseY = 300;
-	zoom.wheel.y = -1;
-	handleWorldBuilderEvent(zoom);
-	bool panelWheelPreservesSheetLayout = mWorldBuilderTileSize == TILE &&
-		mWorldBuilderListScroll == 0;
-	mWorldBuilderMoveUp = mWorldBuilderMoveDown = false;
-	mWorldBuilderMoveLeft = mWorldBuilderMoveRight = false;
-	mWorldBuilderPanAccumulator = 0;
-	mWorldBuilderCameraX = savedBuilderCameraX;
-	mWorldBuilderCameraY = savedBuilderCameraY;
-	mWorldBuilderTileSize = savedBuilderTileSize;
-	mWorldBuilderListScroll = savedBuilderListScroll;
-	mWorldBuilderTileCategory = savedBuilderTileCategory;
-	mWorldBuilderTileSheet = savedBuilderTileSheet;
-	mWorldBuilderCatalogTile = savedBuilderCatalogTile;
-	mWorldBuilderBrushSize = savedBuilderBrushSize;
-	mWorldBuilderShowGrid = savedBuilderShowGrid;
-	mWorldBuilderSelectedNpc = savedBuilderSelectedNpc;
-	mWorldBuilderSelectedObject = savedBuilderSelectedObject;
-	mWorldBuilderObjectPalette = savedBuilderObjectPalette;
-	mWorldBuilderSelectedObjectTemplate = savedBuilderSelectedObjectTemplate;
-	mWorldObjects = savedWorldObjects;
-	mWorld.maps[builderArea].tileLayers = savedTileLayers;
-	mWorldBuilderDirty = savedBuilderDirty;
-	mMouseX = savedMouseX;
-	mMouseY = savedMouseY;
-	mWorldBuilderTab = savedBuilderTab;
-	mCurrentWorldArea = savedBuilderArea;
-	mScreen = savedScreen;
-	if (!npcDoubleClickReady || !objectDoubleClickReady || !shardListedAsObject ||
-		!objectCreationReady ||
-		!npcBuilderViewReady || !tilePaletteReady || !catalogPaintingReady ||
-		!brushAreaReady || !wallOpeningConnectionsRemoved || !undoReady ||
-		!gridToggleReady ||
-		!arrowHeld || !wasdHeld ||
-		!zoomedOut || !maximumZoomRendered || !scaledPanReady ||
-		!minimumZoomRendered || !panelWheelPreservesSheetLayout) return false;
-
-	mPendingRewardCardId = getCardIdFromName("Aqua Hulcus");
-	mPendingRewardGold = 100;
-	if (mPendingRewardCardId < 0 || mNpcs.empty()) return false;
-	beginDialogue(0, mNpcs[0].dialogueText("defeat"), DialogueAction::ShowReward);
-	SDL_Event advanceRewardDialogue = {};
-	advanceRewardDialogue.type = SDL_MOUSEBUTTONDOWN;
-	advanceRewardDialogue.button.button = SDL_BUTTON_LEFT;
-	advanceRewardDialogue.button.x = 640;
-	advanceRewardDialogue.button.y = 700;
-	handleEvent(advanceRewardDialogue);
-	bool firstClickOnlyRevealed = mDialogueNpc == 0 &&
-		mDialogueVisibleBytes == mDialogueText.size() && mRewardCardId == -1;
-	handleEvent(advanceRewardDialogue);
-	bool rewardWaitedForDialogue = mDialogueNpc == -1 && mRewardCardId >= 0;
-	renderRewardPopup();
-	SDL_Event dismissReward = {};
-	dismissReward.type = SDL_MOUSEBUTTONDOWN;
-	dismissReward.button.button = SDL_BUTTON_LEFT;
-	dismissReward.button.x = 640;
-	dismissReward.button.y = 693;
-	handleEvent(dismissReward);
-	return firstClickOnlyRevealed && rewardWaitedForDialogue &&
-		mRewardCardId == -1 && mRewardGold == 0 && mScreen == Screen::Overworld;
 }

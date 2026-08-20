@@ -6,6 +6,7 @@
 #include <atomic>
 #include <functional>
 #include <mutex>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -91,6 +92,7 @@ public:
 	int mManaUsed;
 
 	int mPlayerType[2];
+	std::string mAiPersonality[2];
 
 	Duel();
 	~Duel();

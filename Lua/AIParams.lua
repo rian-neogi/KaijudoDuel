@@ -29,6 +29,8 @@ AIParams = {
 		creature_power_divisor = 1000.0,
 		-- Leaf-score value of each shield the creature can break per attack.
 		creature_breaker_value = 3.0,
+		-- Additional leaf-score value for a creature that can currently block.
+		creature_blocker_bonus = 3.0,
 		-- Divides the raw player-value difference before tanh normalization.
 		-- Larger values keep evaluations nearer zero and delay saturation.
 		normalization_scale = 30.0,
@@ -47,8 +49,6 @@ AIParams = {
 		-- C in UCT: mean + C * sqrt(log(parent visits) / child visits).
 		-- Larger values spend more visits exploring less-tested actions.
 		uct_exploration = math.sqrt(2.0),
-		-- Initial deterministic seed used by MCTS and rollout sampling.
-		random_seed = 0x4b41494a,
 		-- Softmax temperature for rollout combat scores. Higher is flatter;
 		-- lower values make rollouts follow the best heuristic action more often.
 		rollout_combat_temperature = 20.0,
@@ -60,7 +60,7 @@ AIParams = {
 		tree_uniform_exploration = 0.1,
 		-- Small decaying policy adjustment used only when recommending the final
 		-- root action. Observed rollout value dominates as visits accumulate.
-		final_policy_influence = 0.2,
+		final_policy_influence = 0.3,
 		-- Number of extra full depth allowances granted for consecutive extra turns.
 		max_extra_turn_depth_extensions = 2,
 		-- Safety cap when the heuristic repeatedly taps mana for one cast.
@@ -142,7 +142,7 @@ AIParams = {
 			-- Dominating score for attacking a player with no shields and no legal blocker.
 			lethal_score = 100000.0,
 			-- Direct-player attack score before breaker and blocker adjustments.
-			player_base = 35.0,
+			player_base = 45.0,
 			breaker_weight = 8.0,
 			-- Penalty applied once for each legal untapped opposing blocker.
 			blocker_penalty = 4.0,
@@ -177,6 +177,8 @@ AIParams = {
 		},
 
 		move = {
+			-- Constant combined with the evaluation delta for a mana charge.
+			mana_charge_bias = 0.0,
 			-- Base and visible-card-value multiplier for summoning/casting.
 			cardplay_base = 42.0,
 			cardplay_value_weight = 4.0,
@@ -199,30 +201,61 @@ AIParams = {
 
 	},
 
-	-- Add a table here to create another personality. Move keys are engine
-	-- message types; omitted keys have a neutral adjustment of zero.
+	-- Personalities are sparse overrides of the evaluation, search, and
+	-- heuristic tables above. Any omitted value inherits its base setting.
 	personalities = {
 		rush = {
-			move_adjustment = {
-				cardplay = 6.0,
-				creatureattack = 16.0,
-				blockskip = 3.0,
+			heuristic = {
+				attack = {
+					player_base = 65.0,
+				},
+			},
+			evaluation = {
+				shield_count_1_value = 6.0,
+				shield_count_2_value = 12.0,
+				shield_count_3_value = 18.0,
+				shield_count_4_value = 24.0,
+				shield_count_5_value = 30.0,
+				shield_above_5_value = 6.0,
+				knockout_bonus = 12.0,
+				mana_card_value = 2.5,
+				hand_base_value = 2.0,
+				hand_cost_bonus = 0.05,
+				creature_breaker_value = 3.4,
 			},
 		},
 		tempo = {
-			move_adjustment = {
-				cardmana = -2.0,
-				cardplay = 7.0,
-				creatureattack = 7.0,
+			evaluation = {
+				hand_cost_bonus = 0.06,
+				hand_missing_mana_penalty = 0.12,
 			},
 		},
 		control = {
-			move_adjustment = {
-				choiceselect = 5.0,
-				creatureattack = -5.0,
-				creatureblock = 12.0,
-				creatureusetapability = 5.0,
-				triggeruse = 12.0,
+			heuristic = {
+				attack = {
+					player_base = 30.0,
+					winning_creature_base = 60.0,
+					trade_base = 30.0,
+					losing_creature_base = -25.0,
+				},
+				block = {
+					urgent_base = 92.0,
+					normal_base = 32.0,
+					surviving_base = 1012.0,
+				},
+			},
+			evaluation = {
+				shield_count_1_value = 6.0,
+				shield_count_2_value = 10.0,
+				shield_count_3_value = 14.0,
+				shield_count_4_value = 17.0,
+				shield_count_5_value = 20.0,
+				shield_above_5_value = 2.0,
+				knockout_bonus = 6.0,
+				mana_card_value = 3.1,
+				hand_base_value = 2.1,
+				hand_cost_bonus = 0.05,
+				creature_breaker_value = 2.6,
 			},
 		},
 	},

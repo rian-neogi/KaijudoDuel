@@ -99,10 +99,14 @@ double AiScoring::battleCreatureValue(Duel& duel, int cardId)
 	if (cardId < 0 || cardId >= static_cast<int>(duel.mCardList.size())) return 0.0;
 	Card* card = duel.mCardList[cardId];
 	if (card->mType != TYPE_CREATURE || card->mZone != ZONE_BATTLE) return 0.0;
-	return std::max(0, duel.getCreaturePower(cardId)) /
-			aiParam("evaluation.creature_power_divisor") +
-		std::max(0, duel.getCreatureBreaker(cardId)) *
+	double value = std::max(0, duel.getCreaturePower(cardId)) /
+		aiParam("evaluation.creature_power_divisor");
+	if (duel.getCreatureCanAttackPlayers(cardId) != CANATTACK_NO)
+		value += std::max(0, duel.getCreatureBreaker(cardId)) *
 			aiParam("evaluation.creature_breaker_value");
+	if (duel.getCreatureIsBlocker(cardId) == 1)
+		value += aiParam("evaluation.creature_blocker_bonus");
+	return value;
 }
 
 double AiScoring::shieldZoneValue(int shieldCount)

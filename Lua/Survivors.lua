@@ -51,6 +51,8 @@ Cards["Aqua Surfer"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
+		-- Match Spiral Gate's lethal-aware preference without rejecting a legal
+		-- Aqua Surfer summon when the opponent has no creature to return.
 		Abils.PreferRemovalTarget(id,Checks.InBattle)
         local func = function(id)
             local ch = createChoice("Select creature in battle zone",1,id,getCardOwner(id),Checks.InBattle)

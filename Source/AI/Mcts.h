@@ -15,10 +15,11 @@ struct MctsConfig
 	// budget; a single in-progress Lua callback is allowed to return normally.
 	int timeBudgetMs;
 	double exploration;
+	// Generated from the clock for normal play; deterministic tests may replace it.
 	std::uint32_t seed;
 	std::string personality;
 
-	MctsConfig();
+	explicit MctsConfig(const std::string& personalityName = "tempo");
 };
 
 struct MctsChildStatistics

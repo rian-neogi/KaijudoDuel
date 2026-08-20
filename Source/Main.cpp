@@ -33,7 +33,7 @@ namespace
 			<< "Decks are searched beneath Decks/ by default; quote paths containing spaces.\n"
 			<< "The player deck is listed first.\n"
 			<< "--full-visibility reveals both hands in direct-duel mode.\n"
-			<< "AI personalities: rush, tempo (default), control.\n"
+			<< "AI personalities: default (base parameters), rush, tempo (preset), control.\n"
 			<< "AI difficulties: easy, medium (default), hard.\n"
 			<< "--ai-duel renders both AI players and reveals both hands.\n"
 			<< "--headless-ai-duel runs without SDL and prints one AI_MATCH_RESULT line.\n"
@@ -208,7 +208,7 @@ int main(int argc, char* argv[])
 	}
 	if (!hasAiPersonality(aiPersonality) || !hasAiDifficulty(aiDifficulty))
 	{
-		std::cerr << "Unknown AI personality or difficulty. Use rush/tempo/control "
+		std::cerr << "Unknown AI personality or difficulty. Use default/rush/tempo/control "
 			"and easy/medium/hard.\n\n";
 		printUsage(argv[0]);
 		cleanupCards();

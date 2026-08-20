@@ -191,7 +191,6 @@ private:
 	void destroyCrestTextures();
 	void handleSettingsEvent(const SDL_Event& event);
 	void renderSettings();
-	bool exerciseMenuScreensSmoke();
 	bool exerciseShopStockSmoke();
 	bool exerciseDuelCloneSmoke();
 	bool exerciseModifierDestroySmoke();

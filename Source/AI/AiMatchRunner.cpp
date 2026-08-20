@@ -22,6 +22,8 @@ AiMatchResult runHeadlessAiMatch(const std::string& deck0, const std::string& de
 	duel.mRandomGen.SetRandomSeed(seed);
 	duel.mPlayerType[0] = PLAYER_AI;
 	duel.mPlayerType[1] = PLAYER_AI;
+	duel.mAiPersonality[0] = personality;
+	duel.mAiPersonality[1] = personality;
 	if (!duel.setDecks(deck0, deck1))
 	{
 		result.error = "unable to load one or both decks";

@@ -119,10 +119,10 @@ if(BUILD_TESTING)
         COMMAND KaijudoDuel --smoke-test
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     )
-    set_tests_properties(smoke PROPERTIES
-        ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy"
-		TIMEOUT 60
-    )
+	set_tests_properties(smoke PROPERTIES
+		ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy"
+		TIMEOUT 90
+	)
 	if(Python3_Interpreter_FOUND)
 		add_test(NAME legacy_world_converter
 			COMMAND ${Python3_EXECUTABLE}

@@ -1,4 +1,5 @@
 #include "LuaFunctions.h"
+#include "AI/AiParams.h"
 #include "AI/AiScoring.h"
 #include "LuaTrace.h"
 
@@ -28,6 +29,13 @@ static Modifier* modifierFromLua(lua_State* L, int cardArgument, int modifierArg
 static bool validPlayer(int player)
 {
 	return player == 0 || player == 1;
+}
+
+static std::string aiScoringPersonality(int fallbackPlayer)
+{
+	if (ActiveDuel == NULL) return std::string();
+	int player = ActiveDuel->mIsChoiceActive ? ActiveDuel->mChoicePlayer : fallbackPlayer;
+	return validPlayer(player) ? ActiveDuel->mAiPersonality[player] : std::string();
 }
 
 static bool validZone(int zone)
@@ -639,6 +647,7 @@ static int getCardHandValue(lua_State* L)
 		lua_pushnumber(L, 0.0);
 		return 1;
 	}
+	AiPersonalityScope personalityScope(aiScoringPersonality(card->mOwner));
 	int manaCount = static_cast<int>(ActiveDuel->mManazones[card->mOwner].mCards.size());
 	lua_pushnumber(L, AiScoring::handCardValue(*card, manaCount));
 	return 1;
@@ -647,6 +656,8 @@ static int getCardHandValue(lua_State* L)
 static int getCardBattleValue(lua_State* L)
 {
 	Card* card = cardFromLua(L, 1);
+	AiPersonalityScope personalityScope(aiScoringPersonality(
+		card == NULL ? -1 : card->mOwner));
 	lua_pushnumber(L, card == NULL ? 0.0 :
 		AiScoring::battleCreatureValue(*ActiveDuel, card->mUniqueId));
 	return 1;
@@ -655,6 +666,7 @@ static int getCardBattleValue(lua_State* L)
 static int getPlayerHasKnockout(lua_State* L)
 {
 	int player = static_cast<int>(lua_tointeger(L, 1));
+	AiPersonalityScope personalityScope(aiScoringPersonality(player));
 	lua_pushinteger(L, ActiveDuel != NULL && validPlayer(player) &&
 		AiScoring::hasKnockout(*ActiveDuel, player, false) ? 1 : 0);
 	return 1;

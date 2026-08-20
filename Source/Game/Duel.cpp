@@ -43,6 +43,8 @@ Duel::Duel()
 
 	mPlayerType[0] = PLAYER_HUMAN;
 	mPlayerType[1] = PLAYER_AI;
+	mAiPersonality[0] = "tempo";
+	mAiPersonality[1] = "tempo";
 
 	int Factor[2] = { -1, 1 };
 	int Factor2[2] = { 1,0 };
@@ -284,6 +286,8 @@ bool Duel::copyFrom(const Duel& duel)
 	mManaUsed = duel.mManaUsed;
 	mPlayerType[0] = duel.mPlayerType[0];
 	mPlayerType[1] = duel.mPlayerType[1];
+	mAiPersonality[0] = duel.mAiPersonality[0];
+	mAiPersonality[1] = duel.mAiPersonality[1];
 
 	for (int player = 0; player < 2; ++player)
 	{

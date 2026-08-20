@@ -2,6 +2,7 @@
 
 #include "AiParams.h"
 #include "AiScoring.h"
+#include "CRandom.h"
 #include "HeuristicBot.h"
 #include "MctsTiming.h"
 
@@ -485,6 +486,7 @@ namespace
 		options.heuristicCardPlay = true;
 		options.heuristicChoices = true;
 		options.randomShieldTarget = true;
+		options.personality = player == rootPlayer ? personality : "tempo";
 		options.randomIndex = [&random](size_t count) -> size_t
 		{
 			std::uniform_int_distribution<size_t> choice(0, count - 1);
@@ -687,12 +689,18 @@ namespace
 				stopped = true;
 				return true;
 			}
+			int player = -1;
+			{
+				ActiveDuelGuard activeGuard(position);
+				player = position.getPlayerToMove();
+			}
 			DecisionPlanEnumerationOptions options;
 			options.heuristicMana = true;
 			options.heuristicCardPlay = true;
 			options.heuristicChoices = true;
 			options.randomChoices = true;
 			options.randomShieldTarget = true;
+			options.personality = player == rootPlayer ? personality : "tempo";
 			options.randomIndex = [&random](size_t count) -> size_t
 			{
 				std::uniform_int_distribution<size_t> choice(0, count - 1);
@@ -709,11 +717,6 @@ namespace
 				return true;
 			}
 			if (plans.empty()) break;
-			int player = -1;
-			{
-				ActiveDuelGuard activeGuard(position);
-				player = position.getPlayerToMove();
-			}
 			DecisionPlan selected;
 			bool forced = plans.size() == 1;
 			if (forced)
@@ -1009,12 +1012,12 @@ namespace
 	}
 }
 
-MctsConfig::MctsConfig()
-	: iterations(aiIntParam("search.max_rollouts")),
-	  maxDepth(aiIntParam("search.max_depth")),
+MctsConfig::MctsConfig(const std::string& personalityName)
+	: iterations(aiIntParam("search.max_rollouts", personalityName)),
+	  maxDepth(aiIntParam("search.max_depth", personalityName)),
 	  timeBudgetMs(aiDifficultyIntParam("medium", "default_time_budget_ms")),
-	  exploration(aiParam("search.uct_exploration")),
-	  seed(aiSeedParam("search.random_seed")), personality("tempo")
+	  exploration(aiParam("search.uct_exploration", personalityName)),
+	  seed(CRandom::GenerateRandomSeed()), personality(personalityName)
 {
 }
 
@@ -1128,7 +1131,8 @@ bool MctsSession::restart(Duel& root, const MctsConfig& config)
 
 	const std::string stateKey = duelStateKey(root);
 	std::unique_ptr<MctsNode>* matchingNode = NULL;
-	findMatchingState(mImpl->rootNode, stateKey, &matchingNode);
+	if (config.personality == mImpl->config.personality)
+		findMatchingState(mImpl->rootNode, stateKey, &matchingNode);
 	mImpl->timings = MctsTimingCounters();
 	std::chrono::steady_clock::time_point cloneStarted =
 		std::chrono::steady_clock::now();
@@ -1163,6 +1167,7 @@ bool MctsSession::restart(Duel& root, const MctsConfig& config)
 bool MctsSession::advance(int iterationBudget)
 {
 	if (!mImpl->started) return false;
+	AiPersonalityScope personalityScope(mImpl->config.personality);
 	MctsTiming::SearchScope luaTimingScope(mImpl->timings.luaCallbackNs);
 	int attempted = mImpl->iterationsCompleted + mImpl->failedIterations;
 	int remaining = mImpl->config.iterations - attempted;
@@ -1205,6 +1210,7 @@ bool MctsSession::isComplete() const
 MctsResult MctsSession::result() const
 {
 	if (!mImpl->started) return MctsResult();
+	AiPersonalityScope personalityScope(mImpl->config.personality);
 	int attempted = mImpl->iterationsCompleted + mImpl->failedIterations;
 	MctsResult result = collectResult(*mImpl->rootNode, mImpl->rootPlayer,
 		mImpl->iterationsCompleted, mImpl->failedIterations,
