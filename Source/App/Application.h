@@ -196,6 +196,7 @@ private:
 	bool exerciseModifierDestroySmoke();
 	bool exerciseSimulationChoiceSmoke();
 	bool exerciseLiveAndBreatheSmoke();
+	bool exerciseDormantCardCallbackSmoke();
 	bool exerciseTapAbilitySmoke();
 	bool exerciseAttackQuerySmoke();
 	bool exerciseCountInZoneCardSmoke();
@@ -227,7 +228,6 @@ private:
 	float overworldCameraY() const;
 	void tryMove(int dx, int dy);
 	void collectShardAt(int x, int y);
-	void discoverLandmarkAt(int x, int y);
 	void interact();
 	int worldObjectAt(int x, int y) const;
 	void beginDialogue(int npcIndex, const std::string& text, DialogueAction action);
@@ -562,7 +562,6 @@ private:
 	int mMoney;
 	std::set<std::string> mCollectedShards;
 	std::set<std::string> mMercerShards;
-	std::set<std::string> mDiscoveredLandmarks;
 	std::set<std::string> mOpenedWorldObjects;
 	std::set<std::string> mClearedWorldObjects;
 	std::vector<int> mCollectionCounts;

@@ -51,13 +51,13 @@ AIParams = {
 		uct_exploration = math.sqrt(2.0),
 		-- Softmax temperature for rollout combat scores. Higher is flatter;
 		-- lower values make rollouts follow the best heuristic action more often.
-		rollout_combat_temperature = 20.0,
+		rollout_combat_temperature = 10.0,
 		-- Fraction of combat rollout probability reserved for uniform exploration.
-		rollout_uniform_exploration = 0.1,
+		rollout_uniform_exploration = 0.2,
 		-- Combat policy used while expanding the adversarial search tree. The
 		-- uniform floor keeps every legal attack and block explorable.
-		tree_combat_temperature = 20.0,
-		tree_uniform_exploration = 0.1,
+		tree_combat_temperature = 10.0,
+		tree_uniform_exploration = 0.2,
 		-- Small decaying policy adjustment used only when recommending the final
 		-- root action. Observed rollout value dominates as visits accumulate.
 		final_policy_influence = 0.3,

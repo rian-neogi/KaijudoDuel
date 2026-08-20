@@ -2,7 +2,6 @@
 
 #include "AppSupport.h"
 #include "AssetManager.h"
-#include "Landmarks.h"
 #include "SoundManager.h"
 
 #include <algorithm>
@@ -219,19 +218,6 @@ void Application::renderPauseMenu()
 		}
 	}
 	drawText("MENU", 890, 113, color(178, 198, 226), 18);
-	int discoveredLandmarks = 0;
-	for (size_t i = 0; i < Landmarks::COUNT; ++i)
-		if (mDiscoveredLandmarks.count(Landmarks::DEFINITIONS[i].id))
-			++discoveredLandmarks;
-	drawText("ROUTE DISCOVERIES  " + std::to_string(discoveredLandmarks) + "/" +
-		std::to_string(Landmarks::COUNT), 890, 151, color(181, 160, 220), 14, 295);
-	for (size_t i = 0; i < Landmarks::COUNT; ++i)
-	{
-		bool discovered = mDiscoveredLandmarks.count(Landmarks::DEFINITIONS[i].id) != 0;
-		drawText(discovered ? "- " + std::string(Landmarks::DEFINITIONS[i].name) : "- Unknown landmark",
-			898, 177 + (int)i * 16, discovered ? color(222, 208, 237) :
-			color(83, 92, 108), 12, 285);
-	}
 
 	auto drawButton = [this](const SDL_Rect& rect, const std::string& label, bool danger,
 		int selection)

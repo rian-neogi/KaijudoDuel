@@ -4,7 +4,6 @@
 #include "Game/Card.h"
 #include "Game/CardData.h"
 #include "Game/Deck.h"
-#include "Landmarks.h"
 #include "SoundManager.h"
 
 #include <algorithm>
@@ -348,18 +347,6 @@ void Application::ensurePlayerDataLoaded()
 			mStoryClues = std::max(0, std::atoi(line.substr(13).c_str()));
 			continue;
 		}
-		const std::string landmarkPrefix = "landmark.";
-		if (line.find(landmarkPrefix) == 0)
-		{
-			size_t equals = line.find('=', landmarkPrefix.size());
-			if (equals == std::string::npos || std::atoi(line.substr(equals + 1).c_str()) != 1)
-				continue;
-			std::string landmarkId = line.substr(landmarkPrefix.size(),
-				equals - landmarkPrefix.size());
-			if (Landmarks::find(landmarkId) != NULL)
-				mDiscoveredLandmarks.insert(landmarkId);
-			continue;
-		}
 		const std::string collectedPrefix = "shard.collected.";
 		const std::string mercerPrefix = "shard.mercer.";
 		if (line.find(collectedPrefix) == 0 || line.find(mercerPrefix) == 0)
@@ -474,9 +461,6 @@ bool Application::savePlayerProgress()
 	progress << "atmosphere.remaining=" << atmosphere.weatherRemaining << "\n";
 	progress << "atmosphere.fading=" << (atmosphere.weatherFadingOut ? 1 : 0) << "\n";
 	progress << "atmosphere.seed=" << atmosphere.weatherSeed << "\n";
-	for (size_t i = 0; i < Landmarks::COUNT; ++i)
-		if (mDiscoveredLandmarks.count(Landmarks::DEFINITIONS[i].id))
-			progress << "landmark." << Landmarks::DEFINITIONS[i].id << "=1\n";
 	for (size_t i = 0; i < mMercerStock.shards.size(); ++i)
 	{
 		const std::string& shardId = mMercerStock.shards[i].id;

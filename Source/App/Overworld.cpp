@@ -2,7 +2,6 @@
 
 #include "AppSupport.h"
 #include "AssetManager.h"
-#include "Landmarks.h"
 #include "SpriteSheetRenderer.h"
 #include "WorldTileRenderer.h"
 
@@ -451,16 +450,6 @@ void Application::tryMove(int dx, int dy)
 		mNoticeUntil = SDL_GetTicks() + 4500;
 		return;
 	}
-	const WorldRegion* fromRegion = worldRegionAt(currentMapId(), mPlayerX, mPlayerY);
-	const WorldRegion* toRegion = worldRegionAt(currentMapId(), x, y);
-	if (mStoryStage < 4 && fromRegion != NULL && toRegion != NULL &&
-		fromRegion->id == "emberglen" &&
-		(toRegion->id == "old_road" || toRegion->id == "watershed_crossroads"))
-	{
-		mNotice = "The roads beyond Emberglen are unsafe. Finish the investigation first.";
-		mNoticeUntil = SDL_GetTicks() + 4500;
-		return;
-	}
 	bool occupiedByMovingNpc = false;
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 		if (npcVisible((int)i) && mNpcs[i].mapId == currentMapId() &&
@@ -474,7 +463,6 @@ void Application::tryMove(int dx, int dy)
 		mPlayerY = y;
 		if (!beginPortalAt(x, y))
 		{
-			discoverLandmarkAt(x, y);
 			collectShardAt(x, y);
 		}
 	}
@@ -491,38 +479,6 @@ void Application::collectShardAt(int x, int y)
 		mCollectedShards.insert(shard.id);
 		savePlayerProgress();
 		mNotice = "Found " + shard.name + "! Take it to Mercer to expand his stock.";
-		mNoticeUntil = SDL_GetTicks() + 6000;
-		return;
-	}
-}
-
-void Application::discoverLandmarkAt(int x, int y)
-{
-	for (size_t landmark = 0; landmark < Landmarks::COUNT; ++landmark)
-	{
-		const Landmarks::Definition& definition = Landmarks::DEFINITIONS[landmark];
-		if (mPlayerDataLoaded && mDiscoveredLandmarks.count(definition.id)) continue;
-		const WorldRegion* region = NULL;
-		for (size_t candidate = 0; candidate < mWorld.regions.size(); ++candidate)
-			if (mWorld.regions[candidate].mapId == currentMapId() &&
-				mWorld.regions[candidate].id == definition.regionId)
-			{
-				region = &mWorld.regions[candidate];
-				break;
-			}
-		if (region == NULL) continue;
-		int landmarkX = region->x + definition.localX;
-		int landmarkY = region->y + definition.localY;
-		if (std::abs(x - landmarkX) + std::abs(y - landmarkY) >
-			definition.discoveryRadius) continue;
-
-		ensurePlayerDataLoaded();
-		if (mDiscoveredLandmarks.count(definition.id)) return;
-		mDiscoveredLandmarks.insert(definition.id);
-		mMoney += definition.goldReward;
-		savePlayerProgress();
-		mNotice = "Landmark discovered: " + std::string(definition.name) + "  (+" +
-			std::to_string(definition.goldReward) + " gold)";
 		mNoticeUntil = SDL_GetTicks() + 6000;
 		return;
 	}

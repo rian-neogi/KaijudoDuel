@@ -228,7 +228,7 @@ void Application::renderStoryScene()
 		title = mStoryScenePage == 0 ? "THE VEIL BREAKS" : "ACT I COMPLETE";
 		body = mStoryScenePage == 0 ?
 			"The masked deck scatters into blank fragments. Beneath the veil is only an enchanted shell—but its final message is spoken in the Curator's voice." :
-			"'Rowan lives beyond the old road. Bring every echo you can restore.' The road out of Emberglen opens, and the duelists you helped promise to guard the town.";
+			"'Rowan lives beyond the old road. Bring every echo you can restore.' With Emberglen safe, the duelists you helped promise to guard the town while you search for him.";
 	}
 	drawText(title, 215, 190, color(245, 207, 106), 34, 850);
 	drawText(body, 220, 285, color(229, 235, 245), 22, 835);

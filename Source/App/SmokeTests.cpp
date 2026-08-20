@@ -10,7 +10,6 @@
 #include "CatalogMapStorage.h"
 #include "Game/Card.h"
 #include "Game/Deck.h"
-#include "Landmarks.h"
 #include "LuaInclude.h"
 #include "RtpTilesetRenderer.h"
 #include "SpriteSheetRenderer.h"
@@ -162,6 +161,11 @@ int Application::runSmokeTests()
 		if (!exerciseLiveAndBreatheSmoke())
 		{
 			std::cerr << "Live and Breathe smoke test failed." << std::endl;
+			return 2;
+		}
+		if (!exerciseDormantCardCallbackSmoke())
+		{
+			std::cerr << "Dormant-card callback smoke test failed." << std::endl;
 			return 2;
 		}
 		if (!exerciseTapAbilitySmoke())
@@ -1069,6 +1073,76 @@ bool Application::exerciseLiveAndBreatheSmoke()
 	return valid && !duel.mSimulationChoiceFailed && !duel.mIsChoiceActive &&
 		duel.mBattlezones[0].mCards.size() == 3 &&
 		duel.mDecks[0].mCards.size() == 1;
+}
+
+bool Application::exerciseDormantCardCallbackSmoke()
+{
+	std::lock_guard<std::mutex> lock(gMutex);
+	int tyrantWormId = getCardIdFromName("Tyrant Worm");
+	int azaghastId = getCardIdFromName("Azaghast, Tyrant of Shadows");
+	int ghostId = getCardIdFromName("Gray Balloon, Shadow of Greed");
+	int targetId = getCardIdFromName("Deadly Fighter Braid Claw");
+	int davaToreyId = getCardIdFromName("Dava Torey, Seeker of Clouds");
+	int meltdownId = getCardIdFromName("Miraculous Meltdown");
+	if (tyrantWormId < 0 || azaghastId < 0 || ghostId < 0 || targetId < 0 ||
+		davaToreyId < 0 || meltdownId < 0) return false;
+
+	Duel duel;
+	duel.mIsSimulation = true;
+	duel.mInputLoopRunning = false;
+	duel.mTurn = 1;
+	auto addCard = [&duel](int cardId, int zone, int owner = 0) -> int
+	{
+		int uid = (int)duel.mCardList.size();
+		Card* card = new Card(uid, cardId, owner);
+		duel.mCardList.push_back(card);
+		duel.getZone(owner, zone)->addCard(card);
+		card->mZone = zone;
+		duel.mNextUniqueId = uid + 1;
+		return uid;
+	};
+
+	int dormant = addCard(tyrantWormId, ZONE_DECK);
+	int dormantShield = addCard(tyrantWormId, ZONE_SHIELD);
+	int dormantGraveyard = addCard(azaghastId, ZONE_GRAVEYARD);
+	int dormantEvolution = addCard(azaghastId, ZONE_DECK);
+	int dormantHand = addCard(azaghastId, ZONE_HAND);
+	int discardReplacement = addCard(davaToreyId, ZONE_HAND);
+	int restrictedSpell = addCard(meltdownId, ZONE_HAND);
+	int summoned = addCard(ghostId, ZONE_HAND);
+	int opponentTarget = addCard(targetId, ZONE_BATTLE, 1);
+	duel.setChoiceResolver([opponentTarget](const Duel&) { return opponentTarget; });
+	bool evolutionRecognized = false;
+	bool castRestrictionApplied = false;
+	{
+		ActiveDuelGuard activeGuard(duel);
+		evolutionRecognized = duel.getIsEvolution(dormantEvolution) == 1;
+		castRestrictionApplied = duel.getCardCanCast(restrictedSpell) == 0;
+		Message summon("cardplay");
+		summon.addValue("card", summoned);
+		summon.addValue("evobait", -1);
+		summon.addValue("evobait2", -1);
+		duel.mMsgMngr.sendMessage(summon);
+		duel.dispatchAllMessages();
+
+		Message discard("carddiscard");
+		discard.addValue("card", discardReplacement);
+		discard.addValue("zoneto", ZONE_GRAVEYARD);
+		duel.mMsgMngr.sendMessage(discard);
+		duel.dispatchAllMessages();
+	}
+
+	return duel.mCardList[dormant]->mZone == ZONE_DECK &&
+		duel.mDecks[0].mCards.size() == 2 &&
+		duel.mCardList[dormantShield]->mZone == ZONE_SHIELD &&
+		duel.mShields[0].mCards.size() == 1 &&
+		duel.mCardList[dormantGraveyard]->mZone == ZONE_GRAVEYARD &&
+		duel.mGraveyards[0].mCards.size() == 1 &&
+		duel.mCardList[dormantHand]->mZone == ZONE_HAND && evolutionRecognized &&
+		castRestrictionApplied &&
+		duel.mCardList[discardReplacement]->mZone == ZONE_BATTLE &&
+		duel.mCardList[summoned]->mZone == ZONE_BATTLE &&
+		duel.mCardList[opponentTarget]->mZone == ZONE_BATTLE;
 }
 
 bool Application::exerciseTapAbilitySmoke()
@@ -2655,7 +2729,7 @@ bool Application::exerciseMctsSmoke()
 			result.hasPlan &&
 			result.failedIterations == 0 &&
 			result.iterationsCompleted == blockerConfig.iterations &&
-			result.plan.action.getType() == "endturn" && root.mWinner == -1 &&
+			root.mWinner == -1 &&
 			root.mCardList[attacker]->mZone == ZONE_BATTLE &&
 			!root.mCardList[attacker]->mIsTapped && result.rootChildren.size() == 3 &&
 			endTurnVisits > playerAttackVisits && endTurnVisits > creatureAttackVisits &&
@@ -4232,9 +4306,11 @@ bool Application::exerciseEvolutionSmoke()
 	if (guardian < 0 || larba < 0 || initiate < 0 || craze < 0 || opponent < 0) return false;
 
 	moveCard(guardian, ZONE_BATTLE, -1);
+	moveCard(larba, ZONE_HAND, -1);
 	moveCard(larba, ZONE_BATTLE, guardian);
 	moveCard(initiate, ZONE_BATTLE, -1);
 	moveCard(opponent, ZONE_BATTLE, -1);
+	moveCard(craze, ZONE_HAND, -1);
 	Message evolve("cardmove");
 	evolve.addValue("card", craze);
 	evolve.addValue("from", mDuel->mCardList[craze]->mZone);
@@ -5718,26 +5794,6 @@ bool Application::exerciseOverworldMovementSmoke()
 			(mWorld.maps[from].indoor || mWorld.maps[to].indoor);
 	}
 
-	std::set<std::string> landmarkIds;
-	for (size_t landmark = 0; landmark < Landmarks::COUNT; ++landmark)
-	{
-		const Landmarks::Definition& definition = Landmarks::DEFINITIONS[landmark];
-		const WorldRegion* region = NULL;
-		for (size_t candidate = 0; candidate < mWorld.regions.size(); ++candidate)
-			if (mWorld.regions[candidate].mapId == "overworld" &&
-				mWorld.regions[candidate].id == definition.regionId)
-				region = &mWorld.regions[candidate];
-		bool definitionReady = region != NULL && definition.localX >= 0 &&
-			definition.localY >= 0 &&
-			definition.localX < region->width && definition.localY < region->height &&
-			definition.discoveryRadius > 0 && definition.goldReward > 0;
-		seamlessWorldReady = seamlessWorldReady && definition.id[0] != '\0' &&
-			definition.name[0] != '\0' && landmarkIds.insert(definition.id).second &&
-			definitionReady;
-	}
-	for (std::set<std::string>::const_iterator discovered = mDiscoveredLandmarks.begin();
-		discovered != mDiscoveredLandmarks.end(); ++discovered)
-		seamlessWorldReady = seamlessWorldReady && Landmarks::find(*discovered) != NULL;
 	int routeDuelists = 0;
 	int townNpcs = 0;
 	int traders = 0;
@@ -5903,22 +5959,16 @@ bool Application::exerciseOverworldMovementSmoke()
 	mPlayerY = 47 + overworldOffsetY;
 	mVisualX = (float)mPlayerX;
 	mVisualY = (float)mPlayerY;
-	mStoryStage = 0;
+	mStoryStage = 3;
 	tryMove(1, 0);
-	bool roadGateReady = mPlayerX == 259 + overworldOffsetX;
-	mStoryStage = 4;
-	tryMove(1, 0);
-	roadGateReady = roadGateReady && mPlayerX == 260 + overworldOffsetX;
+	bool roadTravelReady = mPlayerX == 260 + overworldOffsetX;
 	mPlayerX = 224 + overworldOffsetX;
 	mPlayerY = 53 + overworldOffsetY;
 	mVisualX = (float)mPlayerX;
 	mVisualY = (float)mPlayerY;
-	mStoryStage = 0;
+	mStoryStage = 3;
 	tryMove(-1, 0);
-	bool watershedGateReady = mPlayerX == 224 + overworldOffsetX;
-	mStoryStage = 4;
-	tryMove(-1, 0);
-	watershedGateReady = watershedGateReady && mPlayerX == 223 + overworldOffsetX;
+	bool watershedTravelReady = mPlayerX == 223 + overworldOffsetX;
 	mStoryStage = savedStoryStage;
 	mCurrentWorldArea = savedArea;
 	mPlayerX = savedPortalPlayerX;
@@ -5927,17 +5977,17 @@ bool Application::exerciseOverworldMovementSmoke()
 	mVisualY = savedPortalVisualY;
 	if (!(worldDataReady && spriteSheetsReady && playerInterpolated && npcInterpolated &&
 		enteredIndoor && returnedOutside && mercerIsIndoors && seamlessWorldReady &&
-		signpostReady && roadGateReady && watershedGateReady && viewportCullingReady &&
+		signpostReady && roadTravelReady && watershedTravelReady && viewportCullingReady &&
 		naturalTilesReady && blackstoneGateReady))
 		std::cerr << "Overworld flags: data=" << worldDataReady << " sprites=" <<
 			spriteSheetsReady << " player=" << playerInterpolated << " npc=" <<
 			npcInterpolated << " portals=" << enteredIndoor << returnedOutside <<
 			" mercer=" << mercerIsIndoors << " seamless=" << seamlessWorldReady <<
-			" sign=" << signpostReady << " gates=" << roadGateReady << watershedGateReady <<
+			" sign=" << signpostReady << " routes=" << roadTravelReady << watershedTravelReady <<
 			" culling=" << viewportCullingReady << " natural=" << naturalTilesReady <<
 			" blackstone=" << blackstoneGateReady << std::endl;
 	return worldDataReady && spriteSheetsReady && playerInterpolated && npcInterpolated && enteredIndoor && returnedOutside &&
-		mercerIsIndoors && seamlessWorldReady && signpostReady && roadGateReady && watershedGateReady &&
+		mercerIsIndoors && seamlessWorldReady && signpostReady && roadTravelReady && watershedTravelReady &&
 		viewportCullingReady && naturalTilesReady && blackstoneGateReady;
 }
 

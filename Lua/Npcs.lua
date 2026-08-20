@@ -77,7 +77,7 @@ return {
         rewards = {
             { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
         },
-        ai = { personality = "control", difficulty = "medium" },
+        ai = { personality = "control", difficulty = "easy" },
         dialogue = {
             greeting = "Darkness answers my call. Ready to duel?",
             defeat = "The grave remembers that turn. I will not make the same mistake twice.",
@@ -102,7 +102,7 @@ return {
         rewards = {
             { card = "Aqua Sniper", gold_tier = 1 },
         },
-        ai = { personality = "tempo", difficulty = "medium" },
+        ai = { personality = "tempo", difficulty = "easy" },
         dialogue = {
             greeting = "Let us see whether you can read the currents.",
             defeat = "You changed course after I committed. Good. I will account for that next time.",
@@ -162,7 +162,7 @@ return {
             stabilize_before = "Let us conduct the exhibition duel we were denied. A formal match may restore the echo.",
             stabilize_after = "The resonance is clean. Earn the trust of two more duelists.",
             boss_reveal = "The masked stranger has appeared at the central bridge. We will protect Emberglen.",
-            act_complete = "The road is open. Return when you are ready for the official Dawn Crest match."
+            act_complete = "Follow the road when you are ready. Return for the official Dawn Crest match."
         }
     },
     {
@@ -231,7 +231,7 @@ return {
         rewards = {
             { card = "King Depthcon", gold_tier = 1 },
         },
-        ai = { personality = "control", difficulty = "medium" },
+        ai = { personality = "control", difficulty = "easy" },
         dialogue = {
             greeting = "The deep favors patience. Can you keep your footing?",
             defeat = "You did not rush when the opening appeared. That restraint won the duel.",
@@ -255,7 +255,7 @@ return {
         rewards = {
             { card = "Deathblade Beetle", gold_tier = 1 },
         },
-        ai = { personality = "tempo", difficulty = "medium" },
+        ai = { personality = "tempo", difficulty = "easy" },
         dialogue = {
             greeting = "Nature rewards the duelist who grows strongest.",
             defeat = "Your deck adapted faster than mine. The forest approves, even if I do not.",
@@ -279,7 +279,7 @@ return {
             greeting = "Welcome! I trade hard-earned gold for cards.",
             shop_early = "These blank card fragments started appearing after the festival. Bring me gold and I'll keep you supplied.",
             shop_late = "Your restored echoes are holding their ink. The Curator will have noticed.",
-            act_complete = "The old road is open, and so is my traveling shop. Convenient, isn't it?"
+            act_complete = "The old road leads onward, and so does my traveling shop. Convenient, isn't it?"
         }
     },
     {

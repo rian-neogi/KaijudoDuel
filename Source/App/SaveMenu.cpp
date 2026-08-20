@@ -137,7 +137,6 @@ void Application::resetPlayerDataState()
 	mMoney = 0;
 	mCollectedShards.clear();
 	mMercerShards.clear();
-	mDiscoveredLandmarks.clear();
 	mOpenedWorldObjects.clear();
 	mClearedWorldObjects.clear();
 	mCollectionCounts.clear();

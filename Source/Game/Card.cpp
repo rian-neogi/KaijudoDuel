@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
 
 //std::vector<std::string> gCardNames;
 
@@ -189,49 +190,86 @@ void Card::copyStateFrom(const Card& card)
 
 int Card::handleMessage(Message& msg)
 {
-	int stackTop = lua_gettop(LuaCards);
-	lua_getglobal(LuaCards, "Cards");
-	if (!lua_istable(LuaCards, -1))
+	Message& callbackMessage = ActiveDuel == NULL ? msg : ActiveDuel->mCurrentMessage;
+	const std::string callbackType = callbackMessage.getType();
+	auto targetsThisCard = [this, &callbackMessage](const char* field) -> bool
 	{
-		fprintf(stderr, "Lua card table is unavailable while handling %s\n", msg.getType().c_str());
-		lua_settop(LuaCards, stackTop);
-		return -1;
+		std::map<std::string, std::string>::const_iterator value =
+			callbackMessage.map.find(field);
+		return value != callbackMessage.map.end() &&
+			std::atoi(value->second.c_str()) == mUniqueId;
+	};
+
+	// Hidden and discarded zones do not observe global rules broadcasts. A card
+	// still receives messages that act directly on it: movement, discard
+	// replacement, cast queries, and intrinsic evolution queries.
+	bool handleCardRule = mZone != ZONE_HAND && mZone != ZONE_DECK &&
+		mZone != ZONE_SHIELD && mZone != ZONE_GRAVEYARD;
+	if (!handleCardRule)
+	{
+		const bool cardMove = callbackType == "mod cardmove" ||
+			callbackType == "pre cardmove" || callbackType == "cardmove" ||
+			callbackType == "post cardmove";
+		const bool handDiscard = mZone == ZONE_HAND &&
+			(callbackType == "mod carddiscard" || callbackType == "pre carddiscard" ||
+			 callbackType == "carddiscard" || callbackType == "post carddiscard");
+		const bool handCardQuery = mZone == ZONE_HAND &&
+			callbackType.compare(0, 8, "get card") == 0;
+		const bool evolutionQuery =
+			(callbackType == "get creatureisevolution" && targetsThisCard("creature")) ||
+			((callbackType == "get creaturecanevolve" ||
+			  callbackType == "get creaturecanvortexevolve" ||
+			  callbackType == "get creatureevolutionbaitcount") &&
+			 targetsThisCard("evolution"));
+		handleCardRule = ((cardMove || handDiscard || handCardQuery) &&
+			targetsThisCard("card")) || evolutionQuery;
 	}
-	lua_getfield(LuaCards, -1, gCardDatabase[mCardId].Name.c_str());
-	if (!lua_istable(LuaCards, -1))
+
+	if (handleCardRule)
 	{
-		fprintf(stderr, "Lua rules are missing for card '%s'\n", mName.c_str());
-		lua_settop(LuaCards, stackTop);
-		return -1;
-	}
-	lua_getfield(LuaCards, -1, "HandleMessage");
-	if (!lua_isfunction(LuaCards, -1))
-	{
-		// HandleMessage is optional: many vanilla creatures and spells have no
-		// reactive Lua rule. The card's modifiers must still receive broadcasts.
-		lua_settop(LuaCards, stackTop);
-	}
-	else
-	{
-		MctsTiming::LuaCallbackTimer luaTimer;
-		const Message& traceMessage = ActiveDuel == NULL ? msg : ActiveDuel->mCurrentMessage;
-		LuaTrace::logCallback("engine -> lua", "HandleMessage", mName, mUniqueId, traceMessage);
-		lua_pushinteger(LuaCards, mUniqueId);
-		int status = lua_pcall(LuaCards, 1, 0, 0);
-		if (status != LUA_OK)
+		int stackTop = lua_gettop(LuaCards);
+		lua_getglobal(LuaCards, "Cards");
+		if (!lua_istable(LuaCards, -1))
 		{
-			const char* error = lua_tostring(LuaCards, -1);
-			LuaTrace::logCallback("lua -> engine", "HandleMessage", mName, mUniqueId,
-				ActiveDuel == NULL ? msg : ActiveDuel->mCurrentMessage, error);
-			fprintf(stderr, "Lua error for '%s' while handling '%s': %s\n",
-				mName.c_str(), msg.getType().c_str(), error == NULL ? "unknown error" : error);
+			fprintf(stderr, "Lua card table is unavailable while handling %s\n", msg.getType().c_str());
+			lua_settop(LuaCards, stackTop);
+			return -1;
+		}
+		lua_getfield(LuaCards, -1, gCardDatabase[mCardId].Name.c_str());
+		if (!lua_istable(LuaCards, -1))
+		{
+			fprintf(stderr, "Lua rules are missing for card '%s'\n", mName.c_str());
+			lua_settop(LuaCards, stackTop);
+			return -1;
+		}
+		lua_getfield(LuaCards, -1, "HandleMessage");
+		if (!lua_isfunction(LuaCards, -1))
+		{
+			// HandleMessage is optional: many vanilla creatures and spells have no
+			// reactive Lua rule. The card's modifiers must still receive broadcasts.
+			lua_settop(LuaCards, stackTop);
 		}
 		else
 		{
-			LuaTrace::logCallback("lua -> engine", "HandleMessage", mName, mUniqueId,
-				ActiveDuel == NULL ? msg : ActiveDuel->mCurrentMessage);
+			MctsTiming::LuaCallbackTimer luaTimer;
+			LuaTrace::logCallback("engine -> lua", "HandleMessage", mName, mUniqueId, callbackMessage);
+			lua_pushinteger(LuaCards, mUniqueId);
+			int status = lua_pcall(LuaCards, 1, 0, 0);
+			if (status != LUA_OK)
+			{
+				const char* error = lua_tostring(LuaCards, -1);
+				LuaTrace::logCallback("lua -> engine", "HandleMessage", mName, mUniqueId,
+					callbackMessage, error);
+				fprintf(stderr, "Lua error for '%s' while handling '%s': %s\n",
+					mName.c_str(), msg.getType().c_str(), error == NULL ? "unknown error" : error);
+			}
+			else
+			{
+				LuaTrace::logCallback("lua -> engine", "HandleMessage", mName, mUniqueId,
+					callbackMessage);
+			}
+			lua_settop(LuaCards, stackTop);
 		}
-		lua_settop(LuaCards, stackTop);
 	}
 	//sendMessageToBuffs(msg);
 

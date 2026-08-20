@@ -25,16 +25,14 @@ Connecting areas are destinations in their own right, not narrow loading corrido
 
 Every connector should provide a legible main route for repeat travel and enough uncertainty to make the first crossing feel like an adventure. Aim for at least two optional loops, two or more route duelists, remote shard or treasure sites, a shelter or campsite, and one environmental story told through terrain. Bridges, ridges, ruins, wetlands, or route machinery should create meaningful subareas. A player following the main markers must never become trapped, while a player who leaves the road should find something worth the detour.
 
-The unknown comes from exploration and fixed discoveries rather than mandatory random battles. Once a player learns a route, its landmarks and shortcuts should make the return trip quicker and more confident.
-
-Walking near a named landmark records it permanently in the player's route discoveries and grants a small one-time gold reward. The Esc menu shows found landmarks by name and leaves undiscovered sites hidden. These rewards are intentionally modest: they make curiosity worthwhile without requiring players to scour every tile before continuing the story.
+The unknown comes from exploration rather than mandatory random battles. Once a player learns a route, its visual markers and shortcuts should make the return trip quicker and more confident.
 
 ## Route overview
 
 | Connecting area | Connects | Availability | Status |
 | --- | --- | --- | --- |
-| Old Road | Emberglen ↔ Cinderrail Foundry | After Act I | Implemented |
-| Watershed Crossroads | Emberglen ↔ Glasswater Port ↔ Rootmaze Commons | After Act I | Implemented |
+| Old Road | Emberglen ↔ Cinderrail Foundry | From the start | Implemented |
+| Watershed Crossroads | Emberglen ↔ Glasswater Port ↔ Rootmaze Commons | From the start | Implemented |
 | Blackstone Road | Emberglen ↔ Gloam Quarry | After Confluence relay | Implemented |
 | Fivefold Highway | Emberglen ↔ Dragon Keep | Midpoint route | Planned |
 | Lilyreed Ferry | Glasswater Port ↔ Lilyreed Village | First optional tier | Planned |

@@ -109,8 +109,6 @@ converter, and repeated duel teardown.
 - `Source/App/WorldTile.h`: deprecated semantic tile IDs and their compact
   one-byte serialization glyphs. They exist only for compatibility and the
   migration source; new world behavior must use catalog tiles or map tags.
-- `Source/App/Landmarks.h`: one-time route discoveries, defined in region-local
-  coordinates so seamless-map regions may move without invalidating them.
 - `Lua/Npcs.lua`: authoritative NPC identities, kinds, appearances, decks,
   rewards, Crest Holder awards, AI personalities, and dialogue. It does not own
   positions. Appearance values use `<character-sheet>-<one-based index>` (for
@@ -224,9 +222,6 @@ five decks.
   corridors. The implemented Watershed Crossroads is 128-by-72 tiles and the
   Old Road is 96-by-48; preserve their readable main routes, optional loops,
   camps, route duelists, and off-road shard discoveries when editing them.
-- Landmark IDs are persistent progress keys. Keep them stable, keep landmark
-  coordinates relative to their named region, and ensure that a walkable tile
-  lies within every discovery radius.
 - Town NPC interaction capabilities come from `Lua/Npcs.lua` `options` fields.
   Talk is always present; Duel and Trade must not appear unless enabled. Route
   duelist taxicab-distance encounter radii also come from Lua. Their first
