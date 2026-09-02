@@ -82,6 +82,7 @@ Cards["Super Terradragon Bailas Gale"] = {
 		Abils.Evolution(id,"Dragon")
 
 		local messageType = getMessageType()
+		if(messageType~="post cardmove" and messageType~="mod cardmove") then return end
 		local card = getMessageInt("card")
 		local triggerOwner = getDuelStateInt("bailas_gale.trigger_owner",card,-1)
 		if(messageType=="post cardmove" and getCardZone(id)==ZONE_BATTLE and getMessageInt("from")==ZONE_SHIELD and getMessageInt("to")==ZONE_BATTLE and getCardType(card)==TYPE_SPELL and getCardOwner(card)==getCardOwner(id)) then
@@ -1007,8 +1008,8 @@ Cards["Bakkra Horn, the Silent"] = {
 	HandleMessage = function(id)
 		if(getMessageType()=="post cardmove") then
 			local summoned = getMessageInt("card")
-			if(getCardOwner("summoned")==getCardOwner(id) and getMessageInt("to")==ZONE_BATTLE) then
-				if(isCreatureOfRace(summoned, "Dragon")==id or isCreatureOfRace(summoned, "Dragonoid")==id) then
+			if(getCardOwner(summoned)==getCardOwner(id) and getMessageInt("to")==ZONE_BATTLE) then
+				if(isCreatureOfRace(summoned, "Dragon")==1 or isCreatureOfRace(summoned, "Dragonoid")==1) then
 					Functions.moveTopCardsFromDeck(getCardOwner(id), ZONE_MANA, 1)
 				end
 			end
@@ -1160,18 +1161,66 @@ Cards["Terradragon Gamiratar"] = {
 	breaker = 2,
 
 	HandleMessage = function(id)
+		local opponent = getOpponent(getCardOwner(id))
+		local hasVortexPartner = function(evolution,bait)
+			for i=0,getZoneSize(opponent,ZONE_BATTLE)-1 do
+				local partner = getCardAt(opponent,ZONE_BATTLE,i)
+				if(partner~=bait and getCreatureCanVortexEvolve(evolution,bait,partner)==1) then
+					return 1
+				end
+			end
+			return 0
+		end
+		local hasEvolutionBait = function(evolution)
+			local vortex = getCreatureEvolutionBaitCount(evolution)==2
+			for i=0,getZoneSize(opponent,ZONE_BATTLE)-1 do
+				local bait = getCardAt(opponent,ZONE_BATTLE,i)
+				if((vortex and hasVortexPartner(evolution,bait)==1) or
+					(not vortex and getCreatureCanEvolve(evolution,bait)==1)) then
+					return 1
+				end
+			end
+			return 0
+		end
 		local check = function(cid,sid)
 			if(getCardOwner(sid)~=getCardOwner(cid) and getCardZone(sid)==ZONE_HAND and getCardType(sid)==TYPE_CREATURE) then
-				return 1
+				if(getCreatureIsEvolution(sid)==0 or hasEvolutionBait(sid)==1) then
+					return 1
+				end
 			else
 				return 0
 			end
+			return 0
 		end
 
 		local func = function(id)
-			local ch = createChoice("Choose a creature in your hand", 1, id, getOpponent(getCardOwner(id)), check)
+			local ch = createChoice("Choose a creature in your hand", 1, id, opponent, check)
 			if(ch>=0) then
-				moveCard(ch, ZONE_BATTLE)
+				if(getCreatureIsEvolution(ch)==0) then
+					moveCard(ch, ZONE_BATTLE)
+				elseif(getCreatureEvolutionBaitCount(ch)==2) then
+					local bait = createChoice("Choose the first evolution source",0,ch,opponent,function(cid,sid)
+						if(getCardOwner(sid)==opponent and getCardZone(sid)==ZONE_BATTLE) then
+							return hasVortexPartner(ch,sid)
+						end
+						return 0
+					end)
+					if(bait>=0) then
+						local bait2 = createChoice("Choose the second evolution source",0,ch,opponent,function(cid,sid)
+							if(sid~=bait and getCardOwner(sid)==opponent and getCardZone(sid)==ZONE_BATTLE and
+								getCreatureCanVortexEvolve(ch,bait,sid)==1) then return 1 end
+							return 0
+						end)
+						if(bait2>=0) then moveEvolution(ch,bait,bait2) end
+					end
+				else
+					local bait = createChoice("Choose a creature to evolve",0,ch,opponent,function(cid,sid)
+						if(getCardOwner(sid)==opponent and getCardZone(sid)==ZONE_BATTLE and
+							getCreatureCanEvolve(ch,sid)==1) then return 1 end
+						return 0
+					end)
+					if(bait>=0) then moveEvolution(ch,bait) end
+				end
 			end
 		end
 

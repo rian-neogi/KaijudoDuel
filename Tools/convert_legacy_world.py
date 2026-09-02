@@ -299,6 +299,7 @@ def parse_legacy_metadata(lua_text, legacy_maps):
 			"name": _string_field(table, "name"),
 			"map": _string_field(table, "map"),
 			"kind": _string_field(table, "kind"),
+			"weather": _string_field(table, "weather", required=False) or "rain",
 			"x": _int_field(table, "x"),
 			"y": _int_field(table, "y"),
 			"width": _int_field(table, "width"),

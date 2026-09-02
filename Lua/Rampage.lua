@@ -142,31 +142,25 @@ Cards["Armored Warrior Quelos"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-        local func = function(id)
-            local valid1 = function(cid,sid)
-                if(getCardOwner(sid)==getCardOwner(cid) and getCardZone(sid)==ZONE_MANA and cardHasCivilization(sid,CIV_FIRE)) then
-		            return 1
-	            else
-		            return 0
-	            end
-            end
-            local ch1 = createChoice("Choose a non-fire card in your mana zone",0,id,getCardOwner(id),valid1)
-            if(ch1>=0) then
-                destroyMana(ch1)
-            end
+		local nonFireMana = function(cid,sid)
+			if(getCardZone(sid)~=ZONE_MANA or cardHasCivilization(sid,CIV_FIRE)) then return 0 end
+			return getCardOwner(sid)==getCardOwner(cid) and 1 or 0
+		end
+		local opponentNonFireMana = function(cid,sid)
+			if(getCardZone(sid)~=ZONE_MANA or cardHasCivilization(sid,CIV_FIRE)) then return 0 end
+			return getCardOwner(sid)~=getCardOwner(cid) and 1 or 0
+		end
+		local attack = function(id)
+			local owner = getCardOwner(id)
+			local yourMana = createChoice("Choose a non-Fire card in your mana zone",0,
+				id,owner,nonFireMana)
+			if(yourMana>=0) then destroyMana(yourMana) end
 
-            local valid2 = function(cid,sid)
-                if(getCardOwner(sid)~=getCardOwner(cid) and getCardZone(sid)==ZONE_MANA and cardHasCivilization(sid,CIV_FIRE)) then
-		            return 1
-	            else
-		            return 0
-	            end
-            end
-            local ch2 = createChoice("Choose a non-fire card in your mana zone",0,id,getCardOwner(id),valid2)
-            if(ch2>=0) then
-                destroyMana(ch2)
-            end
-        end
+			local opponentMana = createChoice("Choose a non-Fire card in your mana zone",0,
+				id,getOpponent(owner),opponentNonFireMana)
+			if(opponentMana>=0) then destroyMana(opponentMana) end
+		end
+		Abils.onAttack(id,attack)
 	end
 }
 
@@ -190,7 +184,7 @@ Cards["Aurora of Reversal"] = {
                 break
             end
         end
-        Abils.EndSpell(id)
+		Functions.EndSpell(id)
 	end
 }
 
@@ -681,7 +675,7 @@ Cards["Ghastly Drain"] = {
                 break
             end
         end
-        Abils.EndSpell(id)
+		Functions.EndSpell(id)
 	end
 }
 
@@ -1146,7 +1140,8 @@ Cards["Psychic Shaper"] = {
 	shieldtrigger = 0,
 
 	OnCast = function(id)
-        local size = getZoneSize(player,ZONE_DECK)
+		local player = getCardOwner(id)
+		local size = getZoneSize(player,ZONE_DECK)
         for i=1,4 do
             if(i>size) then
                 break
@@ -1322,7 +1317,7 @@ Cards["Roar of the Earth"] = {
         if(ch>=0) then
             moveCard(ch,ZONE_HAND)
         end
-        Abils.EndSpell(id)
+		Functions.EndSpell(id)
 	end
 }
 

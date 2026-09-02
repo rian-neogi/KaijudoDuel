@@ -104,6 +104,20 @@ namespace
 	const int TREE_AUTOTILE_COUNT = sizeof(TREE_AUTOTILES) /
 		sizeof(TREE_AUTOTILES[0]);
 
+	struct StreetlightCompositeDescriptor
+	{
+		int canonicalIndex;
+		int members[3];
+	};
+
+	const StreetlightCompositeDescriptor STREETLIGHT_COMPOSITES[] = {
+		{ 227, { 211, 219, 227 } },
+		{ 251, { 235, 243, 251 } }
+	};
+
+	const int STREETLIGHT_COMPOSITE_COUNT = sizeof(STREETLIGHT_COMPOSITES) /
+		sizeof(STREETLIGHT_COMPOSITES[0]);
+
 	const TreeAutotileDescriptor* treeAutotileForMember(int tileIndex)
 	{
 		for (int tree = 0; tree < TREE_AUTOTILE_COUNT; ++tree)
@@ -118,6 +132,28 @@ namespace
 		for (int tree = 0; tree < TREE_AUTOTILE_COUNT; ++tree)
 			if (TREE_AUTOTILES[tree].canonicalIndex == tileIndex)
 				return &TREE_AUTOTILES[tree];
+		return NULL;
+	}
+
+	const StreetlightCompositeDescriptor* streetlightCompositeForMember(
+		int tileIndex, int* row = NULL)
+	{
+		for (int lamp = 0; lamp < STREETLIGHT_COMPOSITE_COUNT; ++lamp)
+			for (int member = 0; member < 3; ++member)
+				if (STREETLIGHT_COMPOSITES[lamp].members[member] == tileIndex)
+				{
+					if (row != NULL) *row = member;
+					return &STREETLIGHT_COMPOSITES[lamp];
+				}
+		return NULL;
+	}
+
+	const StreetlightCompositeDescriptor* streetlightCompositeForCanonical(
+		int tileIndex)
+	{
+		for (int lamp = 0; lamp < STREETLIGHT_COMPOSITE_COUNT; ++lamp)
+			if (STREETLIGHT_COMPOSITES[lamp].canonicalIndex == tileIndex)
+				return &STREETLIGHT_COMPOSITES[lamp];
 		return NULL;
 	}
 
@@ -141,6 +177,8 @@ bool RtpTilesetRenderer::draw(const RtpTileReference& tile, unsigned int connect
 	if (sheet == NULL || tile.index < 0 || tile.index >= sheet->tileCount) return false;
 	if (isTreeAutotile(tile))
 		return drawTreeAutotile(tile, destination);
+	if (isStreetlightComposite(tile))
+		return drawStreetlightComposite(tile, destination);
 	if (tile.sheet == RtpTileSheet::A1 || tile.sheet == RtpTileSheet::A2 ||
 		tile.sheet == RtpTileSheet::A3 || tile.sheet == RtpTileSheet::A4)
 		return drawAutotile(tile, *sheet, connections, destination, animationFrame);
@@ -188,6 +226,50 @@ bool RtpTilesetRenderer::drawTreeLayer(const RtpTileReference& tile,
 		return drawTreeAutotile(tile, destination, false, true);
 	if (layer == RtpRenderLayer::Foreground)
 		return drawTreeAutotile(tile, destination, true, false);
+	return false;
+}
+
+bool RtpTilesetRenderer::drawStreetlightComposite(const RtpTileReference& tile,
+	const SDL_Rect& destination, bool drawCanopy, bool drawBase)
+{
+	if (!isStreetlightComposite(tile) || mAssets == NULL || mRenderer == NULL ||
+		(!drawCanopy && !drawBase)) return false;
+	const StreetlightCompositeDescriptor* lamp =
+		streetlightCompositeForCanonical(tile.index);
+	const RtpSheetDescriptor* sheet = descriptor(tile.family, tile.sheet);
+	if (lamp == NULL || sheet == NULL) return false;
+	SDL_Texture* texture = mAssets->texture(sheet->imagePath, true);
+	if (texture == NULL) return false;
+
+	SDL_SetTextureColorMod(texture, tile.red, tile.green, tile.blue);
+	bool rendered = true;
+	for (int row = 0; row < 3; ++row)
+	{
+		if ((row < 2 && !drawCanopy) || (row == 2 && !drawBase)) continue;
+		SDL_Rect source;
+		if (!regularTileSource(tile.sheet, lamp->members[row], sheet->width,
+			sheet->height, source))
+		{
+			rendered = false;
+			continue;
+		}
+		SDL_Rect target = { destination.x, destination.y - (2 - row) * destination.h,
+			destination.w, destination.h };
+		rendered = SDL_RenderCopy(mRenderer, texture, &source, &target) == 0 && rendered;
+	}
+	SDL_SetTextureColorMod(texture, 255, 255, 255);
+	return rendered;
+}
+
+bool RtpTilesetRenderer::drawCompositeLayer(const RtpTileReference& tile,
+	RtpRenderLayer layer, const SDL_Rect& destination)
+{
+	if (isTreeAutotile(tile)) return drawTreeLayer(tile, layer, destination);
+	if (!isStreetlightComposite(tile)) return false;
+	if (layer == RtpRenderLayer::Decoration)
+		return drawStreetlightComposite(tile, destination, false, true);
+	if (layer == RtpRenderLayer::Foreground)
+		return drawStreetlightComposite(tile, destination, true, false);
 	return false;
 }
 
@@ -455,6 +537,10 @@ bool RtpTilesetRenderer::validateAllAssets(std::string& error)
 
 RtpRenderLayer RtpTilesetRenderer::inferredLayer(const RtpTileReference& tile)
 {
+	int streetlightRow = streetlightCompositeRow(tile.family, tile.sheet, tile.index);
+	if (streetlightRow >= 0)
+		return streetlightRow < 2 ? RtpRenderLayer::Foreground :
+			RtpRenderLayer::Decoration;
 	if (tile.sheet == RtpTileSheet::A1)
 		return tile.index >= 1 && tile.index <= 3 ?
 			RtpRenderLayer::Decoration : RtpRenderLayer::Ground;
@@ -477,7 +563,10 @@ int RtpTilesetRenderer::canonicalTileIndex(RtpTilesetFamily family,
 	if (family != RtpTilesetFamily::Outside || sheet != RtpTileSheet::B)
 		return tileIndex;
 	const TreeAutotileDescriptor* tree = treeAutotileForMember(tileIndex);
-	return tree == NULL ? tileIndex : tree->canonicalIndex;
+	if (tree != NULL) return tree->canonicalIndex;
+	const StreetlightCompositeDescriptor* lamp =
+		streetlightCompositeForMember(tileIndex);
+	return lamp == NULL ? tileIndex : lamp->canonicalIndex;
 }
 
 bool RtpTilesetRenderer::isTreeAutotile(const RtpTileReference& tile)
@@ -497,6 +586,39 @@ bool RtpTilesetRenderer::treeAutotileFootprint(const RtpTileReference& tile,
 	if (tree == NULL) return false;
 	width = tree->sourceWidth / 32;
 	height = 2;
+	return true;
+}
+
+bool RtpTilesetRenderer::isStreetlightComposite(const RtpTileReference& tile)
+{
+	return tile.family == RtpTilesetFamily::Outside &&
+		tile.sheet == RtpTileSheet::B &&
+		streetlightCompositeForCanonical(tile.index) != NULL;
+}
+
+int RtpTilesetRenderer::streetlightCompositeRow(RtpTilesetFamily family,
+	RtpTileSheet sheet, int tileIndex)
+{
+	if (family != RtpTilesetFamily::Outside || sheet != RtpTileSheet::B) return -1;
+	int row = -1;
+	streetlightCompositeForMember(tileIndex, &row);
+	return row;
+}
+
+bool RtpTilesetRenderer::isCompositeTile(const RtpTileReference& tile)
+{
+	return isTreeAutotile(tile) || isStreetlightComposite(tile);
+}
+
+bool RtpTilesetRenderer::compositeTileFootprint(const RtpTileReference& tile,
+	int& width, int& height)
+{
+	if (treeAutotileFootprint(tile, width, height)) return true;
+	width = 0;
+	height = 0;
+	if (!isStreetlightComposite(tile)) return false;
+	width = 1;
+	height = 3;
 	return true;
 }
 

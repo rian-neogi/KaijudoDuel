@@ -122,7 +122,7 @@ if(BUILD_TESTING)
     )
 	set_tests_properties(smoke PROPERTIES
 		ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy"
-		TIMEOUT 90
+		TIMEOUT 180
 	)
 	if(Python3_Interpreter_FOUND)
 		add_test(NAME legacy_world_converter

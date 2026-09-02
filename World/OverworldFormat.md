@@ -66,15 +66,21 @@ cell has no tile on that layer. Every other palette element has this form:
   Trunks on adjacent rows may share a column or use neighboring columns so the
   tileset artwork can pack vertically and diagonally. Loading removes later
   row-major anchors that violate only the same-row horizontal spacing.
+- Outside B Streetlight and Streetlight (Snow) artwork is likewise logical.
+  Selecting any of the three source cells paints one 1-by-3 composite whose
+  blocked base is the stored decoration anchor. The base renders with other
+  decorations, while the upper two cells render in the foreground so they
+  visually pass in front of characters. Loading collapses older three-cell
+  streetlight stacks into the same single-anchor representation.
 - `layer` must match the layer that references this palette entry. Layer choice
   is inferred by the World Builder. A1 indices 1 through 3 use decoration for
   deep water and its surface features; other A1 indices use ground. A2 uses
   ground for one-based columns 1 through 4 and decoration for columns 5 through
   8 in every logical row. Other A-series tiles use ground, ordinary B/C tiles
   use decoration, and metadata-marked front pieces use foreground.
-- Logical tree anchors remain stored in decoration. Their base row renders in
-  the decoration pass, while their canopy row renders in the foreground
-  pass so characters can walk visually behind the foliage.
+- Logical tree and streetlight anchors remain stored in decoration. Their base
+  rows render in the decoration pass, while their canopy rows render in the
+  foreground pass so characters can walk visually behind them.
 - `tint` contains red, green, and blue texture multipliers from 0 through 255.
   `[255,255,255]` leaves the source art unchanged. Tint support remains part of
   the native format even though the migrated overworld palette is neutral.
@@ -142,6 +148,26 @@ progress refers to them.
 - directed portal endpoints;
 - NPC, object, and shard positions.
 
+Each directed portal may also define an RTP character-sheet appearance on its
+origin:
+
+```json
+{
+  "appearance": "!Door3-5",
+  "from": { "map": "overworld", "x": 542, "y": 710 },
+  "to": { "map": "mercers_house", "x": 5, "y": 6 }
+}
+```
+
+Door appearances use `!Door1-1` through `!Door3-8`; gate appearances use
+`!$Gate1-1` or `!$Gate2-1`. The one-based suffix selects the character within
+the sheet. A portal with an appearance is a solid, visible world fixture: the
+player faces it and presses the interaction key to play its four-stage opening
+animation before travelling. The appearance belongs only to the `from`
+endpoint. Give the reverse directed portal its own appearance when both sides
+should be visible and interactive. An omitted appearance remains supported for
+invisible step-trigger portals.
+
 Builder-created objects have an additional entry in the optional
 `entities.object_definitions` array:
 
@@ -155,9 +181,30 @@ not need an object-definition entry. Removing an unknown template or its
 matching position makes the native manifest invalid instead of silently
 substituting another object.
 
+Placed normal and deck chests may override their Lua/template sprite through
+the optional `entities.object_appearances` array:
+
+```json
+{ "id": "old_road_wayfarer_chest", "appearance": "!Chest-4" }
+```
+
+The ID must have a matching `entities.objects` position and identify a chest.
+Chest appearances range from `!Chest-1` through `!Chest-8`. They change only
+the closed/open sprite variant; interaction text, opened state, and deck rewards
+remain owned by the object metadata and player save. In the World Builder,
+switch the Objects tab to Placed, select a chest, and use the appearance arrows.
+
 All of those overworld coordinates use the same 1024-by-1024 coordinate system.
-Use the World Builder to edit normal map content and directed portals. Its
-Portals tab places a From endpoint followed by a To endpoint; author a second
-portal for reverse travel. Direct JSON edits must retain valid palette indices,
-exact layer cell totals, in-bounds tags, and walkable, non-overlapping world
-positions.
+Use the World Builder to edit normal map content, regions, and directed portals.
+Its Regions tab creates non-overlapping exterior rectangles, edits their town
+or connector kind, precipitation, and display name, and redraws their bounds.
+Region entries in `World/World.json` use `weather: "rain"` or
+`weather: "snow"`; this selects the precipitation shown there whenever the
+world weather is active. The display name is shown whenever the player enters
+the rectangle. A duel loss in a town region preserves the player's location,
+while losses elsewhere return the player to Emberglen. Its Portals tab places a
+From endpoint followed by a To endpoint; author a second portal for reverse
+travel. Select a portal and use the appearance arrows to browse every Door and
+Gate graphic. New portals default to `!Door3-5`. Direct JSON edits must retain
+valid palette indices, exact layer cell
+totals, in-bounds tags, and walkable, non-overlapping world positions.

@@ -3,6 +3,7 @@
 #include "AssetManager.h"
 
 #include <algorithm>
+#include <cctype>
 
 namespace
 {
@@ -25,6 +26,34 @@ namespace
 SpriteSheetRenderer::SpriteSheetRenderer(SDL_Renderer* renderer, AssetManager* assets)
 	: mRenderer(renderer), mAssets(assets)
 {
+}
+
+bool SpriteSheetRenderer::appearanceDefinition(const std::string& appearance,
+	CharacterSpriteDefinition& definition)
+{
+	const size_t separator = appearance.find_last_of('-');
+	if (separator == std::string::npos || separator == 0 ||
+		separator + 1 >= appearance.size()) return false;
+	const std::string sheet = appearance.substr(0, separator);
+	for (size_t index = 0; index < sheet.size(); ++index)
+	{
+		const unsigned char character = (unsigned char)sheet[index];
+		if (!std::isalnum(character) && character != '_' && character != '!' &&
+			character != '$') return false;
+	}
+	int spriteIndex = 0;
+	for (size_t index = separator + 1; index < appearance.size(); ++index)
+	{
+		const unsigned char character = (unsigned char)appearance[index];
+		if (!std::isdigit(character)) return false;
+		spriteIndex = spriteIndex * 10 + character - '0';
+		if (spriteIndex > 8) return false;
+	}
+	const bool single = sheet.find('$') != std::string::npos;
+	if (spriteIndex < 1 || spriteIndex > (single ? 1 : 8)) return false;
+	definition.sheet = "Resources/Graphics/Characters/" + sheet + ".png";
+	definition.characterIndex = spriteIndex - 1;
+	return true;
 }
 
 bool SpriteSheetRenderer::characterSourceRect(const std::string& sheet,

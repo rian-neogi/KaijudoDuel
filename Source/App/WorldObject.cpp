@@ -113,6 +113,7 @@ namespace
 			const std::string appearance = stringField(state, -1, "appearance");
 			bool validAppearance = appearance.empty() ||
 				parseAppearance(appearance, object.spriteSheet, object.spriteIndex);
+			if (validAppearance) object.appearance = appearance;
 			if (objectTemplate.id.empty() || object.name.empty() ||
 				object.text.empty() || !parseKind(kindName, object.kind) ||
 				!validAppearance || object.spriteRow < 0 || object.spriteRow > 3 ||
@@ -208,6 +209,7 @@ bool loadWorldObjectsFromLua(const std::string& path,
 				lua_close(state);
 				return false;
 			}
+			object.appearance = appearance;
 
 			lua_getfield(state, -1, "reward");
 			if (!lua_istable(state, -1))
@@ -277,6 +279,17 @@ WorldObject createWorldObject(const WorldObjectTemplate& objectTemplate,
 	object.templateId = objectTemplate.id;
 	object.editorCreated = true;
 	return object;
+}
+
+bool setWorldObjectAppearance(WorldObject& object, const std::string& appearance)
+{
+	std::string spriteSheet;
+	int spriteIndex = -1;
+	if (!parseAppearance(appearance, spriteSheet, spriteIndex)) return false;
+	object.appearance = appearance;
+	object.spriteSheet = spriteSheet;
+	object.spriteIndex = spriteIndex;
+	return true;
 }
 
 const char* worldObjectKindName(WorldObjectKind kind)

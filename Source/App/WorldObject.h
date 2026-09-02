@@ -22,6 +22,7 @@ struct WorldObject
 	std::string openedText;
 	std::string rewardDeck;
 	std::string rewardDeckName;
+	std::string appearance;
 	std::string spriteSheet;
 	std::string templateId;
 	int spriteIndex = -1;
@@ -44,4 +45,5 @@ bool loadWorldObjectsFromLua(const std::string& path,
 	std::string& error);
 WorldObject createWorldObject(const WorldObjectTemplate& objectTemplate,
 	const std::string& id);
+bool setWorldObjectAppearance(WorldObject& object, const std::string& appearance);
 const char* worldObjectKindName(WorldObjectKind kind);

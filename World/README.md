@@ -10,6 +10,16 @@ The World Builder's Portals tab creates directed transitions. Place the From
 endpoint first, switch maps if necessary, and then place the To endpoint. A
 two-way doorway is represented by two separately authored portals.
 
+The Regions tab edits the named exterior rectangles stored in the manifest.
+Use New and drag across the map to create a town region, click the name field
+to rename it, toggle its type between town and connector, and choose whether
+active precipitation appears as rain or snow. Bounds redraws the selected
+rectangle. Regions cannot overlap; double-clicking a list entry locates it on
+the map. Entering any of these rectangles during gameplay shows its display
+name, including the existing Emberglen, Old Road, and other overworld regions.
+Losing a duel in a town keeps the player at their current position; losses in
+connector regions or unassigned exterior space return the player to Emberglen.
+
 Objects created from the World Builder's Lua-populated Add palette are recorded
 in the manifest's optional `entities.object_definitions` array. Each definition
 maps its generated object ID to a template in `Lua/Objects.lua`; its location is

@@ -221,7 +221,7 @@ Cards["Bloodwing Mantis"] = {
 	breaker = 2,
 
 	HandleMessage = function(id)
-        local func = function(id)
+		local func = function(id)
             local ch = createChoice("Choose a creature in your mana zone",0,id,getCardOwner(id),Checks.CreatureInYourMana)
             if(ch>=0) then
                 moveCard(ch,ZONE_HAND)
@@ -469,9 +469,9 @@ Cards["Death Cruzer, the Annihilator"] = {
                     destroyCreature(sid)
                 end
             end
-            Functions.executeForCreaturesInBattle(id,getCardOwner(id),func)
-        end
-        Abils.onSummon(id)
+			Functions.executeForCreaturesInBattle(id,getCardOwner(id),func)
+		end
+		Abils.onSummon(id,func)
 	end
 }
 
@@ -690,10 +690,10 @@ Cards["Jewel Spider"] = {
 	set = "Survivors of the Megapocalypse",
 	type = TYPE_CREATURE,
 	civilization = CIV_DARKNESS,
-	race = "Bain Jacker",
+	race = "Brain Jacker",
 	cost = 2,
 
-	shieldtrigger = 1,
+	shieldtrigger = 0,
 	blocker = 0,
 
 	power = 1000,
@@ -727,7 +727,7 @@ Cards["King Mazelan"] = {
 
 	HandleMessage = function(id)
         local func = function(id)
-            local ch = createChoice("Select creature in battle zone",1,att,getCardOwner(id),Checks.InBattle)
+			local ch = createChoice("Select creature in battle zone",1,id,getCardOwner(id),Checks.InBattle)
             if(ch>=0) then
                 moveCard(ch,ZONE_HAND)
             end
@@ -785,8 +785,10 @@ Cards["Kip Chippotto"] = { --test
 	breaker = 1,
 
 	HandleMessage = function(id)
-        if(getMessageType()=="pre creaturedestroy") then
-			if(IsCreatureOfRace(getMessageInt("creature"), "Armored Dragon")==1) then
+		if(getMessageType()=="pre creaturedestroy") then
+			local creature = getMessageInt("creature")
+			if(getCardZone(id)==ZONE_BATTLE and getCardOwner(creature)==getCardOwner(id) and
+				isCreatureOfRace(creature,"Armored Dragon")==1) then
 				local ch = createChoiceNoCheck("Destroy this creature instead?", 2, id, getCardOwner(id), Checks.False)
 				if(ch==RETURN_BUTTON1) then
 					setMessageInt("msgContinue", 0)
@@ -806,22 +808,22 @@ Cards["Kulus, Soulshine Enforcer"] = {
 	race = "Berserker",
 	cost = 4,
 
-	shieldtrigger = 1,
+	shieldtrigger = 0,
 	blocker = 0,
 
 	power = 3500,
 	breaker = 1,
 
 	HandleMessage = function(id)
-        local func = function(id)
-            local owner = getCardOwner(id)
-            local c1 = getZoneSize(owner)
-            local c2 = getZoneSize(getOpponent(owner))
-            if(c2>c1) then
-                Functions.moveTopCardsFromDeck(owner,ZONE_MANA,1)
-            end
-        end
-        Abils.onSummon(func,id)
+		local func = function(id)
+			local owner = getCardOwner(id)
+			local c1 = getZoneSize(owner,ZONE_MANA)
+			local c2 = getZoneSize(getOpponent(owner),ZONE_MANA)
+			if(c2>c1) then
+				Functions.moveTopCardsFromDeck(owner,ZONE_MANA,1)
+			end
+		end
+		Abils.onSummon(id,func)
 	end
 }
 
@@ -935,20 +937,31 @@ Cards["Miracle Quest"] = { --test
 	shieldtrigger = 0,
 
 	OnCast = function(id)
+		local owner = getCardOwner(id)
+		local shieldsBroken = 0
+		local attacking = false
 		local mod = function(cid,mid)
-			if(getMessageType()=="post creaturebreakshield") then
-				if(getMessageInt("creature")==cid) then
-					drawCards(2, getCardOwner(cid))
+			if(getMessageType()=="post creatureattack") then
+				local attacker = getMessageInt("attacker")
+				attacking = getCardOwner(attacker)==owner
+				shieldsBroken = 0
+			elseif(getMessageType()=="post creaturebreakshield" and attacking) then
+				local attacker = getMessageInt("creature")
+				if(getCardOwner(attacker)==owner) then
+					shieldsBroken = shieldsBroken+1
 				end
+			elseif(getMessageType()=="post resetattack" and attacking) then
+				if(shieldsBroken>0) then
+					local draw = createChoiceNoCheck("Draw "..(shieldsBroken*2).." cards?",2,
+						cid,owner,Checks.False,RETURN_BUTTON1)
+					if(draw==RETURN_BUTTON1) then drawCards(owner,shieldsBroken*2) end
+				end
+				shieldsBroken = 0
+				attacking = false
 			end
 			Abils.destroyModAtEOT(cid,mid)
 		end
-
-		local func = function(cid, sid)
-			createModifier(sid, mod)
-		end
-
-		Functions.executeForCreaturesInBattle(id, getCardOwner(id), func)
+		createModifier(id,mod)
 		Functions.EndSpell(id)
 	end
 }
@@ -1365,11 +1378,11 @@ Cards["Solidskin Fish"] = {
 	breaker = 1,
 
 	HandleMessage = function(id)
-        local func = function(id)
-            local ch = createChoice("Choose a card in your mana zone",0,id,getCardOwner(id),Checks.InYourMana)
-            if(ch>=0) then
-                moveCard(ZONE_HAND)
-            end
+		local func = function(id)
+			local ch = createChoice("Choose a card in your mana zone",0,id,getCardOwner(id),Checks.InYourMana)
+			if(ch>=0) then
+				moveCard(ch,ZONE_HAND)
+			end
         end
 		Abils.onSummon(id,func)
 	end

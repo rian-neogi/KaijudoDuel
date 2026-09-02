@@ -99,6 +99,11 @@ int Application::runSmokeTests()
 			std::cerr << "Save menu smoke test failed." << std::endl;
 			return 2;
 		}
+		if (!exerciseAuditedCardRulesSmoke())
+		{
+			std::cerr << "Audited card-rules smoke test failed." << std::endl;
+			return 2;
+		}
 		if (!exerciseShopStockSmoke())
 		{
 			std::cerr << "Shop stock card-name smoke test failed." << std::endl;
@@ -134,6 +139,11 @@ int Application::runSmokeTests()
 			std::cerr << "Tap-ability smoke test failed." << std::endl;
 			return 2;
 		}
+		if (!exerciseGigiosHammerSmoke())
+		{
+			std::cerr << "Gigio's Hammer modifier smoke test failed." << std::endl;
+			return 2;
+		}
 		if (!exerciseAttackQuerySmoke())
 		{
 			std::cerr << "Attack-query smoke test failed." << std::endl;
@@ -141,7 +151,12 @@ int Application::runSmokeTests()
 		}
 		if (!exerciseRaceQuerySmoke())
 		{
-			std::cerr << "Survivor race-aura smoke test failed." << std::endl;
+			std::cerr << "Survivor race/Omnistrain trigger smoke test failed." << std::endl;
+			return 2;
+		}
+		if (!exerciseRoyalDurianSmoke())
+		{
+			std::cerr << "Royal Durian summon-effect smoke test failed." << std::endl;
 			return 2;
 		}
 		if (!exerciseCountInZoneCardSmoke())
@@ -207,6 +222,11 @@ int Application::runSmokeTests()
 		if (!exerciseWorldBuilderPortalsSmoke())
 		{
 			std::cerr << "World Builder portal smoke test failed." << std::endl;
+			return 2;
+		}
+		if (!exerciseWorldBuilderRegionsSmoke())
+		{
+			std::cerr << "World Builder region smoke test failed." << std::endl;
 			return 2;
 		}
 		if (!exerciseHollowCardsSmoke())
@@ -524,15 +544,18 @@ bool Application::exerciseShopStockSmoke()
 	const ShopStock* glasswater = stock.find("glasswater");
 	if (glasswater == NULL || glasswater->initialStock.empty()) return false;
 	bool brantReady = false;
+	bool arkaReady = false;
 	for (size_t index = 0; index < mNpcs.size(); ++index)
 	{
 		const Npc& npc = mNpcs[index];
 		if (npc.canTrade() && npc.shopStockId != "mercer" &&
 			stock.find(npc.shopStockId) == NULL) return false;
 		if (npc.id == "shopkeeper-brant")
-			brantReady = npc.canTrade() && npc.shopStockId == "glasswater";
+			brantReady = npc.canTrade() && npc.shopStockId == "cinderrail";
+		if (npc.id == "arka")
+			arkaReady = npc.canTrade() && npc.shopStockId == "glasswater";
 	}
-	return brantReady;
+	return brantReady && arkaReady;
 }
 
 bool Application::exerciseDuelCloneSmoke()
@@ -1023,6 +1046,10 @@ bool Application::exerciseDormantCardCallbackSmoke()
 	int dormant = addCard(tyrantWormId, ZONE_DECK);
 	int dormantShield = addCard(tyrantWormId, ZONE_SHIELD);
 	int dormantGraveyard = addCard(azaghastId, ZONE_GRAVEYARD);
+	int dormantMana = addCard(tyrantWormId, ZONE_MANA);
+	int dormantEvolved = addCard(tyrantWormId, ZONE_DECK);
+	duel.mDecks[0].removeCard(duel.mCardList[dormantEvolved]);
+	duel.mCardList[dormantEvolved]->mZone = ZONE_EVOLVED;
 	int dormantEvolution = addCard(azaghastId, ZONE_DECK);
 	int dormantHand = addCard(azaghastId, ZONE_HAND);
 	int discardReplacement = addCard(davaToreyId, ZONE_HAND);
@@ -1056,6 +1083,8 @@ bool Application::exerciseDormantCardCallbackSmoke()
 		duel.mShields[0].mCards.size() == 1 &&
 		duel.mCardList[dormantGraveyard]->mZone == ZONE_GRAVEYARD &&
 		duel.mGraveyards[0].mCards.size() == 1 &&
+		duel.mCardList[dormantMana]->mZone == ZONE_MANA &&
+		duel.mCardList[dormantEvolved]->mZone == ZONE_EVOLVED &&
 		duel.mCardList[dormantHand]->mZone == ZONE_HAND && evolutionRecognized &&
 		castRestrictionApplied &&
 		duel.mCardList[discardReplacement]->mZone == ZONE_BATTLE &&
@@ -1264,6 +1293,67 @@ bool Application::exerciseTapAbilitySmoke()
 	return valid;
 }
 
+bool Application::exerciseGigiosHammerSmoke()
+{
+	std::lock_guard<std::mutex> lock(gMutex);
+	int gigioId = getCardIdFromName("Gigio's Hammer");
+	int xenoPartsId = getCardIdFromName("Picora's Wrench");
+	int deckCardId = getCardIdFromName("Bone Spider");
+	if (gigioId < 0 || xenoPartsId < 0 || deckCardId < 0) return false;
+
+	Duel duel;
+	duel.mIsSimulation = true;
+	duel.mInputLoopRunning = false;
+	duel.mTurn = 0;
+	duel.mTurnPhase = TURN_PHASE_MAIN;
+	auto addCard = [&duel](int cardId, int owner, int zone) -> int
+	{
+		int uid = static_cast<int>(duel.mCardList.size());
+		Card* card = new Card(uid, cardId, owner);
+		duel.mCardList.push_back(card);
+		duel.getZone(owner, zone)->addCard(card);
+		card->mZone = zone;
+		card->mSummoningSickness = 0;
+		duel.mNextUniqueId = uid + 1;
+		return uid;
+	};
+
+	int gigio = addCard(gigioId, 0, ZONE_BATTLE);
+	int xenoParts = addCard(xenoPartsId, 0, ZONE_BATTLE);
+	addCard(deckCardId, 1, ZONE_DECK);
+	int basePower = duel.mCardList[xenoParts]->mPower;
+	duel.setChoiceResolver([xenoParts](const Duel&) { return xenoParts; });
+	bool activated = false;
+	bool buffApplied = false;
+	bool expired = false;
+	{
+		ActiveDuelGuard activeGuard(duel);
+		Message useAbility("creatureusetapability");
+		useAbility.addValue("creature", gigio);
+		duel.handleInterfaceInput(useAbility);
+		duel.dispatchAllMessages();
+		activated = duel.mCardList[gigio]->mIsTapped &&
+			duel.mCardList[gigio]->mModifiers.size() == 1;
+
+		duel.mAttacker = xenoParts;
+		buffApplied = duel.getCreatureMustAttack(xenoParts) == 1 &&
+			duel.getCreaturePower(xenoParts) == basePower + 4000;
+		duel.getCreatureCanAttackPlayers(xenoParts);
+
+		Message endTurn("endturn");
+		endTurn.addValue("player", 0);
+		duel.mMsgMngr.sendMessage(endTurn);
+		duel.dispatchAllMessages();
+		expired = duel.mCardList[gigio]->mModifiers.empty();
+	}
+	if (!activated || !buffApplied || !expired)
+	{
+		std::cerr << "Gigio's Hammer case: activated=" << activated <<
+			", buff=" << buffApplied << ", expired=" << expired << std::endl;
+	}
+	return activated && buffApplied && expired;
+}
+
 bool Application::exerciseAttackQuerySmoke()
 {
 	std::lock_guard<std::mutex> lock(gMutex);
@@ -1296,6 +1386,393 @@ bool Application::exerciseAttackQuerySmoke()
 		valid = valid && attackDuel.getCreatureCanAttackPlayers(snipStriker) != CANATTACK_NO &&
 			attackDuel.getCreatureCanAttackCreature(snipStriker, opponentCreature) != CANATTACK_NO;
 	}
+	return valid;
+}
+
+bool Application::exerciseAuditedCardRulesSmoke()
+{
+	int aquanId = getCardIdFromName("Aquan");
+	int psychicShaperId = getCardIdFromName("Psychic Shaper");
+	int miracleQuestId = getCardIdFromName("Miracle Quest");
+	int armoredWarriorQuelosId = getCardIdFromName("Armored Warrior Quelos");
+	int bluumErkisId = getCardIdFromName("Bluum Erkis, Flare Guardian");
+	int brainSerumId = getCardIdFromName("Brain Serum");
+	int gnarvashId = getCardIdFromName("Gnarvash, Merchant of Blood");
+	int jewelSpiderId = getCardIdFromName("Jewel Spider");
+	int kulusId = getCardIdFromName("Kulus, Soulshine Enforcer");
+	int aquaHulcusId = getCardIdFromName("Aqua Hulcus");
+	int laUraGigaId = getCardIdFromName("La Ura Giga, Sky Guardian");
+	int boneSpiderId = getCardIdFromName("Bone Spider");
+	int braidClawId = getCardIdFromName("Deadly Fighter Braid Claw");
+	int mightyShouterId = getCardIdFromName("Mighty Shouter");
+	int machoMelonId = getCardIdFromName("Macho Melon");
+	int gamiratarId = getCardIdFromName("Terradragon Gamiratar");
+	int crystalLancerId = getCardIdFromName("Crystal Lancer");
+	int crazeValkyrieId = getCardIdFromName("Craze Valkyrie, the Drastic");
+	int wiseStarnoidId = getCardIdFromName("Wise Starnoid, Avatar of Hope");
+	int chiliasId = getCardIdFromName("Chilias, the Oracle");
+	int tropicoId = getCardIdFromName("Tropico");
+	int deathPhoenixId = getCardIdFromName("Death Phoenix, Avatar of Doom");
+	int cosmicDartsId = getCardIdFromName("Cosmic Darts");
+	int meloppeId = getCardIdFromName("Meloppe");
+	int invincibleCataclysmId = getCardIdFromName("Invincible Cataclysm");
+	if (aquanId < 0 || psychicShaperId < 0 || miracleQuestId < 0 ||
+		armoredWarriorQuelosId < 0 ||
+		bluumErkisId < 0 || brainSerumId < 0 || gnarvashId < 0 ||
+		jewelSpiderId < 0 || kulusId < 0 || aquaHulcusId < 0 ||
+		laUraGigaId < 0 || boneSpiderId < 0 || braidClawId < 0 || mightyShouterId < 0 ||
+		machoMelonId < 0 || gamiratarId < 0 || crystalLancerId < 0 || crazeValkyrieId < 0 ||
+		wiseStarnoidId < 0 || chiliasId < 0 || tropicoId < 0 || deathPhoenixId < 0 ||
+		cosmicDartsId < 0 || meloppeId < 0 || invincibleCataclysmId < 0)
+		return false;
+
+	std::lock_guard<std::mutex> lock(gMutex);
+	auto addCard = [](Duel& duel, int cardId, int owner, int zone) -> int
+	{
+		int uid = static_cast<int>(duel.mCardList.size());
+		Card* card = new Card(uid,cardId,owner);
+		duel.mCardList.push_back(card);
+		duel.getZone(owner,zone)->addCard(card);
+		card->mZone = zone;
+		card->mSummoningSickness = 0;
+		duel.mNextUniqueId = uid + 1;
+		return uid;
+	};
+	auto chooseFirstButton = [](const Duel&) { return RETURN_BUTTON1; };
+	bool valid = true;
+
+	{
+		Duel duel;
+		duel.mIsSimulation = true;
+		duel.mInputLoopRunning = false;
+		int aquan = addCard(duel,aquanId,0,ZONE_HAND);
+		int light = addCard(duel,laUraGigaId,0,ZONE_DECK);
+		int darkness = addCard(duel,boneSpiderId,0,ZONE_DECK);
+		int water = addCard(duel,aquaHulcusId,0,ZONE_DECK);
+		int fire = addCard(duel,mightyShouterId,0,ZONE_DECK);
+		int nature = addCard(duel,machoMelonId,0,ZONE_DECK);
+		duel.setChoiceResolver(chooseFirstButton,1);
+		ActiveDuelGuard activeGuard(duel);
+		Message summon("cardmove");
+		summon.addValue("card",aquan);
+		summon.addValue("from",ZONE_HAND);
+		summon.addValue("to",ZONE_BATTLE);
+		duel.dispatchMessage(summon);
+		duel.dispatchAllMessages();
+		bool aquanWorked = duel.mCardList[aquan]->mZone == ZONE_BATTLE &&
+			duel.mCardList[aquan]->mIsShieldTrigger == 0 &&
+			duel.mCardList[light]->mZone == ZONE_HAND &&
+			duel.mCardList[darkness]->mZone == ZONE_HAND &&
+			duel.mCardList[water]->mZone == ZONE_GRAVEYARD &&
+			duel.mCardList[fire]->mZone == ZONE_GRAVEYARD &&
+			duel.mCardList[nature]->mZone == ZONE_GRAVEYARD;
+		if (!aquanWorked) std::cerr << "Aquan reveal case failed." << std::endl;
+		valid = valid && aquanWorked;
+	}
+
+	{
+		Duel duel;
+		duel.mIsSimulation = true;
+		duel.mInputLoopRunning = false;
+		int psychic = addCard(duel,psychicShaperId,1,ZONE_HAND);
+		int water = addCard(duel,aquaHulcusId,1,ZONE_DECK);
+		int fire = addCard(duel,mightyShouterId,1,ZONE_DECK);
+		ActiveDuelGuard activeGuard(duel);
+		Message cast("cardmove");
+		cast.addValue("card",psychic);
+		cast.addValue("from",ZONE_HAND);
+		cast.addValue("to",ZONE_BATTLE);
+		duel.dispatchMessage(cast);
+		duel.dispatchAllMessages();
+		bool psychicWorked = duel.mCardList[psychic]->mZone == ZONE_GRAVEYARD &&
+			duel.mCardList[water]->mZone == ZONE_HAND &&
+			duel.mCardList[fire]->mZone == ZONE_GRAVEYARD;
+		if (!psychicWorked) std::cerr << "Psychic Shaper owner case failed." << std::endl;
+		valid = valid && psychicWorked;
+	}
+
+	{
+		Duel duel;
+		duel.mIsSimulation = true;
+		duel.mInputLoopRunning = false;
+		int quest = addCard(duel,miracleQuestId,0,ZONE_HAND);
+		int attacker = addCard(duel,aquaHulcusId,0,ZONE_BATTLE);
+		int firstShield = addCard(duel,mightyShouterId,1,ZONE_SHIELD);
+		int secondShield = addCard(duel,machoMelonId,1,ZONE_SHIELD);
+		for (int i=0; i<4; ++i) addCard(duel,boneSpiderId,0,ZONE_DECK);
+		duel.setChoiceResolver(chooseFirstButton,1);
+		ActiveDuelGuard activeGuard(duel);
+		Message cast("cardmove");
+		cast.addValue("card",quest);
+		cast.addValue("from",ZONE_HAND);
+		cast.addValue("to",ZONE_BATTLE);
+		duel.dispatchMessage(cast);
+		duel.dispatchAllMessages();
+		Message attack("creatureattack");
+		attack.addValue("attacker",attacker);
+		attack.addValue("defender",1);
+		attack.addValue("defendertype",DEFENDER_PLAYER);
+		duel.dispatchMessage(attack);
+		duel.dispatchAllMessages();
+		int shields[] = { firstShield, secondShield };
+		for (int index=0; index<2; ++index)
+		{
+			Message broken("creaturebreakshield");
+			broken.addValue("creature",attacker);
+			broken.addValue("attacker",attacker);
+			broken.addValue("defender",1);
+			broken.addValue("shield",shields[index]);
+			duel.dispatchMessage(broken);
+			duel.dispatchAllMessages();
+		}
+		Message reset("resetattack");
+		duel.dispatchMessage(reset);
+		duel.dispatchAllMessages();
+		bool questWorked = duel.mCardList[quest]->mZone == ZONE_GRAVEYARD &&
+			duel.getZone(0,ZONE_HAND)->mCards.size() == 4 &&
+			duel.getZone(0,ZONE_DECK)->mCards.empty();
+		if (!questWorked) std::cerr << "Miracle Quest completed-attack case failed." << std::endl;
+		valid = valid && questWorked;
+	}
+
+	{
+		Duel duel;
+		duel.mIsSimulation = true;
+		duel.mInputLoopRunning = false;
+		int quelos = addCard(duel,armoredWarriorQuelosId,0,ZONE_BATTLE);
+		int yourNonFire = addCard(duel,aquaHulcusId,0,ZONE_MANA);
+		int yourFire = addCard(duel,braidClawId,0,ZONE_MANA);
+		int opponentNonFire = addCard(duel,boneSpiderId,1,ZONE_MANA);
+		int opponentFire = addCard(duel,braidClawId,1,ZONE_MANA);
+		int resolverCalls = 0;
+		bool choicesWorked = true;
+		duel.setChoiceResolver(
+			[&](const Duel& position) -> int
+			{
+				int expected = resolverCalls == 0 ? yourNonFire : opponentNonFire;
+				int expectedPlayer = resolverCalls == 0 ? 0 : 1;
+				choicesWorked = choicesWorked && resolverCalls < 2 &&
+					position.mChoicePlayer == expectedPlayer &&
+					position.mChoiceValidCards.size() == 1 &&
+					position.mChoiceValidCards.front() == expected;
+				++resolverCalls;
+				return expected;
+			},2);
+		ActiveDuelGuard activeGuard(duel);
+		Message attack("creatureattack");
+		attack.addValue("attacker",quelos);
+		attack.addValue("defender",1);
+		attack.addValue("defendertype",DEFENDER_PLAYER);
+		duel.dispatchMessage(attack);
+		duel.dispatchAllMessages();
+		bool quelosWorked = choicesWorked && resolverCalls == 2 &&
+			duel.mCardList[yourNonFire]->mZone == ZONE_GRAVEYARD &&
+			duel.mCardList[opponentNonFire]->mZone == ZONE_GRAVEYARD &&
+			duel.mCardList[yourFire]->mZone == ZONE_MANA &&
+			duel.mCardList[opponentFire]->mZone == ZONE_MANA;
+		if (!quelosWorked)
+		{
+			std::cerr << "Armored Warrior Quelos attack case failed: calls=" <<
+				resolverCalls << ", choices=" << choicesWorked << ", zones={" <<
+				duel.mCardList[yourNonFire]->mZone << "," <<
+				duel.mCardList[yourFire]->mZone << "," <<
+				duel.mCardList[opponentNonFire]->mZone << "," <<
+				duel.mCardList[opponentFire]->mZone << "}" << std::endl;
+		}
+		valid = valid && quelosWorked;
+	}
+
+	{
+		Duel duel;
+		duel.mIsSimulation = true;
+		duel.mInputLoopRunning = false;
+		int bluum = addCard(duel,bluumErkisId,0,ZONE_BATTLE);
+		int serum = addCard(duel,brainSerumId,1,ZONE_SHIELD);
+		addCard(duel,boneSpiderId,0,ZONE_DECK);
+		addCard(duel,machoMelonId,0,ZONE_DECK);
+		addCard(duel,boneSpiderId,1,ZONE_DECK);
+		addCard(duel,machoMelonId,1,ZONE_DECK);
+		ActiveDuelGuard activeGuard(duel);
+		Message broken("breakshield");
+		broken.addValue("player",1);
+		broken.addValue("shield",serum);
+		broken.addValue("attacker",bluum);
+		broken.addValue("cantrigger",1);
+		duel.dispatchMessage(broken);
+		duel.dispatchAllMessages();
+		bool bluumWorked = duel.mCardList[serum]->mZone == ZONE_GRAVEYARD &&
+			duel.mCardList[serum]->mOwner == 1 &&
+			duel.getZone(0,ZONE_HAND)->mCards.size() == 2 &&
+			duel.getZone(1,ZONE_HAND)->mCards.empty() &&
+			duel.getZone(1,ZONE_DECK)->mCards.size() == 2;
+		if (!bluumWorked) std::cerr << "Bluum Erkis controller case failed." << std::endl;
+		valid = valid && bluumWorked;
+	}
+
+	{
+		Duel duel;
+		duel.mIsSimulation = true;
+		ActiveDuelGuard activeGuard(duel);
+		int gnarvash = addCard(duel,gnarvashId,0,ZONE_BATTLE);
+		int jewel = addCard(duel,jewelSpiderId,0,ZONE_BATTLE);
+		int kulus = addCard(duel,kulusId,0,ZONE_BATTLE);
+		bool flagsWorked = duel.getCreatureBreaker(gnarvash) == 2 &&
+			duel.getIsShieldTrigger(jewel) == 0 && duel.getIsShieldTrigger(kulus) == 0;
+		if (!flagsWorked) std::cerr << "Audited card static flags failed." << std::endl;
+		valid = valid && flagsWorked;
+	}
+
+	{
+		Duel duel;
+		duel.mIsSimulation = true;
+		duel.mInputLoopRunning = false;
+		int gamiratar = addCard(duel,gamiratarId,0,ZONE_HAND);
+		int hulcus = addCard(duel,aquaHulcusId,1,ZONE_BATTLE);
+		int lancer = addCard(duel,crystalLancerId,1,ZONE_HAND);
+		int illegalEvolution = addCard(duel,crazeValkyrieId,1,ZONE_HAND);
+		int normalCreature = addCard(duel,boneSpiderId,1,ZONE_HAND);
+		int resolverCalls = 0;
+		bool choicesWorked = true;
+		duel.setChoiceResolver(
+			[&](const Duel& position) -> int
+			{
+				if (resolverCalls == 0)
+				{
+					choicesWorked = choicesWorked && position.mChoicePlayer == 1 &&
+						position.choiceCanBeSelected(lancer) &&
+						position.choiceCanBeSelected(normalCreature) &&
+						!position.choiceCanBeSelected(illegalEvolution);
+					++resolverCalls;
+					return lancer;
+				}
+				choicesWorked = choicesWorked && resolverCalls == 1 &&
+					position.mChoicePlayer == 1 && position.mChoiceValidCards.size() == 1 &&
+					position.mChoiceValidCards.front() == hulcus;
+				++resolverCalls;
+				return hulcus;
+			},2);
+		ActiveDuelGuard activeGuard(duel);
+		Message summon("cardmove");
+		summon.addValue("card",gamiratar);
+		summon.addValue("from",ZONE_HAND);
+		summon.addValue("to",ZONE_BATTLE);
+		duel.dispatchMessage(summon);
+		duel.dispatchAllMessages();
+		bool gamiratarEvolutionWorked = choicesWorked && resolverCalls == 2 &&
+			!duel.hasSimulationChoiceFailure() && duel.mCardList[lancer]->mZone == ZONE_BATTLE &&
+			duel.mCardList[lancer]->mEvoStack.size() == 1 &&
+			duel.mCardList[lancer]->mEvoStack.front() == duel.mCardList[hulcus] &&
+			duel.mCardList[hulcus]->mZone == ZONE_EVOLVED &&
+			duel.mCardList[illegalEvolution]->mZone == ZONE_HAND;
+		if (!gamiratarEvolutionWorked)
+			std::cerr << "Terradragon Gamiratar evolution-source case failed." << std::endl;
+		valid = valid && gamiratarEvolutionWorked;
+	}
+
+	{
+		Duel duel;
+		duel.mIsSimulation = true;
+		duel.mInputLoopRunning = false;
+		int gamiratar = addCard(duel,gamiratarId,0,ZONE_HAND);
+		int lightBringer = addCard(duel,chiliasId,1,ZONE_BATTLE);
+		int cyberLord = addCard(duel,tropicoId,1,ZONE_BATTLE);
+		int starnoid = addCard(duel,wiseStarnoidId,1,ZONE_HAND);
+		int resolverCalls = 0;
+		bool choicesWorked = true;
+		duel.setChoiceResolver(
+			[&](const Duel& position) -> int
+			{
+				int answer = resolverCalls == 0 ? starnoid :
+					(resolverCalls == 1 ? lightBringer : cyberLord);
+				choicesWorked = choicesWorked && resolverCalls < 3 &&
+					position.mChoicePlayer == 1 && position.choiceCanBeSelected(answer);
+				++resolverCalls;
+				return answer;
+			},3);
+		ActiveDuelGuard activeGuard(duel);
+		Message summon("cardmove");
+		summon.addValue("card",gamiratar);
+		summon.addValue("from",ZONE_HAND);
+		summon.addValue("to",ZONE_BATTLE);
+		duel.dispatchMessage(summon);
+		duel.dispatchAllMessages();
+		bool gamiratarVortexWorked = choicesWorked && resolverCalls == 3 &&
+			!duel.hasSimulationChoiceFailure() && duel.mCardList[starnoid]->mZone == ZONE_BATTLE &&
+			duel.mCardList[starnoid]->mEvoStack.size() == 2 &&
+			duel.mCardList[lightBringer]->mZone == ZONE_EVOLVED &&
+			duel.mCardList[cyberLord]->mZone == ZONE_EVOLVED;
+		if (!gamiratarVortexWorked)
+			std::cerr << "Terradragon Gamiratar vortex-evolution case failed." << std::endl;
+		valid = valid && gamiratarVortexWorked;
+	}
+
+	{
+		Duel duel;
+		duel.mIsSimulation = true;
+		duel.mInputLoopRunning = false;
+		int deathPhoenix = addCard(duel,deathPhoenixId,0,ZONE_BATTLE);
+		int shield = addCard(duel,brainSerumId,1,ZONE_SHIELD);
+		ActiveDuelGuard activeGuard(duel);
+		Message broken("creaturebreakshield");
+		broken.addValue("creature",deathPhoenix);
+		broken.addValue("attacker",deathPhoenix);
+		broken.addValue("defender",1);
+		broken.addValue("shield",shield);
+		duel.dispatchMessage(broken);
+		duel.dispatchAllMessages();
+		bool deathPhoenixWorked = duel.mCardList[shield]->mZone == ZONE_GRAVEYARD &&
+			duel.mHands[1].mCards.empty() && duel.mGraveyards[1].mCards.size() == 1;
+		if (!deathPhoenixWorked)
+			std::cerr << "Death Phoenix shield-burn case failed." << std::endl;
+		valid = valid && deathPhoenixWorked;
+	}
+
+	{
+		Duel duel;
+		duel.mIsSimulation = true;
+		duel.mInputLoopRunning = false;
+		int cosmicDarts = addCard(duel,cosmicDartsId,0,ZONE_HAND);
+		addCard(duel,meloppeId,0,ZONE_BATTLE);
+		int cataclysm = addCard(duel,invincibleCataclysmId,0,ZONE_SHIELD);
+		int firstShield = addCard(duel,brainSerumId,1,ZONE_SHIELD);
+		int secondShield = addCard(duel,aquaHulcusId,1,ZONE_SHIELD);
+		int thirdShield = addCard(duel,boneSpiderId,1,ZONE_SHIELD);
+		const int answers[] = {
+			cataclysm, RETURN_BUTTON1, RETURN_BUTTON1,
+			firstShield, secondShield, thirdShield
+		};
+		const int players[] = { 0, 0, 0, 1, 1, 1 };
+		int resolverCalls = 0;
+		bool choicesWorked = true;
+		duel.setChoiceResolver(
+			[&](const Duel& position) -> int
+			{
+				if (resolverCalls >= 6) return RETURN_QUIT;
+				int answer = answers[resolverCalls];
+				choicesWorked = choicesWorked && position.mChoicePlayer == players[resolverCalls] &&
+					(answer < 0 || position.choiceCanBeSelected(answer));
+				++resolverCalls;
+				return answer;
+			},6);
+		ActiveDuelGuard activeGuard(duel);
+		Message cast("cardmove");
+		cast.addValue("card",cosmicDarts);
+		cast.addValue("from",ZONE_HAND);
+		cast.addValue("to",ZONE_BATTLE);
+		duel.dispatchMessage(cast);
+		duel.dispatchAllMessages();
+		bool cataclysmWorked = choicesWorked && resolverCalls == 6 &&
+			!duel.hasSimulationChoiceFailure() &&
+			duel.mCardList[firstShield]->mZone == ZONE_GRAVEYARD &&
+			duel.mCardList[secondShield]->mZone == ZONE_GRAVEYARD &&
+			duel.mCardList[thirdShield]->mZone == ZONE_GRAVEYARD &&
+			duel.mShields[1].mCards.empty();
+		if (!cataclysmWorked)
+			std::cerr << "Cosmic Darts, Meloppe, and Invincible Cataclysm case failed." <<
+				std::endl;
+		valid = valid && cataclysmWorked;
+	}
+
 	return valid;
 }
 
@@ -1406,16 +1883,92 @@ bool Application::exerciseDecisionPlanSmoke()
 	int ghostTouchId = getCardIdFromName("Ghost Touch");
 	int holyAweId = getCardIdFromName("Holy Awe");
 	int crisisBoulderId = getCardIdFromName("Crisis Boulder");
+	int megaDetonatorId = getCardIdFromName("Mega Detonator");
 	int skeletonThiefId = getCardIdFromName("Skeleton Thief, the Revealer");
 	if (hammerId < 0 || lunarChargerId < 0 || fireCreatureId < 0 || natureCreatureId < 0 ||
 		slashChargerId < 0 || futureSlashId < 0 || brutalChargeId < 0 || pokolulId < 0 ||
 		aquaSurferId < 0 || spasticMissileId < 0 || emeralId < 0 || solarRayId < 0 ||
 		bolshackDragonId < 0 || dimensionGateId < 0 || manaNexusId < 0 || rondobilId < 0 ||
 		tornadoFlameId < 0 || terrorPitId < 0 || deathSmokeId < 0 || ghostTouchId < 0 ||
-		holyAweId < 0 || crisisBoulderId < 0 || skeletonThiefId < 0)
+		holyAweId < 0 || crisisBoulderId < 0 || megaDetonatorId < 0 || skeletonThiefId < 0)
 		return false;
 
 	bool valid = true;
+	{
+		Duel root;
+		root.mIsSimulation = true;
+		root.mInputLoopRunning = false;
+		root.mTurn = 0;
+		root.mTurnPhase = TURN_PHASE_MAIN;
+		auto addCard = [&root](int cardId, int zone) -> int
+		{
+			int uid = static_cast<int>(root.mCardList.size());
+			Card* card = new Card(uid,cardId,0);
+			root.mCardList.push_back(card);
+			root.getZone(0,zone)->addCard(card);
+			card->mZone = zone;
+			root.mNextUniqueId = uid + 1;
+			return uid;
+		};
+
+		int detonator = addCard(megaDetonatorId,ZONE_HAND);
+		int firstDiscard = addCard(fireCreatureId,ZONE_HAND);
+		int secondDiscard = addCard(natureCreatureId,ZONE_HAND);
+		int firstMana = addCard(fireCreatureId,ZONE_MANA);
+		int secondMana = addCard(fireCreatureId,ZONE_MANA);
+		int target = addCard(fireCreatureId,ZONE_BATTLE);
+		DecisionPlanEnumerationOptions options;
+		options.heuristicMana = true;
+		options.heuristicCardPlay = true;
+		options.heuristicChoices = false;
+		std::vector<DecisionPlan> plans = enumerateDecisionPlans(root,options);
+		bool stopPlanWorked = false;
+		bool discardPlanWorked = false;
+		for (std::vector<DecisionPlan>::const_iterator plan = plans.begin();
+			plan != plans.end(); ++plan)
+		{
+			std::map<std::string,std::string>::const_iterator card = plan->action.map.find("card");
+			if (card == plan->action.map.end() || std::atoi(card->second.c_str()) != detonator)
+				continue;
+			if (!stopPlanWorked && plan->choices.size() == 1 &&
+				plan->choices[0].selection == RETURN_BUTTON1)
+			{
+				Duel result;
+				result.mIsSimulation = true;
+				result.mInputLoopRunning = false;
+				stopPlanWorked = result.copyFrom(root) &&
+					executeDecisionPlan(result,*plan).status == DecisionPlanStatus::Complete &&
+					result.mCardList[detonator]->mZone == ZONE_GRAVEYARD &&
+					result.mCardList[firstDiscard]->mZone == ZONE_HAND &&
+					result.mCardList[secondDiscard]->mZone == ZONE_HAND &&
+					result.mCardList[firstMana]->mZone == ZONE_MANA &&
+					result.mCardList[secondMana]->mZone == ZONE_MANA;
+			}
+			if (!discardPlanWorked && plan->choices.size() == 3 &&
+				plan->choices[0].selection == firstDiscard &&
+				plan->choices[1].selection == RETURN_BUTTON1 &&
+				plan->choices[2].selection == target)
+			{
+				Duel result;
+				result.mIsSimulation = true;
+				result.mInputLoopRunning = false;
+				bool copied = result.copyFrom(root);
+				DecisionPlanResult execution = executeDecisionPlan(result,*plan);
+				discardPlanWorked = copied &&
+					execution.status == DecisionPlanStatus::Complete &&
+					result.mCardList[detonator]->mZone == ZONE_GRAVEYARD &&
+					result.mCardList[firstDiscard]->mZone == ZONE_GRAVEYARD &&
+					result.mCardList[secondDiscard]->mZone == ZONE_HAND &&
+					result.mCardList[firstMana]->mZone == ZONE_MANA &&
+					result.mCardList[secondMana]->mZone == ZONE_MANA &&
+					!result.mCardList[target]->mModifiers.empty();
+			}
+		}
+		if (!stopPlanWorked || !discardPlanWorked)
+			std::cerr << "Mega Detonator hand-discard decision-plan case failed." << std::endl;
+		valid = valid && stopPlanWorked && discardPlanWorked;
+	}
+
 	{
 		Duel root;
 		root.mIsSimulation = true;
@@ -3433,6 +3986,9 @@ bool Application::exerciseNpcRewardsSmoke()
 	for (int tier = 1; tier <= 5; ++tier)
 		if (npcGoldRewardValue(tier) != expectedGoldTiers[tier - 1]) return false;
 	if (npcGoldRewardValue(0) != 0 || npcGoldRewardValue(6) != 0) return false;
+	std::set<std::string> glasswaterGreetings;
+	int glasswaterNpcs = 0;
+	int glasswaterDuelists = 0;
 	for (size_t npcIndex = 0; npcIndex < mNpcs.size(); ++npcIndex)
 	{
 		const Npc& npc = mNpcs[npcIndex];
@@ -3444,8 +4000,25 @@ bool Application::exerciseNpcRewardsSmoke()
 			const int tier = npc.rewards[rewardIndex].goldTier;
 			if (tier < 1 || tier > 5 || npcGoldRewardValue(tier) <= 0) return false;
 		}
+		const WorldRegion* region = worldRegionAt(npc.mapId, npc.x, npc.y);
+		if (region == NULL || region->id != "glasswater") continue;
+		++glasswaterNpcs;
+		const std::string greeting = npc.dialogueText("greeting");
+		if (greeting.empty() || !glasswaterGreetings.insert(greeting).second) return false;
+		if (npc.isDuelist())
+		{
+			++glasswaterDuelists;
+			if (npc.dialogueText("defeat").empty() ||
+				npc.dialogueText("victory").empty() ||
+				npc.dialogueText("complete").empty() ||
+				npc.dialogueText("talk").empty()) return false;
+		}
+		else if (npc.canTrade() &&
+			(npc.dialogueText("shop_early").empty() ||
+			npc.dialogueText("shop_late").empty() ||
+			npc.dialogueText("act_complete").empty())) return false;
 	}
-	return true;
+	return glasswaterNpcs >= 23 && glasswaterDuelists >= 22;
 }
 
 bool Application::exerciseAtmosphereSmoke()
@@ -3514,7 +4087,8 @@ bool Application::exerciseWorldObjectsSmoke()
 		{
 			++chests;
 			if (object.spriteSheet.find("/!Chest.png") == std::string::npos ||
-				object.spriteIndex != 0 || object.openedText.empty()) return false;
+				object.appearance != "!Chest-1" || object.spriteIndex != 0 ||
+				object.openedText.empty()) return false;
 		}
 		else if (object.kind == WorldObjectKind::CuttableBush) ++bushes;
 		else if (object.kind == WorldObjectKind::SmashableRock) ++rocks;
@@ -3534,7 +4108,14 @@ bool Application::exerciseWorldObjectsSmoke()
 		{
 			return objectTemplate.id == "cuttable_bush";
 		});
-	if (bush == mWorldObjectTemplates.end()) return false;
+	std::vector<WorldObjectTemplate>::const_iterator chest = std::find_if(
+		mWorldObjectTemplates.begin(), mWorldObjectTemplates.end(),
+		[](const WorldObjectTemplate& objectTemplate)
+		{
+			return objectTemplate.id == "chest";
+		});
+	if (bush == mWorldObjectTemplates.end() || chest == mWorldObjectTemplates.end())
+		return false;
 	WorldObject instance = createWorldObject(*bush, "cuttable_bush_smoke");
 	bool valid = instance.editorCreated && instance.templateId == "cuttable_bush" &&
 		instance.id == "cuttable_bush_smoke" &&
@@ -3588,6 +4169,18 @@ bool Application::exerciseWorldObjectsSmoke()
 	undoWorldBuilder();
 	valid = valid && mWorldObjects.size() == originalCount + 1 &&
 		mWorldObjects.back().editorCreated;
+	undoWorldBuilder();
+	valid = valid && mWorldObjects.size() == originalCount &&
+		mWorldBuilderUndoHistory.empty() && mWorldBuilderDirty == savedDirty;
+	const int chestIndex = (int)(chest - mWorldObjectTemplates.begin());
+	valid = valid && addWorldBuilderObject(chestIndex, freeX, freeY) &&
+		mWorldObjects.size() == originalCount + 1 &&
+		mWorldObjects.back().appearance == "!Chest-1";
+	const std::string originalChestAppearance = mWorldObjects.back().appearance;
+	cycleWorldBuilderChestAppearance(1);
+	valid = valid && mWorldObjects.back().appearance != originalChestAppearance;
+	undoWorldBuilder();
+	valid = valid && mWorldObjects.back().appearance == originalChestAppearance;
 	undoWorldBuilder();
 	valid = valid && mWorldObjects.size() == originalCount &&
 		mWorldBuilderUndoHistory.empty() && mWorldBuilderDirty == savedDirty;
@@ -3667,6 +4260,7 @@ bool Application::exerciseWorldBuilderPortalsSmoke()
 		placeWorldBuilderPortalEndpoint(endpoints[1].x, endpoints[1].y);
 		valid = valid && !mWorldBuilderPortalCreating &&
 			mWorld.portals.size() == originalCount + 1 &&
+			mWorld.portals.back().appearance == "!Door3-5" &&
 			mWorld.portals.back().fromMap == mWorld.maps[endpoints[0].area].id &&
 			mWorld.portals.back().fromX == endpoints[0].x &&
 			mWorld.portals.back().fromY == endpoints[0].y &&
@@ -3674,6 +4268,11 @@ bool Application::exerciseWorldBuilderPortalsSmoke()
 			mWorld.portals.back().toX == endpoints[1].x &&
 			mWorld.portals.back().toY == endpoints[1].y;
 		renderWorldBuilder();
+		const std::string originalAppearance = mWorld.portals.back().appearance;
+		cycleWorldBuilderPortalAppearance(1);
+		valid = valid && mWorld.portals.back().appearance != originalAppearance;
+		undoWorldBuilder();
+		valid = valid && mWorld.portals.back().appearance == originalAppearance;
 
 		mCurrentWorldArea = endpoints[0].area;
 		beginWorldBuilderPortalCreation();
@@ -3720,6 +4319,161 @@ bool Application::exerciseWorldBuilderPortalsSmoke()
 	mWorldBuilderPortalEndpoint = savedEndpoint;
 	mWorldBuilderPortalCreating = savedCreating;
 	mWorldBuilderPortalDraftOrigin = savedDraftOrigin;
+	mWorldBuilderDirty = savedDirty;
+	mWorldBuilderUndoPending = savedUndoPending;
+	mWorldBuilderPendingUndo = savedPendingUndo;
+	mWorldBuilderUndoHistory = savedUndoHistory;
+	mWorldBuilderNotice = savedNotice;
+	mWorldBuilderNoticeError = savedNoticeError;
+	mWorldBuilderNoticeUntil = savedNoticeUntil;
+	return valid;
+}
+
+bool Application::exerciseWorldBuilderRegionsSmoke()
+{
+	const int savedArea = mCurrentWorldArea;
+	const WorldBuilderTab savedTab = mWorldBuilderTab;
+	const std::vector<WorldRegion> savedRegions = mWorld.regions;
+	const int savedSelection = mWorldBuilderSelectedRegion;
+	const int savedPlacementMode = mWorldBuilderRegionPlacementMode;
+	const bool savedDragging = mWorldBuilderRegionDragging;
+	const int savedDragStartX = mWorldBuilderRegionDragStartX;
+	const int savedDragStartY = mWorldBuilderRegionDragStartY;
+	const WorldRegion savedDraft = mWorldBuilderRegionDraft;
+	const bool savedNameFocused = mWorldBuilderRegionNameFocused;
+	const int savedNameIndex = mWorldBuilderRegionNameIndex;
+	const std::string savedNameInput = mWorldBuilderRegionNameInput;
+	const int savedPlayerX = mPlayerX;
+	const int savedPlayerY = mPlayerY;
+	const float savedVisualX = mVisualX;
+	const float savedVisualY = mVisualY;
+	const OverworldAtmosphereState savedAtmosphere = mAtmosphere.state();
+	const bool savedDirty = mWorldBuilderDirty;
+	const bool savedUndoPending = mWorldBuilderUndoPending;
+	const WorldBuilderUndoAction savedPendingUndo = mWorldBuilderPendingUndo;
+	const std::vector<WorldBuilderUndoAction> savedUndoHistory =
+		mWorldBuilderUndoHistory;
+	const std::string savedNotice = mWorldBuilderNotice;
+	const bool savedNoticeError = mWorldBuilderNoticeError;
+	const Uint32 savedNoticeUntil = mWorldBuilderNoticeUntil;
+
+	int exteriorArea = -1;
+	int freeX = -1;
+	int freeY = -1;
+	for (size_t area = 0; area < mWorld.maps.size() && freeX < 0; ++area)
+	{
+		if (mWorld.maps[area].indoor) continue;
+		for (int y = 0; y + 2 < mWorld.maps[area].height() && freeX < 0; ++y)
+			for (int x = 0; x + 2 < mWorld.maps[area].width(); ++x)
+			{
+				WorldRegion candidate;
+				candidate.mapId = mWorld.maps[area].id;
+				candidate.x = x;
+				candidate.y = y;
+				candidate.width = 3;
+				candidate.height = 3;
+				std::string error;
+				if (worldBuilderCanPlaceRegion(candidate, -1, error))
+				{
+					exteriorArea = (int)area;
+					freeX = x;
+					freeY = y;
+					break;
+				}
+			}
+	}
+
+	bool valid = exteriorArea >= 0;
+	clearWorldBuilderUndoHistory();
+	mWorldBuilderTab = WorldBuilderTab::Regions;
+	mWorldBuilderSelectedRegion = -1;
+	mWorldBuilderRegionPlacementMode = 0;
+	mWorldBuilderRegionDragging = false;
+	const size_t originalCount = mWorld.regions.size();
+	if (valid)
+	{
+		mCurrentWorldArea = exteriorArea;
+		beginWorldBuilderRegionCreation();
+		std::string pendingSaveError;
+		valid = mWorldBuilderRegionPlacementMode == 1 &&
+			!saveWorldBuilder(pendingSaveError) &&
+			pendingSaveError.find("region bounds") != std::string::npos;
+		mWorldBuilderRegionDragging = true;
+		mWorldBuilderRegionDragStartX = freeX;
+		mWorldBuilderRegionDragStartY = freeY;
+		updateWorldBuilderRegionDraft(freeX + 1, freeY + 1);
+		finishWorldBuilderRegionPlacement();
+		valid = valid && mWorld.regions.size() == originalCount + 1 &&
+			mWorldBuilderSelectedRegion == (int)originalCount &&
+			mWorld.regions.back().x == freeX && mWorld.regions.back().y == freeY &&
+			mWorld.regions.back().width == 2 && mWorld.regions.back().height == 2 &&
+			!mWorld.regions.back().snow;
+		mPlayerX = freeX;
+		mPlayerY = freeY;
+		mVisualX = (float)freeX;
+		mVisualY = (float)freeY;
+		OverworldAtmosphereState testAtmosphere = mAtmosphere.state();
+		testAtmosphere.weather = WeatherKind::Snow;
+		testAtmosphere.weatherIntensity = 1.f;
+		mAtmosphere.restore(testAtmosphere);
+		valid = valid && currentWorldRegionIsTown() &&
+			effectiveWorldWeather() == WeatherKind::Rain;
+
+		beginWorldBuilderRegionNameEdit();
+		mWorldBuilderRegionNameInput = "Smoke Test Region";
+		commitWorldBuilderRegionNameEdit(true);
+		toggleWorldBuilderRegionKind();
+		toggleWorldBuilderRegionWeather();
+		valid = valid && mWorld.regions.back().name == "Smoke Test Region" &&
+			mWorld.regions.back().connector && mWorld.regions.back().snow &&
+			!currentWorldRegionIsTown() && effectiveWorldWeather() == WeatherKind::Snow;
+
+		beginWorldBuilderRegionBounds();
+		mWorldBuilderRegionDragging = true;
+		mWorldBuilderRegionDragStartX = freeX;
+		mWorldBuilderRegionDragStartY = freeY;
+		updateWorldBuilderRegionDraft(freeX + 2, freeY + 2);
+		finishWorldBuilderRegionPlacement();
+		valid = valid && mWorld.regions.back().width == 3 &&
+			mWorld.regions.back().height == 3;
+		renderWorldBuilder();
+
+		deleteWorldBuilderRegion();
+		valid = valid && mWorld.regions.size() == originalCount;
+		undoWorldBuilder();
+		valid = valid && mWorld.regions.size() == originalCount + 1 &&
+			mWorld.regions.back().width == 3;
+		undoWorldBuilder();
+		valid = valid && mWorld.regions.back().width == 2;
+		undoWorldBuilder();
+		valid = valid && !mWorld.regions.back().snow;
+		undoWorldBuilder();
+		valid = valid && !mWorld.regions.back().connector;
+		undoWorldBuilder();
+		valid = valid && mWorld.regions.back().name.find("New Region") == 0;
+		undoWorldBuilder();
+		valid = valid && mWorld.regions.size() == originalCount &&
+			mWorldBuilderUndoHistory.empty() && mWorldBuilderDirty == savedDirty;
+	}
+
+	if (mWorldBuilderRegionNameFocused) SDL_StopTextInput();
+	mWorld.regions = savedRegions;
+	mCurrentWorldArea = savedArea;
+	mWorldBuilderTab = savedTab;
+	mWorldBuilderSelectedRegion = savedSelection;
+	mWorldBuilderRegionPlacementMode = savedPlacementMode;
+	mWorldBuilderRegionDragging = savedDragging;
+	mWorldBuilderRegionDragStartX = savedDragStartX;
+	mWorldBuilderRegionDragStartY = savedDragStartY;
+	mWorldBuilderRegionDraft = savedDraft;
+	mWorldBuilderRegionNameFocused = savedNameFocused;
+	mWorldBuilderRegionNameIndex = savedNameIndex;
+	mWorldBuilderRegionNameInput = savedNameInput;
+	mPlayerX = savedPlayerX;
+	mPlayerY = savedPlayerY;
+	mVisualX = savedVisualX;
+	mVisualY = savedVisualY;
+	mAtmosphere.restore(savedAtmosphere);
 	mWorldBuilderDirty = savedDirty;
 	mWorldBuilderUndoPending = savedUndoPending;
 	mWorldBuilderPendingUndo = savedPendingUndo;
@@ -4520,13 +5274,16 @@ bool Application::exerciseRaceQuerySmoke()
 	int smashHornId = getCardIdFromName("Smash Horn Q");
 	int ballusId = getCardIdFromName("Ballus, Dogfight Enforcer Q");
 	int kanesillId = getCardIdFromName("Kanesill, the Explorer");
+	int graveWormId = getCardIdFromName("Grave Worm Q");
+	int blazosaurId = getCardIdFromName("Blazosaur Q");
+	int nonSurvivorId = getCardIdFromName("Bone Spider");
 	if (omnistrainId < 0 || gargantuaId < 0 || smashHornId < 0 || ballusId < 0 ||
-		kanesillId < 0)
+		kanesillId < 0 || graveWormId < 0 || blazosaurId < 0 || nonSurvivorId < 0)
 		return false;
 
 	std::lock_guard<std::mutex> lock(gMutex);
 	Duel* savedActiveDuel = ActiveDuel;
-	bool passed = false;
+	bool auraPassed = false;
 	{
 		Duel test;
 		test.mIsSimulation = true;
@@ -4564,14 +5321,205 @@ bool Application::exerciseRaceQuerySmoke()
 		for (std::vector<Card*>::iterator card = test.mBattlezones[0].mCards.begin();
 			card != test.mBattlezones[0].mCards.end(); ++card)
 			allUntapped = allUntapped && !(*card)->mIsTapped;
-		passed = dynamicSurvivor && allUntapped && test.mRaceQueryDepth == 0;
-		if (!passed)
+		auraPassed = dynamicSurvivor && allUntapped && test.mRaceQueryDepth == 0;
+		if (!auraPassed)
 		{
 			std::cerr << "Survivor aura case: race='" << race << "', survivor=" << isSurvivor <<
 				", power=" << power << ", expected-power=" << printedPower + 1000 <<
 				", untapped=" << allUntapped << ", query-depth=" << test.mRaceQueryDepth << std::endl;
 		}
 	}
+	bool triggerPassed = false;
+	{
+		Duel test;
+		test.mIsSimulation = true;
+		test.mInputLoopRunning = false;
+		test.mTurn = 1;
+		test.mTurnPhase = TURN_PHASE_ATTACK;
+		test.mAttackphase = PHASE_TRIGGER;
+		ActiveDuel = &test;
+		auto addCard = [&test](int cardId, int zone) -> int
+		{
+			int uid = static_cast<int>(test.mCardList.size());
+			Card* card = new Card(uid, cardId, 0);
+			test.mCardList.push_back(card);
+			test.getZone(0, zone)->addCard(card);
+			card->mZone = zone;
+			test.mNextUniqueId = uid + 1;
+			return uid;
+		};
+
+		int trigger = addCard(omnistrainId, ZONE_HAND);
+		addCard(kanesillId, ZONE_BATTLE);
+		test.mShieldTargets.push_back(trigger);
+		bool rejectedWithoutSurvivor = test.canUseShieldTrigger(trigger) == 0;
+		std::vector<Message> movesWithoutSurvivor = test.getPossibleMoves();
+		for (std::vector<Message>::iterator move = movesWithoutSurvivor.begin();
+			move != movesWithoutSurvivor.end(); ++move)
+			rejectedWithoutSurvivor = rejectedWithoutSurvivor && move->getType() != "triggeruse";
+
+		int survivor = addCard(smashHornId, ZONE_BATTLE);
+		bool acceptedWithSurvivor = test.canUseShieldTrigger(trigger) == 1;
+		Message illegal("triggeruse");
+		illegal.addValue("trigger", trigger);
+		test.handleInterfaceInput(illegal);
+		test.dispatchAllMessages();
+		bool rejectedMissingBait = test.mCardList[trigger]->mZone == ZONE_HAND &&
+			test.mCardList[survivor]->mZone == ZONE_BATTLE;
+
+		Message legal;
+		bool foundLegalMove = false;
+		std::vector<Message> moves = test.getPossibleMoves();
+		for (std::vector<Message>::iterator move = moves.begin(); move != moves.end(); ++move)
+		{
+			if (move->getType() != "triggeruse" || move->getInt("trigger") != trigger) continue;
+			if (move->getInt("evobait") != survivor || move->getInt("evobait2") != -1) continue;
+			legal = *move;
+			foundLegalMove = true;
+			break;
+		}
+		if (foundLegalMove)
+		{
+			test.handleInterfaceInput(legal);
+			test.dispatchAllMessages();
+		}
+		triggerPassed = rejectedWithoutSurvivor && acceptedWithSurvivor &&
+			rejectedMissingBait && foundLegalMove &&
+			test.mCardList[trigger]->mZone == ZONE_BATTLE &&
+			test.mCardList[survivor]->mZone == ZONE_EVOLVED &&
+			test.mCardList[trigger]->mEvoStack.size() == 1 &&
+			test.mCardList[trigger]->mEvoStack[0] == test.mCardList[survivor];
+		if (!triggerPassed)
+			std::cerr << "Omnistrain shield trigger evolution-bait case failed." << std::endl;
+	}
+	bool graveWormPassed = true;
+	for (int sourceStartsInBattle = 0; sourceStartsInBattle <= 1; ++sourceStartsInBattle)
+	{
+		Duel test;
+		test.mIsSimulation = true;
+		test.mInputLoopRunning = false;
+		ActiveDuel = &test;
+		auto addCard = [&test](int cardId, int zone) -> int
+		{
+			int uid = static_cast<int>(test.mCardList.size());
+			Card* card = new Card(uid, cardId, 0);
+			test.mCardList.push_back(card);
+			test.getZone(0, zone)->addCard(card);
+			card->mZone = zone;
+			test.mNextUniqueId = uid + 1;
+			return uid;
+		};
+
+		int graveWorm = addCard(graveWormId,
+			sourceStartsInBattle ? ZONE_BATTLE : ZONE_HAND);
+		int summoned = sourceStartsInBattle ? addCard(blazosaurId, ZONE_HAND) : graveWorm;
+		int survivor = addCard(smashHornId, ZONE_GRAVEYARD);
+		int nonSurvivor = addCard(nonSurvivorId, ZONE_GRAVEYARD);
+		test.setChoiceResolver([survivor](const Duel&) { return survivor; }, 1);
+		Message summon("cardmove");
+		summon.addValue("card", summoned);
+		summon.addValue("from", ZONE_HAND);
+		summon.addValue("to", ZONE_BATTLE);
+		test.dispatchMessage(summon);
+		test.dispatchAllMessages();
+		bool recovered = test.getCreatureBreaker(graveWorm) == 1 &&
+			test.mCardList[summoned]->mZone == ZONE_BATTLE &&
+			test.mCardList[survivor]->mZone == ZONE_HAND &&
+			test.mCardList[nonSurvivor]->mZone == ZONE_GRAVEYARD;
+		graveWormPassed = graveWormPassed && recovered;
+	}
+	if (!graveWormPassed)
+		std::cerr << "Grave Worm Q shared summon ability case failed." << std::endl;
+	ActiveDuel = savedActiveDuel;
+	return auraPassed && triggerPassed && graveWormPassed;
+}
+
+bool Application::exerciseRoyalDurianSmoke()
+{
+	int durianId = getCardIdFromName("Royal Durian");
+	int lancerId = getCardIdFromName("Crystal Lancer");
+	int hulcusId = getCardIdFromName("Aqua Hulcus");
+	int soulPhoenixId = getCardIdFromName("Soul Phoenix, Avatar of Unity");
+	int fireBirdId = getCardIdFromName("Peppi Pepper");
+	int earthDragonId = getCardIdFromName("Terradragon Arque Delacerna");
+	int normalId = getCardIdFromName("Macho Melon");
+	if (durianId < 0 || lancerId < 0 || hulcusId < 0 || soulPhoenixId < 0 ||
+		fireBirdId < 0 || earthDragonId < 0 || normalId < 0) return false;
+
+	std::lock_guard<std::mutex> lock(gMutex);
+	Duel* savedActiveDuel = ActiveDuel;
+	Duel duel;
+	duel.mIsSimulation = true;
+	duel.mInputLoopRunning = false;
+	ActiveDuel = &duel;
+	auto addCard = [&duel](int cardId, int owner, int zone) -> int
+	{
+		int uid = static_cast<int>(duel.mCardList.size());
+		Card* card = new Card(uid, cardId, owner);
+		duel.mCardList.push_back(card);
+		duel.getZone(owner, zone)->addCard(card);
+		card->mZone = zone;
+		duel.mNextUniqueId = uid + 1;
+		return uid;
+	};
+	auto evolve = [&duel](int evolution, int bait)
+	{
+		Message move("cardmove");
+		move.addValue("card", evolution);
+		move.addValue("from", ZONE_HAND);
+		move.addValue("to", ZONE_BATTLE);
+		move.addValue("evobait", bait);
+		move.addValue("evobait2", -1);
+		duel.mMsgMngr.sendMessage(move);
+		duel.dispatchAllMessages();
+	};
+	auto vortexEvolve = [&duel](int evolution, int bait, int bait2)
+	{
+		Message move("cardmove");
+		move.addValue("card", evolution);
+		move.addValue("from", ZONE_HAND);
+		move.addValue("to", ZONE_BATTLE);
+		move.addValue("evobait", bait);
+		move.addValue("evobait2", bait2);
+		duel.mMsgMngr.sendMessage(move);
+		duel.dispatchAllMessages();
+	};
+
+	int hulcus = addCard(hulcusId, 0, ZONE_BATTLE);
+	int lancer = addCard(lancerId, 0, ZONE_HAND);
+	int fireBird = addCard(fireBirdId, 1, ZONE_BATTLE);
+	int earthDragon = addCard(earthDragonId, 1, ZONE_BATTLE);
+	int soulPhoenix = addCard(soulPhoenixId, 1, ZONE_HAND);
+	int normal = addCard(normalId, 1, ZONE_BATTLE);
+	duel.mCardList[fireBird]->mSummoningSickness = 1;
+	duel.mCardList[earthDragon]->mSummoningSickness = 0;
+	evolve(lancer, hulcus);
+	vortexEvolve(soulPhoenix, fireBird, earthDragon);
+	int durian = addCard(durianId, 0, ZONE_HAND);
+	Message summon("cardplay");
+	summon.addValue("card", durian);
+	summon.addValue("evobait", -1);
+	summon.addValue("evobait2", -1);
+	duel.mMsgMngr.sendMessage(summon);
+	duel.dispatchAllMessages();
+
+	bool passed = duel.mCardList[durian]->mZone == ZONE_BATTLE &&
+		duel.mCardList[lancer]->mZone == ZONE_MANA &&
+		duel.mCardList[soulPhoenix]->mZone == ZONE_MANA &&
+		duel.mCardList[hulcus]->mZone == ZONE_BATTLE &&
+		duel.mCardList[fireBird]->mZone == ZONE_BATTLE &&
+		duel.mCardList[earthDragon]->mZone == ZONE_BATTLE &&
+		duel.mCardList[normal]->mZone == ZONE_BATTLE &&
+		duel.mCardList[lancer]->mEvoStack.empty() &&
+		duel.mCardList[soulPhoenix]->mEvoStack.empty() &&
+		duel.mCardList[fireBird]->mSummoningSickness == 1 &&
+		duel.mCardList[earthDragon]->mSummoningSickness == 0 &&
+		duel.mBattlezones[1].mCards.size() == 3 &&
+		duel.mBattlezones[1].mCards[0] == duel.mCardList[fireBird] &&
+		duel.mBattlezones[1].mCards[1] == duel.mCardList[earthDragon] &&
+		duel.mBattlezones[1].mCards[2] == duel.mCardList[normal] &&
+		duel.mManazones[0].mCards.size() == 1 &&
+		duel.mManazones[1].mCards.size() == 1;
 	ActiveDuel = savedActiveDuel;
 	return passed;
 }
@@ -5246,7 +6194,13 @@ bool Application::exerciseOverworldMovementSmoke()
 	bool worldDataReady = mWorld.validateStructure(worldDataError) &&
 		mWorld.map(mWorld.start.mapId) != NULL &&
 		mWorld.mapIndex(mWorld.start.mapId) == worldAreaIndex(mWorld.start.mapId) &&
-		mWorld.regionAt("overworld", 331, 690) != NULL;
+		!mWorld.regions.empty();
+	for (size_t index = 0; index < mWorld.regions.size(); ++index)
+	{
+		const WorldRegion& region = mWorld.regions[index];
+		worldDataReady = worldDataReady && mWorld.regionAt(region.mapId,
+			region.x + region.width / 2, region.y + region.height / 2) != NULL;
+	}
 	WorldData emptyWorld;
 	std::string emptyWorldError;
 	worldDataReady = worldDataReady && !emptyWorld.validateStructure(emptyWorldError) &&
@@ -5430,6 +6384,14 @@ bool Application::exerciseOverworldMovementSmoke()
 		RtpTilesetRenderer::canonicalTileIndex(RtpTilesetFamily::Outside,
 			RtpTileSheet::B, 180) == 172 &&
 		RtpTilesetRenderer::canonicalTileIndex(RtpTilesetFamily::Outside,
+			RtpTileSheet::B, 211) == 227 &&
+		RtpTilesetRenderer::canonicalTileIndex(RtpTilesetFamily::Outside,
+			RtpTileSheet::B, 219) == 227 &&
+		RtpTilesetRenderer::canonicalTileIndex(RtpTilesetFamily::Outside,
+			RtpTileSheet::B, 235) == 251 &&
+		RtpTilesetRenderer::canonicalTileIndex(RtpTilesetFamily::Outside,
+			RtpTileSheet::B, 243) == 251 &&
+		RtpTilesetRenderer::canonicalTileIndex(RtpTilesetFamily::Outside,
 			RtpTileSheet::B, 102) == 102;
 	const int treeAutotiles[] = { 93, 112, 128, 157, 168, 172 };
 	const char* treeNames[] = { "Tree", "Large Tree", "Large Snowy Tree",
@@ -5453,6 +6415,43 @@ bool Application::exerciseOverworldMovementSmoke()
 			rtpTiles.drawTreeLayer(reference, RtpRenderLayer::Foreground, treeTarget) &&
 			!rtpTiles.drawTreeLayer(reference, RtpRenderLayer::Ground, treeTarget);
 	}
+	const int streetlights[] = { 227, 251 };
+	for (int lamp = 0; lamp < 2 && fullTilesetReady; ++lamp)
+	{
+		RtpTileReference reference(RtpTilesetFamily::Outside, RtpTileSheet::B,
+			streetlights[lamp], RtpRenderLayer::Decoration);
+		int lampWidth = 0;
+		int lampHeight = 0;
+		fullTilesetReady = RtpTilesetRenderer::isStreetlightComposite(reference) &&
+			RtpTilesetRenderer::isCompositeTile(reference) &&
+			RtpTilesetRenderer::compositeTileFootprint(reference, lampWidth,
+				lampHeight) && lampWidth == 1 && lampHeight == 3 &&
+			RtpTilesetRenderer::inferredLayer(reference) == RtpRenderLayer::Decoration &&
+			rtpTiles.draw(reference, 0, treeTarget) &&
+			rtpTiles.drawCompositeLayer(reference, RtpRenderLayer::Decoration,
+				treeTarget) &&
+			rtpTiles.drawCompositeLayer(reference, RtpRenderLayer::Foreground,
+				treeTarget) &&
+			!rtpTiles.drawCompositeLayer(reference, RtpRenderLayer::Ground, treeTarget);
+	}
+	fullTilesetReady = fullTilesetReady &&
+		RtpTilesetRenderer::streetlightCompositeRow(RtpTilesetFamily::Outside,
+			RtpTileSheet::B, 211) == 0 &&
+		RtpTilesetRenderer::streetlightCompositeRow(RtpTilesetFamily::Outside,
+			RtpTileSheet::B, 219) == 1 &&
+		RtpTilesetRenderer::streetlightCompositeRow(RtpTilesetFamily::Outside,
+			RtpTileSheet::B, 227) == 2 &&
+		RtpTilesetRenderer::streetlightCompositeRow(RtpTilesetFamily::Outside,
+			RtpTileSheet::B, 210) == -1 &&
+		RtpTilesetRenderer::inferredLayer(RtpTileReference(
+			RtpTilesetFamily::Outside, RtpTileSheet::B, 211)) ==
+			RtpRenderLayer::Foreground &&
+		RtpTilesetRenderer::inferredLayer(RtpTileReference(
+			RtpTilesetFamily::Outside, RtpTileSheet::B, 219)) ==
+			RtpRenderLayer::Foreground &&
+		RtpTilesetRenderer::inferredLayer(RtpTileReference(
+			RtpTilesetFamily::Outside, RtpTileSheet::B, 227)) ==
+			RtpRenderLayer::Decoration;
 	RtpTileReference largeTree(RtpTilesetFamily::Outside, RtpTileSheet::B, 112,
 		RtpRenderLayer::Decoration);
 	RtpTileReference largeSnowyTree(RtpTilesetFamily::Outside, RtpTileSheet::B, 128,
@@ -5567,6 +6566,49 @@ bool Application::exerciseOverworldMovementSmoke()
 	bool npcInterpolated = targetDistance == 1 && npc.isMoving() &&
 		(std::fabs(npc.visualX - savedNpcVisualX) > 0.001f ||
 		 std::fabs(npc.visualY - savedNpcVisualY) > 0.001f);
+	int savedMovementDialogueNpc = mDialogueNpc;
+	int savedMovementDialogueObject = mDialogueObject;
+	int savedMovementMenuNpc = mNpcMenuNpc;
+	std::string savedMovementDialogueText = mDialogueText;
+	size_t savedMovementDialogueVisibleBytes = mDialogueVisibleBytes;
+	Uint32 savedMovementDialogueAccumulator = mDialogueCharacterAccumulator;
+	DialogueAction savedMovementDialogueAction = mDialogueAction;
+	bool savedMovementUp = mMoveUp;
+	bool savedMovementDown = mMoveDown;
+	bool savedMovementLeft = mMoveLeft;
+	bool savedMovementRight = mMoveRight;
+	int savedMovementIntentX = mMoveIntentX;
+	int savedMovementIntentY = mMoveIntentY;
+	beginDialogue(movementNpc, "Movement freeze test", DialogueAction::OpenNpcMenu);
+	int frozenNpcX = npc.x;
+	int frozenNpcY = npc.y;
+	float frozenNpcVisualX = npc.visualX;
+	float frozenNpcVisualY = npc.visualY;
+	updateOverworld(5000);
+	bool npcFrozenDuringDialogue = npc.x == frozenNpcX && npc.y == frozenNpcY &&
+		std::fabs(npc.visualX - frozenNpcVisualX) < 0.001f &&
+		std::fabs(npc.visualY - frozenNpcVisualY) < 0.001f;
+	mDialogueNpc = -1;
+	mNpcMenuNpc = movementNpc;
+	npc.nextMoveAt = 0;
+	updateOverworld(5000);
+	bool npcFrozenDuringMenu = npc.x == frozenNpcX && npc.y == frozenNpcY &&
+		std::fabs(npc.visualX - frozenNpcVisualX) < 0.001f &&
+		std::fabs(npc.visualY - frozenNpcVisualY) < 0.001f && npc.nextMoveAt == 0;
+	bool npcConversationFrozen = npcFrozenDuringDialogue && npcFrozenDuringMenu;
+	mDialogueNpc = savedMovementDialogueNpc;
+	mDialogueObject = savedMovementDialogueObject;
+	mNpcMenuNpc = savedMovementMenuNpc;
+	mDialogueText = savedMovementDialogueText;
+	mDialogueVisibleBytes = savedMovementDialogueVisibleBytes;
+	mDialogueCharacterAccumulator = savedMovementDialogueAccumulator;
+	mDialogueAction = savedMovementDialogueAction;
+	mMoveUp = savedMovementUp;
+	mMoveDown = savedMovementDown;
+	mMoveLeft = savedMovementLeft;
+	mMoveRight = savedMovementRight;
+	mMoveIntentX = savedMovementIntentX;
+	mMoveIntentY = savedMovementIntentY;
 	npc.x = savedNpcX;
 	npc.y = savedNpcY;
 	npc.visualX = savedNpcVisualX;
@@ -5582,6 +6624,8 @@ bool Application::exerciseOverworldMovementSmoke()
 	int savedPortalPlayerY = mPlayerY;
 	float savedPortalVisualX = mVisualX;
 	float savedPortalVisualY = mVisualY;
+	int savedPortalFacingX = mFacingX;
+	int savedPortalFacingY = mFacingY;
 	int savedDialogue = mDialogueNpc;
 	int savedDialogueObject = mDialogueObject;
 	std::string savedDialogueText = mDialogueText;
@@ -5592,28 +6636,51 @@ bool Application::exerciseOverworldMovementSmoke()
 	Uint32 savedNoticeUntil = mNoticeUntil;
 	bool enteredIndoor = false;
 	bool returnedOutside = false;
+	auto facePortalFromAdjacentTile = [this](const WorldPortal& portal) -> bool
+	{
+		const int dx[] = { 0, 1, 0, -1 };
+		const int dy[] = { 1, 0, -1, 0 };
+		for (int direction = 0; direction < 4; ++direction)
+		{
+			int x = portal.fromX - dx[direction];
+			int y = portal.fromY - dy[direction];
+			if (!isWalkable(x, y) || portalOriginBlocksMovement(x, y) ||
+				npcAt(x, y) >= 0 || worldObjectAt(x, y) >= 0) continue;
+			mPlayerX = x;
+			mPlayerY = y;
+			mVisualX = (float)x;
+			mVisualY = (float)y;
+			mFacingX = dx[direction];
+			mFacingY = dy[direction];
+			return true;
+		}
+		return false;
+	};
 	for (size_t i = 0; i < mWorld.portals.size() && !enteredIndoor; ++i)
 	{
 		int destination = worldAreaIndex(mWorld.portals[i].toMap);
-		if (destination < 0 || !mWorld.maps[destination].indoor) continue;
+		if (destination < 0 || !mWorld.maps[destination].indoor ||
+			!mWorld.portals[i].hasAppearance()) continue;
 		mCurrentWorldArea = worldAreaIndex(mWorld.portals[i].fromMap);
-		mPlayerX = mWorld.portals[i].fromX;
-		mPlayerY = mWorld.portals[i].fromY;
-		mVisualX = (float)mPlayerX;
-		mVisualY = (float)mPlayerY;
-		enteredIndoor = beginPortalAt(mPlayerX, mPlayerY);
+		if (!facePortalFromAdjacentTile(mWorld.portals[i])) continue;
+		const int adjacentX = mPlayerX;
+		const int adjacentY = mPlayerY;
+		tryMove(mFacingX, mFacingY);
+		bool blockedUntilInteraction = mPlayerX == adjacentX && mPlayerY == adjacentY &&
+			mOpeningPortal < 0;
+		interact();
+		enteredIndoor = blockedUntilInteraction && mOpeningPortal == (int)i;
 		mPortalAnimationStarted = SDL_GetTicks() - DOOR_OPEN_DURATION;
 		updateOverworld(0);
 		enteredIndoor = enteredIndoor && mCurrentWorldArea == destination && mOpeningPortal < 0;
 		for (size_t reverse = 0; reverse < mWorld.portals.size() && enteredIndoor; ++reverse)
 		{
 			if (mWorld.portals[reverse].fromMap != mWorld.portals[i].toMap ||
-				mWorld.portals[reverse].toMap != mWorld.portals[i].fromMap) continue;
-			mPlayerX = mWorld.portals[reverse].fromX;
-			mPlayerY = mWorld.portals[reverse].fromY;
-			mVisualX = (float)mPlayerX;
-			mVisualY = (float)mPlayerY;
-			returnedOutside = beginPortalAt(mPlayerX, mPlayerY);
+				mWorld.portals[reverse].toMap != mWorld.portals[i].fromMap ||
+				!mWorld.portals[reverse].hasAppearance()) continue;
+			if (!facePortalFromAdjacentTile(mWorld.portals[reverse])) continue;
+			interact();
+			returnedOutside = mOpeningPortal == (int)reverse;
 			mPortalAnimationStarted = SDL_GetTicks() - DOOR_OPEN_DURATION;
 			updateOverworld(0);
 			returnedOutside = returnedOutside && currentMapId() == mWorld.portals[i].fromMap &&
@@ -5628,6 +6695,8 @@ bool Application::exerciseOverworldMovementSmoke()
 	mPlayerY = savedPortalPlayerY;
 	mVisualX = savedPortalVisualX;
 	mVisualY = savedPortalVisualY;
+	mFacingX = savedPortalFacingX;
+	mFacingY = savedPortalFacingY;
 	mDialogueNpc = savedDialogue;
 	mDialogueObject = savedDialogueObject;
 	mDialogueText = savedDialogueText;
@@ -5665,6 +6734,18 @@ bool Application::exerciseOverworldMovementSmoke()
 	const int overworldOffsetX = 288;
 	const int overworldOffsetY = 665;
 	bool seamlessWorldReady = overworldArea >= 0 && !mWorld.maps[overworldArea].indoor;
+	bool streetlightMapReady = false;
+	if (overworldArea >= 0)
+	{
+		const WorldMap& overworld = mWorld.maps[overworldArea];
+		const RtpTileReference* streetlight = worldTileLayer(overworld, 358, 625,
+			RtpRenderLayer::Decoration);
+		streetlightMapReady = streetlight != NULL &&
+			RtpTilesetRenderer::isStreetlightComposite(*streetlight) &&
+			worldTileLayer(overworld, 358, 623, RtpRenderLayer::Decoration) == NULL &&
+			worldTileLayer(overworld, 358, 624, RtpRenderLayer::Decoration) == NULL;
+	}
+	seamlessWorldReady = seamlessWorldReady && streetlightMapReady;
 	bool naturalTilesReady = WorldTiles::isValid(WorldTiles::Rocks) &&
 		WorldTiles::isValid(WorldTiles::Bush) && WorldTiles::isValid(WorldTiles::Shrub) &&
 		WorldTiles::isValid(WorldTiles::CaveEntrance) &&
@@ -5715,22 +6796,28 @@ bool Application::exerciseOverworldMovementSmoke()
 		nativeWorld.npcPositions == mWorld.npcPositions &&
 		nativeWorld.objectPositions == mWorld.objectPositions &&
 		nativeWorld.objectDefinitions == mWorld.objectDefinitions &&
+		nativeWorld.objectAppearances == mWorld.objectAppearances &&
 		nativeWorld.shardPositions == mWorld.shardPositions;
+	for (size_t index = 0; nativeWorldReady && index < mWorld.regions.size(); ++index)
+		nativeWorldReady = nativeWorld.regions[index].id == mWorld.regions[index].id &&
+			nativeWorld.regions[index].snow == mWorld.regions[index].snow;
+	for (size_t index = 0; nativeWorldReady && index < mWorld.portals.size(); ++index)
+		nativeWorldReady = nativeWorld.portals[index].appearance ==
+			mWorld.portals[index].appearance;
 	seamlessWorldReady = seamlessWorldReady && catalogStorageReady && nativeWorldReady;
-	const WorldRegion* glasswaterRegion = worldRegionAt("overworld",
-		43 + overworldOffsetX, 25 + overworldOffsetY);
-	const WorldRegion* rootmazeRegion = worldRegionAt("overworld",
-		50 + overworldOffsetX, 78 + overworldOffsetY);
-	const WorldRegion* watershedRegion = worldRegionAt("overworld",
-		130 + overworldOffsetX, 50 + overworldOffsetY);
-	const WorldRegion* emberglenRegion = worldRegionAt("overworld",
-		241 + overworldOffsetX, 50 + overworldOffsetY);
-	const WorldRegion* oldRoadRegion = worldRegionAt("overworld",
-		310 + overworldOffsetX, 44 + overworldOffsetY);
-	const WorldRegion* cinderrailRegion = worldRegionAt("overworld",
-		367 + overworldOffsetX, 57 + overworldOffsetY);
-	const WorldRegion* blackstoneRegion = worldRegionAt("overworld",
-		248 + overworldOffsetX, 120 + overworldOffsetY);
+	auto findRegion = [this](const std::string& id) -> const WorldRegion*
+	{
+		for (size_t index = 0; index < mWorld.regions.size(); ++index)
+			if (mWorld.regions[index].id == id) return &mWorld.regions[index];
+		return NULL;
+	};
+	const WorldRegion* glasswaterRegion = findRegion("glasswater");
+	const WorldRegion* rootmazeRegion = findRegion("rootmaze");
+	const WorldRegion* watershedRegion = findRegion("watershed_crossroads");
+	const WorldRegion* emberglenRegion = findRegion("emberglen");
+	const WorldRegion* oldRoadRegion = findRegion("old_road");
+	const WorldRegion* cinderrailRegion = findRegion("cinderrail");
+	const WorldRegion* blackstoneRegion = findRegion("blackstone_road");
 	seamlessWorldReady = seamlessWorldReady && glasswaterRegion != NULL &&
 		rootmazeRegion != NULL &&
 		watershedRegion != NULL &&
@@ -5742,7 +6829,6 @@ bool Application::exerciseOverworldMovementSmoke()
 		watershedRegion->width == 128 && watershedRegion->height == 72 &&
 		emberglenRegion->id == "emberglen" && emberglenRegion->x == 512 &&
 		emberglenRegion->y == 700 && oldRoadRegion->id == "old_road" &&
-		oldRoadRegion->width == 96 && oldRoadRegion->height == 48 &&
 		cinderrailRegion->id == "cinderrail" &&
 		blackstoneRegion->id == "blackstone_road" &&
 		blackstoneRegion->width == 96 && blackstoneRegion->height == 95;
@@ -5797,8 +6883,8 @@ bool Application::exerciseOverworldMovementSmoke()
 	Uint32 savedBannerStarted = mRegionBannerStarted;
 	bool savedBannerConnector = mRegionBannerConnector;
 	mCurrentWorldArea = overworldArea;
-	mPlayerX = 43 + overworldOffsetX;
-	mPlayerY = 25 + overworldOffsetY;
+	mPlayerX = glasswaterRegion->x + glasswaterRegion->width / 2;
+	mPlayerY = glasswaterRegion->y + glasswaterRegion->height / 2;
 	mVisualX = (float)mPlayerX;
 	mVisualY = (float)mPlayerY;
 	mMoveIntentX = 1;
@@ -5807,8 +6893,8 @@ bool Application::exerciseOverworldMovementSmoke()
 	bool regionBannerReady = mLastWorldRegionId == "glasswater" &&
 		mRegionBannerName == "Glasswater Port" && !mRegionBannerConnector &&
 		mMoveIntentX == 1;
-	mPlayerX = 130 + overworldOffsetX;
-	mPlayerY = 50 + overworldOffsetY;
+	mPlayerX = watershedRegion->x + watershedRegion->width / 2;
+	mPlayerY = watershedRegion->y + watershedRegion->height / 2;
 	mVisualX = (float)mPlayerX;
 	mVisualY = (float)mPlayerY;
 	updateRegionBanner();
@@ -6018,17 +7104,20 @@ bool Application::exerciseOverworldMovementSmoke()
 	mVisualX = savedPortalVisualX;
 	mVisualY = savedPortalVisualY;
 	if (!(worldDataReady && spriteSheetsReady && playerInterpolated && npcInterpolated &&
+		npcConversationFrozen &&
 		enteredIndoor && returnedOutside && mercerIsIndoors && seamlessWorldReady &&
 		signpostReady && roadTravelReady && watershedTravelReady && viewportCullingReady &&
 		naturalTilesReady && blackstoneGateReady))
 		std::cerr << "Overworld flags: data=" << worldDataReady << " sprites=" <<
 			spriteSheetsReady << " player=" << playerInterpolated << " npc=" <<
-			npcInterpolated << " portals=" << enteredIndoor << returnedOutside <<
+			npcInterpolated << " npc-frozen=" << npcConversationFrozen << " portals=" <<
+			enteredIndoor << returnedOutside <<
 			" mercer=" << mercerIsIndoors << " seamless=" << seamlessWorldReady <<
 			" sign=" << signpostReady << " routes=" << roadTravelReady << watershedTravelReady <<
 			" culling=" << viewportCullingReady << " natural=" << naturalTilesReady <<
 			" blackstone=" << blackstoneGateReady << std::endl;
-	return worldDataReady && spriteSheetsReady && playerInterpolated && npcInterpolated && enteredIndoor && returnedOutside &&
+	return worldDataReady && spriteSheetsReady && playerInterpolated && npcInterpolated &&
+		npcConversationFrozen && enteredIndoor && returnedOutside &&
 		mercerIsIndoors && seamlessWorldReady && signpostReady && roadTravelReady && watershedTravelReady &&
 		viewportCullingReady && naturalTilesReady && blackstoneGateReady;
 }

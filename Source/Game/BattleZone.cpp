@@ -161,10 +161,8 @@ void BattleZone::seperateEvolution(Card* c)
 	}
 
 	for (std::vector<Card*>::iterator i = c->mEvoStack.begin(); i != c->mEvoStack.end(); i++)
-	{
 		(*i)->mZone = ZONE_BATTLE;
-		mCards.insert(mCards.begin()+eb, *i);
-	}
+	mCards.insert(mCards.begin() + eb, c->mEvoStack.begin(), c->mEvoStack.end());
 	c->mEvoStack.clear();
 }
 

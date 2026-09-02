@@ -202,7 +202,18 @@ void Application::updateOverworld(Uint32 deltaTime)
 	if (mOpeningPortal >= 0)
 	{
 		if (playerDistance <= 0.001f && now - mPortalAnimationStarted >= DOOR_OPEN_DURATION)
-			activatePortalAt(mPlayerX, mPlayerY);
+		{
+			if (mOpeningPortal < (int)mWorld.portals.size())
+			{
+				const WorldPortal& portal = mWorld.portals[mOpeningPortal];
+				activatePortalAt(portal.fromX, portal.fromY);
+			}
+			else
+			{
+				mOpeningPortal = -1;
+				mPortalAnimationStarted = 0;
+			}
+		}
 		updateRegionBanner();
 		return;
 	}
@@ -212,6 +223,8 @@ void Application::updateOverworld(Uint32 deltaTime)
 	{
 		if (!npcVisible((int)i) || mNpcs[i].mapId != currentMapId()) continue;
 		Npc& npc = mNpcs[i];
+		const bool engagedWithPlayer = mDialogueNpc == (int)i || mNpcMenuNpc == (int)i;
+		if (engagedWithPlayer) continue;
 		npc.updateMovement(deltaTime, mRouteChallengeNpc == (int)i ? 7.2f : 2.8f);
 		if (!npc.canWander()) continue;
 		if (npc.isRouteDuelist() && (mRouteChallengeNpc == (int)i ||
@@ -221,7 +234,7 @@ void Application::updateOverworld(Uint32 deltaTime)
 			npc.scheduleWander(now);
 			continue;
 		}
-		if (npc.isMoving() || now < npc.nextMoveAt || mDialogueNpc == (int)i) continue;
+		if (npc.isMoving() || now < npc.nextMoveAt) continue;
 
 		for (int attempt = 0; attempt < 4; ++attempt)
 		{
@@ -229,7 +242,8 @@ void Application::updateOverworld(Uint32 deltaTime)
 			int nextX = npc.x + directionX[direction];
 			int nextY = npc.y + directionY[direction];
 			if (std::abs(nextX - npc.homeX) > 1 || std::abs(nextY - npc.homeY) > 1) continue;
-			if (!isWalkable(nextX, nextY) || npcAt(nextX, nextY, (int)i) >= 0 ||
+		if (!isWalkable(nextX, nextY) || portalOriginBlocksMovement(nextX, nextY) ||
+			npcAt(nextX, nextY, (int)i) >= 0 ||
 				worldObjectAt(nextX, nextY) >= 0) continue;
 			if ((nextX == mPlayerX && nextY == mPlayerY) ||
 				(nextX == (int)std::round(mVisualX) && nextY == (int)std::round(mVisualY))) continue;
@@ -256,6 +270,21 @@ void Application::updateRegionBanner()
 	mRegionBannerName = region->name;
 	mRegionBannerConnector = region->connector;
 	mRegionBannerStarted = SDL_GetTicks();
+}
+
+bool Application::currentWorldRegionIsTown() const
+{
+	const WorldRegion* region = currentWorldRegion();
+	return region != NULL && !region->connector;
+}
+
+WeatherKind Application::effectiveWorldWeather() const
+{
+	WeatherKind weather = mAtmosphere.weather();
+	if (weather == WeatherKind::Clear) return weather;
+	const WorldRegion* region = currentWorldRegion();
+	if (region == NULL) return weather;
+	return region->snow ? WeatherKind::Snow : WeatherKind::Rain;
 }
 
 void Application::renderRegionBanner()
@@ -335,6 +364,7 @@ bool Application::routeDuelistNextStep(int npcIndex, int& nextX, int& nextY) con
 				current.second + directionY[direction]);
 			if (candidate.first == mPlayerX && candidate.second == mPlayerY) continue;
 			if (parents.count(candidate) || !isWalkable(candidate.first, candidate.second) ||
+				portalOriginBlocksMovement(candidate.first, candidate.second) ||
 				worldObjectAt(candidate.first, candidate.second) >= 0 ||
 				npcAt(candidate.first, candidate.second, npcIndex) >= 0) continue;
 			parents[candidate] = current;
@@ -456,7 +486,8 @@ void Application::tryMove(int dx, int dy)
 			x == (int)std::round(mNpcs[i].visualX) &&
 			y == (int)std::round(mNpcs[i].visualY))
 			occupiedByMovingNpc = true;
-	if (isWalkable(x, y) && npcAt(x, y) < 0 && worldObjectAt(x, y) < 0 &&
+	if (isWalkable(x, y) && !portalOriginBlocksMovement(x, y) &&
+		npcAt(x, y) < 0 && worldObjectAt(x, y) < 0 &&
 		!occupiedByMovingNpc)
 	{
 		mPlayerX = x;
@@ -490,6 +521,7 @@ void Application::interact()
 	if (std::fabs(mPlayerX - mVisualX) > 0.001f || std::fabs(mPlayerY - mVisualY) > 0.001f) return;
 	int targetX = mPlayerX + mFacingX;
 	int targetY = mPlayerY + mFacingY;
+	if (beginPortalAt(targetX, targetY)) return;
 	int objectIndex = worldObjectAt(targetX, targetY);
 	if (objectIndex >= 0)
 	{
@@ -512,6 +544,16 @@ void Application::interact()
 void Application::beginDialogue(int npcIndex, const std::string& text, DialogueAction action)
 {
 	if (npcIndex < 0 || npcIndex >= (int)mNpcs.size()) return;
+	Npc& npc = mNpcs[npcIndex];
+	npc.visualX = (float)npc.x;
+	npc.visualY = (float)npc.y;
+	int facingX = mPlayerX - npc.x;
+	int facingY = mPlayerY - npc.y;
+	if (std::abs(facingX) + std::abs(facingY) == 1)
+	{
+		npc.facingX = facingX;
+		npc.facingY = facingY;
+	}
 	mDialogueNpc = npcIndex;
 	mDialogueObject = -1;
 	mDialogueText = text;
@@ -626,21 +668,28 @@ void Application::advanceDialogue()
 	{
 		int goldBefore = std::max(0, mMoney);
 		mMoney = goldBefore / 2;
-		int startArea = worldAreaIndex(mWorld.start.mapId);
-		if (startArea >= 0)
+		const WorldRegion* defeatRegion = currentWorldRegion();
+		const bool stayInTown = currentWorldRegionIsTown();
+		if (!stayInTown)
 		{
-			mCurrentWorldArea = startArea;
-			mPlayerX = mWorld.start.x;
-			mPlayerY = mWorld.start.y;
-			mVisualX = (float)mPlayerX;
-			mVisualY = (float)mPlayerY;
-			mFacingX = 0;
-			mFacingY = 1;
-			mOpeningPortal = -1;
-			mPortalAnimationStarted = 0;
+			int startArea = worldAreaIndex(mWorld.start.mapId);
+			if (startArea >= 0)
+			{
+				mCurrentWorldArea = startArea;
+				mPlayerX = mWorld.start.x;
+				mPlayerY = mWorld.start.y;
+				mVisualX = (float)mPlayerX;
+				mVisualY = (float)mPlayerY;
+				mFacingX = 0;
+				mFacingY = 1;
+				mOpeningPortal = -1;
+				mPortalAnimationStarted = 0;
+			}
 		}
 		savePlayerProgress();
-		mNotice = "Defeated by " + mNpcs[npcIndex].name + ". Returned to Emberglen; gold reduced from " +
+		mNotice = "Defeated by " + mNpcs[npcIndex].name + ". " +
+			(stayInTown ? "Remained in " + defeatRegion->name :
+			"Returned to Emberglen") + "; gold reduced from " +
 			std::to_string(goldBefore) + " to " + std::to_string(mMoney) + ".";
 		mNoticeUntil = SDL_GetTicks() + 6000;
 	}
@@ -1449,6 +1498,18 @@ void Application::renderOverworld()
 		for (int x = visibleTiles.left; x < visibleTiles.right; ++x)
 			drawWorldTileLayer(worldArea, x, y, RtpRenderLayer::Decoration,
 				{ mapX + x * TILE, mapY + y * TILE, TILE, TILE });
+	for (size_t index = 0; index < mWorld.portals.size(); ++index)
+	{
+		const WorldPortal& portal = mWorld.portals[index];
+		if (portal.fromMap != currentMapId() ||
+			!visibleTiles.contains(portal.fromX, portal.fromY)) continue;
+		float open = 0.f;
+		if ((int)index == mOpeningPortal)
+			open = std::min(1.f, (SDL_GetTicks() - mPortalAnimationStarted) /
+				(float)DOOR_OPEN_DURATION);
+		drawPortalSprite(portal, open,
+			{ mapX + portal.fromX * TILE, mapY + portal.fromY * TILE, TILE, TILE });
+	}
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 	{
 		if (!npcVisible((int)i) || mNpcs[i].mapId != currentMapId()) continue;
@@ -1603,7 +1664,7 @@ void Application::renderOverworldAtmosphere(const SDL_Rect& viewport)
 	const int warmAlpha = mAtmosphere.warmOverlayAlpha();
 	if (warmAlpha > 0) fillRect(viewport, 139, 66, 27, (Uint8)warmAlpha);
 
-	const WeatherKind weather = mAtmosphere.weather();
+	const WeatherKind weather = effectiveWorldWeather();
 	const float intensity = mAtmosphere.weatherIntensity();
 	if (weather == WeatherKind::Clear || intensity <= 0.01f) return;
 	const Uint32 ticks = SDL_GetTicks();
@@ -1654,14 +1715,15 @@ void Application::renderAtmosphereHud(const SDL_Rect& panel)
 	const bool indoor = mWorld.maps[mCurrentWorldArea].indoor;
 	std::string label = "Day " + std::to_string(mAtmosphere.day()) + "  " +
 		mAtmosphere.clockText() + "  •  ";
-	label += OverworldAtmosphere::weatherName(mAtmosphere.weather());
+	const WeatherKind weather = effectiveWorldWeather();
+	label += OverworldAtmosphere::weatherName(weather);
 	if (indoor) label += " outside";
 	fillRect(panel, 10, 19, 32, 218);
 	outlineRect(panel, 81, 109, 139, 230, 1);
 	SDL_Color textColor = color(216, 228, 241);
-	if (mAtmosphere.weather() == WeatherKind::Rain)
+	if (weather == WeatherKind::Rain)
 		textColor = color(166, 207, 233);
-	else if (mAtmosphere.weather() == WeatherKind::Snow)
+	else if (weather == WeatherKind::Snow)
 		textColor = color(235, 244, 250);
 	drawText(label, panel.x + 10, panel.y + 7, textColor, 13, panel.w - 18);
 }
@@ -1692,6 +1754,21 @@ bool Application::drawWorldObjectSprite(const WorldObject& object, bool opened,
 			SDL_GetTicks(), destination);
 	return mSpriteSheets->drawCharacter(sprite, facingX, facingY, object.animated,
 		SDL_GetTicks(), destination);
+}
+
+bool Application::drawPortalSprite(const WorldPortal& portal, float open,
+	const SDL_Rect& destination)
+{
+	if (mSpriteSheets == NULL || !portal.hasAppearance()) return false;
+	CharacterSpriteDefinition sprite;
+	if (!SpriteSheetRenderer::appearanceDefinition(portal.appearance, sprite)) return false;
+	const int stage = std::max(0, std::min(3, (int)(open * 4.f)));
+	int facingX = 0;
+	int facingY = 1;
+	if (stage == 1) facingX = -1;
+	else if (stage == 2) facingX = 1;
+	else if (stage == 3) facingY = -1;
+	return mSpriteSheets->drawMapObject(sprite, facingX, facingY, false, 0, destination);
 }
 
 void Application::drawCharacter(float gridX, float gridY, CharacterAppearance appearance,

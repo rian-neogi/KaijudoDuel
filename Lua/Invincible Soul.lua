@@ -187,8 +187,9 @@ Cards["Cliffcrush Giant"] = {
 
 	HandleMessage = function(id)
 		Abils.PowerAttacker(id,3000)
-		if(getCardZone(id)==ZONE_BATTLE and isCardTapped(id)==0 and getMessageInt("attacker")==id) then
-			if(getMessageType()=="get creaturecanattackcreature" or getMessageType()=="get creaturecanattackplayers") then
+		local message = getMessageType()
+		if((message=="get creaturecanattackcreature" or message=="get creaturecanattackplayers") and
+			getCardZone(id)==ZONE_BATTLE and isCardTapped(id)==0 and getMessageInt("attacker")==id) then
 				local owner = getCardOwner(id)
 				local size = getZoneSize(owner,ZONE_BATTLE)
 				for i=0,(size-1) do
@@ -198,7 +199,6 @@ Cards["Cliffcrush Giant"] = {
 						break
 					end
 				end
-			end
 		end
 	end
 }
@@ -309,19 +309,12 @@ Cards["Invincible Cataclysm"] = {
 	shieldtrigger = 0,
 
 	OnCast = function(id)
-		local ch = createChoice("Choose an opponent's shield", 1, id, getCardOwner(id), Checks.InOppShields)
-		if(ch>=0) then
-			moveCard(ch, ZONE_GRAVEYARD)
-
-			local ch2 = createChoice("Choose an opponent's shield", 1, id, getCardOwner(id), Checks.InOppShields)
-			if(ch2>=0) then
-				moveCard(ch, ZONE_GRAVEYARD)
-
-				local ch3 = createChoice("Choose an opponent's shield", 1, id, getCardOwner(id), Checks.InOppShields)
-				if(ch3>=0) then
-					moveCard(ch, ZONE_GRAVEYARD)
-				end
-			end
+		local owner=getCardOwner(id)
+		local chooser=getShieldChooser(owner,getOpponent(owner))
+		for i=1,3 do
+			local shield=createChoice("Choose an opponent's shield",1,id,chooser,Checks.InOppShields)
+			if(shield<0) then break end
+			moveCard(shield,ZONE_GRAVEYARD)
 		end
 		Functions.EndSpell(id)
 	end
@@ -819,16 +812,16 @@ Cards["Mystic Dreamscape"] = {
 
 	OnCast = function(id)
 		local ch = createChoice("Choose a card in your mana zone",1,id,getCardOwner(id),Checks.InYourMana)
-        if(ch>=0) then
-			moveCard(ZONE_HAND)
+	        if(ch>=0) then
+			moveCard(ch,ZONE_HAND)
 			
 			local ch2 = createChoice("Choose a card in your mana zone",1,id,getCardOwner(id),Checks.InYourMana)
 			if(ch2>=0) then
-				moveCard(ZONE_HAND)
+				moveCard(ch2,ZONE_HAND)
 
 				local ch3 = createChoice("Choose a card in your mana zone",1,id,getCardOwner(id),Checks.InYourMana)
 				if(ch3>=0) then
-					moveCard(ZONE_HAND)
+					moveCard(ch3,ZONE_HAND)
 				end
 			end
         end
@@ -879,12 +872,11 @@ Cards["Raptor Fish"] = {
 
 	HandleMessage = function(id) --test
 		local summon = function(id)
-			local func = function(cid,sid)
-				moveCard(sid,ZONE_DECK)
-			end
 			local owner = getCardOwner(id)
 			local c = getZoneSize(owner, ZONE_HAND)
-			Functions.executeForCardsInZone(owner,ZONE_HAND,func)
+			local cards = {}
+			for i=0,(c-1) do cards[#cards+1] = getCardAt(owner,ZONE_HAND,i) end
+			for _,card in ipairs(cards) do moveCard(card,ZONE_DECK) end
 			shuffleDeck(owner)
 			drawCards(owner, c)
 		end
@@ -1140,7 +1132,7 @@ Cards["Gnarvash, Merchant of Blood"] = {
 	price_tier = 3,
 	shieldtrigger = 0,
 	blocker = 0,
-	breaker = 1,
+	breaker = 2,
 
 	HandleMessage = function(id)
 		if(getMessageType()=="pre endturn") then
@@ -1158,9 +1150,19 @@ Cards["Grave Worm Q"] = {
 	price_tier = 1,
 	shieldtrigger = 0,
 	blocker = 0,
-	breaker = 2,
+	breaker = 1,
 
 	HandleMessage = function(id)
+		local func = function(id)
+			local summon = function(id)
+				local owner = getCardOwner(id)
+				local preferred = Functions.HighestCostChoice(id,owner,ZONE_GRAVEYARD,Checks.SurvivorInYourGraveyard)
+				local ch = createChoice("Choose a Survivor in your graveyard",1,id,owner,Checks.SurvivorInYourGraveyard,preferred)
+				if(ch>=0) then moveCard(ch,ZONE_HAND) end
+			end
+			Abils.onSummon(id,summon)
+		end
+		Abils.Survivor(id,func,"post cardmove","card")
 	end
 }
 
@@ -1304,12 +1306,13 @@ Cards["Schuka, Duke of Amnesia"] = {
 
 	HandleMessage = function(id)
 		local summon = function(id)
-			local func = function(cid,sid)
-				moveCard(sid,ZONE_GRAVEYARD)
-			end
 			local owner = getCardOwner(id)
-			Functions.executeForCardsInZone(owner, ZONE_HAND, func)
-			Functions.executeForCardsInZone(getOpponent(owner), ZONE_HAND, func)
+			for player=0,1 do
+				local cards = {}
+				local size = getZoneSize(player,ZONE_HAND)
+				for i=0,(size-1) do cards[#cards+1] = getCardAt(player,ZONE_HAND,i) end
+				for _,card in ipairs(cards) do discardCard(card) end
+			end
 		end
 		Abils.onDestroy(id,summon)
 	end
@@ -1534,7 +1537,7 @@ Cards["Crisis Boulder"] = {
 		end
 	end,
 
-	OnCast = function(id) --test
+	OnCast = function(id)
 		local opponent=getOpponent(getCardOwner(id))
 		local check = function(cid,sid)
 			if(Checks.InOppMana(cid,sid)==1 or Checks.InOppBattle(cid,sid)==1) then

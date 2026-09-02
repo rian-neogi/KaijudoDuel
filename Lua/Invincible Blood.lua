@@ -222,9 +222,9 @@ Cards["Azaghast, Tyrant of Shadows"] = {
 	blocker = 0,
 	breaker = 2,
 
-	HandleMessage = function(id) --test
+	HandleMessage = function(id)
 		Abils.Evolution(id,"Dark Lord")
-		if(getMessageType()=="post cardmove") then
+		if(getCardZone(id)==ZONE_BATTLE and getMessageType()=="post cardmove") then
 			local cid = getMessageInt("card")
 			if(getCardOwner(cid)==getCardOwner(id) and getMessageInt("to")==ZONE_BATTLE and isCreatureOfRace(cid,"Ghost")==1) then
 				local ch = createChoice("Choose an opponent's creature",0,id,getCardOwner(id),Checks.UntappedInOppBattle)
@@ -954,11 +954,15 @@ Cards["Gigio's Hammer"] = {
 			local race = chooseRace(id,getCardOwner(id),Checks.InBattle,"Choose a creature to choose its race",0)
 			if(race~=nil) then
 				local mod = function(cid,mid)
-					local creature = getMessageInt("creature")
-					if(getMessageType()=="get creaturepower" and getAttacker()==creature and isCreatureOfRace(creature,race)==1) then
-						setMessageInt("power",getMessageInt("power")+4000)
-					elseif(getMessageType()=="get creaturemustattack" and isCreatureOfRace(creature,race)==1) then
-						setMessageInt("mustattack",1)
+					local message = getMessageType()
+					if(message=="get creaturepower") then
+						local creature = getMessageInt("creature")
+						if(getAttacker()==creature and isCreatureOfRace(creature,race)==1) then
+							setMessageInt("power",getMessageInt("power")+4000)
+						end
+					elseif(message=="get creaturemustattack") then
+						local creature = getMessageInt("creature")
+						if(isCreatureOfRace(creature,race)==1) then setMessageInt("mustattack",1) end
 					end
 					Abils.destroyModAtEOT(cid,mid)
 				end

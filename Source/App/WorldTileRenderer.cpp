@@ -84,6 +84,12 @@ bool WorldTileRenderer::drawCatalogTreeLayer(const RtpTileReference& tile,
 	return mCatalog != NULL && mCatalog->drawTreeLayer(tile, layer, destination);
 }
 
+bool WorldTileRenderer::drawCatalogCompositeLayer(const RtpTileReference& tile,
+	RtpRenderLayer layer, const SDL_Rect& destination)
+{
+	return mCatalog != NULL && mCatalog->drawCompositeLayer(tile, layer, destination);
+}
+
 bool WorldTileRenderer::drawSignpost(const SDL_Rect& destination)
 {
 	return drawCatalog(RtpTileReference(RtpTilesetFamily::Outside,

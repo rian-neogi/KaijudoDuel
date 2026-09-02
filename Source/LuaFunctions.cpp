@@ -349,8 +349,42 @@ static int moveCard(lua_State* L)
 	msg.addValue("card", cid);
 	msg.addValue("to", zone);
 	msg.addValue("tobottom", lua_gettop(L) >= 3 ? lua_tointeger(L, 3) : 0);
+	if (lua_gettop(L) >= 4 && validPlayer(lua_tointeger(L, 4)))
+		msg.addValue("controller", lua_tointeger(L, 4));
 	ActiveDuel->mMsgMngr.sendMessage(msg);
 	return 0;
+}
+
+static int moveEvolution(lua_State* L)
+{
+	Card* evolution = cardFromLua(L, 1);
+	Card* bait = cardFromLua(L, 2);
+	Card* bait2 = lua_gettop(L) >= 3 ? cardFromLua(L, 3) : NULL;
+	if (evolution == NULL || bait == NULL || ActiveDuel->getIsEvolution(evolution->mUniqueId) != 1)
+	{
+		lua_pushinteger(L, 0);
+		return 1;
+	}
+
+	int baitCount = ActiveDuel->getEvolutionBaitCount(evolution->mUniqueId);
+	bool legal = baitCount == 2 ?
+		bait2 != NULL && ActiveDuel->getCreatureCanVortexEvolve(evolution->mUniqueId,
+			bait->mUniqueId, bait2->mUniqueId) == 1 :
+		ActiveDuel->getCreatureCanEvolve(evolution->mUniqueId, bait->mUniqueId) == 1;
+	if (!legal)
+	{
+		lua_pushinteger(L, 0);
+		return 1;
+	}
+
+	Message msg("cardmove");
+	msg.addValue("card", evolution->mUniqueId);
+	msg.addValue("to", ZONE_BATTLE);
+	msg.addValue("evobait", bait->mUniqueId);
+	msg.addValue("evobait2", bait2 == NULL ? -1 : bait2->mUniqueId);
+	ActiveDuel->mMsgMngr.sendMessage(msg);
+	lua_pushinteger(L, 1);
+	return 1;
 }
 
 static int tapCard(lua_State* L)
@@ -574,6 +608,15 @@ static int getTurn(lua_State* L)
 	return 1;
 }
 
+static int getShieldChooser(lua_State* L)
+{
+	int chooser = lua_tointeger(L, 1);
+	int shieldOwner = lua_tointeger(L, 2);
+	lua_pushinteger(L, validPlayer(chooser) && validPlayer(shieldOwner) ?
+		ActiveDuel->getShieldChooser(chooser, shieldOwner) : chooser);
+	return 1;
+}
+
 static int getCardName(lua_State* L)
 {
 	Card* card = cardFromLua(L, 1);
@@ -754,6 +797,34 @@ static int getCreatureIsEvolution(lua_State* L)
 	return 1;
 }
 
+static int getCreatureEvolutionBaitCount(lua_State* L)
+{
+	Card* evolution = cardFromLua(L, 1);
+	lua_pushinteger(L, evolution == NULL ? 0 :
+		ActiveDuel->getEvolutionBaitCount(evolution->mUniqueId));
+	return 1;
+}
+
+static int getCreatureCanEvolve(lua_State* L)
+{
+	Card* evolution = cardFromLua(L, 1);
+	Card* bait = cardFromLua(L, 2);
+	lua_pushinteger(L, evolution == NULL || bait == NULL ? 0 :
+		ActiveDuel->getCreatureCanEvolve(evolution->mUniqueId, bait->mUniqueId));
+	return 1;
+}
+
+static int getCreatureCanVortexEvolve(lua_State* L)
+{
+	Card* evolution = cardFromLua(L, 1);
+	Card* bait = cardFromLua(L, 2);
+	Card* bait2 = cardFromLua(L, 3);
+	lua_pushinteger(L, evolution == NULL || bait == NULL || bait2 == NULL ? 0 :
+		ActiveDuel->getCreatureCanVortexEvolve(evolution->mUniqueId,
+			bait->mUniqueId, bait2->mUniqueId));
+	return 1;
+}
+
 static int getCreatureHasTapAbility(lua_State* L)
 {
 	Card* card = cardFromLua(L, 1);
@@ -882,6 +953,7 @@ void registerLua(lua_State* L)
 	lua_register(L, "destroyMana", destroyMana);
 	lua_register(L, "discardCardAtRandom", discardCardAtRandom);
 	lua_register(L, "moveCard", moveCard);
+	lua_register(L, "moveEvolution", moveEvolution);
 	lua_register(L, "tapCard", tapCard);
 	lua_register(L, "untapCard", untapCard);
 	lua_register(L, "drawCards", drawCards);
@@ -900,6 +972,7 @@ void registerLua(lua_State* L)
 	lua_register(L, "getTotalCardCount", getTotalCardCount);
 	lua_register(L, "getZoneSize", getZoneSize);
 	lua_register(L, "getTurn", getTurn);
+	lua_register(L, "getShieldChooser", getShieldChooser);
 	lua_register(L, "getCardName", getCardName);
 	lua_register(L, "getCardZone", getCardZone);
 	lua_register(L, "getCardCiv", getCardCiv);
@@ -919,6 +992,9 @@ void registerLua(lua_State* L)
 	lua_register(L, "getCreatureCanBlock", getCreatureCanBlock);
 	lua_register(L, "getCreatureIsBlocker", getCreatureIsBlocker);
 	lua_register(L, "getCreatureIsEvolution", getCreatureIsEvolution);
+	lua_register(L, "getCreatureEvolutionBaitCount", getCreatureEvolutionBaitCount);
+	lua_register(L, "getCreatureCanEvolve", getCreatureCanEvolve);
+	lua_register(L, "getCreatureCanVortexEvolve", getCreatureCanVortexEvolve);
 	lua_register(L, "getCreatureHasTapAbility", getCreatureHasTapAbility);
 	lua_register(L, "isCardTapped", isCardTapped);
 	lua_register(L, "getAttacker", getAttacker);

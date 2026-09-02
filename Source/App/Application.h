@@ -56,6 +56,7 @@ private:
 		Tiles,
 		Npcs,
 		Objects,
+		Regions,
 		Portals
 	};
 	struct WorldBuilderTileUndo
@@ -80,6 +81,8 @@ private:
 		bool hasObjectSnapshot = false;
 		WorldPortal portalSnapshot;
 		bool hasPortalSnapshot = false;
+		WorldRegion regionSnapshot;
+		bool hasRegionSnapshot = false;
 		bool dirtyBefore = false;
 	};
 	enum class StoryScene
@@ -202,7 +205,9 @@ private:
 	bool exerciseLiveAndBreatheSmoke();
 	bool exerciseDormantCardCallbackSmoke();
 	bool exerciseTapAbilitySmoke();
+	bool exerciseGigiosHammerSmoke();
 	bool exerciseAttackQuerySmoke();
+	bool exerciseAuditedCardRulesSmoke();
 	bool exerciseCountInZoneCardSmoke();
 	bool exerciseDecisionPlanSmoke();
 	bool exerciseMotorcycleMutantSmoke();
@@ -217,6 +222,7 @@ private:
 	bool exerciseAtmosphereSmoke();
 	bool exerciseWorldObjectsSmoke();
 	bool exerciseWorldBuilderPortalsSmoke();
+	bool exerciseWorldBuilderRegionsSmoke();
 	bool exerciseOverworldMovementSmoke();
 	bool exerciseStorySmoke();
 	void initializeStory();
@@ -255,8 +261,11 @@ private:
 	int worldAreaIndex(const std::string& id) const;
 	const WorldRegion* worldRegionAt(const std::string& mapId, int x, int y) const;
 	const WorldRegion* currentWorldRegion() const;
+	bool currentWorldRegionIsTown() const;
+	WeatherKind effectiveWorldWeather() const;
 	bool beginPortalAt(int x, int y);
 	bool activatePortalAt(int x, int y);
+	bool portalOriginBlocksMovement(int x, int y) const;
 	bool isPortalAt(const std::string& mapId, int x, int y) const;
 	bool loadWorldMap(const std::string& path, std::string& error, bool allowMissingPositions = false);
 	bool loadDeprecatedLuaWorldMap(const std::string& path, std::string& error,
@@ -287,10 +296,24 @@ private:
 		bool erasing);
 	bool addWorldBuilderObject(int templateIndex, int x, int y);
 	void deleteWorldBuilderObject();
+	void cycleWorldBuilderChestAppearance(int direction);
 	void beginWorldBuilderPortalCreation();
 	void cancelWorldBuilderPortalCreation();
 	void placeWorldBuilderPortalEndpoint(int x, int y);
 	void deleteWorldBuilderPortal();
+	void cycleWorldBuilderPortalAppearance(int direction);
+	void beginWorldBuilderRegionCreation();
+	void beginWorldBuilderRegionBounds();
+	void cancelWorldBuilderRegionPlacement();
+	void updateWorldBuilderRegionDraft(int x, int y);
+	void finishWorldBuilderRegionPlacement();
+	void deleteWorldBuilderRegion();
+	void toggleWorldBuilderRegionKind();
+	void toggleWorldBuilderRegionWeather();
+	void beginWorldBuilderRegionNameEdit();
+	void commitWorldBuilderRegionNameEdit(bool accept);
+	bool worldBuilderCanPlaceRegion(const WorldRegion& region, int ignoredRegion,
+		std::string& error) const;
 	bool worldBuilderRequiresWalkable(int x, int y) const;
 	const RtpTileReference* worldTileLayer(const WorldMap& area, int x, int y,
 		RtpRenderLayer layer) const;
@@ -339,6 +362,7 @@ private:
 	bool exerciseHollowCardsSmoke();
 	bool exerciseRevealVisibilitySmoke();
 	bool exerciseRaceQuerySmoke();
+	bool exerciseRoyalDurianSmoke();
 	bool exerciseCrypticTotemSmoke();
 	bool exerciseUntapAfterBlockSmoke();
 	bool exerciseBinaryChoiceSmoke();
@@ -385,6 +409,8 @@ private:
 		const std::string& spriteSheet = "", int spriteIndex = -1);
 	bool drawWorldObjectSprite(const WorldObject& object, bool opened,
 		const SDL_Rect& destination, bool preserveAspect = true);
+	bool drawPortalSprite(const WorldPortal& portal, float open,
+		const SDL_Rect& destination);
 	SDL_Color civilizationColor(int civilization) const;
 	void logicalMouse(int windowX, int windowY, int& logicalX, int& logicalY) const;
 	bool contains(const SDL_Rect& rect, int x, int y) const;
@@ -502,6 +528,15 @@ private:
 	int mWorldBuilderPortalEndpoint;
 	bool mWorldBuilderPortalCreating;
 	WorldPosition mWorldBuilderPortalDraftOrigin;
+	int mWorldBuilderSelectedRegion;
+	int mWorldBuilderRegionPlacementMode;
+	bool mWorldBuilderRegionDragging;
+	int mWorldBuilderRegionDragStartX;
+	int mWorldBuilderRegionDragStartY;
+	WorldRegion mWorldBuilderRegionDraft;
+	bool mWorldBuilderRegionNameFocused;
+	int mWorldBuilderRegionNameIndex;
+	std::string mWorldBuilderRegionNameInput;
 	int mWorldBuilderListScroll;
 	float mWorldBuilderCameraX;
 	float mWorldBuilderCameraY;

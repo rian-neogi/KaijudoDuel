@@ -762,6 +762,14 @@ Checks.CreatureInYourGraveyard = function(cid,sid)
 	end
 end
 
+Checks.SurvivorInYourGraveyard = function(cid,sid)
+	if(Checks.CreatureInYourGraveyard(cid,sid)==1 and isCreatureOfRace(sid,"Survivor")==1) then
+		return 1
+	else
+		return 0
+	end
+end
+
 Checks.SpellInYourGraveyard = function(cid,sid)
 	if(getCardOwner(sid)==getCardOwner(cid) and getCardZone(sid)==ZONE_GRAVEYARD and getCardType(sid)==TYPE_SPELL) then
 		return 1

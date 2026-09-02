@@ -128,6 +128,7 @@ class LegacyWorldConversionTests(unittest.TestCase):
 		self.assertEqual(self.rle_value(ground, 1024 * 1024 - 1), 0)
 		self.assertEqual(manifest["regions"][0]["x"], 512)
 		self.assertEqual(manifest["regions"][0]["y"], 700)
+		self.assertEqual(manifest["regions"][0]["weather"], "rain")
 		self.assertEqual(manifest["start"], {"map": "overworld", "x": 513,
 			"y": 701})
 		self.assertEqual(manifest["portals"][0]["from"],

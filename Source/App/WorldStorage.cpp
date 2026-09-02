@@ -100,6 +100,28 @@ namespace
 		return true;
 	}
 
+	bool readObjectAppearances(const ptree& root,
+		std::map<std::string, std::string>& appearances, std::string& error)
+	{
+		appearances.clear();
+		boost::optional<const ptree&> entries =
+			root.get_child_optional("entities.object_appearances");
+		if (!entries) return true;
+		for (ptree::const_iterator entry = entries->begin(); entry != entries->end(); ++entry)
+		{
+			const std::string id = entry->second.get<std::string>("id", "");
+			const std::string appearance =
+				entry->second.get<std::string>("appearance", "");
+			if (id.empty() || appearance.empty() ||
+				!appearances.insert(std::make_pair(id, appearance)).second)
+			{
+				error = "world manifest has an invalid or duplicate object appearance";
+				return false;
+			}
+		}
+		return true;
+	}
+
 	std::string jsonEscape(const std::string& value)
 	{
 		std::ostringstream escaped;
@@ -228,6 +250,13 @@ bool WorldStorage::load(const std::string& path, WorldData& world,
 				return false;
 			}
 			region.connector = kind == "connector";
+			std::string weather = entry->second.get<std::string>("weather", "rain");
+			if (weather != "rain" && weather != "snow")
+			{
+				error = "world manifest contains an invalid region weather";
+				return false;
+			}
+			region.snow = weather == "snow";
 			region.x = entry->second.get<int>("x", -1);
 			region.y = entry->second.get<int>("y", -1);
 			region.width = entry->second.get<int>("width", 0);
@@ -241,6 +270,7 @@ bool WorldStorage::load(const std::string& path, WorldData& world,
 			WorldPosition from = readPosition(entry->second.get_child("from"));
 			WorldPosition to = readPosition(entry->second.get_child("to"));
 			WorldPortal portal;
+			portal.appearance = entry->second.get<std::string>("appearance", "");
 			portal.fromMap = from.mapId;
 			portal.fromX = from.x;
 			portal.fromY = from.y;
@@ -258,6 +288,7 @@ bool WorldStorage::load(const std::string& path, WorldData& world,
 	if (!readPositions(root, "entities.npcs", loaded.npcPositions, error) ||
 		!readPositions(root, "entities.objects", loaded.objectPositions, error) ||
 		!readObjectDefinitions(root, loaded.objectDefinitions, error) ||
+		!readObjectAppearances(root, loaded.objectAppearances, error) ||
 		!readPositions(root, "entities.shards", loaded.shardPositions, error) ||
 		!loaded.validateStructure(error)) return false;
 	world.swap(loaded);
@@ -289,6 +320,7 @@ bool WorldStorage::save(const std::string& path, const WorldData& world,
 		output << "    { \"id\": \"" << jsonEscape(region.id) << "\", \"name\": \""
 			<< jsonEscape(region.name) << "\", \"map\": \"" << jsonEscape(region.mapId)
 			<< "\", \"kind\": \"" << (region.connector ? "connector" : "town")
+			<< "\", \"weather\": \"" << (region.snow ? "snow" : "rain")
 			<< "\", \"x\": " << region.x << ", \"y\": " << region.y
 			<< ", \"width\": " << region.width << ", \"height\": " << region.height
 			<< " }" << (index + 1 == world.regions.size() ? "\n" : ",\n");
@@ -299,7 +331,10 @@ bool WorldStorage::save(const std::string& path, const WorldData& world,
 	for (size_t index = 0; index < world.portals.size(); ++index)
 	{
 		const WorldPortal& portal = world.portals[index];
-		output << "    { \"from\": ";
+		output << "    {";
+		if (!portal.appearance.empty())
+			output << " \"appearance\": \"" << jsonEscape(portal.appearance) << "\",";
+		output << " \"from\": ";
 		writePosition(output, { portal.fromMap, portal.fromX, portal.fromY });
 		output << ", \"to\": ";
 		writePosition(output, { portal.toMap, portal.toX, portal.toY });
@@ -317,6 +352,15 @@ bool WorldStorage::save(const std::string& path, const WorldData& world,
 		output << "      { \"id\": \"" << jsonEscape(definition->first)
 			<< "\", \"template\": \"" << jsonEscape(definition->second.templateId)
 			<< "\" }" << (definitionIndex + 1 == world.objectDefinitions.size() ?
+			"\n" : ",\n");
+	output << "    ],\n    \"object_appearances\": [\n";
+	size_t appearanceIndex = 0;
+	for (std::map<std::string, std::string>::const_iterator appearance =
+		world.objectAppearances.begin(); appearance != world.objectAppearances.end();
+		++appearance, ++appearanceIndex)
+		output << "      { \"id\": \"" << jsonEscape(appearance->first)
+			<< "\", \"appearance\": \"" << jsonEscape(appearance->second)
+			<< "\" }" << (appearanceIndex + 1 == world.objectAppearances.size() ?
 			"\n" : ",\n");
 	output << "    ],\n    \"shards\": [\n";
 	writePositions(output, world.shardPositions, 6);

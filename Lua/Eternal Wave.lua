@@ -994,12 +994,19 @@ Cards["Royal Durian"] = {
 	breaker = 1,
 
 	HandleMessage = function(id) --test
-		silentSkill(id,function(id)
-			local dragon=createChoice("Choose a Dragon in your mana zone",0,id,getCardOwner(id),function(cid,sid)
-				if(Checks.CreatureInYourMana(cid,sid)==1 and isCreatureOfRace(sid,"Dragon")==1) then return 1 end
-				return 0
-			end)
-			if(dragon>=0) then moveCard(dragon,ZONE_BATTLE) end
+		Abils.onSummon(id,function(id)
+			local evolutions={}
+			for player=0,1 do
+				for _,card in ipairs(zoneCards(player,ZONE_BATTLE)) do
+					if(card~=id and getCreatureIsEvolution(card)==1) then
+						evolutions[#evolutions+1]=card
+					end
+				end
+			end
+			for _,evolution in ipairs(evolutions) do
+				seperateEvolution(evolution)
+				moveCard(evolution,ZONE_MANA)
+			end
 		end)
 	end
 }

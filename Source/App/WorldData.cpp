@@ -1,7 +1,38 @@
 #include "WorldData.h"
 
+#include <cctype>
 #include <set>
 #include <utility>
+
+namespace
+{
+	bool validPortalAppearance(const std::string& appearance)
+	{
+		if (appearance.empty()) return true;
+		const size_t separator = appearance.find_last_of('-');
+		if (separator == std::string::npos || separator + 1 >= appearance.size())
+			return false;
+		const std::string sheet = appearance.substr(0, separator);
+		const bool door = sheet == "!Door1" || sheet == "!Door2" || sheet == "!Door3";
+		const bool gate = sheet == "!$Gate1" || sheet == "!$Gate2";
+		if (!door && !gate) return false;
+		int index = 0;
+		for (size_t character = separator + 1; character < appearance.size(); ++character)
+		{
+			if (!std::isdigit((unsigned char)appearance[character])) return false;
+			index = index * 10 + appearance[character] - '0';
+		}
+		return gate ? index == 1 : index >= 1 && index <= 8;
+	}
+
+	bool validChestAppearance(const std::string& appearance)
+	{
+		const std::string prefix = "!Chest-";
+		return appearance.size() == prefix.size() + 1 &&
+			appearance.compare(0, prefix.size(), prefix) == 0 &&
+			appearance[prefix.size()] >= '1' && appearance[prefix.size()] <= '8';
+	}
+}
 
 int WorldMap::width() const
 {
@@ -49,6 +80,11 @@ bool WorldPortal::hasEndpoint(const std::string& mapId, int x, int y) const
 {
 	return (fromMap == mapId && fromX == x && fromY == y) ||
 		(toMap == mapId && toX == x && toY == y);
+}
+
+bool WorldPortal::hasAppearance() const
+{
+	return !appearance.empty();
 }
 
 bool WorldPosition::operator==(const WorldPosition& other) const
@@ -176,6 +212,7 @@ bool WorldData::validateStructure(std::string& error) const
 		const WorldMap* to = map(portal.toMap);
 		if (from == NULL || to == NULL || !from->contains(portal.fromX, portal.fromY) ||
 			!to->contains(portal.toX, portal.toY) ||
+			!validPortalAppearance(portal.appearance) ||
 			!portalOrigins.insert(std::make_tuple(portal.fromMap,
 				portal.fromX, portal.fromY)).second)
 		{
@@ -217,6 +254,14 @@ bool WorldData::validateStructure(std::string& error) const
 			error = "world has an invalid placed-object definition";
 			return false;
 		}
+	for (std::map<std::string, std::string>::const_iterator appearance =
+		objectAppearances.begin(); appearance != objectAppearances.end(); ++appearance)
+		if (appearance->first.empty() || !validChestAppearance(appearance->second) ||
+			objectPositions.count(appearance->first) == 0)
+		{
+			error = "world has an invalid placed-object appearance";
+			return false;
+		}
 	return true;
 }
 
@@ -229,5 +274,6 @@ void WorldData::swap(WorldData& other)
 	npcPositions.swap(other.npcPositions);
 	objectPositions.swap(other.objectPositions);
 	objectDefinitions.swap(other.objectDefinitions);
+	objectAppearances.swap(other.objectAppearances);
 	shardPositions.swap(other.shardPositions);
 }

@@ -200,11 +200,12 @@ int Card::handleMessage(Message& msg)
 			std::atoi(value->second.c_str()) == mUniqueId;
 	};
 
-	// Hidden and discarded zones do not observe global rules broadcasts. A card
+	// Inactive zones do not observe global rules broadcasts. A card
 	// still receives messages that act directly on it: movement, discard
 	// replacement, cast queries, and intrinsic evolution queries.
 	bool handleCardRule = mZone != ZONE_HAND && mZone != ZONE_DECK &&
-		mZone != ZONE_SHIELD && mZone != ZONE_GRAVEYARD;
+		mZone != ZONE_MANA && mZone != ZONE_SHIELD && mZone != ZONE_GRAVEYARD &&
+		mZone != ZONE_EVOLVED;
 	if (!handleCardRule)
 	{
 		const bool cardMove = callbackType == "mod cardmove" ||

@@ -583,9 +583,9 @@ Cards["Splash Zebrafish"] = {
 
 	HandleMessage = function(id)
 		local func = function(id)
-            local ch = createChoice("Choose a card in your mana zone",0,id,getCardOwner(id),Checks.InYourMana)
-            if(ch>=0) then
-                moveCard(ZONE_HAND)
+			local ch = createChoice("Choose a card in your mana zone",0,id,getCardOwner(id),Checks.InYourMana)
+			if(ch>=0) then
+				moveCard(ch,ZONE_HAND)
             end
         end
 		Abils.onSummon(id,func)

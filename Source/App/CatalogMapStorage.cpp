@@ -76,6 +76,75 @@ namespace
 		return true;
 	}
 
+	bool sameCompositeAppearance(const RtpTileReference& first,
+		const RtpTileReference& second)
+	{
+		return first.family == second.family && first.sheet == second.sheet &&
+			first.layer == second.layer && first.red == second.red &&
+			first.green == second.green && first.blue == second.blue;
+	}
+
+	void normalizeCompositeTiles(WorldMap& map)
+	{
+		const RtpRenderLayer layers[] = { RtpRenderLayer::Ground,
+			RtpRenderLayer::Decoration, RtpRenderLayer::Foreground };
+		for (int layerIndex = 0; layerIndex < 3; ++layerIndex)
+			for (int y = 0; y + 2 < map.height(); ++y)
+				for (int x = 0; x < map.width(); ++x)
+				{
+					std::tuple<int, int, int> topKey(y, x, (int)layers[layerIndex]);
+					std::tuple<int, int, int> middleKey(y + 1, x,
+						(int)layers[layerIndex]);
+					std::tuple<int, int, int> baseKey(y + 2, x,
+						(int)layers[layerIndex]);
+					std::map<std::tuple<int, int, int>, RtpTileReference>::iterator top =
+						map.tileLayers.find(topKey);
+					std::map<std::tuple<int, int, int>, RtpTileReference>::iterator middle =
+						map.tileLayers.find(middleKey);
+					std::map<std::tuple<int, int, int>, RtpTileReference>::iterator base =
+						map.tileLayers.find(baseKey);
+					if (top == map.tileLayers.end() || middle == map.tileLayers.end() ||
+						base == map.tileLayers.end()) continue;
+					if (RtpTilesetRenderer::streetlightCompositeRow(top->second.family,
+						top->second.sheet, top->second.index) != 0 ||
+						RtpTilesetRenderer::streetlightCompositeRow(middle->second.family,
+						middle->second.sheet, middle->second.index) != 1 ||
+						RtpTilesetRenderer::streetlightCompositeRow(base->second.family,
+						base->second.sheet, base->second.index) != 2 ||
+						RtpTilesetRenderer::canonicalTileIndex(top->second.family,
+							top->second.sheet, top->second.index) !=
+						RtpTilesetRenderer::canonicalTileIndex(middle->second.family,
+							middle->second.sheet, middle->second.index) ||
+						RtpTilesetRenderer::canonicalTileIndex(top->second.family,
+							top->second.sheet, top->second.index) !=
+						RtpTilesetRenderer::canonicalTileIndex(base->second.family,
+							base->second.sheet, base->second.index) ||
+						!sameCompositeAppearance(top->second, middle->second) ||
+						!sameCompositeAppearance(top->second, base->second)) continue;
+					map.tileLayers.erase(topKey);
+					map.tileLayers.erase(middleKey);
+				}
+
+		std::map<std::tuple<int, int, int>, RtpTileReference> normalized;
+		for (std::map<std::tuple<int, int, int>, RtpTileReference>::const_iterator tile =
+			map.tileLayers.begin(); tile != map.tileLayers.end(); ++tile)
+		{
+			RtpTileReference reference = tile->second;
+			reference.index = RtpTilesetRenderer::canonicalTileIndex(reference.family,
+				reference.sheet, reference.index);
+			if (RtpTilesetRenderer::isCompositeTile(reference))
+				reference.layer = RtpRenderLayer::Decoration;
+			std::tuple<int, int, int> key(std::get<0>(tile->first),
+				std::get<1>(tile->first), (int)reference.layer);
+			std::map<std::tuple<int, int, int>, RtpTileReference>::iterator existing =
+				normalized.find(key);
+			if (existing == normalized.end())
+				normalized.insert(std::make_pair(key, reference));
+			else existing->second = reference;
+		}
+		map.tileLayers.swap(normalized);
+	}
+
 	void normalizeLargeTreeSpacing(WorldMap& map)
 	{
 		std::set<std::pair<int, int> > acceptedAnchors;
@@ -251,7 +320,6 @@ bool CatalogMapStorage::loadMap(const std::string& path, WorldMap& map,
 				error = "catalog map '" + path + "' has an invalid palette entry";
 				return false;
 			}
-			index = RtpTilesetRenderer::canonicalTileIndex(family, sheet, index);
 			palette.push_back(RtpTileReference(family, sheet, index, layer,
 				(Uint8)tint[0], (Uint8)tint[1], (Uint8)tint[2]));
 		}
@@ -299,6 +367,7 @@ bool CatalogMapStorage::loadMap(const std::string& path, WorldMap& map,
 				return false;
 			}
 		}
+		normalizeCompositeTiles(loaded);
 		normalizeLargeTreeSpacing(loaded);
 		boost::optional<ptree&> tags = root.get_child_optional("tags");
 		if (tags)

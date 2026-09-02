@@ -1114,7 +1114,7 @@ Cards["Phal Eega, Dawn Guardian"] = {
                 moveCard(ch,ZONE_HAND)
             end
         end
-        Abils.onSummon(func)
+		Abils.onSummon(id,func)
 	end
 }
 

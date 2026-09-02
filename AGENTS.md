@@ -47,6 +47,14 @@ zoom so they remain consistent in screen space. The wheel continues to scroll
 when the pointer is over a side list. Save with the on-screen button or
 `Ctrl+S`.
 
+Directed portals may use Door or Gate character-sheet appearances. In the
+Portals tab, select a portal and use the appearance arrows to choose its origin
+graphic. Visible portals are opened with the interaction key in gameplay and
+animate before travel; appearance-less portals remain invisible step triggers.
+In the Objects tab's Placed view, the same appearance arrows select
+`!Chest-1` through `!Chest-8` for normal or deck chests without changing their
+metadata or rewards.
+
 When adding a C++ source file, add it to `GAME_SOURCES` in `CMakeLists.txt`.
 Do not restore the legacy Windows/OpenGL interface to the Linux target.
 
@@ -177,6 +185,10 @@ five decks.
 - Opened deck chests are persisted per save as `object.opened.<id>=1`. Their
   rewarded deck files are copied into the save's Decks folder and their cards
   are added to that save's collection exactly once.
+- Per-instance chest graphics are stored in
+  `World/World.json` `entities.object_appearances`. Overrides may use
+  `!Chest-1` through `!Chest-8`; they never replace Lua-authored chest text or
+  rewards.
 - Maps are rectangular and may be up to 1024 columns by 1024 rows. Gameplay
   follows the player through maps larger than its 25-by-12-tile viewport; the
   World Builder keeps a 960-by-576-pixel viewport beside its editor controls
@@ -221,8 +233,12 @@ five decks.
 - Portals are directed transitions. Define both directions explicitly when a
   doorway must support entering and leaving an interior. Exterior regions share
   the `overworld` map and must connect through adjacent walkable tiles, not
-  portals. The World Builder's Portals tab creates, moves, and deletes directed
-  endpoints; both endpoints must occupy distinct free walkable cells.
+  portals. A portal `appearance` belongs to its origin and accepts
+  `!Door1-1` through `!Door3-8`, `!$Gate1-1`, or `!$Gate2-1`. Visible origins
+  block movement and animate when interacted with; omit appearance only for an
+  intentional invisible step trigger. The World Builder's Portals tab creates,
+  moves, styles, and deletes directed endpoints; both endpoints must occupy
+  distinct free walkable cells.
 - Treat connecting regions as explorable adventures rather than transit
   corridors. The implemented Watershed Crossroads is 128-by-72 tiles and the
   Old Road is 96-by-48; preserve their readable main routes, optional loops,

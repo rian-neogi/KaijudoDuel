@@ -142,7 +142,7 @@ return {
 		{
 			id = "imperial", name = "Imperial Shard",
 			stock = { "Roulette of Ruin", "Royal Durian", "Rainbow Gate", "Morbid Medicine",
-				"Hypersprint Warior Uzesol", "Muramasa's Knife", "Supersonic Jet Pack",
+				"Hypersprint Warrior Uzesol", "Muramasa's Knife", "Supersonic Jet Pack",
 				"Rapid Reincarnation", "Wind Axe, the Warrior Savage", "Obsidian Scarab" }
 		}
 	}

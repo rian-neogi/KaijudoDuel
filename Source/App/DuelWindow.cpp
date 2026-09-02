@@ -97,7 +97,13 @@ namespace
 		else if (type == "creatureusetapability")
 			output << " creature=" << diagnosticCard(duel, actionInt(action, "creature"));
 		else if (type == "triggeruse")
+		{
 			output << " trigger=" << diagnosticCard(duel, actionInt(action, "trigger"));
+			if (actionInt(action, "evobait") >= 0)
+				output << " bait=" << diagnosticCard(duel, actionInt(action, "evobait"));
+			if (actionInt(action, "evobait2") >= 0)
+				output << " bait2=" << diagnosticCard(duel, actionInt(action, "evobait2"));
+		}
 		else if (type == "choiceselect")
 		{
 			int selection = actionInt(action, "selection");
@@ -813,9 +819,6 @@ void Application::updateDuel(Uint32 deltaTime)
 							{
 								AiDecisionOutcome decision = playHeuristicDecision(
 									*mDuel, aiPlayer, personality);
-								if (decision.source != AiDecisionSource::None)
-									std::cout << "AI MCTS: unavailable at transient choice; fallback=" <<
-										decision.action.getType() << std::endl;
 								Uint32 delay = decision.action.getType() == "manatap" ?
 									AI_MANA_TAP_DELAY_MS : AI_MOVE_DELAY_MS;
 								mNextAiMove = now + delay;
@@ -1154,7 +1157,15 @@ std::string Application::actionLabel(const Message& message) const
 	if (type == "creatureblock") return "Block with " + cardName(messageInt(message, "blocker"));
 	if (type == "blockskip") return "Do not block";
 	if (type == "targetshield") return "Break selected shield";
-	if (type == "triggeruse") return "Use trigger: " + cardName(messageInt(message, "trigger"));
+	if (type == "triggeruse")
+	{
+		int bait = messageInt(message, "evobait");
+		int bait2 = messageInt(message, "evobait2");
+		std::string label = "Use trigger: " + cardName(messageInt(message, "trigger"));
+		if (bait >= 0) label += " on " + cardName(bait);
+		if (bait2 >= 0) label += " + " + cardName(bait2);
+		return label;
+	}
 	if (type == "triggerskip") return "Skip shield triggers";
 	if (type == "choiceselect")
 	{
@@ -1640,7 +1651,18 @@ void Application::renderDuel()
 			(mDuelResult == 0 ? "VICTORY" : "DEFEAT");
 		drawText(resultLabel, mDirectAiVsAi ? 430 : 475, 319,
 			mDuelResult == 0 ? color(101, 231, 133) : color(238, 101, 83), 48);
-		drawText(mDirectDuelMode ? "Direct duel complete..." : "Returning to Emberglen...",
-			mDirectDuelMode ? 475 : 460, 394, color(226, 232, 243), 20);
+		std::string returnLabel = "Direct duel complete...";
+		if (!mDirectDuelMode)
+		{
+			const WorldRegion* region = currentWorldRegion();
+			if (mDuelResult == 0)
+				returnLabel = region != NULL ? "Returning to " + region->name + "..." :
+					"Returning to the overworld...";
+			else
+				returnLabel = currentWorldRegionIsTown() && region != NULL ?
+					"Returning to " + region->name + "..." : "Returning to Emberglen...";
+		}
+		drawText(returnLabel, mDirectDuelMode ? 475 : 430, 394,
+			color(226, 232, 243), 20, mDirectDuelMode ? 330 : 430);
 	}
 }

@@ -388,7 +388,12 @@ int Duel::handleMessage(Message& msg)
 		}
 		if (c->mZone == ZONE_BATTLE && c->mType == TYPE_SPELL)
 		{
+			int originalOwner = c->mOwner;
+			int controller = optionalMessageInt(msg, "controller", originalOwner);
+			if (controller == 0 || controller == 1)
+				c->mOwner = controller;
 			c->callOnCast(); //cast the spell
+			c->mOwner = originalOwner;
 			Message m("cardmove");
 			m.addValue("card", cid);
 			m.addValue("from", mCardList.at(cid)->mZone);
@@ -869,9 +874,47 @@ std::vector<Message> Duel::getPossibleMoves()
 				{
 					if (getIsShieldTrigger(*j) && canUseShieldTrigger(*j) && getCardCanCast(*j))
 					{
-						Message msg("triggeruse");
-						msg.addValue("trigger", *j);
-						moves.push_back(msg);
+						if (getIsEvolution(*j) == 1)
+						{
+							if (getEvolutionBaitCount(*j) == 2)
+							{
+								for (size_t first = 0; first < mBattlezones[player].mCards.size(); ++first)
+								{
+									for (size_t second = first + 1; second < mBattlezones[player].mCards.size(); ++second)
+									{
+										int bait = mBattlezones[player].mCards[first]->mUniqueId;
+										int bait2 = mBattlezones[player].mCards[second]->mUniqueId;
+										if (getCreatureCanVortexEvolve(*j, bait, bait2) != 1) continue;
+										Message msg("triggeruse");
+										msg.addValue("trigger", *j);
+										msg.addValue("evobait", bait);
+										msg.addValue("evobait2", bait2);
+										moves.push_back(msg);
+									}
+								}
+							}
+							else
+							{
+								for (std::vector<Card*>::iterator bait = mBattlezones[player].mCards.begin();
+									bait != mBattlezones[player].mCards.end(); ++bait)
+								{
+									if (getCreatureCanEvolve(*j, (*bait)->mUniqueId) != 1) continue;
+									Message msg("triggeruse");
+									msg.addValue("trigger", *j);
+									msg.addValue("evobait", (*bait)->mUniqueId);
+									msg.addValue("evobait2", -1);
+									moves.push_back(msg);
+								}
+							}
+						}
+						else
+						{
+							Message msg("triggeruse");
+							msg.addValue("trigger", *j);
+							msg.addValue("evobait", -1);
+							msg.addValue("evobait2", -1);
+							moves.push_back(msg);
+						}
 					}
 				}
 			}
@@ -1241,20 +1284,33 @@ int Duel::handleInterfaceInput(Message& msg)
 	{
 		if (mAttackphase == PHASE_TRIGGER)
 		{
+			int trigger = msg.getInt("trigger");
+			int evobait = optionalMessageInt(msg, "evobait", -1);
+			int evobait2 = optionalMessageInt(msg, "evobait2", -1);
 			for (std::vector<int>::iterator j = mShieldTargets.begin(); j != mShieldTargets.end(); j++)
 			{
-				int trigger = msg.getInt("trigger");
 				if (*j == trigger)
 				{
-					if (getIsShieldTrigger(trigger) && canUseShieldTrigger(trigger) && getCardCanCast(trigger))
+					bool isEvolution = getIsEvolution(trigger) == 1;
+					int baitCount = isEvolution ? getEvolutionBaitCount(trigger) : 0;
+					bool legalEvolution = isEvolution &&
+						((baitCount == 2 &&
+							getCreatureCanVortexEvolve(trigger, evobait, evobait2) == 1) ||
+						 (baitCount != 2 &&
+							getCreatureCanEvolve(trigger, evobait) == 1));
+					if (mCardList.at(trigger)->mZone == ZONE_HAND &&
+						getIsShieldTrigger(trigger) && canUseShieldTrigger(trigger) &&
+						getCardCanCast(trigger) && (!isEvolution || legalEvolution))
 					{
 						Message used("shieldtriggerused");
 						used.addValue("trigger", trigger);
+						used.addValue("evobait", evobait);
+						used.addValue("evobait2", evobait2);
 						mMsgMngr.sendMessage(used);
 						Message m("cardplay");
 						m.addValue("card", trigger);
-						m.addValue("evobait", -1);
-						m.addValue("evobait2", -1);
+						m.addValue("evobait", evobait);
+						m.addValue("evobait2", evobait2);
 						mMsgMngr.sendMessage(m);
 					}
 				}
@@ -1969,6 +2025,40 @@ int Duel::canUseShieldTrigger(int uid)
 	}
 	int c = mCurrentMessage.getInt("canuse");
 	mCurrentMessage = oldmsg;
+	if (c != 0 && getIsEvolution(uid) == 1)
+	{
+		bool hasValidBait = false;
+		int owner = mCardList.at(uid)->mOwner;
+		if (getEvolutionBaitCount(uid) == 2)
+		{
+			for (size_t first = 0; first < mBattlezones[owner].mCards.size() && !hasValidBait; ++first)
+			{
+				for (size_t second = first + 1; second < mBattlezones[owner].mCards.size(); ++second)
+				{
+					if (getCreatureCanVortexEvolve(uid,
+						mBattlezones[owner].mCards[first]->mUniqueId,
+						mBattlezones[owner].mCards[second]->mUniqueId) == 1)
+					{
+						hasValidBait = true;
+						break;
+					}
+				}
+			}
+		}
+		else
+		{
+			for (std::vector<Card*>::iterator bait = mBattlezones[owner].mCards.begin();
+				bait != mBattlezones[owner].mCards.end(); ++bait)
+			{
+				if (getCreatureCanEvolve(uid, (*bait)->mUniqueId) == 1)
+				{
+					hasValidBait = true;
+					break;
+				}
+			}
+		}
+		if (!hasValidBait) c = 0;
+	}
 	return c;
 }
 

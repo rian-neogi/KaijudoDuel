@@ -149,7 +149,10 @@ Cards["Death Phoenix, Avatar of Doom"] = {
 
 	HandleMessage = function(id) --test
 		Abils.VortexEvolution(id,"Zombie Dragon","Fire Bird")
-		if(getMessageType()=="post cardmove" and getMessageInt("card")==id and getMessageInt("from")==ZONE_BATTLE) then
+		if(getMessageType()=="pre creaturebreakshield" and getMessageInt("creature")==id) then
+			setMessageInt("msgContinue",0)
+			moveCard(getMessageInt("shield"),ZONE_GRAVEYARD)
+		elseif(getMessageType()=="post cardmove" and getMessageInt("card")==id and getMessageInt("from")==ZONE_BATTLE) then
 			local opponent=getOpponent(getCardOwner(id))
 			discardCardAtRandom(opponent,getZoneSize(opponent,ZONE_HAND))
 		end
@@ -294,7 +297,8 @@ Cards["Cosmic Darts"] = {
 
 	OnCast = function(id) --test
 		local owner=getCardOwner(id)
-		local shield=createChoice("Choose one of the caster's shields",0,id,getOpponent(owner),function(cid,sid)
+		local chooser=getShieldChooser(getOpponent(owner),owner)
+		local shield=createChoice("Choose one of the caster's shields",0,id,chooser,function(cid,sid)
 			if(getCardOwner(sid)==owner and getCardZone(sid)==ZONE_SHIELD) then return 1 end
 			return 0
 		end)
@@ -935,7 +939,7 @@ Cards["Gigarayze"] = {
 }
 
 Cards["Windmill Mutant"] = {
-	price_tier = 1,
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,
@@ -974,8 +978,8 @@ Cards["Flame Trooper Goliac"] = {
 	end
 }
 
-Cards["Hypersprint Warior Uzesol"] = {
-	price_tier = 1,
+Cards["Hypersprint Warrior Uzesol"] = {
+	price_tier = 2,
 	shieldtrigger = 0,
 	blocker = 0,
 	breaker = 1,

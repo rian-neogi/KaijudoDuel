@@ -313,11 +313,11 @@ return {
         options = { duel = true },
         appearance = "People1-3",
         max_battles = 1,
-        decks = { "DeathbladeBeetle.txt", "Deathliger.txt" },
+        decks = { "DeathbladeBeetle.txt" },
         rewards = {
-            { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
+            { card = "Deathblade Beetle", gold_tier = 1 },
         },
-		ai = { personality = "control", difficulty = "medium" },
+		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
 			greeting = "Foundry beetles can chew through slag or shields. Want to see which goes first?",
 			defeat = "You cracked my shell before I could harden the board. Nicely timed.",
@@ -333,11 +333,11 @@ return {
         options = { duel = true },
         appearance = "People4-2",
         max_battles = 1,
-        decks = { "AstrocometDragon.txt", "Deathliger.txt" },
+        decks = { "AstrocometDragon.txt" },
         rewards = {
-            { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
+            { card = "Astrocomet Dragon", gold_tier = 1 },
         },
-		ai = { personality = "control", difficulty = "medium" },
+		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
 			greeting = "A comet over Cinderrail means sparks, noise, and a very short duel. Interested?",
 			defeat = "You stepped through the blast instead of away from it. Bold move.",
@@ -353,11 +353,11 @@ return {
         options = { duel = true },
         appearance = "People4-3",
         max_battles = 1,
-        decks = { "Fire Generic 1.txt", "Deathliger.txt" },
+        decks = { "Fire Generic 1.txt" },
         rewards = {
-            { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
+            { card = "Crimson Hammer", gold_tier = 1 },
         },
-		ai = { personality = "control", difficulty = "medium" },
+		ai = { personality = "rush", difficulty = "medium" },
 		dialogue = {
 			greeting = "No gauges, no safety rails—just Fire creatures and nerve. Duel me.",
 			defeat = "You kept your cool better than half the furnace crew.",
@@ -375,7 +375,7 @@ return {
         max_battles = 1,
         decks = { "Urth.txt" },
         rewards = {
-            { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
+            { card = "Urth, Purifying Elemental", gold_tier = 1 },
         },
 		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
@@ -395,7 +395,7 @@ return {
         max_battles = 1,
         decks = { "Hanusa.txt" },
         rewards = {
-            { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
+            { card = "Hanusa, Radiance Elemental", gold_tier = 1 },
         },
 		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
@@ -435,7 +435,7 @@ return {
         max_battles = 1,
         decks = { "Fire Generic 2.txt" },
         rewards = {
-            { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
+            { card = "Crimson Hammer", gold_tier = 1 },
         },
 		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
@@ -453,9 +453,9 @@ return {
         options = { duel = true },
         appearance = "People3-1",
         max_battles = 1,
-        decks = { "Zagaan.txt" },
+        decks = { "Valkrowzer.txt" },
         rewards = {
-            { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
+            { card = "Valkrowzer, Ultra Rock Beast", gold_tier = 1 },
         },
 		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
@@ -473,9 +473,9 @@ return {
         options = { duel = true },
         appearance = "People4-5",
         max_battles = 1,
-        decks = { "RoaringGreathorn.txt" },
+        decks = { "Doboulgyser.txt" },
         rewards = {
-            { card = "Zagaan, Knight of Darkness", gold_tier = 1 },
+            { card = "Doboulgyser, Giant Rock Beast", gold_tier = 1 },
         },
 		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
@@ -484,6 +484,100 @@ return {
 			victory = "Once the heavy line starts moving, standing firm is not a strategy.",
 			complete = "The wagon is parked and the duel is done. Good work.",
 			talk = "I handle the ore teams. Machines are louder, but creatures know when a bridge is unsafe."
+		}
+	},
+	{
+        id = "veld",
+        name = "Veld",
+        kind = "town_npc",
+        options = { duel = true },
+        appearance = "People4-5",
+        max_battles = 1,
+        decks = { "Valdios.txt" },
+        rewards = {
+			{ card = "Armored Blaster Valdios", gold_tier = 1 },
+        },
+		ai = { personality = "rush", difficulty = "medium" },
+		dialogue = {
+			greeting = "Valdios was built for the moment a crew becomes a charge. Assemble your defense—I will assemble mine faster.",
+			defeat = "You broke the formation before Valdios could lead it. That timing wins shifts and duels.",
+			victory = "One Human is a spark. A full crew is a furnace front.",
+			complete = "The formation test is finished. I have armor plates to refit.",
+			talk = "I fit practice armor for the workers' duel club. It must survive a match without becoming too heavy for a real shift."
+		}
+	},
+	{
+        id = "kanna",
+        name = "Kanna",
+        kind = "town_npc",
+        options = { duel = true },
+        appearance = "People4-5",
+        max_battles = 1,
+        decks = { "Balbaro.txt" },
+        rewards = {
+            { card = "Crimson Hammer", gold_tier = 1 },
+        },
+		ai = { personality = "rush", difficulty = "medium" },
+		dialogue = {
+			greeting = "Balbaro gains force from every Human beside it. Let us see whether your line holds when the whole crew fires.",
+			defeat = "You scattered my crew before the cannon reached full pressure.",
+			victory = "A cannon is strongest when every hand around it knows the signal.",
+			complete = "Calibration complete. The barrel and my pride both need cooling.",
+			talk = "I mark safe firing lanes across the test yard. Anyone who paints over them gets broom duty for a month."
+		}
+	},
+	{
+        id = "blaze",
+        name = "Blaze",
+        kind = "town_npc",
+        options = { duel = true },
+        appearance = "People4-5",
+        max_battles = 1,
+        decks = { "Dragonoids.txt" },
+        rewards = {
+            { card = "Deadly Fighter Braid Claw", gold_tier = 1 },
+        },
+		ai = { personality = "rush", difficulty = "medium" },
+		dialogue = {
+			greeting = "My Dragonoids do not wait for the shift whistle. Ready for a duel that starts at full heat?",
+			defeat = "You survived the first rush and left my whole crew breathing smoke.",
+			victory = "By the time you found your footing, Braid Claw had already crossed it.",
+			complete = "The rush is spent. I will save the next ignition for a new opponent.",
+			talk = "The name is a workshop nickname. Stand too close when I open a furnace and you will understand why."
+		}
+	},
+	{
+        id = "drake",
+        name = "Drake",
+        kind = "town_npc",
+        options = { duel = true },
+        appearance = "People4-5",
+        max_battles = 1,
+        decks = { "DragonRamp.txt" },
+        rewards = {
+            { card = "Bolshack Dragon", gold_tier = 1 },
+        },
+		ai = { personality = "rush", difficulty = "medium" },
+		dialogue = {
+			greeting = "Small hands tend the mana; great Dragons finish the work. Can you stop the furnace before it reaches full heat?",
+			defeat = "You struck while my Dragons were still gathering above the stacks. Exactly right.",
+			victory = "Cocco Lupia opened the sky, and you gave my Dragons time to fill it.",
+			complete = "The flight is grounded for now. Even Dragons need feeding between matches.",
+			talk = "I chart warm updrafts above the foundry so courier birds—and the occasional Dragon—stay clear of the smoke towers."
+		}
+	},
+	{
+		id = "shopkeeper-brant",
+		name = "Shopkeeper Brant",
+		kind = "town_npc",
+		options = { trade = true, wander = false },
+		shop_stock = "cinderrail",
+		appearance = "People4-5",
+		dialogue = {
+			greeting = "Brant's Foundry Cards. Heat-tested sleeves, honest prices, and nothing sold with slag still on it.",
+			shop_early = "The shift crates just arrived: Fire creatures, sturdy support, and a few tools for decks that hit before the whistle.",
+			shop_late = "Outer-road caravans are running again. I have rarer evolutions now, but they still cost real gold.",
+			act_complete = "The foundry is clean, the rails are open, and every card here passed inspection."
 		}
 	},
 
@@ -507,8 +601,9 @@ return {
 			greeting = "Glasswater rewards the plan that changes when the current does. Show me yours.",
 			defeat = "You used the information without becoming trapped by it. A precise victory.",
 			victory = "You saw the route I offered and never asked who chose it for you.",
-			complete = "Four trials are enough. Keep questioning every perfect prediction.",
-			investigation = "The engine knows private decisions no manifest could contain. That knowledge was taken, not inferred."
+			complete = "Three trials are enough. Keep questioning every perfect prediction.",
+			investigation = "The engine knows private decisions no manifest could contain. That knowledge was taken, not inferred.",
+			talk = "A reliable investigator records what is known, what is guessed, and who permitted either one to be written down."
 		}
 	},
 	{
@@ -527,7 +622,8 @@ return {
 			greeting = "Cargo shifts. Tides shift. A good deck shifts before either one.",
 			defeat = "You changed balance before the load moved. Clean work.",
 			victory = "The quay teaches quickly: brace before the cargo starts sliding.",
-			complete = "You know this dock's rhythm now. I have no new surprise to unload."
+			complete = "You know this dock's rhythm now. I have no new surprise to unload.",
+			talk = "Long Quay never truly stops. Even at low tide, someone is tying off a ferry or arguing with a manifest."
 		}
 	},
 	{
@@ -546,7 +642,8 @@ return {
 			greeting = "Cards in hand are assets. I intend to audit yours.",
 			defeat = "Your position reconciles. Mine very much does not.",
 			victory = "Unrecorded risks still appear in the final balance.",
-			complete = "Your account is settled, with four victories in your favor."
+			complete = "Your account is settled. Further entries would only duplicate the record.",
+			talk = "A sealed ledger is useful only if people trust the seal. Glasswater learned that lesson at considerable expense."
 		}
 	},
 	{
@@ -565,7 +662,8 @@ return {
 			greeting = "I have mapped every route through the port except the one your deck will take.",
 			defeat = "A useful correction. No chart survives without revisions.",
 			victory = "Your route ended exactly where the current said it would.",
-			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+			complete = "One good revision is enough. I will mark your route as reliably unpredictable.",
+			talk = "Road charts show where the stone lies. Current charts show how long that fact will remain useful."
 		}
 	},
 	{
@@ -581,10 +679,11 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "I have mapped every route through the port except the one your deck will take.",
-			defeat = "A useful correction. No chart survives without revisions.",
-			victory = "Your route ended exactly where the current said it would.",
-			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+			greeting = "The harbor looks calm because someone watches what moves below it. Let Depthcon test your lookout.",
+			defeat = "You sounded the alarm before my deep line surfaced. Good eyes.",
+			victory = "You watched the waves and missed what was moving underneath.",
+			complete = "Depthcon has measured your depth. The channel is clear.",
+			talk = "I inspect the pilings beneath the canal bridges. Cracks hide where reflections look smoothest."
 		}
 	},
 	{
@@ -600,10 +699,11 @@ return {
 		},
 		ai = { personality = "rush", difficulty = "medium" },
 		dialogue = {
-			greeting = "I have mapped every route through the port except the one your deck will take.",
-			defeat = "A useful correction. No chart survives without revisions.",
-			victory = "Your route ended exactly where the current said it would.",
-			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+			greeting = "These locks protect half the South Canals. Show me your defense is as quick as Aqua Guard.",
+			defeat = "You slipped through before I could close the gate. Nicely timed.",
+			victory = "A guard only needs one safe moment to turn a flood aside.",
+			complete = "The lock held, the lesson landed, and our test is complete.",
+			talk = "I keep the canal gates balanced. Too much water floods a kitchen; too little strands every delivery boat."
 		}
 	},
 	{ --worker on the port
@@ -619,10 +719,11 @@ return {
 		},
 		ai = { personality = "rush", difficulty = "medium" },
 		dialogue = {
-			greeting = "I have mapped every route through the port except the one your deck will take.",
-			defeat = "A useful correction. No chart survives without revisions.",
-			victory = "Your route ended exactly where the current said it would.",
-			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+			greeting = "I have one crate left before the shift bell. Think your deck can unload faster than mine?",
+			defeat = "Fast, careful, and nothing went overboard. You would do well on this crew.",
+			victory = "You rushed the lift before checking the rope. That is how cargo—and shields—get dropped.",
+			complete = "Shift bell! The cards and I are officially off duty.",
+			talk = "We unload by color at Long Quay: blue for food, violet for cards, green for Rootmaze timber."
 		}
 	},
 	{
@@ -638,10 +739,11 @@ return {
 		},
 		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
-			greeting = "I have mapped every route through the port except the one your deck will take.",
-			defeat = "A useful correction. No chart survives without revisions.",
-			victory = "Your route ended exactly where the current said it would.",
-			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+			greeting = "A captain trusts the tide, the crew, and the deck in his hands. Which one will fail first?",
+			defeat = "You brought down the wave without losing your footing. I would sail with that judgment.",
+			victory = "King Tsunami does not ask whether the harbor is ready.",
+			complete = "The match is logged. My crew will exaggerate it properly by supper.",
+			talk = "My ship runs the lake route. Glasswater's lighthouse is the finest sight in the world after three nights of fog."
 		}
 	},
 	{ --a scholar
@@ -657,10 +759,11 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "I have mapped every route through the port except the one your deck will take.",
-			defeat = "A useful correction. No chart survives without revisions.",
-			victory = "Your route ended exactly where the current said it would.",
-			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+			greeting = "Aqua Sniper proves that distance is information. Shall we test the theory?",
+			defeat = "You closed the distance before my argument could take shape. Convincing evidence.",
+			victory = "The board was decided several moves before the final shot.",
+			complete = "The result is reproducible enough for my notes. Thank you.",
+			talk = "I study how duelists value hidden information. The Prediction Hall has made that research uncomfortably practical."
 		}
 	},
 	{
@@ -676,10 +779,11 @@ return {
 		},
 		ai = { personality = "control", difficulty = "easy" },
 		dialogue = {
-			greeting = "I have mapped every route through the port except the one your deck will take.",
-			defeat = "A useful correction. No chart survives without revisions.",
-			victory = "Your route ended exactly where the current said it would.",
-			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+			greeting = "The archive says patience reveals every answer. Crystal Memory and I intend to verify that.",
+			defeat = "You found the answer before I finished indexing the question.",
+			victory = "A well-kept memory arrives exactly when it is needed.",
+			complete = "This match has been filed under lessons worth keeping.",
+			talk = "I copy damaged harbor records before the ink runs. Water is excellent for trade and terrible for paperwork."
 		}
 	},
 	{
@@ -695,10 +799,11 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
-			greeting = "I have mapped every route through the port except the one your deck will take.",
-			defeat = "A useful correction. No chart survives without revisions.",
-			victory = "Your route ended exactly where the current said it would.",
-			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+			greeting = "A harbor pilot chooses a channel before the deep current chooses one for him. Choose your opening.",
+			defeat = "You changed course without losing speed. That is proper piloting.",
+			victory = "You committed to shallow water and gave Depthcon the whole channel.",
+			complete = "I know your wake now. Another pass would teach neither of us much.",
+			talk = "I guide heavy ships past the glass shoals. The safest line changes with every tide."
 		}
 	},
 	{ --a child
@@ -714,10 +819,11 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "I have mapped every route through the port except the one your deck will take.",
-			defeat = "A useful correction. No chart survives without revisions.",
-			victory = "Your route ended exactly where the current said it would.",
-			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+			greeting = "Want to see my deck?",
+			defeat = "You caught every card I sent flying! That was amazing.",
+			victory = "Splash! Your best creature has to start all over again.",
+			complete = "My turn to go home. I promised I would stop after one really good duel.",
+			talk = "The fish under Glassgarden know when school ends. They all swim over for crumbs at once."
 		}
 	},
 	{ 
@@ -733,10 +839,11 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "I have mapped every route through the port except the one your deck will take.",
-			defeat = "A useful correction. No chart survives without revisions.",
-			victory = "Your route ended exactly where the current said it would.",
-			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+			greeting = "The arena calls me champion because I evolve with the match. Show me a change I cannot answer.",
+			defeat = "You forced the duel onto a course no title could prepare me for. Excellent.",
+			victory = "You challenged the creature and forgot to plan for what it would become.",
+			complete = "One exhibition is enough. The next stage belongs to a new challenger.",
+			talk = "Neris studies every official match. I study the challengers who make his notes obsolete."
 		}
 	},
 	{ 
@@ -752,10 +859,11 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "I have mapped every route through the port except the one your deck will take.",
-			defeat = "A useful correction. No chart survives without revisions.",
-			victory = "Your route ended exactly where the current said it would.",
-			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+			greeting = "A household and a shield line survive by opening at the right moment. Let us see your timing.",
+			defeat = "You found the clean cut without leaving anyone unprotected.",
+			victory = "Patience is not hesitation. My blockers knew the difference.",
+			complete = "That settles our match. Come by the public kitchen if you need a warm meal.",
+			talk = "Everyone calls me Mother Melissa. Feed enough dock crews through enough storms and the name simply sticks."
 		}
 	},
 	{ 
@@ -771,10 +879,11 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "I have mapped every route through the port except the one your deck will take.",
-			defeat = "A useful correction. No chart survives without revisions.",
-			victory = "Your route ended exactly where the current said it would.",
-			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+			greeting = "Glasswater hides its best fights beyond the warning ropes. Deathliger and I saved one for you.",
+			defeat = "You walked straight into the chaos and somehow came out organized. Rude.",
+			victory = "Rules, railings, shield lines—everything breaks if you push the right spot.",
+			complete = "Fine. One official loss is enough trouble for today.",
+			talk = "The east breakwater is closed after dark. That makes it quieter, not less interesting."
 		}
 	},
 	{ --a child
@@ -790,10 +899,11 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
-			greeting = "I have mapped every route through the port except the one your deck will take.",
-			defeat = "A useful correction. No chart survives without revisions.",
-			victory = "Your route ended exactly where the current said it would.",
-			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+			greeting = "I can work every practice lock in the schoolyard. Aqua Guard says I can beat you too.",
+			defeat = "You opened my whole defense! Show me how after class.",
+			victory = "Gate closed! That means I win and you have to take the long canal.",
+			complete = "Teacher said one duel, and I am definitely not getting extra homework.",
+			talk = "We race little boats through the school locks. Mine is blue and has three emergency blockers."
 		}
 	},
 	{ 
@@ -809,10 +919,11 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "I have mapped every route through the port except the one your deck will take.",
-			defeat = "A useful correction. No chart survives without revisions.",
-			victory = "Your route ended exactly where the current said it would.",
-			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+			greeting = "Aqua Hulcus always brings me one more idea. Can your deck keep up with both of us?",
+			defeat = "You made better use of every card, even when I drew ahead.",
+			victory = "One extra answer is all a changing current needs.",
+			complete = "Good match. I have a stack of school notices to deliver before the next bell.",
+			talk = "I carry messages between the school and Port Authority. The bridges make it faster than waiting for a canal boat."
 		}
 	},
 	{ 
@@ -828,10 +939,11 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "I have mapped every route through the port except the one your deck will take.",
-			defeat = "A useful correction. No chart survives without revisions.",
-			victory = "Your route ended exactly where the current said it would.",
-			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+			greeting = "A Spiral Gate is a question about position. Your answer may begin whenever you are ready.",
+			defeat = "You treated displacement as an opportunity. Full marks.",
+			victory = "You defended the creature's location instead of its purpose.",
+			complete = "The practical examination is concluded. I will spare you the written portion.",
+			talk = "At South Canal School we teach navigation, arithmetic, and why recording a duel requires permission."
 		}
 	},
 	{ 
@@ -847,10 +959,11 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "I have mapped every route through the port except the one your deck will take.",
-			defeat = "A useful correction. No chart survives without revisions.",
-			victory = "Your route ended exactly where the current said it would.",
-			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+			greeting = "A true Water duelist commands the current without pretending to own it. Demonstrate your method.",
+			defeat = "Your formation changed with grace. Crystal Lancer could not pin it down.",
+			victory = "The current favored discipline over spectacle.",
+			complete = "Your technique has been acknowledged. I do not issue the same judgment twice.",
+			talk = "Lady Aqua is an arena title, not a claim of nobility. Glasswater audiences enjoy a little ceremony."
 		}
 	},
 	{ 
@@ -866,10 +979,11 @@ return {
 		},
 		ai = { personality = "rush", difficulty = "medium" },
 		dialogue = {
-			greeting = "I have mapped every route through the port except the one your deck will take.",
-			defeat = "A useful correction. No chart survives without revisions.",
-			victory = "Your route ended exactly where the current said it would.",
-			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+			greeting = "Cold storage keeps the catch fresh and the graveyard restless. Frost Specter wants a duel.",
+			defeat = "You thawed the whole plan before the shadows could settle.",
+			victory = "The harbor forgets nothing that sinks into cold water.",
+			complete = "Back to work. These ice crates will not haunt themselves.",
+			talk = "I tend the Fish Market cold rooms. The noises after midnight are probably pipes. Mostly."
 		}
 	},
 	{ 
@@ -885,10 +999,11 @@ return {
 		},
 		ai = { personality = "rush", difficulty = "medium" },
 		dialogue = {
-			greeting = "I have mapped every route through the port except the one your deck will take.",
-			defeat = "A useful correction. No chart survives without revisions.",
-			victory = "Your route ended exactly where the current said it would.",
-			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+			greeting = "Rootmaze timber bends with the lake instead of fighting it. Let us see whether your deck does the same.",
+			defeat = "You found the grain of the match and split it cleanly.",
+			victory = "You pushed against the hull while my creatures moved with it.",
+			complete = "The frame has passed inspection. No second hammering required.",
+			talk = "I shape imported timber at the shipyard. Every plank arrives with a little Rootmaze stubbornness left in it."
 		}
 	},
 	{ --a schoolgirl
@@ -904,24 +1019,25 @@ return {
 		},
 		ai = { personality = "rush", difficulty = "easy" },
 		dialogue = {
-			greeting = "I have mapped every route through the port except the one your deck will take.",
-			defeat = "A useful correction. No chart survives without revisions.",
-			victory = "Your route ended exactly where the current said it would.",
-			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+			greeting = "Everyone here plays Water, so I brought a dragon. Let us make the practice yard steam!",
+			defeat = "You put out every spark before I could make the rain interesting.",
+			victory = "See? A little fire improves even Glasswater weather.",
+			complete = "One match was the agreement. I still have navigation homework.",
+			talk = "The school weather gauge predicts rain every time I plan outdoor practice. I think it dislikes me."
 		}
 	},
 	{ 
-		id = "shopkeeper-brant",
-		name = "Shopkeeper Brant",
+		id = "arka",
+		name = "Arka, Keeper of Trinkets",
 		kind = "town_npc",
 		options = { trade = true, wander = false },
 		shop_stock = "glasswater",
 		appearance = "People4-5",
 		dialogue = {
-			greeting = "I have mapped every route through the port except the one your deck will take.",
-			defeat = "A useful correction. No chart survives without revisions.",
-			victory = "Your route ended exactly where the current said it would.",
-			complete = "Four revisions agree. I will mark your route as reliably unpredictable."
+			greeting = "Current and Quill Exchange: fair prices, dry sleeves, and no predictions about what you ought to buy.",
+			shop_early = "Fresh harbor stock today—Water tricks, sturdy blockers, and imports that survived the rain.",
+			shop_late = "The records are clean and the shelves are full. Ask before I sell out of the useful answers.",
+			act_complete = "Glasswater is trading openly again. Every card on these shelves has a manifest and a willing seller."
 		}
 	},
 
@@ -1002,6 +1118,140 @@ return {
 			defeat = "That route works. I will have to repaint the sign.",
 			victory = "The marked path was safer, but I respect the experiment.",
 			complete = "No more tolls. You have paid for every path Rootmaze can offer."
+		}
+	},
+	{
+		id = "orko",
+		name = "Orko",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "People3-5",
+		max_battles = 1,
+		decks = { "WorldTree.txt" },
+		rewards = {
+			{ card = "World Tree, Root of Life", gold_tier = 1 },
+		},
+		ai = { personality = "tempo", difficulty = "medium" },
+		dialogue = {
+			greeting = "World Tree does not hurry. It grows until even Darkness cannot find a path around it. Will your deck wait that long?",
+			defeat = "You pruned the field without harming the roots. That takes judgment.",
+			victory = "You attacked the branches and left the whole root system untouched.",
+			complete = "The tree has learned the shape of your strategy. One season is enough.",
+			talk = "I tend the oldest seed beds near Heartroot. Some saplings move their roots when they dislike their neighbors."
+		}
+	},
+	{
+		id = "mazz",
+		name = "Mazz",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "People3-5",
+		max_battles = 1,
+		decks = { "WN Generic 1.txt" },
+		rewards = {
+			{ card = "Bronze-Arm Tribe", gold_tier = 1 },
+		},
+		ai = { personality = "rush", difficulty = "medium" },
+		dialogue = {
+			greeting = "Rootmaze changes course like water around a root. My deck does the same—can yours?",
+			defeat = "You made me choose a route, then arrived there first.",
+			victory = "You planned for the forest and forgot the stream running through it.",
+			complete = "One survey is enough. I will redraw my deck before the paths change again.",
+			talk = "I carry messages between Waterstep and the southern clearings. Waterproof paper is worth every coin."
+		}
+	},
+	{
+		id = "misty",
+		name = "Misty",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "People3-5",
+		max_battles = 1,
+		decks = { "Nature Generic 1.txt" },
+		rewards = {
+			{ card = "Bronze-Arm Tribe", gold_tier = 1 },
+		},
+		ai = { personality = "tempo", difficulty = "medium" },
+		dialogue = {
+			greeting = "The morning mist makes every creature look larger. Let us find out which threats are real.",
+			defeat = "You saw the path through the haze before I did.",
+			victory = "You chased silhouettes while my mana kept growing.",
+			complete = "The mist has lifted, and so has the question of this match.",
+			talk = "I gather dew from the broad leaves before sunrise. The nursery uses it for newly awakened card echoes."
+		}
+	},
+	{
+		id = "earthkeeper",
+		name = "The Earthkeeper",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "People3-5",
+		max_battles = 1,
+		decks = { "NocturnalGiant.txt" },
+		rewards = {
+			{ card = "Nocturnal Giant", gold_tier = 1 },
+		},
+		ai = { personality = "tempo", difficulty = "medium" },
+		dialogue = {
+			greeting = "Nocturnal Giant walks only toward the shields. Stand aside—or prove you can turn an avalanche.",
+			defeat = "You stopped a Giant that would not stop itself. Rootmaze will remember that.",
+			victory = "When the ground moves with purpose, clever detours become very small things.",
+			complete = "The Giant sleeps again. I will not wake it for an unnecessary rematch.",
+			talk = "Earthkeeper is a duty, not a birth name. I watch the deep roots for tremors and settle Giants before they wander into homes."
+		}
+	},
+	{
+		id = "aziz",
+		name = "Aziz",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "People3-5",
+		max_battles = 1,
+		decks = { "BeastFolkNoEvo.txt" },
+		rewards = {
+			{ card = "Bronze-Arm Tribe", gold_tier = 1 },
+		},
+		ai = { personality = "rush", difficulty = "medium" },
+		dialogue = {
+			greeting = "No evolutions, no waiting for miracles—just Beast Folk who know their work. Duel?",
+			defeat = "Your plan outgrew my pack before strength could settle it.",
+			victory = "A trained pack needs no grand transformation to run down a slow deck.",
+			complete = "The pack accepts the result. I do too, though less gracefully.",
+			talk = "I train courier packs for the shifting paths. A creature that knows three ways home is never truly lost."
+		}
+	},
+	{
+		id = "kelso",
+		name = "Kelso",
+		kind = "town_npc",
+		options = { duel = true },
+		appearance = "People3-5",
+		max_battles = 1,
+		decks = { "NL Generic 1.txt" },
+		rewards = {
+			{ card = "Mana Nexus", gold_tier = 1 },
+		},
+		ai = { personality = "control", difficulty = "medium" },
+		dialogue = {
+			greeting = "Roots give my guardians strength; Light tells them where to stand. Show me how you break a living wall.",
+			defeat = "You opened a gap without tearing down the grove. Well played.",
+			victory = "You spent your strength on the roots and met the guardians behind them.",
+			complete = "The ward has measured you once. Repeating it would prove nothing.",
+			talk = "I maintain the lantern vines along the residential paths. They brighten when someone is lost and dim when the route is safe."
+		}
+	},
+	{
+		id = "merchant-gacko",
+		name = "Merchant Gacko",
+		kind = "town_npc",
+		options = { trade = true, wander = false },
+		shop_stock = "rootmaze",
+		appearance = "People4-5",
+		dialogue = {
+			greeting = "Gacko's Rootmarket Cards. Mind the roots, browse as long as you like, and ask before feeding anything on the shelves.",
+			shop_early = "Fresh stock from the Commons: mana growers, sturdy creatures, and tools for finding the card your deck needs.",
+			shop_late = "The living roads are steady again. New caravans brought evolutions and rarer Nature support.",
+			act_complete = "Heartroot is healthy, trade is moving, and not one crate has been swallowed by the floor this week."
 		}
 	},
 

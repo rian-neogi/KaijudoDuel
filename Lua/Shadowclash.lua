@@ -140,10 +140,10 @@ Cards["Aquan"] = {
 	set = "Shadowclash of Blinding Night",
 	type = TYPE_CREATURE,
 	civilization = CIV_WATER,
-	race = "Liquid People",
-	cost = 3,
+	race = "Cyber Lord",
+	cost = 4,
 
-	shieldtrigger = 1,
+	shieldtrigger = 0,
 	blocker = 0,
 
 	power = 2000,
@@ -152,9 +152,21 @@ Cards["Aquan"] = {
 	HandleMessage = function(id)
 		local func = function(id)
 			local owner = getCardOwner(id)
-			local count = 5 - getZoneSize(owner, ZONE_HAND)
-			if(count > 0) then
-				drawCards(owner, count)
+			local reveal = createChoiceNoCheck("Reveal the top 5 cards of your deck?",2,
+				id,owner,Checks.False,RETURN_BUTTON1)
+			if(reveal~=RETURN_BUTTON1) then return end
+			local size = getZoneSize(owner,ZONE_DECK)
+			local cards = {}
+			for i=1,math.min(5,size) do
+				cards[#cards+1] = getCardAt(owner,ZONE_DECK,size-i)
+			end
+			for _,card in ipairs(cards) do
+				displayCard(card,getOpponent(owner),id)
+				if(cardHasCivilization(card,CIV_LIGHT) or cardHasCivilization(card,CIV_DARKNESS)) then
+					moveCard(card,ZONE_HAND)
+				else
+					moveCard(card,ZONE_GRAVEYARD)
+				end
 			end
 		end
 		Abils.onSummon(id, func)
@@ -373,18 +385,18 @@ Cards["Darkpact"] = {
 
 	OnCast = function(id)
         local count = 0
-        while(true) do
-            local ch = createChoice("Choose a card in your mana zone",1,id,getCardOwner(id),Checks.InYourMana)
-            if(ch>=0) then
-                moveCard(ch,ZONE_GRAVEYARD)
-                count = count+1
-            end
-            if(ch==RETURN_NOVALID or ch==RETURN_BUTTON1) then
-                break
-            end
+		while(true) do
+			local ch = createChoice("Choose a card in your mana zone",1,id,getCardOwner(id),Checks.InYourMana)
+			if(ch>=0) then
+				moveCard(ch,ZONE_GRAVEYARD)
+				count = count+1
+			end
+			if(ch<0) then
+				break
+			end
         end
         drawCards(getCardOwner(id),count)
-        Abils.EndSpell(id)
+		Functions.EndSpell(id)
 	end
 }
 
@@ -728,9 +740,9 @@ Cards["Hydro Hurricane"] = {
             if(ch>=0) then
                 moveCard(ch,ZONE_HAND)
             end
-            if(ch==RETURN_NOVALID or ch==RETURN_BUTTON1) then
-                break
-            end
+			if(ch<0) then
+				break
+			end
         end
         for i=1,cd do
             local ch = createChoice("Choose a card in your opponent's battlezone",1,id,getCardOwner(id),Checks.InOppBattle)
@@ -963,16 +975,16 @@ Cards["Mega Detonator"] = {
         local mod = function(cid,mid)
             Abils.Breaker(cid,2)
             Abils.destroyModAtEOT(cid,mid)
-        end
-        while(true) do
-            local ch = createChoice("Choose a card in your mana zone",1,id,getCardOwner(id),Checks.InYourMana)
-            if(ch>=0) then
-                moveCard(ch,ZONE_GRAVEYARD)
-                count = count+1
-            end
-            if(ch==RETURN_NOVALID or ch==RETURN_BUTTON1) then
-                break
-            end
+		end
+		while(true) do
+			local ch = createChoice("Choose a card in your hand to discard",1,id,getCardOwner(id),Checks.InYourHand)
+			if(ch>=0) then
+				discardCard(ch)
+				count = count+1
+			end
+			if(ch<0) then
+				break
+			end
         end
         for i=1,count do
             local ch = createChoice("Choose a creature",0,id,getCardOwner(id),Checks.InYourBattle)
@@ -980,7 +992,7 @@ Cards["Mega Detonator"] = {
                 createModifier(ch,mod)
             end
         end
-        Abils.EndSpell(id)
+		Functions.EndSpell(id)
 	end
 }
 

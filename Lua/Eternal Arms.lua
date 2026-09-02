@@ -152,7 +152,7 @@ Cards["Bluum Erkis, Flare Guardian"] = {
 			setMessageInt("msgContinue",0)
 			moveCard(shield,ZONE_HAND)
 			if(getCardType(shield)==TYPE_SPELL and getCardIsShieldTrigger(shield)==1) then
-				moveCard(shield,ZONE_BATTLE)
+				moveCard(shield,ZONE_BATTLE,0,getCardOwner(id))
 			end
 		end
 	end

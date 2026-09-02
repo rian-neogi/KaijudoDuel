@@ -314,7 +314,7 @@ Roulette of Ruin
 Royal Durian
 Rainbow Gate
 Morbid Medicine
-Hypersprint Warior Uzesol
+Hypersprint Warrior Uzesol
 Muramasa's Knife
 Supersonic Jetpack
 Rapid Reincarnation
@@ -679,6 +679,8 @@ Nastasha, Channeler of Suns
 Sasha, Channeler of Suns
 Petrova, Channeler of Suns
 Yuliana, Channeler of Suns
+Berochika, Channeler of Suns
+Ryudmila, Channeler of Suns
 
 ## Special Cards
 

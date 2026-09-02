@@ -36,6 +36,7 @@ struct WorldRegion
 	int width = 0;
 	int height = 0;
 	bool connector = false;
+	bool snow = false;
 
 	bool contains(const std::string& candidateMapId, int candidateX,
 		int candidateY) const;
@@ -43,6 +44,7 @@ struct WorldRegion
 
 struct WorldPortal
 {
+	std::string appearance;
 	std::string fromMap;
 	int fromX = 0;
 	int fromY = 0;
@@ -51,6 +53,7 @@ struct WorldPortal
 	int toY = 0;
 
 	bool hasEndpoint(const std::string& mapId, int x, int y) const;
+	bool hasAppearance() const;
 };
 
 struct WorldPosition
@@ -79,6 +82,7 @@ public:
 	std::map<std::string, WorldPosition> npcPositions;
 	std::map<std::string, WorldPosition> objectPositions;
 	std::map<std::string, WorldObjectDefinition> objectDefinitions;
+	std::map<std::string, std::string> objectAppearances;
 	std::map<std::string, WorldPosition> shardPositions;
 
 	int mapIndex(const std::string& id) const;

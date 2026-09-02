@@ -29,6 +29,8 @@ public:
 		const SDL_Rect& destination, unsigned int animationFrame = 0);
 	bool drawTreeLayer(const RtpTileReference& tile, RtpRenderLayer layer,
 		const SDL_Rect& destination);
+	bool drawCompositeLayer(const RtpTileReference& tile, RtpRenderLayer layer,
+		const SDL_Rect& destination);
 	bool drawLayer(const std::vector<RtpTileReference>& tiles, RtpRenderLayer layer,
 		unsigned int connections, const SDL_Rect& destination,
 		unsigned int animationFrame = 0);
@@ -45,6 +47,12 @@ public:
 		int tileIndex);
 	static bool isTreeAutotile(const RtpTileReference& tile);
 	static bool treeAutotileFootprint(const RtpTileReference& tile,
+		int& width, int& height);
+	static bool isStreetlightComposite(const RtpTileReference& tile);
+	static int streetlightCompositeRow(RtpTilesetFamily family,
+		RtpTileSheet sheet, int tileIndex);
+	static bool isCompositeTile(const RtpTileReference& tile);
+	static bool compositeTileFootprint(const RtpTileReference& tile,
 		int& width, int& height);
 	static bool largeTreeAnchorsConflict(const RtpTileReference& first,
 		int firstX, int firstY, const RtpTileReference& second,
@@ -87,6 +95,8 @@ private:
 		unsigned int connections, const SDL_Rect& destination,
 		unsigned int animationFrame);
 	bool drawTreeAutotile(const RtpTileReference& tile,
+		const SDL_Rect& destination, bool drawCanopy = true, bool drawBase = true);
+	bool drawStreetlightComposite(const RtpTileReference& tile,
 		const SDL_Rect& destination, bool drawCanopy = true, bool drawBase = true);
 	static bool autotileOrigin(const RtpTileReference& tile,
 		unsigned int animationFrame, int& sourceX, int& sourceY,
