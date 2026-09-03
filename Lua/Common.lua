@@ -201,12 +201,9 @@ Abils.AiCanCastIfOpponentHasHand = function(id)
 	end
 end
 
-Abils.PreferRemovalTarget = function(id,valid)
-	if(getMessageType()~="get cardaipreferredchoice" or getMessageInt("card")~=id) then
-		return
-	end
+Functions.KnockoutRemovalChoice = function(id,valid)
 	local opponent = getOpponent(getCardOwner(id))
-	local opponentHasKnockout = getPlayerHasKnockout(opponent)==1
+	if(getPlayerHasKnockout(opponent)~=1) then return RETURN_NOTHING end
 	local preferred = RETURN_NOTHING
 	local highestBreaker = -1
 	local highestValue = -math.huge
@@ -214,8 +211,13 @@ Abils.PreferRemovalTarget = function(id,valid)
 		local card = getCardAt(opponent,ZONE_BATTLE,i)
 		if(valid(id,card)==1) then
 			local value = getCardBattleValue(card)
-			if(opponentHasKnockout and isCardTapped(card)==0 and
-				getCreatureHasSummoningSickness(card)==0) then
+			local canAttackPlayers = getCreatureCanAttackPlayers(card)
+			local canAttackThisTurn = getCreatureHasSummoningSickness(card)==0 or
+				getCreatureIsSpeedAttacker(card)==1
+			local isReadyPlayerAttacker = isCardTapped(card)==0 and
+				(canAttackPlayers==CANATTACK_ALWAYS or
+					(canAttackThisTurn and canAttackPlayers<=CANATTACK_UNTAPPED))
+			if(isReadyPlayerAttacker) then
 				local breaker = getCreatureBreaker(card)
 				if(breaker>highestBreaker or
 					(breaker==highestBreaker and value>highestValue)) then
@@ -223,18 +225,23 @@ Abils.PreferRemovalTarget = function(id,valid)
 					highestValue = value
 					preferred = card
 				end
-			elseif(not opponentHasKnockout and value>highestValue) then
-				highestValue = value
-				preferred = card
 			end
 		end
 	end
+	return preferred
+end
 
-	-- A restrictive removal spell can occasionally have no legal ready attacker
-	-- even though another attacker creates the KO. Preserve the normal highest-
-	-- value fallback rather than returning no preference.
+Abils.PreferRemovalTarget = function(id,valid)
+	if(getMessageType()~="get cardaipreferredchoice" or getMessageInt("card")~=id) then
+		return
+	end
+	local opponent = getOpponent(getCardOwner(id))
+	local preferred = Functions.KnockoutRemovalChoice(id,valid)
+
+	-- Use the normal highest-value preference when there is no knockout or when
+	-- a restrictive removal spell has no legal ready attacker.
 	if(preferred==RETURN_NOTHING) then
-		highestValue = -math.huge
+		local highestValue = -math.huge
 		for i=0,(getZoneSize(opponent,ZONE_BATTLE)-1) do
 			local card = getCardAt(opponent,ZONE_BATTLE,i)
 			if(valid(id,card)==1) then
@@ -328,6 +335,22 @@ Functions.HighestCostChoice = function(choiceCard,player,zone,valid)
 			local cost = getCardCost(card)
 			if(cost>highestCost) then
 				highestCost = cost
+				preferred = card
+			end
+		end
+	end
+	return preferred
+end
+
+Functions.LowestCostChoice = function(choiceCard,player,zone,valid)
+	local preferred = RETURN_NOTHING
+	local lowestCost = math.huge
+	for i=0,(getZoneSize(player,zone)-1) do
+		local card = getCardAt(player,zone,i)
+		if(valid==nil or valid(choiceCard,card)==1) then
+			local cost = getCardCost(card)
+			if(cost<lowestCost) then
+				lowestCost = cost
 				preferred = card
 			end
 		end

@@ -35,7 +35,7 @@
 		</card>
 		<card name="Hollow Dragon" id="hollow-005">
 			<property name="Civilization" value="Hollow" />
-			<property name="Cost" value="7" />
+			<property name="Cost" value="8" />
 			<property name="Type" value="Creature" />
 			<property name="Race" value="Hollow" />
 			<property name="Rules" value="Triple breaker (This creature breaks 3 shields.)" />
@@ -59,7 +59,7 @@
 		</card>
 		<card name="Hollow Demon" id="hollow-008">
 			<property name="Civilization" value="Hollow" />
-			<property name="Cost" value="6" />
+			<property name="Cost" value="7" />
 			<property name="Type" value="Creature" />
 			<property name="Race" value="Hollow" />
 			<property name="Rules" value="Double breaker. When you put this creature into the battle zone, destroy one of your opponent's creatures." />

@@ -46,6 +46,8 @@ Application::Application(bool worldBuilder)
 	  mWorldBuilderRegionDragging(false), mWorldBuilderRegionDragStartX(-1),
 	  mWorldBuilderRegionDragStartY(-1), mWorldBuilderRegionNameFocused(false),
 	  mWorldBuilderRegionNameIndex(-1),
+	  mWorldBuilderMapDialogOpen(false), mWorldBuilderMapDialogField(0),
+	  mWorldBuilderMapIndoorInput(false),
 	  mWorldBuilderListScroll(0),
 	  mWorldBuilderCameraX(0),
 	  mWorldBuilderCameraY(0), mWorldBuilderTileSize(TILE),
@@ -73,7 +75,8 @@ Application::Application(bool worldBuilder)
 	  mHoverCandidateSince(0), mOnlyActionCandidateSince(0), mOnlyActionDispatched(false),
 	  mPlayerDataLoaded(false), mSettingsLoaded(false), mMusicVolume(35), mSoundVolume(100),
 	  mAutoChooseOnlyAction(false), mSettingsDraggingSlider(0), mMoney(0), mActiveDeckIndex(-1),
-	  mEditingDeckIndex(-1), mDeckCollectionPage(0), mDeckListScroll(0),
+	  mEditingDeckIndex(-1), mDeckCollectionPage(0),
+	  mDeckCollectionSort(DeckCollectionSort::Civilization), mDeckListScroll(0),
 	  mDeckContentsScroll(0), mDeckSearchFocused(false), mDeckRenameFocused(false),
 	  mDeckNoticeUntil(0), mDeckHoveredCard(-1), mShopHoveredCard(-1), mShopPage(0),
 	  mShopNoticeUntil(0)

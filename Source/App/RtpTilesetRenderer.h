@@ -63,6 +63,10 @@ public:
 		int textureWidth, int textureHeight, SDL_Rect& source);
 	static bool paletteTileSource(RtpTileSheet sheet, int tileIndex,
 		SDL_Rect& source);
+	static bool autotileCompatible(const RtpTileReference& first,
+		const RtpTileReference& second);
+	static bool automaticGroundTransition(const RtpTileReference& foreground,
+		const RtpTileReference& background, RtpTileReference& transition);
 
 	static bool floorQuarterSource(int quadrant, unsigned int connections,
 		SDL_Point& sourceQuarter);

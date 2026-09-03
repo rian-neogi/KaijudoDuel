@@ -88,7 +88,7 @@ Cards["Hollow Dragon"] = {
 	type = TYPE_CREATURE,
 	civilization = CIV_HOLLOW,
 	race = "Hollow",
-	cost = 7,
+	cost = 8,
 
 	shieldtrigger = 0,
 	blocker = 0,
@@ -148,7 +148,7 @@ Cards["Hollow Demon"] = {
 	type = TYPE_CREATURE,
 	civilization = CIV_HOLLOW,
 	race = "Hollow",
-	cost = 6,
+	cost = 7,
 
 	shieldtrigger = 0,
 	blocker = 0,

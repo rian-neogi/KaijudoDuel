@@ -83,6 +83,9 @@ private:
 		bool hasPortalSnapshot = false;
 		WorldRegion regionSnapshot;
 		bool hasRegionSnapshot = false;
+		WorldMap mapSnapshot;
+		bool hasMapSnapshot = false;
+		int selectedMapBefore = -1;
 		bool dirtyBefore = false;
 	};
 	enum class StoryScene
@@ -160,6 +163,12 @@ private:
 		int spells = 0;
 	};
 
+	enum class DeckCollectionSort
+	{
+		Civilization,
+		Cost
+	};
+
 	struct DeckCardHitbox
 	{
 		SDL_Rect rect;
@@ -218,9 +227,11 @@ private:
 	bool exerciseBackgroundMctsSmoke();
 	bool exerciseDeckStatisticsSmoke();
 	bool exerciseBundledDecksSmoke();
+	bool exerciseGroundAutotileSmoke();
 	bool exerciseNpcRewardsSmoke();
 	bool exerciseAtmosphereSmoke();
 	bool exerciseWorldObjectsSmoke();
+	bool exerciseWorldBuilderMapsSmoke();
 	bool exerciseWorldBuilderPortalsSmoke();
 	bool exerciseWorldBuilderRegionsSmoke();
 	bool exerciseOverworldMovementSmoke();
@@ -297,6 +308,10 @@ private:
 	bool addWorldBuilderObject(int templateIndex, int x, int y);
 	void deleteWorldBuilderObject();
 	void cycleWorldBuilderChestAppearance(int direction);
+	void beginWorldBuilderMapCreation();
+	void cancelWorldBuilderMapCreation();
+	bool createWorldBuilderMap(std::string& error);
+	bool handleWorldBuilderMapDialogEvent(const SDL_Event& event);
 	void beginWorldBuilderPortalCreation();
 	void cancelWorldBuilderPortalCreation();
 	void placeWorldBuilderPortalEndpoint(int x, int y);
@@ -320,6 +335,8 @@ private:
 	bool worldTileWalkable(const WorldMap& area, int x, int y) const;
 	unsigned int worldTileConnections(const WorldMap& area, int x, int y,
 		RtpRenderLayer layer) const;
+	bool worldTileRenderReference(const WorldMap& area, int x, int y,
+		RtpRenderLayer layer, RtpTileReference& reference) const;
 	bool drawWorldTileLayer(const WorldMap& area, int x, int y,
 		RtpRenderLayer layer, const SDL_Rect& destination);
 	void placeWorldBuilderSelection(int x, int y);
@@ -429,6 +446,7 @@ private:
 	DeckStatistics deckStatistics(const PlayerDeck& deck) const;
 	bool deckHasMinimumCards(const PlayerDeck& deck) const;
 	std::vector<int> filteredCollection() const;
+	std::vector<int> sortedDeckCardIds(const PlayerDeck& deck) const;
 	std::string availableDeckPath(const std::string& name, const std::string& currentPath) const;
 	void showDeckNotice(const std::string& notice);
 	bool savePlayerProgress();
@@ -537,6 +555,14 @@ private:
 	bool mWorldBuilderRegionNameFocused;
 	int mWorldBuilderRegionNameIndex;
 	std::string mWorldBuilderRegionNameInput;
+	bool mWorldBuilderMapDialogOpen;
+	int mWorldBuilderMapDialogField;
+	std::string mWorldBuilderMapIdInput;
+	std::string mWorldBuilderMapNameInput;
+	std::string mWorldBuilderMapWidthInput;
+	std::string mWorldBuilderMapHeightInput;
+	bool mWorldBuilderMapIndoorInput;
+	std::string mWorldBuilderMapDialogError;
 	int mWorldBuilderListScroll;
 	float mWorldBuilderCameraX;
 	float mWorldBuilderCameraY;
@@ -623,6 +649,7 @@ private:
 	int mActiveDeckIndex;
 	int mEditingDeckIndex;
 	int mDeckCollectionPage;
+	DeckCollectionSort mDeckCollectionSort;
 	int mDeckListScroll;
 	int mDeckContentsScroll;
 	std::string mDeckSearch;

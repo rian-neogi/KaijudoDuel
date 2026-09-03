@@ -118,6 +118,63 @@ namespace
 	const int STREETLIGHT_COMPOSITE_COUNT = sizeof(STREETLIGHT_COMPOSITES) /
 		sizeof(STREETLIGHT_COMPOSITES[0]);
 
+	enum GroundSurface
+	{
+		GroundSurfaceNone,
+		GroundSurfaceMeadow,
+		GroundSurfaceDirt,
+		GroundSurfaceRoad,
+		GroundSurfaceCobblestones,
+		GroundSurfaceSand,
+		GroundSurfaceSnow,
+		GroundSurfaceCarpet
+	};
+
+	struct GroundAutotileDescriptor
+	{
+		int index;
+		GroundSurface surface;
+		GroundSurface background;
+		bool automatic;
+	};
+
+	// Outside A2 includes several versions of the same painted surface over
+	// different base terrain. The logical indices identify the painted surface;
+	// the background identifies the terrain shown around an unconnected edge.
+	const GroundAutotileDescriptor OUTSIDE_GROUND_AUTOTILES[] = {
+		{ 0, GroundSurfaceMeadow, GroundSurfaceNone, false },
+		{ 1, GroundSurfaceDirt, GroundSurfaceMeadow, true },
+		{ 2, GroundSurfaceRoad, GroundSurfaceMeadow, true },
+		{ 3, GroundSurfaceCobblestones, GroundSurfaceNone, false },
+		{ 8, GroundSurfaceDirt, GroundSurfaceNone, false },
+		{ 9, GroundSurfaceMeadow, GroundSurfaceDirt, false },
+		{ 10, GroundSurfaceRoad, GroundSurfaceDirt, true },
+		{ 11, GroundSurfaceCobblestones, GroundSurfaceSnow, true },
+		{ 16, GroundSurfaceSand, GroundSurfaceNone, false },
+		{ 17, GroundSurfaceMeadow, GroundSurfaceSand, true },
+		{ 18, GroundSurfaceRoad, GroundSurfaceSand, true },
+		{ 19, GroundSurfaceCobblestones, GroundSurfaceNone, false },
+		{ 24, GroundSurfaceSnow, GroundSurfaceNone, false },
+		{ 25, GroundSurfaceDirt, GroundSurfaceSnow, true },
+		{ 26, GroundSurfaceRoad, GroundSurfaceSnow, true },
+		{ 27, GroundSurfaceCarpet, GroundSurfaceNone, false }
+	};
+
+	const int OUTSIDE_GROUND_AUTOTILE_COUNT = sizeof(OUTSIDE_GROUND_AUTOTILES) /
+		sizeof(OUTSIDE_GROUND_AUTOTILES[0]);
+
+	const GroundAutotileDescriptor* groundAutotileDescriptor(
+		const RtpTileReference& tile)
+	{
+		if (tile.family != RtpTilesetFamily::Outside ||
+			tile.sheet != RtpTileSheet::A2 ||
+			tile.layer != RtpRenderLayer::Ground) return NULL;
+		for (int index = 0; index < OUTSIDE_GROUND_AUTOTILE_COUNT; ++index)
+			if (OUTSIDE_GROUND_AUTOTILES[index].index == tile.index)
+				return &OUTSIDE_GROUND_AUTOTILES[index];
+		return NULL;
+	}
+
 	const TreeAutotileDescriptor* treeAutotileForMember(int tileIndex)
 	{
 		for (int tree = 0; tree < TREE_AUTOTILE_COUNT; ++tree)
@@ -503,6 +560,8 @@ RtpTileCollision RtpTilesetRenderer::collision(const RtpTileReference& tile)
 	bool passage = name == "Entrance" || name == "Exit" || name == "Gate" ||
 		name.find("(Gate)") != std::string::npos ||
 		name.find("Cave Entrance") == 0 || name.find("Mine Entrance") == 0 ||
+		name.find("Rails") == 0 || name == "Railroad Ties" ||
+		name == "Grass" || name == "Flowers" ||
 		(name.find("Bridge") != std::string::npos &&
 			name.find("Bridge Spar") == std::string::npos &&
 			name.find("Broken Bridge") == std::string::npos) ||
@@ -706,6 +765,52 @@ bool RtpTilesetRenderer::paletteTileSource(RtpTileSheet sheet, int tileIndex,
 		return true;
 	}
 	return regularTileSource(sheet, tileIndex, 512, 512, source);
+}
+
+bool RtpTilesetRenderer::autotileCompatible(const RtpTileReference& first,
+	const RtpTileReference& second)
+{
+	if (first.family != second.family || first.sheet != second.sheet ||
+		first.layer != second.layer || first.red != second.red ||
+		first.green != second.green || first.blue != second.blue) return false;
+	if (first.index == second.index) return true;
+	const GroundAutotileDescriptor* firstGround = groundAutotileDescriptor(first);
+	const GroundAutotileDescriptor* secondGround = groundAutotileDescriptor(second);
+	return firstGround != NULL && secondGround != NULL &&
+		firstGround->surface == secondGround->surface;
+}
+
+bool RtpTilesetRenderer::automaticGroundTransition(
+	const RtpTileReference& foreground, const RtpTileReference& background,
+	RtpTileReference& transition)
+{
+	const GroundAutotileDescriptor* foregroundGround =
+		groundAutotileDescriptor(foreground);
+	const GroundAutotileDescriptor* backgroundGround =
+		groundAutotileDescriptor(background);
+	if (foregroundGround == NULL || backgroundGround == NULL ||
+		foreground.red != background.red || foreground.green != background.green ||
+		foreground.blue != background.blue ||
+		foregroundGround->surface == backgroundGround->surface) return false;
+
+	// An explicitly selected inverse transition owns this boundary. For example,
+	// Grass (Dirt) prevents the neighboring Dirt cell from also drawing Dirt
+	// (Meadow) into the same edge.
+	if (backgroundGround->background == foregroundGround->surface) return false;
+
+	for (int index = 0; index < OUTSIDE_GROUND_AUTOTILE_COUNT; ++index)
+	{
+		const GroundAutotileDescriptor& candidate = OUTSIDE_GROUND_AUTOTILES[index];
+		bool selectedTransition = foregroundGround->background ==
+			backgroundGround->surface && candidate.index == foreground.index;
+		if (candidate.surface != foregroundGround->surface ||
+			candidate.background != backgroundGround->surface ||
+			(!candidate.automatic && !selectedTransition)) continue;
+		transition = foreground;
+		transition.index = candidate.index;
+		return true;
+	}
+	return false;
 }
 
 bool RtpTilesetRenderer::floorQuarterSource(int quadrant, unsigned int connections,

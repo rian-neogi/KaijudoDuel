@@ -82,16 +82,16 @@ return {
         },
         ai = { personality = "control", difficulty = "easy" },
         dialogue = {
-            greeting = "Darkness answers my call. Ready to duel?",
-            defeat = "The grave remembers that turn. I will not make the same mistake twice.",
-            victory = "Listen more closely. Your discarded cards were warning you.",
-            complete = "Four stable echoes. Zagaan remembers you now; I have nothing more to wager.",
+            greeting = "I use Darkness cards. Ready to duel?",
+            defeat = "I will not repeat the mistake I made during that turn.",
+            victory = "You discarded cards that could have helped you.",
+            complete = "We have stabilized four echoes. Zagaan recognizes you, and I have no more rewards to offer.",
             clue = "That broken-circle symbol belongs to the Curator, a duelist who steals the memories bound to cards.",
-            investigation = "The silence in these cards is deliberate. Someone removed more than ink.",
-            stabilize_before = "A true duel may stabilize Zagaan's fading echo. Show me what your deck remembers.",
-            stabilize_after = "That echo is stable. Find other duelists before the Curator follows its signal.",
-            boss_reveal = "The mask at the bridge has no living echo. Be careful.",
-            act_complete = "The old road is full of memories the Curator failed to erase. Follow them."
+            investigation = "Someone deliberately removed the names and memories from these cards.",
+            stabilize_before = "A full duel may stabilize Zagaan's fading echo. Show me how your deck performs.",
+            stabilize_after = "Zagaan's echo is stable. Find other duelists before the Curator detects it.",
+            boss_reveal = "The masked figure at the bridge has no living echo. Be careful.",
+            act_complete = "The Curator failed to erase some memories on the old road. Go there and investigate."
         }
     },
     {
@@ -104,18 +104,21 @@ return {
         decks = { "NPC/Marin.txt", "NPC/Marin 2.txt", "NPC/Marin 3.txt", "NPC/Marin 4.txt" },
         rewards = {
             { card = "Aqua Sniper", gold_tier = 1 },
+			{ card = "Fighter Dual Fang", gold_tier = 1 },
+			{ card = "Corile", gold_tier = 1 },
+			{ card = "Craze Valkyrie, the Drastic", gold_tier = 1 },
         },
         ai = { personality = "tempo", difficulty = "easy" },
         dialogue = {
-            greeting = "Let us see whether you can read the currents.",
-            defeat = "You changed course after I committed. Good. I will account for that next time.",
-            victory = "Information is useful only before the decision. Review where your plan became fixed.",
-            complete = "Four victories are enough evidence. Aqua Sniper's echo is secure with you.",
-            investigation = "Every current through town changed at the same instant. That requires a single source.",
-            stabilize_before = "My signature card is losing detail. A decisive duel may give the echo a path back.",
-            stabilize_after = "The pattern is stable. We need two more signals before I can triangulate the source.",
-            boss_reveal = "The bridge distortion is following our restored signals. The masked duelist planned for this.",
-            act_complete = "I cannot predict the old road, which is exactly why you should take it."
+            greeting = "Show me how well you respond when the duel changes.",
+            defeat = "You changed your strategy after I committed to mine. I will account for that next time.",
+            victory = "You committed to your plan too early. Review when you stopped adapting.",
+            complete = "You have beaten me four times. Aqua Sniper's echo is safe with you.",
+            investigation = "Every card in town began fading at the same moment, so one source probably caused it.",
+            stabilize_before = "My signature card is losing detail. A decisive duel may restore its echo.",
+            stabilize_after = "The echo is stable. We need two more stable echoes to locate the source.",
+            boss_reveal = "The distortion at the bridge is tracking our restored echoes. The masked duelist planned this.",
+            act_complete = "I do not know what is on the old road. Go there and investigate."
         }
     },
     {
@@ -131,15 +134,15 @@ return {
         },
         ai = { personality = "tempo", difficulty = "medium" },
         dialogue = {
-            greeting = "Strength grows one turn at a time.",
-            defeat = "You reached your strength before I reached mine. A solid victory.",
-            victory = "Your foundation was too narrow. Build the mana before you build the tower.",
-            complete = "Great-Horn answers you without hesitation. That is strength worth recognizing.",
-            investigation = "I can repair roads and bridges, but I cannot hammer a name back onto a card.",
-            stabilize_before = "Give my creatures a battle they can recognize. Their echoes may follow the rhythm home.",
-            stabilize_after = "This bond will hold. Help the others establish theirs.",
+            greeting = "I build mana before I attack. Let us see if you can stop me.",
+            defeat = "Your deck became strong before mine did. You earned that victory.",
+            victory = "You did not build enough mana to support your strongest cards.",
+            complete = "Great-Horn responds to you without hesitation. You have earned its trust.",
+            investigation = "I can repair roads and bridges, but I cannot restore a missing card name.",
+            stabilize_before = "Duel me. A familiar battle may help my creatures recover their echoes.",
+            stabilize_after = "My bond with these creatures is stable again. Help the other duelists do the same.",
             boss_reveal = "We will hold the town. You take the bridge.",
-            act_complete = "The northern bridge is sound. Whatever waits beyond it is your next foundation."
+            act_complete = "The northern bridge is safe. Cross it when you are ready."
         }
     },
     {
@@ -152,18 +155,21 @@ return {
         max_battles = 4,
         decks = { "NPC/Aurelia.txt", "NPC/Aurelia 2.txt", "NPC/Aurelia 3.txt", "NPC/Aurelia 4.txt" },
         rewards = {
-            { card = "Hanusa, Radiance Elemental", gold_tier = 1 },
+            { card = "Hanusa, Radiance Elemental", gold_tier = 2 },
+			{ card = "Diamond Cutter", gold_tier = 2 },
+			{ card = "Alcadeias, Lord of Spirits", gold_tier = 2 },
+			{ card = "Warlord Ailzonius", gold_tier = 3 },
         },
         ai = { personality = "control", difficulty = "medium" },
         dialogue = {
-            greeting = "The light judges every reckless move. Shall we begin?",
+            greeting = "I punish reckless attacks. Shall we begin?",
             defeat = "Your attack was measured, not reckless. I concede.",
-            victory = "Patience is not passivity. Wait only while waiting improves your position.",
-            complete = "Hanusa recognizes your discipline. I can offer no higher local trial.",
-            clue = "When the festival lights failed, every blank card pointed north. Rowan ran toward the bridge before he vanished.",
-            investigation = "The festival wards did not break. They were instructed to admit something they could not identify.",
-            stabilize_before = "Let us conduct the exhibition duel we were denied. A formal match may restore the echo.",
-            stabilize_after = "The resonance is clean. Earn the trust of two more duelists.",
+            victory = "You waited too long. Delay only when it improves your position.",
+            complete = "Hanusa recognizes your discipline. I have no harder trial to offer here.",
+            clue = "When the festival lights failed, the marks on every blank card indicated the northern bridge. Rowan ran there before he vanished.",
+            investigation = "The festival wards were not broken. Someone altered them to admit an unidentified visitor.",
+            stabilize_before = "Let us hold the exhibition duel that was interrupted. A formal match may restore the echo.",
+            stabilize_after = "The echo is stable. Earn the trust of two more duelists.",
             boss_reveal = "The masked stranger has appeared at the central bridge. We will protect Emberglen.",
             act_complete = "Follow the road when you are ready. Return for the official Dawn Crest match."
         }
@@ -178,22 +184,22 @@ return {
         decks = { "NPC/Flint.txt", "NPC/Flint 2.txt", "NPC/Flint 3.txt", "NPC/Flint 4.txt" },
         rewards = {
             { card = "Rothus, the Traveler", gold_tier = 1 },
-			{ card = "Rothus, the Traveler", gold_tier = 1 },
-			{ card = "Rothus, the Traveler", gold_tier = 1 },
-			{ card = "Uberdragon Bajula", gold_tier = 1 },
+			{ card = "Armored Blaster Valdios", gold_tier = 2 },
+			{ card = "Magmadragon Jagalzor", gold_tier = 2 },
+			{ card = "Uberdragon Bajula", gold_tier = 3 },
         },
         ai = { personality = "rush", difficulty = "medium" },
         dialogue = {
-            greeting = "My dragons have been waiting for a worthy opponent.",
-            defeat = "Ha! You survived the heat and struck back harder. Again soon.",
-            victory = "You cannot save every shield. Make me regret the ones you let me break.",
-            complete = "Four wins? Fine, fine. Astrocomet Dragon clearly likes you.",
+            greeting = "My Dragons need a strong opponent. Ready to duel?",
+            defeat = "You survived my early attacks and made a stronger counterattack. Let us duel again soon.",
+            victory = "You cannot protect every shield. Punish me after I break one.",
+            complete = "You beat me four times. Astrocomet Dragon accepts you.",
             clue = "I saw a masked duelist beside the arena. Their cards had no civilization mark—and no names.",
             investigation = "The arena junction was altered by someone who knew exactly how our equipment worked.",
-            stabilize_before = "Nothing restores a Fire echo like a real fight. Try to keep up.",
-            stabilize_after = "That did it! The dragon's name is burning bright again. Find two more.",
-            boss_reveal = "Go get that mask! We will make sure Emberglen is still here when you return.",
-            act_complete = "Next time I am coming with you. Someone has to keep this pursuit exciting."
+            stabilize_before = "A serious duel may restore this Fire echo. Try to keep up.",
+            stabilize_after = "That worked. The Dragon's name is clear again. Find two more fading echoes.",
+            boss_reveal = "Stop the masked duelist. We will protect Emberglen while you are gone.",
+            act_complete = "Next time I am coming with you. I want to help with the search."
         }
     },
     {
@@ -212,15 +218,15 @@ return {
         },
         ai = { personality = "control", difficulty = "medium" },
         dialogue = {
-            greeting = "The abyss remembers every card you lose.",
-            defeat = "A worthwhile loss. The graveyard gained a story instead of a silence.",
-            victory = "You feared losing your creatures more than you desired the victory.",
-            complete = "Deathliger's echo follows you willingly. Do not make it regret that trust.",
-            investigation = "The graveyard went silent during the blackout. Even destroyed cards had their histories taken.",
-            stabilize_before = "Let us give the fading echo a loss vivid enough to remember.",
-            stabilize_after = "It speaks again. Other silent cards are waiting for the same kindness.",
-            boss_reveal = "That thing wears absence like a body. Break the spell, not merely the mask.",
-            act_complete = "The old road is haunted by living memories. I envy you."
+            greeting = "I use the graveyard to strengthen my deck. Ready to duel?",
+            defeat = "That loss taught me something useful.",
+            victory = "You protected your creatures when sacrificing them could have won the duel.",
+            complete = "Your bond with Deathliger's echo is stable. Treat the card well.",
+            investigation = "The graveyard became silent during the blackout. The destroyed cards also lost their histories.",
+            stabilize_before = "A difficult duel may help the fading echo recover its memory.",
+            stabilize_after = "The echo has recovered. Other fading cards need the same help.",
+            boss_reveal = "The masked figure is being sustained by a spell. Break the spell, not only the mask.",
+            act_complete = "The old road contains active card echoes. I wish I could examine them."
         }
     },
     {
@@ -236,15 +242,15 @@ return {
         },
         ai = { personality = "control", difficulty = "easy" },
         dialogue = {
-            greeting = "The deep favors patience. Can you keep your footing?",
+            greeting = "My deck rewards patience. Can yours win before it takes control?",
             defeat = "You did not rush when the opening appeared. That restraint won the duel.",
-            victory = "The current carried you exactly where I expected. Learn when to step out of it.",
-            complete = "King Depthcon knows your pace now. Our remaining duels would prove nothing new.",
+            victory = "You made the moves I expected. Change your plan when your opponent predicts it.",
+            complete = "King Depthcon knows how you play now. Another duel would teach us nothing new.",
             investigation = "Nobody leaves by the southern road until we know whether the fading can spread through a caravan.",
-            stabilize_before = "A long duel leaves a clear wake. Let us see whether the echo can follow it.",
-            stabilize_after = "The wake is holding. Find other signature cards and compare their course.",
+            stabilize_before = "A long duel may give the echo enough time to recover. Let us test it.",
+            stabilize_after = "The echo is stable. Find other signature cards and check whether they respond the same way.",
             boss_reveal = "I have the southern road. Do what must be done at the bridge.",
-            act_complete = "The northern waters are rougher than they look. Patience will carry you farther than haste."
+            act_complete = "The northern route is dangerous. Move carefully and do not rush."
         }
     },
     {
@@ -254,21 +260,21 @@ return {
         options = { duel = true },
         appearance = "Actor2-3",
         max_battles = 1,
-        decks = { "DeathbladeBeetle.txt" },
+		decks = { "DeathbladeBeetle.txt" },
         rewards = {
             { card = "Deathblade Beetle", gold_tier = 1 },
         },
         ai = { personality = "tempo", difficulty = "easy" },
         dialogue = {
-            greeting = "Nature rewards the duelist who grows strongest.",
-            defeat = "Your deck adapted faster than mine. The forest approves, even if I do not.",
-            victory = "You planted good ideas but never gave them enough mana to grow.",
-            complete = "Deathblade Beetle recognizes you as part of its path. Treat it like an ally.",
-            investigation = "The creatures are wandering as though their bonded duelists have become strangers.",
-            stabilize_before = "Help my creatures remember what cooperation feels like. Duel me.",
-            stabilize_after = "They know one another again. Other bonds in town still need help.",
+            greeting = "My Nature deck gains strength over time. Ready to duel?",
+            defeat = "Your deck adapted faster than mine. You deserved to win.",
+            victory = "Your plan was sound, but you did not build enough mana to use it.",
+            complete = "Deathblade Beetle recognizes you as an ally. Treat it well.",
+            investigation = "The creatures no longer recognize their bonded duelists, so they have begun wandering.",
+            stabilize_before = "Duel me. Working together in battle may restore my creatures' memories.",
+            stabilize_after = "My creatures recognize one another again. Other bonds in town still need help.",
             boss_reveal = "The western paths are guarded. Bring Rowan home.",
-            act_complete = "The forest has already opened a path north. It seems to expect you."
+            act_complete = "The path north is open. Continue when you are ready."
         }
     },
     {
@@ -280,10 +286,10 @@ return {
         appearance = "People1-5",
         ai = { personality = "tempo", difficulty = "medium" },
         dialogue = {
-            greeting = "Welcome! I trade hard-earned gold for cards.",
+            greeting = "Welcome. I sell cards for gold.",
             shop_early = "These blank card fragments started appearing after the festival. Bring me gold and I'll keep you supplied.",
-            shop_late = "Your restored echoes are holding their ink. The Curator will have noticed.",
-            act_complete = "The old road leads onward, and so does my traveling shop. Convenient, isn't it?"
+            shop_late = "The restored echoes have remained stable. The Curator probably knows that.",
+            act_complete = "I am taking my traveling shop to the old road. You can buy from me there."
         }
     },
     {
@@ -298,14 +304,35 @@ return {
         },
         ai = { personality = "tempo", difficulty = "medium" },
         dialogue = {
-            greeting = "Every echo you restored belongs to the Curator. Hand them over.",
-            defeat = "The veil is only a shell. The Curator has already measured what you restored.",
-            victory = "Your echoes will be quieter in the Hollow Deck.",
+            greeting = "The Curator claims every echo you restored. Hand them over.",
+            defeat = "This body is expendable. The Curator already knows which echoes you restored.",
+            victory = "The Hollow Deck will suppress your restored echoes.",
             complete = "The Curator has already crossed the old road. Rowan still lives—but not for long."
         }
     },
 
 	--Cinderrail
+	{
+        id = "brassa",
+        name = "Brassa",
+        kind = "town_npc",
+        options = { duel = true },
+        appearance = "Actor4-5",
+        max_battles = 1,
+		crest = "forge",
+        decks = { "NPC/Brassa.txt" },
+        rewards = {
+            { card = "Q-Tronic Gargantua", gold_tier = 2 },
+        },
+		ai = { personality = "tempo", difficulty = "medium" },
+		dialogue = {
+			greeting = "My Survivors share abilities with one another. Show me how you handle a full team.",
+			defeat = "You removed my Survivors before they could support one another.",
+			victory = "You left too many Survivors in play, so Q-tronic Gargantua broke several shields.",
+			complete = "You defeated my Survivor deck and earned the Forge Crest. I have no harder test for you.",
+			talk = "I train Survivor teams for foundry emergencies. Each member supports the others."
+		}
+    },
 	{
         id = "pip",
         name = "Pip",
@@ -319,11 +346,11 @@ return {
         },
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "Foundry beetles can chew through slag or shields. Want to see which goes first?",
-			defeat = "You cracked my shell before I could harden the board. Nicely timed.",
-			victory = "You kept striking the armor instead of the joints.",
-			complete = "That was enough testing for one shift. The beetles need cooling down.",
-			talk = "I collect the little metal-eaters nesting beneath the ore carts. They are gentler than they look. Usually."
+			greeting = "These beetles chew through slag. Want to see how they handle shields?",
+			defeat = "You attacked before I could establish my defense. Good timing.",
+			victory = "You kept attacking my blockers instead of my vulnerable creatures.",
+			complete = "That is enough testing for this shift. The beetles need a rest.",
+			talk = "I collect the beetles that nest beneath the ore carts. They usually do not hurt anyone."
 		}
     },
 	{
@@ -339,11 +366,11 @@ return {
         },
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "A comet over Cinderrail means sparks, noise, and a very short duel. Interested?",
-			defeat = "You stepped through the blast instead of away from it. Bold move.",
-			victory = "That hesitation gave my dragons all the sky they needed.",
-			complete = "The comet has passed. Catch me again after the next furnace flare.",
-			talk = "Night crews swear the smoke hides stars. I say the stars are hiding from our furnaces."
+			greeting = "My Astrocomet Dragon deck attacks quickly. Want to duel?",
+			defeat = "You kept attacking when I expected you to retreat. That was bold.",
+			victory = "You hesitated long enough for me to summon my Dragons.",
+			complete = "That is enough dueling for now. I need to return to work.",
+			talk = "The night crews say the foundry smoke blocks their view of the stars. They are right."
 		}
     },
 	{
@@ -359,11 +386,11 @@ return {
         },
 		ai = { personality = "rush", difficulty = "medium" },
 		dialogue = {
-			greeting = "No gauges, no safety rails—just Fire creatures and nerve. Duel me.",
-			defeat = "You kept your cool better than half the furnace crew.",
-			victory = "Around here, anything left unattended eventually catches fire.",
-			complete = "Inspection finished. Your deck is cleared for the hot floor.",
-			talk = "I tune burner valves by ear. A bad hiss ruins steel; a good roar makes it sing."
+			greeting = "I use an aggressive Fire deck. Duel me.",
+			defeat = "You stayed calm during my early attacks. Well done.",
+			victory = "You left your defense open, and my Fire creatures took advantage.",
+			complete = "The test is finished. Your deck is ready for stronger opponents.",
+			talk = "I tune burner valves by listening to them. The wrong sound means the steel may be ruined."
 		}
     },
 	{
@@ -379,10 +406,10 @@ return {
         },
 		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
-			greeting = "Even this soot cannot dim Urth's light. Let me test the clarity of your deck.",
-			defeat = "Your choices stayed clean when the field became clouded. Well done.",
-			victory = "Power without order scatters like sparks in a draft.",
-			complete = "The trial is concluded. Carry that discipline beyond the foundry.",
+			greeting = "Urth can control a disordered field. Let me test your deck.",
+			defeat = "You continued making good choices when the board became complicated. Well done.",
+			victory = "You had strong cards, but you did not use them in a coordinated plan.",
+			complete = "The trial is over. Use the same discipline against other opponents.",
 			talk = "I maintain the lamps along the night gantries. Light is a safety rule here, not decoration."
 		}
     },
@@ -399,10 +426,10 @@ return {
         },
 		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
-			greeting = "Hanusa guards my shields like marble walls. Show me how you breach them.",
-			defeat = "You found the one seam I failed to reinforce.",
-			victory = "A fortress wins by making every attack cost more than it gains.",
-			complete = "One siege is sufficient. I have repairs to calculate.",
+			greeting = "Hanusa makes my shields difficult to break. Show me how you attack them.",
+			defeat = "You found the weakness in my defense.",
+			victory = "My defense made each of your attacks cost too many cards.",
+			complete = "One duel is enough. I have repairs to calculate.",
 			talk = "The foundry arches expand in the heat. I measure them before each shift so the roof stays where it belongs."
 		}
     },
@@ -419,10 +446,10 @@ return {
         },
 		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
-			greeting = "The cooling trenches run deep. So does my deck. Care to dive in?",
-			defeat = "You surfaced before the pressure could crush your plan.",
-			victory = "You followed the ripples and missed what moved beneath them.",
-			complete = "The trench is calm again. I will save the next dive for another traveler.",
+			greeting = "My Water deck takes time to establish control. Want to duel?",
+			defeat = "You won before I could disrupt your plan.",
+			victory = "You reacted to my minor plays and missed the threat I was preparing.",
+			complete = "That is enough for now. I will duel another traveler next.",
 			talk = "Water from the cooling channels leaves bright mineral scales on everything. The sharks seem to like them."
 		}
     },
@@ -439,11 +466,11 @@ return {
         },
 		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
-			greeting = "I race sparks from the rail hammers. Your deck cannot be slower than a spark, can it?",
+			greeting = "I like fast contests. Show me how quickly your deck can win.",
 			defeat = "Fast and accurate? That hardly seems fair.",
-			victory = "Too late! The best opening is the one that is already on fire.",
-			complete = "Race over. I have a new hammer record to chase.",
-			talk = "The foreman says sparks do not count as competitors. The foreman is wrong."
+			victory = "You waited too long to use your opening.",
+			complete = "The duel is over. I am going back to the rail hammers.",
+			talk = "I race the sparks from the rail hammers. The foreman does not consider that a real competition."
 		}
     },
 	{
@@ -459,10 +486,10 @@ return {
         },
 		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
-			greeting = "The furnace casts long shadows. Zagaan prefers to duel inside them.",
-			defeat = "You carried your own light into the dark. I underestimated that.",
-			victory = "Every bright plan leaves a shadow large enough to hide a counterattack.",
-			complete = "Zagaan has learned your silhouette. Another duel would not surprise it.",
+			greeting = "My Darkness deck relies on hidden counterattacks. Ready to duel?",
+			defeat = "You were prepared for my Darkness cards. I underestimated you.",
+			victory = "You focused on your own plan and failed to prepare for my counterattack.",
+			complete = "I know how you play now. Another duel would not prove anything.",
 			talk = "I inspect the ash tunnels after shutdown. Things grow down there that never see the sun."
 		}
     },
@@ -479,10 +506,10 @@ return {
         },
 		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
-			greeting = "Great-Horn can haul an ore wagon uphill. Can your deck stop that much momentum?",
-			defeat = "You redirected the charge instead of meeting it head-on. Smart.",
-			victory = "Once the heavy line starts moving, standing firm is not a strategy.",
-			complete = "The wagon is parked and the duel is done. Good work.",
+			greeting = "My deck uses powerful Rock Beasts. Can your deck stop them?",
+			defeat = "You avoided my strongest creatures and attacked elsewhere. Smart.",
+			victory = "You tried to block every attack after my strongest creatures were already in play.",
+			complete = "The duel is over. Good work.",
 			talk = "I handle the ore teams. Machines are louder, but creatures know when a bridge is unsafe."
 		}
 	},
@@ -491,7 +518,7 @@ return {
         name = "Veld",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "People4-5",
+        appearance = "People4-6",
         max_battles = 1,
         decks = { "Valdios.txt" },
         rewards = {
@@ -499,9 +526,9 @@ return {
         },
 		ai = { personality = "rush", difficulty = "medium" },
 		dialogue = {
-			greeting = "Valdios was built for the moment a crew becomes a charge. Assemble your defense—I will assemble mine faster.",
-			defeat = "You broke the formation before Valdios could lead it. That timing wins shifts and duels.",
-			victory = "One Human is a spark. A full crew is a furnace front.",
+			greeting = "Valdios becomes stronger when I assemble a team of Humans. Stop me before I do.",
+			defeat = "You disrupted my team before Valdios could lead it. Your timing was excellent.",
+			victory = "You let me assemble enough Humans to overwhelm your defense.",
 			complete = "The formation test is finished. I have armor plates to refit.",
 			talk = "I fit practice armor for the workers' duel club. It must survive a match without becoming too heavy for a real shift."
 		}
@@ -511,7 +538,7 @@ return {
         name = "Kanna",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "People4-5",
+        appearance = "People3-2",
         max_battles = 1,
         decks = { "Balbaro.txt" },
         rewards = {
@@ -519,10 +546,10 @@ return {
         },
 		ai = { personality = "rush", difficulty = "medium" },
 		dialogue = {
-			greeting = "Balbaro gains force from every Human beside it. Let us see whether your line holds when the whole crew fires.",
-			defeat = "You scattered my crew before the cannon reached full pressure.",
-			victory = "A cannon is strongest when every hand around it knows the signal.",
-			complete = "Calibration complete. The barrel and my pride both need cooling.",
+			greeting = "Balbaro gains power from every Human I summon. Let us see if your defense holds.",
+			defeat = "You removed my Humans before Balbaro reached full power.",
+			victory = "My Humans worked together and made Balbaro strong enough to win.",
+			complete = "The test is complete. I need to check the cannon.",
 			talk = "I mark safe firing lanes across the test yard. Anyone who paints over them gets broom duty for a month."
 		}
 	},
@@ -531,7 +558,7 @@ return {
         name = "Blaze",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "People4-5",
+        appearance = "People5-3",
         max_battles = 1,
         decks = { "Dragonoids.txt" },
         rewards = {
@@ -539,10 +566,10 @@ return {
         },
 		ai = { personality = "rush", difficulty = "medium" },
 		dialogue = {
-			greeting = "My Dragonoids do not wait for the shift whistle. Ready for a duel that starts at full heat?",
-			defeat = "You survived the first rush and left my whole crew breathing smoke.",
-			victory = "By the time you found your footing, Braid Claw had already crossed it.",
-			complete = "The rush is spent. I will save the next ignition for a new opponent.",
+			greeting = "My Dragonoids attack from the first turn. Ready for a fast duel?",
+			defeat = "You survived my early attacks and defeated the creatures I had left.",
+			victory = "You took too long to respond to Braid Claw.",
+			complete = "That is enough for now. I will save my next challenge for someone else.",
 			talk = "The name is a workshop nickname. Stand too close when I open a furnace and you will understand why."
 		}
 	},
@@ -551,7 +578,7 @@ return {
         name = "Drake",
         kind = "town_npc",
         options = { duel = true },
-        appearance = "People4-5",
+        appearance = "People7-2",
         max_battles = 1,
         decks = { "DragonRamp.txt" },
         rewards = {
@@ -559,10 +586,10 @@ return {
         },
 		ai = { personality = "rush", difficulty = "medium" },
 		dialogue = {
-			greeting = "Small hands tend the mana; great Dragons finish the work. Can you stop the furnace before it reaches full heat?",
-			defeat = "You struck while my Dragons were still gathering above the stacks. Exactly right.",
-			victory = "Cocco Lupia opened the sky, and you gave my Dragons time to fill it.",
-			complete = "The flight is grounded for now. Even Dragons need feeding between matches.",
+			greeting = "Cocco Lupia helps me summon powerful Dragons. Can you stop me before that happens?",
+			defeat = "You attacked before I could summon my Dragons. That was the right choice.",
+			victory = "You left Cocco Lupia in play long enough for me to summon several Dragons.",
+			complete = "That is enough dueling for now. I need to feed my Dragons.",
 			talk = "I chart warm updrafts above the foundry so courier birds—and the occasional Dragon—stay clear of the smoke towers."
 		}
 	},
@@ -574,10 +601,10 @@ return {
 		shop_stock = "cinderrail",
 		appearance = "People4-5",
 		dialogue = {
-			greeting = "Brant's Foundry Cards. Heat-tested sleeves, honest prices, and nothing sold with slag still on it.",
-			shop_early = "The shift crates just arrived: Fire creatures, sturdy support, and a few tools for decks that hit before the whistle.",
-			shop_late = "Outer-road caravans are running again. I have rarer evolutions now, but they still cost real gold.",
-			act_complete = "The foundry is clean, the rails are open, and every card here passed inspection."
+			greeting = "Welcome to Brant's Foundry Cards. I sell clean cards, durable sleeves, and other supplies at fair prices.",
+			shop_early = "The latest shipment includes Fire creatures, support cards, and cards for aggressive decks.",
+			shop_late = "The outer-road caravans are running again, so I now have rarer evolution cards. They cost more gold.",
+			act_complete = "The foundry is clean, the rails are open, and my stock has passed inspection."
 		}
 	},
 
@@ -598,14 +625,34 @@ return {
 		},
 		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
-			greeting = "Glasswater rewards the plan that changes when the current does. Show me yours.",
-			defeat = "You used the information without becoming trapped by it. A precise victory.",
-			victory = "You saw the route I offered and never asked who chose it for you.",
-			complete = "Three trials are enough. Keep questioning every perfect prediction.",
+			greeting = "A good plan changes when new information appears. Show me how you adapt.",
+			defeat = "You used the available information without relying on it too much. You played well.",
+			victory = "You followed the plan I expected you to follow.",
+			complete = "Three trials are enough. Continue to question predictions that seem too accurate.",
 			investigation = "The engine knows private decisions no manifest could contain. That knowledge was taken, not inferred.",
-			talk = "A reliable investigator records what is known, what is guessed, and who permitted either one to be written down."
+			talk = "A reliable investigator separates known facts from guesses and records who authorized access to the information."
 		}
 	},
+	{
+        id = "bryne",
+        name = "Bryne",
+        kind = "town_npc",
+        options = { duel = true },
+        appearance = "Actor4-7",
+        max_battles = 1,
+		decks = { "NPC/Bryne.txt" },
+        rewards = {
+            { card = "Legendary Bynor", gold_tier = 2 },
+        },
+		ai = { personality = "tempo", difficulty = "medium" },
+		dialogue = {
+			greeting = "My deck uses Leviathans and cards that return creatures to your hand. Ready to duel?",
+			defeat = "You stopped my Leviathans before I could evolve one into Legendary Bynor.",
+			victory = "Legendary Bynor let my Water creatures attack without being blocked.",
+			complete = "You have already defeated my strongest Water deck. We do not need a rematch.",
+			talk = "I inspect the deep channels used by large creatures. Ships must keep those channels clear."
+		}
+    },
 	{
 		id = "pell",
 		name = "Pell",
@@ -619,10 +666,10 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "Cargo shifts. Tides shift. A good deck shifts before either one.",
-			defeat = "You changed balance before the load moved. Clean work.",
-			victory = "The quay teaches quickly: brace before the cargo starts sliding.",
-			complete = "You know this dock's rhythm now. I have no new surprise to unload.",
+			greeting = "Conditions change quickly at this port. Show me that your deck can adapt.",
+			defeat = "You adjusted your plan before I made my move. Good work.",
+			victory = "You reacted too late. Prepare before your opponent's plan is complete.",
+			complete = "You know how my deck works now. I have nothing new to test you with.",
 			talk = "Long Quay never truly stops. Even at low tide, someone is tying off a ferry or arguing with a manifest."
 		}
 	},
@@ -639,11 +686,11 @@ return {
 		},
 		ai = { personality = "control", difficulty = "easy" },
 		dialogue = {
-			greeting = "Cards in hand are assets. I intend to audit yours.",
-			defeat = "Your position reconciles. Mine very much does not.",
-			victory = "Unrecorded risks still appear in the final balance.",
-			complete = "Your account is settled. Further entries would only duplicate the record.",
-			talk = "A sealed ledger is useful only if people trust the seal. Glasswater learned that lesson at considerable expense."
+			greeting = "I track every card in play and in hand. Let us see if you do the same.",
+			defeat = "You managed your cards better than I managed mine.",
+			victory = "You ignored risks because you had not accounted for them.",
+			complete = "Our match is settled. Another one would add nothing useful.",
+			talk = "A sealed ledger is useful only when people trust the seal. Glasswater lost money when forged seals were accepted."
 		}
 	},
 	{
@@ -659,11 +706,11 @@ return {
 		},
 		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
-			greeting = "I have mapped every route through the port except the one your deck will take.",
-			defeat = "A useful correction. No chart survives without revisions.",
-			victory = "Your route ended exactly where the current said it would.",
-			complete = "One good revision is enough. I will mark your route as reliably unpredictable.",
-			talk = "Road charts show where the stone lies. Current charts show how long that fact will remain useful."
+			greeting = "I know every route through the port, but I do not know your strategy. Show me.",
+			defeat = "I predicted your plan incorrectly. I will revise my notes.",
+			victory = "You followed the sequence of plays I predicted.",
+			complete = "One duel is enough. I will record that your strategy is difficult to predict.",
+			talk = "Road charts record fixed features. Current charts must be updated whenever the water changes."
 		}
 	},
 	{
@@ -679,11 +726,11 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "The harbor looks calm because someone watches what moves below it. Let Depthcon test your lookout.",
-			defeat = "You sounded the alarm before my deep line surfaced. Good eyes.",
-			victory = "You watched the waves and missed what was moving underneath.",
-			complete = "Depthcon has measured your depth. The channel is clear.",
-			talk = "I inspect the pilings beneath the canal bridges. Cracks hide where reflections look smoothest."
+			greeting = "Harbor safety requires watching for threats below the surface. Let Depthcon test your awareness.",
+			defeat = "You recognized my plan before my strongest creatures appeared. Good work.",
+			victory = "You focused on my visible creatures and missed the ones I was preparing.",
+			complete = "Depthcon has tested you. We do not need another duel.",
+			talk = "I inspect the pilings beneath the canal bridges because cracks are difficult to see from above the water."
 		}
 	},
 	{
@@ -700,9 +747,9 @@ return {
 		ai = { personality = "rush", difficulty = "medium" },
 		dialogue = {
 			greeting = "These locks protect half the South Canals. Show me your defense is as quick as Aqua Guard.",
-			defeat = "You slipped through before I could close the gate. Nicely timed.",
-			victory = "A guard only needs one safe moment to turn a flood aside.",
-			complete = "The lock held, the lesson landed, and our test is complete.",
+			defeat = "You attacked before I could establish my defense. Good timing.",
+			victory = "You gave Aqua Guard enough time to stop your attack.",
+			complete = "Our test is complete. I have nothing more to teach you today.",
 			talk = "I keep the canal gates balanced. Too much water floods a kitchen; too little strands every delivery boat."
 		}
 	},
@@ -719,10 +766,10 @@ return {
 		},
 		ai = { personality = "rush", difficulty = "medium" },
 		dialogue = {
-			greeting = "I have one crate left before the shift bell. Think your deck can unload faster than mine?",
-			defeat = "Fast, careful, and nothing went overboard. You would do well on this crew.",
-			victory = "You rushed the lift before checking the rope. That is how cargo—and shields—get dropped.",
-			complete = "Shift bell! The cards and I are officially off duty.",
+			greeting = "I have time for one duel before my shift ends. Can your deck win quickly?",
+			defeat = "You played quickly without making careless mistakes. You would do well on this crew.",
+			victory = "You acted quickly without checking your position first. That mistake cost you the duel.",
+			complete = "My shift is over, so I am done dueling for today.",
 			talk = "We unload by color at Long Quay: blue for food, violet for cards, green for Rootmaze timber."
 		}
 	},
@@ -739,11 +786,11 @@ return {
 		},
 		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
-			greeting = "A captain trusts the tide, the crew, and the deck in his hands. Which one will fail first?",
-			defeat = "You brought down the wave without losing your footing. I would sail with that judgment.",
-			victory = "King Tsunami does not ask whether the harbor is ready.",
-			complete = "The match is logged. My crew will exaggerate it properly by supper.",
-			talk = "My ship runs the lake route. Glasswater's lighthouse is the finest sight in the world after three nights of fog."
+			greeting = "A captain must trust the conditions, the crew, and the available cards. Let us test your judgment.",
+			defeat = "You stopped King Tsunami without weakening your position. I trust your judgment.",
+			victory = "You were not prepared when I summoned King Tsunami.",
+			complete = "I recorded the match. My crew will discuss it at supper.",
+			talk = "My ship runs the lake route. I am always relieved to see Glasswater's lighthouse after three nights of fog."
 		}
 	},
 	{ --a scholar
@@ -759,10 +806,10 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "Aqua Sniper proves that distance is information. Shall we test the theory?",
-			defeat = "You closed the distance before my argument could take shape. Convincing evidence.",
-			victory = "The board was decided several moves before the final shot.",
-			complete = "The result is reproducible enough for my notes. Thank you.",
+			greeting = "Aqua Sniper lets me control opposing creatures from a safe position. Shall we test it?",
+			defeat = "You attacked before I could establish control. That disproves my plan.",
+			victory = "The choices you made several turns ago decided the duel.",
+			complete = "One result is enough for my notes. Thank you.",
 			talk = "I study how duelists value hidden information. The Prediction Hall has made that research uncomfortably practical."
 		}
 	},
@@ -779,10 +826,10 @@ return {
 		},
 		ai = { personality = "control", difficulty = "easy" },
 		dialogue = {
-			greeting = "The archive says patience reveals every answer. Crystal Memory and I intend to verify that.",
-			defeat = "You found the answer before I finished indexing the question.",
-			victory = "A well-kept memory arrives exactly when it is needed.",
-			complete = "This match has been filed under lessons worth keeping.",
+			greeting = "Crystal Memory helps me find the card I need. Let us see whether you can win first.",
+			defeat = "You found the play you needed before I found mine.",
+			victory = "Crystal Memory found the right card at the right time.",
+			complete = "I recorded what this match taught me.",
 			talk = "I copy damaged harbor records before the ink runs. Water is excellent for trade and terrible for paperwork."
 		}
 	},
@@ -799,10 +846,10 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
-			greeting = "A harbor pilot chooses a channel before the deep current chooses one for him. Choose your opening.",
-			defeat = "You changed course without losing speed. That is proper piloting.",
-			victory = "You committed to shallow water and gave Depthcon the whole channel.",
-			complete = "I know your wake now. Another pass would teach neither of us much.",
+			greeting = "A harbor pilot chooses a route before conditions become dangerous. Choose your opening carefully.",
+			defeat = "You changed your plan without losing your advantage. That was well done.",
+			victory = "You committed to a weak plan and gave Depthcon control of the board.",
+			complete = "I know how you play now. Another duel would teach us little.",
 			talk = "I guide heavy ships past the glass shoals. The safest line changes with every tide."
 		}
 	},
@@ -820,9 +867,9 @@ return {
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
 			greeting = "Want to see my deck?",
-			defeat = "You caught every card I sent flying! That was amazing.",
-			victory = "Splash! Your best creature has to start all over again.",
-			complete = "My turn to go home. I promised I would stop after one really good duel.",
+			defeat = "You stopped every play I tried. That was amazing.",
+			victory = "I returned your best creature to your hand. Now you have to summon it again.",
+			complete = "I have to go home now. I promised to stop after one duel.",
 			talk = "The fish under Glassgarden know when school ends. They all swim over for crumbs at once."
 		}
 	},
@@ -839,11 +886,11 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "The arena calls me champion because I evolve with the match. Show me a change I cannot answer.",
-			defeat = "You forced the duel onto a course no title could prepare me for. Excellent.",
+			greeting = "I am the arena champion because I adapt during a match. Show me a strategy I cannot answer.",
+			defeat = "You used a strategy I was not prepared for. Excellent.",
 			victory = "You challenged the creature and forgot to plan for what it would become.",
-			complete = "One exhibition is enough. The next stage belongs to a new challenger.",
-			talk = "Neris studies every official match. I study the challengers who make his notes obsolete."
+			complete = "One exhibition is enough. I need to face a new challenger next.",
+			talk = "Neris studies every official match. I study challengers whose new strategies make his notes outdated."
 		}
 	},
 	{ 
@@ -859,11 +906,11 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "A household and a shield line survive by opening at the right moment. Let us see your timing.",
-			defeat = "You found the clean cut without leaving anyone unprotected.",
-			victory = "Patience is not hesitation. My blockers knew the difference.",
+			greeting = "Good defense depends on acting at the right time. Let us test your timing.",
+			defeat = "You attacked at the right time without leaving your own position exposed.",
+			victory = "You hesitated when you needed to act. My blockers were ready.",
 			complete = "That settles our match. Come by the public kitchen if you need a warm meal.",
-			talk = "Everyone calls me Mother Melissa. Feed enough dock crews through enough storms and the name simply sticks."
+			talk = "Everyone calls me Mother Melissa because I have fed the dock crews during many storms."
 		}
 	},
 	{ 
@@ -879,9 +926,9 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "Glasswater hides its best fights beyond the warning ropes. Deathliger and I saved one for you.",
-			defeat = "You walked straight into the chaos and somehow came out organized. Rude.",
-			victory = "Rules, railings, shield lines—everything breaks if you push the right spot.",
+			greeting = "I duel beyond the warning ropes where officials will not interrupt. Deathliger is ready for you.",
+			defeat = "You stayed organized after I disrupted your plan. Annoying.",
+			victory = "Every defense has a weakness, and I found yours.",
 			complete = "Fine. One official loss is enough trouble for today.",
 			talk = "The east breakwater is closed after dark. That makes it quieter, not less interesting."
 		}
@@ -899,9 +946,9 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
-			greeting = "I can work every practice lock in the schoolyard. Aqua Guard says I can beat you too.",
+			greeting = "I can operate every practice lock in the schoolyard. I think Aqua Guard can beat you.",
 			defeat = "You opened my whole defense! Show me how after class.",
-			victory = "Gate closed! That means I win and you have to take the long canal.",
+			victory = "My defense stopped you. That means I win.",
 			complete = "Teacher said one duel, and I am definitely not getting extra homework.",
 			talk = "We race little boats through the school locks. Mine is blue and has three emergency blockers."
 		}
@@ -919,9 +966,9 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "Aqua Hulcus always brings me one more idea. Can your deck keep up with both of us?",
+			greeting = "Aqua Hulcus draws extra cards for me. Can your deck keep up?",
 			defeat = "You made better use of every card, even when I drew ahead.",
-			victory = "One extra answer is all a changing current needs.",
+			victory = "Drawing one extra card gave me the answer I needed.",
 			complete = "Good match. I have a stack of school notices to deliver before the next bell.",
 			talk = "I carry messages between the school and Port Authority. The bridges make it faster than waiting for a canal boat."
 		}
@@ -939,10 +986,10 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "A Spiral Gate is a question about position. Your answer may begin whenever you are ready.",
-			defeat = "You treated displacement as an opportunity. Full marks.",
-			victory = "You defended the creature's location instead of its purpose.",
-			complete = "The practical examination is concluded. I will spare you the written portion.",
+			greeting = "Spiral Gate changes the position of creatures. Show me how you respond to it.",
+			defeat = "You used the forced movement to improve your position. Full marks.",
+			victory = "You tried to keep one creature in play instead of preserving your overall strategy.",
+			complete = "The practical examination is over. There will be no written portion.",
 			talk = "At South Canal School we teach navigation, arithmetic, and why recording a duel requires permission."
 		}
 	},
@@ -959,10 +1006,10 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "A true Water duelist commands the current without pretending to own it. Demonstrate your method.",
-			defeat = "Your formation changed with grace. Crystal Lancer could not pin it down.",
-			victory = "The current favored discipline over spectacle.",
-			complete = "Your technique has been acknowledged. I do not issue the same judgment twice.",
+			greeting = "A skilled Water duelist adapts without losing control. Demonstrate your method.",
+			defeat = "You changed your formation effectively. Crystal Lancer could not control it.",
+			victory = "Careful play defeated your more dramatic attacks.",
+			complete = "I have evaluated your technique. I do not need to do it again.",
 			talk = "Lady Aqua is an arena title, not a claim of nobility. Glasswater audiences enjoy a little ceremony."
 		}
 	},
@@ -979,11 +1026,11 @@ return {
 		},
 		ai = { personality = "rush", difficulty = "medium" },
 		dialogue = {
-			greeting = "Cold storage keeps the catch fresh and the graveyard restless. Frost Specter wants a duel.",
-			defeat = "You thawed the whole plan before the shadows could settle.",
-			victory = "The harbor forgets nothing that sinks into cold water.",
-			complete = "Back to work. These ice crates will not haunt themselves.",
-			talk = "I tend the Fish Market cold rooms. The noises after midnight are probably pipes. Mostly."
+			greeting = "Frost Specter uses cards in the graveyard. Want to duel?",
+			defeat = "You disrupted my plan before I could use the graveyard.",
+			victory = "I used the cards in my graveyard to defeat you.",
+			complete = "I have to return to work in cold storage.",
+			talk = "I maintain the Fish Market cold rooms. I think the noises after midnight come from the pipes."
 		}
 	},
 	{ 
@@ -999,11 +1046,11 @@ return {
 		},
 		ai = { personality = "rush", difficulty = "medium" },
 		dialogue = {
-			greeting = "Rootmaze timber bends with the lake instead of fighting it. Let us see whether your deck does the same.",
-			defeat = "You found the grain of the match and split it cleanly.",
-			victory = "You pushed against the hull while my creatures moved with it.",
-			complete = "The frame has passed inspection. No second hammering required.",
-			talk = "I shape imported timber at the shipyard. Every plank arrives with a little Rootmaze stubbornness left in it."
+			greeting = "I use Nature and Water cards so I can change strategy during a duel. Can your deck adapt?",
+			defeat = "You identified the weakness in my strategy and exploited it.",
+			victory = "You continued with the same plan while I adapted to it.",
+			complete = "Your deck passed my test. We do not need another duel.",
+			talk = "I shape imported timber at the shipyard. Rootmaze timber is difficult to work, but it is durable."
 		}
 	},
 	{ --a schoolgirl
@@ -1019,11 +1066,11 @@ return {
 		},
 		ai = { personality = "rush", difficulty = "easy" },
 		dialogue = {
-			greeting = "Everyone here plays Water, so I brought a dragon. Let us make the practice yard steam!",
-			defeat = "You put out every spark before I could make the rain interesting.",
-			victory = "See? A little fire improves even Glasswater weather.",
+			greeting = "Everyone here plays Water, so I brought a Fire Dragon. Want to duel?",
+			defeat = "You stopped every Fire card I played.",
+			victory = "My Fire deck can win even against Glasswater's Water decks.",
 			complete = "One match was the agreement. I still have navigation homework.",
-			talk = "The school weather gauge predicts rain every time I plan outdoor practice. I think it dislikes me."
+			talk = "The school weather gauge predicts rain whenever I plan outdoor practice. It has been accurate every time."
 		}
 	},
 	{ 
@@ -1032,11 +1079,11 @@ return {
 		kind = "town_npc",
 		options = { trade = true, wander = false },
 		shop_stock = "glasswater",
-		appearance = "People4-5",
+		appearance = "People8-1",
 		dialogue = {
-			greeting = "Current and Quill Exchange: fair prices, dry sleeves, and no predictions about what you ought to buy.",
-			shop_early = "Fresh harbor stock today—Water tricks, sturdy blockers, and imports that survived the rain.",
-			shop_late = "The records are clean and the shelves are full. Ask before I sell out of the useful answers.",
+			greeting = "Welcome to Current and Quill Exchange. I offer fair prices and keep every card dry.",
+			shop_early = "Today's stock includes Water cards, blockers, and undamaged imports.",
+			shop_late = "The inventory records are current and the shelves are full. Buy what you need before it sells out.",
 			act_complete = "Glasswater is trading openly again. Every card on these shelves has a manifest and a willing seller."
 		}
 	},
@@ -1056,11 +1103,11 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "Growth gives us another path, not an order to take it. Which path will your deck choose?",
-			defeat = "You let the board tell you what to grow. Rootmaze recognizes that patience.",
-			victory = "The largest branch is not always the one holding the nest.",
-			complete = "The paths know you now. Four more duels would only lead us in circles.",
-			investigation = "These creatures remember bonds their cards have forgotten. We must reunite them before the false roots harden."
+			greeting = "Building mana gives you more choices, but you still need to choose well. Show me your plan.",
+			defeat = "You developed your board according to what the duel required. That patience earned your victory.",
+			victory = "You focused on your largest creature instead of the creature that supported your strategy.",
+			complete = "I understand how you play now. More duels would teach us nothing new.",
+			investigation = "These creatures still recognize their duelists, but the corresponding cards no longer record those bonds. We must reunite them before the false bonds become permanent."
 		}
 	},
 	{
@@ -1076,10 +1123,10 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
-			greeting = "I was looking for moonberries, but a good duel is nearly as rare.",
-			defeat = "You found the opening before I found the next trail.",
-			victory = "A little preparation keeps even the tallest growth from toppling.",
-			complete = "Four excellent specimens. I should probably return to the berries now."
+			greeting = "I was looking for rare moonberries, but I have time for a duel.",
+			defeat = "You found an opening before I found my next play.",
+			victory = "You were not prepared for my strongest creature.",
+			complete = "That was a good duel. I should return to looking for moonberries."
 		}
 	},
 	{
@@ -1095,10 +1142,10 @@ return {
 		},
 		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
-			greeting = "Do not worry. The beetles only become agitated when they sense hesitation.",
-			defeat = "They liked that duel. Even the ones in the graveyard are buzzing.",
-			victory = "Every loss fed the colony. You should have ended the cycle sooner.",
-			complete = "The beetles insist four trials are conclusive. I have learned not to argue."
+			greeting = "My beetles attack whenever an opponent hesitates. Ready to duel?",
+			defeat = "That was a good duel. My beetles are still active, even in the graveyard.",
+			victory = "Each creature you lost made my strategy stronger. You needed to stop it sooner.",
+			complete = "One trial is enough. I need to tend to my beetles now."
 		}
 	},
 	{
@@ -1115,9 +1162,9 @@ return {
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
 			greeting = "Wrong turn. The way back is free; the way forward costs one duel.",
-			defeat = "That route works. I will have to repaint the sign.",
-			victory = "The marked path was safer, but I respect the experiment.",
-			complete = "No more tolls. You have paid for every path Rootmaze can offer."
+			defeat = "Your strategy worked. I did not expect it.",
+			victory = "A safer strategy would have worked better, but I respect the attempt.",
+			complete = "You have completed my challenge. I will not stop you again."
 		}
 	},
 	{
@@ -1125,7 +1172,7 @@ return {
 		name = "Orko",
 		kind = "town_npc",
 		options = { duel = true },
-		appearance = "People3-5",
+		appearance = "People5-3",
 		max_battles = 1,
 		decks = { "WorldTree.txt" },
 		rewards = {
@@ -1133,10 +1180,10 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "World Tree does not hurry. It grows until even Darkness cannot find a path around it. Will your deck wait that long?",
-			defeat = "You pruned the field without harming the roots. That takes judgment.",
-			victory = "You attacked the branches and left the whole root system untouched.",
-			complete = "The tree has learned the shape of your strategy. One season is enough.",
+			greeting = "World Tree becomes difficult to defeat if it remains in play. Can your deck stop it in time?",
+			defeat = "You removed my supporting creatures without weakening your own position. That took good judgment.",
+			victory = "You attacked my minor creatures and left the cards supporting my strategy in play.",
+			complete = "I understand your strategy now. One duel was enough.",
 			talk = "I tend the oldest seed beds near Heartroot. Some saplings move their roots when they dislike their neighbors."
 		}
 	},
@@ -1145,7 +1192,7 @@ return {
 		name = "Mazz",
 		kind = "town_npc",
 		options = { duel = true },
-		appearance = "People3-5",
+		appearance = "People7-3",
 		max_battles = 1,
 		decks = { "WN Generic 1.txt" },
 		rewards = {
@@ -1153,10 +1200,10 @@ return {
 		},
 		ai = { personality = "rush", difficulty = "medium" },
 		dialogue = {
-			greeting = "Rootmaze changes course like water around a root. My deck does the same—can yours?",
-			defeat = "You made me choose a route, then arrived there first.",
-			victory = "You planned for the forest and forgot the stream running through it.",
-			complete = "One survey is enough. I will redraw my deck before the paths change again.",
+			greeting = "Rootmaze's paths change often, and I built my deck to adapt. Can yours?",
+			defeat = "You forced me to commit to one plan, then countered it.",
+			victory = "You prepared for my Nature cards but ignored my Water cards.",
+			complete = "One duel is enough. I will revise my deck before we play again.",
 			talk = "I carry messages between Waterstep and the southern clearings. Waterproof paper is worth every coin."
 		}
 	},
@@ -1165,7 +1212,7 @@ return {
 		name = "Misty",
 		kind = "town_npc",
 		options = { duel = true },
-		appearance = "People3-5",
+		appearance = "People6-6",
 		max_battles = 1,
 		decks = { "Nature Generic 1.txt" },
 		rewards = {
@@ -1173,10 +1220,10 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "The morning mist makes every creature look larger. Let us find out which threats are real.",
-			defeat = "You saw the path through the haze before I did.",
-			victory = "You chased silhouettes while my mana kept growing.",
-			complete = "The mist has lifted, and so has the question of this match.",
+			greeting = "Some creatures look more dangerous than they are. Show me that you can identify the real threats.",
+			defeat = "You understood the board before I did.",
+			victory = "You attacked minor threats while I continued building mana.",
+			complete = "The duel is settled. We do not need another match.",
 			talk = "I gather dew from the broad leaves before sunrise. The nursery uses it for newly awakened card echoes."
 		}
 	},
@@ -1185,7 +1232,7 @@ return {
 		name = "The Earthkeeper",
 		kind = "town_npc",
 		options = { duel = true },
-		appearance = "People3-5",
+		appearance = "People5-7",
 		max_battles = 1,
 		decks = { "NocturnalGiant.txt" },
 		rewards = {
@@ -1193,10 +1240,10 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "Nocturnal Giant walks only toward the shields. Stand aside—or prove you can turn an avalanche.",
-			defeat = "You stopped a Giant that would not stop itself. Rootmaze will remember that.",
-			victory = "When the ground moves with purpose, clever detours become very small things.",
-			complete = "The Giant sleeps again. I will not wake it for an unnecessary rematch.",
+			greeting = "Nocturnal Giant attacks shields whenever it can. Show me that you can stop it.",
+			defeat = "You stopped Nocturnal Giant despite its constant attacks. I will report your success.",
+			victory = "Your attempts to avoid Nocturnal Giant did not stop its attacks.",
+			complete = "Nocturnal Giant is resting. I will not wake it for an unnecessary rematch.",
 			talk = "Earthkeeper is a duty, not a birth name. I watch the deep roots for tremors and settle Giants before they wander into homes."
 		}
 	},
@@ -1205,7 +1252,7 @@ return {
 		name = "Aziz",
 		kind = "town_npc",
 		options = { duel = true },
-		appearance = "People3-5",
+		appearance = "People7-6",
 		max_battles = 1,
 		decks = { "BeastFolkNoEvo.txt" },
 		rewards = {
@@ -1213,11 +1260,11 @@ return {
 		},
 		ai = { personality = "rush", difficulty = "medium" },
 		dialogue = {
-			greeting = "No evolutions, no waiting for miracles—just Beast Folk who know their work. Duel?",
-			defeat = "Your plan outgrew my pack before strength could settle it.",
-			victory = "A trained pack needs no grand transformation to run down a slow deck.",
-			complete = "The pack accepts the result. I do too, though less gracefully.",
-			talk = "I train courier packs for the shifting paths. A creature that knows three ways home is never truly lost."
+			greeting = "My deck uses Beast Folk without evolution creatures. Want to duel?",
+			defeat = "Your strategy developed before my Beast Folk could overpower you.",
+			victory = "My trained Beast Folk defeated you before you could play your strongest cards.",
+			complete = "My Beast Folk accept the result. I accept it too, though I am disappointed.",
+			talk = "I train courier packs for the changing paths. Each creature learns at least three routes home."
 		}
 	},
 	{
@@ -1225,7 +1272,7 @@ return {
 		name = "Kelso",
 		kind = "town_npc",
 		options = { duel = true },
-		appearance = "People3-5",
+		appearance = "People7-8",
 		max_battles = 1,
 		decks = { "NL Generic 1.txt" },
 		rewards = {
@@ -1233,10 +1280,10 @@ return {
 		},
 		ai = { personality = "control", difficulty = "medium" },
 		dialogue = {
-			greeting = "Roots give my guardians strength; Light tells them where to stand. Show me how you break a living wall.",
-			defeat = "You opened a gap without tearing down the grove. Well played.",
-			victory = "You spent your strength on the roots and met the guardians behind them.",
-			complete = "The ward has measured you once. Repeating it would prove nothing.",
+			greeting = "My Nature cards support my Light blockers. Show me how you defeat that defense.",
+			defeat = "You created an opening without using all your resources. Well played.",
+			victory = "You spent too many cards removing my support and had nothing left for my blockers.",
+			complete = "I have tested you once. Repeating the test would prove nothing.",
 			talk = "I maintain the lantern vines along the residential paths. They brighten when someone is lost and dim when the route is safe."
 		}
 	},
@@ -1246,12 +1293,12 @@ return {
 		kind = "town_npc",
 		options = { trade = true, wander = false },
 		shop_stock = "rootmaze",
-		appearance = "People4-5",
+		appearance = "People7-7",
 		dialogue = {
-			greeting = "Gacko's Rootmarket Cards. Mind the roots, browse as long as you like, and ask before feeding anything on the shelves.",
-			shop_early = "Fresh stock from the Commons: mana growers, sturdy creatures, and tools for finding the card your deck needs.",
-			shop_late = "The living roads are steady again. New caravans brought evolutions and rarer Nature support.",
-			act_complete = "Heartroot is healthy, trade is moving, and not one crate has been swallowed by the floor this week."
+			greeting = "Welcome to Gacko's Rootmarket Cards. Watch your step, and ask me before feeding any creature on the shelves.",
+			shop_early = "The latest stock includes mana support, durable creatures, and cards that search your deck.",
+			shop_late = "The roads are stable again. New caravans brought evolution cards and rarer Nature support.",
+			act_complete = "Heartroot is healthy, trade has resumed, and the roots have not damaged any crates this week."
 		}
 	},
 
@@ -1269,10 +1316,10 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
-			greeting = "The western ford changes every week. A duel is the safest way to learn whether a traveler adapts.",
-			defeat = "You read the current before committing. The long path north may reward that patience.",
-			victory = "The shortest crossing is rarely the safest one.",
-			complete = "You know all four moods of this ford now. The water has nothing left to teach by duel."
+			greeting = "The western ford changes every week. Duel me so I can see how well you adapt.",
+			defeat = "You assessed the situation before committing to a plan. That patience will help you on the northern route.",
+			victory = "You chose the quickest strategy instead of the safest one.",
+			complete = "You have passed my test. I have nothing more to teach you."
 		}
 	},
 	{
@@ -1288,10 +1335,10 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
-			greeting = "I came to chart the southern pools. They keep turning into paths when I am not looking.",
-			defeat = "Perhaps a route does not need to stay still to be understood.",
-			victory = "You chased the marker. I watched the marsh.",
-			complete = "Four surveys are enough. Take the shell; it remembers this wetland better than my maps do."
+			greeting = "I came to map the southern pools, but the water level keeps changing the paths.",
+			defeat = "I can map this area even if its paths continue to change.",
+			victory = "You focused on one target and ignored the rest of the board.",
+			complete = "One survey is enough. Take the shell; it came from this wetland."
 		}
 	},
 	{
@@ -1307,10 +1354,10 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
-			greeting = "A true duelist turns a crossroads into a launchpad. Come on—let's fire up!",
-			defeat = "Now that was a finishing move! You earned the right of way.",
-			victory = "Your spirit sputtered just before your deck caught flame.",
-			complete = "Our match settled it. The next road is yours to choose."
+			greeting = "A good duelist chooses a strategy and commits to it. Come on, let us duel!",
+			defeat = "That was a strong final attack. You earned the right of way.",
+			victory = "You hesitated before your Fire deck was ready to attack.",
+			complete = "Our match is settled. Choose whichever road you want."
 		}
 	},
 	{
@@ -1326,10 +1373,10 @@ return {
 		},
 		ai = { personality = "rush", difficulty = "easy" },
 		dialogue = {
-			greeting = "This crossroads leads everywhere a duelist could dream of going. First, let's fire up!",
-			defeat = "Awesome duel! You found a winning path I never saw coming.",
-			victory = "A duelist chooses a direction and charges with everything they have!",
-			complete = "We settled this match, but there is always another road and another rival."
+			greeting = "You can reach several regions from this crossroads. Before you choose one, let us duel!",
+			defeat = "Great duel! You used a winning strategy I did not expect.",
+			victory = "Once you choose a strategy, commit to it completely!",
+			complete = "Our match is settled, but we will both find other rivals."
 		}
 	},
 	{
@@ -1345,10 +1392,10 @@ return {
 		},
 		ai = { personality = "rush", difficulty = "easy" },
 		dialogue = {
-			greeting = "Travelers drop useful things when startled. Let me startle your hand empty.",
+			greeting = "I use discard effects against travelers. Let us see how many cards you can keep.",
 			defeat = "Hmph. You held on to exactly the cards I needed gone.",
-			victory = "The marsh keeps what sinks, and so does my graveyard.",
-			complete = "I have taken all the measure of you that I need. Keep moving."
+			victory = "I used the cards in my graveyard to defeat you.",
+			complete = "I know how you play now. Keep moving."
 		}
 	},
 	{
@@ -1364,10 +1411,10 @@ return {
 		},
 		ai = { personality = "rush", difficulty = "easy" },
 		dialogue = {
-			greeting = "These roads need a guardian. Before I let you pass, show me whom your shields protect.",
+			greeting = "I guard these roads. Show me that you know how to protect your shields.",
 			defeat = "You broke my formation without abandoning your own. Passage granted.",
-			victory = "A rushed attack only proves why defenses are necessary.",
-			complete = "I have judged your formation once. My verdict stands."
+			victory = "You attacked too quickly and left your defense exposed.",
+			complete = "I have evaluated your defense once. You may pass."
 		}
 	},
 	{
@@ -1383,10 +1430,10 @@ return {
 		},
 		ai = { personality = "rush", difficulty = "easy" },
 		dialogue = {
-			greeting = "I have crossed deserts for rare creatures. A rare duel is harder to find—will you provide one?",
-			defeat = "Yes, that will be worth telling at the next caravan fire.",
-			victory = "A traveler survives by carrying answers for roads not yet seen.",
-			complete = "One memorable duel weighs less than ten dull ones. Safe travels."
+			greeting = "I have crossed deserts to find rare creatures. Will you give me a challenging duel?",
+			defeat = "That match is worth telling my caravan about.",
+			victory = "Travelers must prepare for threats they have not encountered before.",
+			complete = "One memorable duel is enough. Safe travels."
 		}
 	},
 	{
@@ -1402,10 +1449,10 @@ return {
 		},
 		ai = { personality = "rush", difficulty = "easy" },
 		dialogue = {
-			greeting = "Hear that rumble? The earth already knows how this duel ends.",
-			defeat = "You moved like water around stone. Even Terahorn could not pin you down.",
-			victory = "The ground warned you before every charge. You should have listened.",
-			complete = "The stones have delivered their verdict. I will not ask twice."
+			greeting = "Hear that rumble? Terahorn is ready to duel.",
+			defeat = "You avoided Terahorn's attacks. It could not control your creatures.",
+			victory = "Terahorn made its attacks obvious, but you did not prepare for them.",
+			complete = "The result is final. I will not challenge you again."
 		}
 	},
 	{
@@ -1422,9 +1469,9 @@ return {
 		ai = { personality = "rush", difficulty = "easy" },
 		dialogue = {
 			greeting = "The crossroads is full of weak duelists choosing safe paths. Disappoint me and join them.",
-			defeat = "Do not celebrate. Darkness sharpens humiliation into vengeance.",
+			defeat = "Do not celebrate. I will prepare for your strategy next time.",
 			victory = "Your last useful card vanished before you understood the duel had begun.",
-			complete = "I have nothing to gain from crushing the same strategy again."
+			complete = "I have nothing to gain from defeating the same strategy again."
 		}
 	},
 	{
@@ -1440,10 +1487,10 @@ return {
 		},
 		ai = { personality = "rush", difficulty = "easy" },
 		dialogue = {
-			greeting = "My cannon can clear a blocked road and a shield line with the same shot. Stand clear—or duel.",
-			defeat = "Direct hit on my blind side. I cannot argue with that aim.",
-			victory = "When Balbaro fires, the only safe route is already behind you.",
-			complete = "The barrel needs cooling. Consider yourself dismissed."
+			greeting = "Balbaro can destroy your shield line quickly. Stand aside or duel me.",
+			defeat = "You attacked the weakness in my defense. I cannot argue with that result.",
+			victory = "You did not prepare for Balbaro's attack.",
+			complete = "The cannon needs maintenance. You may go."
 		}
 	},
 
@@ -1461,10 +1508,10 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
-			greeting = "Great-Horn and I patrol the eastern loop. Prove you will not become our next rescue.",
-			defeat = "Steady footing, clear choices—you are ready for the broken trail.",
-			victory = "The road punishes travelers who build on a weak foundation.",
-			complete = "Inspection over. Wayfarer Camp will hear that you passed."
+			greeting = "Great-Horn and I patrol the eastern loop. Duel me so I can decide whether you can travel there safely.",
+			defeat = "You made clear choices and managed your cards well. You are ready for the broken trail.",
+			victory = "You did not build enough mana before playing your strongest cards.",
+			complete = "The inspection is over. I will tell Wayfarer Camp that you passed."
 		}
 	},
 	{
@@ -1480,10 +1527,10 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
-			greeting = "The old stones remember every traveler. Let us see what your discarded cards remember.",
-			defeat = "You left no regret behind for my darkness to use.",
-			victory = "A secret carried too long becomes weight. I simply made you drop it.",
-			complete = "Our shadows have crossed once. They need not cross again."
+			greeting = "My Darkness deck uses the cards you discard. Ready to duel?",
+			defeat = "You did not leave any useful cards in your graveyard for me to exploit.",
+			victory = "You kept important cards in your hand for too long, so I made you discard them.",
+			complete = "We have dueled once. We do not need a rematch."
 		}
 	},
 	{
@@ -1499,9 +1546,9 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
-			greeting = "Rain filled the wagon ruts overnight. Perfect conditions for a trench duel.",
-			defeat = "You kept your plan afloat through every undertow.",
-			victory = "Never step into dark water before learning what circles beneath it.",
+			greeting = "The rain flooded the wagon ruts. I brought a Water deck for the occasion.",
+			defeat = "You maintained your strategy despite every disruption.",
+			victory = "You committed to your plan before you knew which threats I had prepared.",
 			complete = "The road is drying and our match is settled. I should move on."
 		}
 	},
@@ -1518,10 +1565,10 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
-			greeting = "I light the road beacons with dragon flame. Your duel can be tonight's kindling.",
-			defeat = "You smothered every spark before it reached the dry grass.",
-			victory = "On the Old Road, a small flame becomes an emergency very quickly.",
-			complete = "The beacon is lit and the challenge is answered. Travel while the light holds."
+			greeting = "I use Dragon fire to light the road beacons. Duel me while I take a break.",
+			defeat = "You stopped each of my Fire creatures before it could attack.",
+			victory = "You let a small early threat become strong enough to win.",
+			complete = "The beacon is lit and our duel is over. Continue while the road is visible."
 		}
 	},
 	{
@@ -1537,10 +1584,10 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
-			greeting = "The warning signs say 'no open flame.' Fortunately, my deck cannot read.",
-			defeat = "You put out the blaze and barely singed your sleeves. Impressive.",
-			victory = "Volcanic arrows make excellent shortcuts through stubborn defenses.",
-			complete = "I promised the wardens only one duel here. Let us leave before they smell smoke."
+			greeting = "The warning signs prohibit open flames, so we must keep this Fire duel under control.",
+			defeat = "You stopped all my Fire cards without taking much damage. Impressive.",
+			victory = "Volcanic Arrows removed the blockers that protected you.",
+			complete = "I promised the wardens I would duel only once here. We should leave before they see us."
 		}
 	},
 	{
@@ -1556,9 +1603,9 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
-			greeting = "Bandits hate Aqua Sniper. It returns their ambushes to sender. Want a demonstration?",
-			defeat = "You gave me no safe target to send away. Excellent formation.",
-			victory = "The road is easier when troublesome creatures take the long way around.",
+			greeting = "Aqua Sniper removes creatures that bandits rely on. Want a demonstration?",
+			defeat = "You gave me no useful target for Aqua Sniper. Excellent formation.",
+			victory = "Returning your strongest creatures to your hand gave me control of the duel.",
 			complete = "Demonstration complete. If you meet bandits, remember the timing."
 		}
 	},
@@ -1575,10 +1622,10 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
-			greeting = "These mile markers were grave markers first. Zagaan would like to introduce itself.",
+			greeting = "These mile markers were once grave markers. I use Zagaan in my deck. Ready to duel?",
 			defeat = "You showed proper respect to the dead—and none at all to my shields.",
-			victory = "Ancient roads belong to ancient powers after sunset.",
-			complete = "The stones have heard your name. I will not trouble them with a rematch."
+			victory = "My Darkness creatures are strongest here after sunset.",
+			complete = "I know your name and how you duel. I will not ask for a rematch."
 		}
 	},
 	{
@@ -1594,8 +1641,8 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
-			greeting = "I trade in rumors, but a duel tells me more than travelers ever do.",
-			defeat = "Interesting. Your deck kept its ugliest answer hidden until the perfect moment.",
+			greeting = "I collect rumors, and I can learn even more by watching how you duel.",
+			defeat = "Interesting. You saved your strongest counter until the right moment.",
 			victory = "I knew your plan before you finished pretending it was a secret.",
 			complete = "I have the information I wanted. The rest of your journey is your business."
 		}
@@ -1613,10 +1660,10 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
-			greeting = "The roadside soil is exhausted. Let us see whether your mana grows any better.",
-			defeat = "You cultivated exactly the board you needed—nothing wasted.",
-			victory = "Strong roots are planned long before the first creature appears.",
-			complete = "One harvest is enough to judge the field. Yours is promising."
+			greeting = "The roadside soil supports little growth. Let us see how well you build mana.",
+			defeat = "You developed exactly the board you needed and wasted nothing.",
+			victory = "You needed to prepare your mana before summoning creatures.",
+			complete = "One duel is enough to evaluate your deck. It has potential."
 		}
 	},
 	{
@@ -1632,10 +1679,10 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
-			greeting = "Quiet—my Psyshrooms are predicting the duel. They say you should accept.",
-			defeat = "They predicted that too. Admittedly, only after the final attack.",
-			victory = "Never argue strategy with a mushroom that can see three turns ahead.",
-			complete = "The spores have settled on one outcome. A second duel would only confuse them."
+			greeting = "My Psyshroom deck plans several turns ahead. Will you duel me?",
+			defeat = "I did not predict your final attack.",
+			victory = "I planned three turns ahead, and you did not change your strategy.",
+			complete = "One result is enough. We do not need a second duel."
 		}
 	},
 
@@ -1654,9 +1701,9 @@ return {
 		ai = { personality = "tempo", difficulty = "easy" },
 		dialogue = {
 			greeting = "Toll road! Pay in gold, cards, or one humiliating defeat. I recommend the gold.",
-			defeat = "Keep your coins. I suddenly have urgent business somewhere else.",
-			victory = "Terror Pit collects faster than any tollkeeper I know.",
-			complete = "You already beat my best trap. There is no profit in springing it twice."
+			defeat = "You beat me. Keep your coins and leave.",
+			victory = "Terror Pit defeated your creature, and now I am taking the toll.",
+			complete = "You already defeated my best trap. Trying it again would gain me nothing."
 		}
 	},
 	{
@@ -1672,10 +1719,10 @@ return {
 		},
 		ai = { personality = "rush", difficulty = "easy" },
 		dialogue = {
-			greeting = "Pollo strikes first, Braid Claw strikes second, and questions never get a turn!",
-			defeat = "You were supposed to fall over before I ran out of creatures!",
-			victory = "Fast hands fill slow travelers' graves—and my pockets.",
-			complete = "No rematch. Surprise only works before someone knows the trick."
+			greeting = "I attack first with Braid Claw. You will not have time to ask questions!",
+			defeat = "You were supposed to lose before I ran out of creatures!",
+			victory = "I attacked before you were ready, and now I am taking your valuables.",
+			complete = "No rematch. My surprise attack will not work twice."
 		}
 	},
 	{
@@ -1685,16 +1732,16 @@ return {
 		sight = { range = 4 },
 		appearance = "Evil-1",
 		max_battles = 1,
-		decks = { "FireDark Generic.txt" },
+		decks = { "FD Generic 1.txt" },
 		rewards = {
 			{ card = "Blasto, Explosive Soldier", gold_tier = 1 },
 		},
 		ai = { personality = "rush", difficulty = "easy" },
 		dialogue = {
-			greeting = "Fire above, darkness below, and nowhere left for you to run. Perfect ambush, eh?",
-			defeat = "You punched straight through the middle! Who plans for that?",
-			victory = "Blasto clears the road; I collect what the explosion leaves behind.",
-			complete = "The ambush site is spoiled now. Go on before I find another."
+			greeting = "My crew has surrounded you. Duel me or surrender your valuables.",
+			defeat = "You attacked me directly instead of fighting the rest of my crew. I did not expect that.",
+			victory = "Blasto destroyed your defense. Now I will take your valuables.",
+			complete = "This ambush site is no longer useful. Leave before I prepare another one."
 		}
 	},
 	{
@@ -1710,10 +1757,10 @@ return {
 		},
 		ai = { personality = "control", difficulty = "easy" },
 		dialogue = {
-			greeting = "Before I rob your pack, I will empty your hand. Professional pride demands an order.",
+			greeting = "I will make you discard your cards before I rob you. I prefer to work in that order.",
 			defeat = "You kept producing answers after I took them all. Infuriating.",
-			victory = "A traveler with no cards is simply luggage that walks itself.",
-			complete = "I know what you hide now. Trying the same theft twice would be amateur work."
+			victory = "You had no cards left to defend yourself, so the robbery was easy.",
+			complete = "I know what you carry now. Trying the same theft twice would be foolish."
 		}
 	},
 	{
@@ -1729,10 +1776,164 @@ return {
 		},
 		ai = { personality = "tempo", difficulty = "medium" },
 		dialogue = {
-			greeting = "You embarrassed my crew. Banditlord Brocco will take the reward from your deck personally.",
-			defeat = "Impossible... I planned for every route except the one you made.",
-			victory = "That is why I am the Banditlord and they are roadside scenery.",
-			complete = "My crew has scattered and my reputation is bruised. Take the pass and be gone."
+			greeting = "You embarrassed my crew. I will defeat you and take your deck myself.",
+			defeat = "Impossible... I prepared for every strategy except yours.",
+			victory = "I am the Banditlord because I duel better than the rest of my crew.",
+			complete = "My crew has scattered and I have lost their respect. Take the pass and leave."
+		}
+	},
+
+	--Blackstone Road duellists
+	{
+		id = "blackstone-road-duelist-1",
+		name = "Kara",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "People5-2",
+		max_battles = 1,
+		decks = { "Dark Generic 2.txt" },
+		rewards = {
+			{ card = "Ghost Touch", gold_tier = 1 },
+		},
+		ai = { personality = "tempo", difficulty = "easy" },
+		dialogue = {
+			greeting = "I patrol this section of Blackstone Road. Duel me before you continue.",
+			defeat = "You kept the cards you needed and removed my creatures efficiently.",
+			victory = "Ghost Touch removed a card you needed, and you did not recover.",
+			complete = "You passed my test. I will not stop you again."
+		}
+	},
+	{
+		id = "blackstone-road-duelist-2",
+		name = "Cody",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "People5-1",
+		max_battles = 1,
+		decks = { "FrostSpecter.txt" },
+		rewards = {
+			{ card = "Terror Pit", gold_tier = 1 },
+		},
+		ai = { personality = "tempo", difficulty = "easy" },
+		dialogue = {
+			greeting = "Frost Specter lets me recover Darkness creatures from my graveyard. Can you stop it?",
+			defeat = "You removed Frost Specter before I could reuse my creatures.",
+			victory = "I reused my Darkness creatures until your defense was exhausted.",
+			complete = "You have seen how my deck works. We do not need a rematch."
+		}
+	},
+	{
+		id = "blackstone-road-duelist-3",
+		name = "Cindy",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "Actor3-5",
+		max_battles = 1,
+		decks = { "HandRemoval.txt" },
+		rewards = {
+			{ card = "Horrid Worm", gold_tier = 1 },
+		},
+		ai = { personality = "rush", difficulty = "easy" },
+		dialogue = {
+			greeting = "My deck forces you to discard cards. Show me that you can win with fewer choices.",
+			defeat = "You used your important cards before I could make you discard them.",
+			victory = "I emptied your hand before you could build a defense.",
+			complete = "The duel is settled. I have nothing more to test."
+		}
+	},
+	{
+		id = "blackstone-road-duelist-4",
+		name = "Boro",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "Actor3-4",
+		max_battles = 1,
+		decks = { "IzoristVhal.txt" },
+		rewards = {
+			{ card = "Bloody Squito", gold_tier = 1 },
+		},
+		ai = { personality = "tempo", difficulty = "easy" },
+		dialogue = {
+			greeting = "Izorist Vhal gains power from Darkness creatures in my graveyard. Can you defeat it in time?",
+			defeat = "You kept my graveyard small and defeated Izorist Vhal.",
+			victory = "I put enough Darkness creatures in my graveyard to make Izorist Vhal too strong for you.",
+			complete = "You understand my strategy now. Continue along the road."
+		}
+	},
+	{
+		id = "blackstone-road-duelist-5",
+		name = "Onixia",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "Actor4-4",
+		max_battles = 1,
+		decks = { "Gigazald.txt" },
+		rewards = {
+			{ card = "Phantasmal Horror Gigazald", gold_tier = 1 },
+		},
+		ai = { personality = "tempo", difficulty = "easy" },
+		dialogue = {
+			greeting = "Gigazald can make you discard a card whenever I tap it. Ready to duel?",
+			defeat = "You removed my Chimeras before I could evolve one into Gigazald.",
+			victory = "Gigazald kept removing cards from your hand until you had no useful play.",
+			complete = "One duel is enough. You may continue."
+		}
+	},
+	{
+		id = "blackstone-road-duelist-6",
+		name = "Jacky",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "Actor4-3",
+		max_battles = 1,
+		decks = { "Jack Viper.txt" },
+		rewards = {
+			{ card = "Jack Viper, Shadow of Doom", gold_tier = 1 },
+		},
+		ai = { personality = "tempo", difficulty = "easy" },
+		dialogue = {
+			greeting = "Jack Viper returns my destroyed Darkness creatures to my hand. Ready to duel?",
+			defeat = "You removed Jack Viper before I could recover my creatures.",
+			victory = "Jack Viper let me reuse my Darkness creatures until you ran out of answers.",
+			complete = "You have already faced my best strategy. There will be no rematch."
+		}
+	},
+	{
+		id = "blackstone-road-duelist-7",
+		name = "Kossi",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "Actor5-2",
+		max_battles = 1,
+		decks = { "Official/1 - LFN Starter Deck.txt" },
+		rewards = {
+			{ card = "La Ura Giga, Sky Guardian", gold_tier = 1 },
+		},
+		ai = { personality = "tempo", difficulty = "easy" },
+		dialogue = {
+			greeting = "My deck combines Light, Nature, and Fire cards. Can you respond to all three?",
+			defeat = "You adapted each time I changed civilizations. Well played.",
+			victory = "You prepared for one civilization and had no answer for the other two.",
+			complete = "You passed this challenge. Continue when you are ready."
+		}
+	},
+	{
+		id = "blackstone-road-duelist-8",
+		name = "Abyssia",
+		kind = "route_duelist",
+		sight = { range = 4 },
+		appearance = "Actor5-7",
+		max_battles = 1,
+		decks = { "Official/4 - FD Deadly Decay.txt" },
+		rewards = {
+			{ card = "Vashuna, Sword Dancer", gold_tier = 1 },
+		},
+		ai = { personality = "tempo", difficulty = "easy" },
+		dialogue = {
+			greeting = "My Fire and Darkness deck combines fast attacks with creature removal. Ready to duel?",
+			defeat = "You survived my early attacks and protected your creatures from my removal cards.",
+			victory = "My Fire creatures attacked while my Darkness cards removed your blockers.",
+			complete = "Our duel is over. I will not challenge you again."
 		}
 	},
 }

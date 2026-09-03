@@ -774,6 +774,22 @@ static int getCreatureHasSummoningSickness(lua_State* L)
 	return 1;
 }
 
+static int getCreatureIsSpeedAttacker(lua_State* L)
+{
+	Card* card = cardFromLua(L, 1);
+	lua_pushinteger(L, card == NULL ? 0 :
+		ActiveDuel->getIsSpeedAttacker(card->mUniqueId));
+	return 1;
+}
+
+static int getCreatureCanAttackPlayers(lua_State* L)
+{
+	Card* card = cardFromLua(L, 1);
+	lua_pushinteger(L, card == NULL ? CANATTACK_NO :
+		ActiveDuel->getCreatureCanAttackPlayers(card->mUniqueId));
+	return 1;
+}
+
 static int getCreatureCanBlock(lua_State* L)
 {
 	Card* attacker = cardFromLua(L, 1);
@@ -989,6 +1005,8 @@ void registerLua(lua_State* L)
 	lua_register(L, "getCreaturePower", getCreaturePower);
 	lua_register(L, "getCreatureBreaker", getCreatureBreaker);
 	lua_register(L, "getCreatureHasSummoningSickness", getCreatureHasSummoningSickness);
+	lua_register(L, "getCreatureIsSpeedAttacker", getCreatureIsSpeedAttacker);
+	lua_register(L, "getCreatureCanAttackPlayers", getCreatureCanAttackPlayers);
 	lua_register(L, "getCreatureCanBlock", getCreatureCanBlock);
 	lua_register(L, "getCreatureIsBlocker", getCreatureIsBlocker);
 	lua_register(L, "getCreatureIsEvolution", getCreatureIsEvolution);

@@ -1835,7 +1835,13 @@ Cards["Soulswap"] = {
 	end,
 
 	OnCast = function(id) --test
-		local victim=createChoice("Choose a creature to put into its owner's mana zone",1,id,getCardOwner(id),Checks.InBattle)
+		local owner=getCardOwner(id)
+		local opponent=getOpponent(owner)
+		local preferredVictim=Functions.KnockoutRemovalChoice(id,Checks.InOppBattle)
+		if(preferredVictim==RETURN_NOTHING) then
+			preferredVictim=Functions.HighestCostChoice(id,opponent,ZONE_BATTLE,Checks.InOppBattle)
+		end
+		local victim=createChoice("Choose a creature to put into its owner's mana zone",1,id,owner,Checks.InBattle,preferredVictim)
 		if(victim>=0) then
 			local player=getCardOwner(victim)
 			moveCard(victim,ZONE_MANA)
@@ -1845,7 +1851,8 @@ Cards["Soulswap"] = {
 				end
 				return 0
 			end
-			local ch=createChoice("Choose a non-evolution creature from that mana zone",0,id,getCardOwner(id),valid)
+			local preferredReturn=Functions.LowestCostChoice(id,player,ZONE_MANA,valid)
+			local ch=createChoice("Choose a non-evolution creature from that mana zone",0,id,owner,valid,preferredReturn)
 			if(ch>=0) then
 				moveCard(ch,ZONE_BATTLE)
 			end

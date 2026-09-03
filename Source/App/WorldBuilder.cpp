@@ -20,6 +20,7 @@ namespace
 {
 	const SDL_Rect BUILDER_PANEL = { 1008, 18, 256, 764 };
 	const SDL_Rect BUILDER_PREVIOUS_MAP = { 1022, 61, 32, 34 };
+	const SDL_Rect BUILDER_NEW_MAP = { 1178, 61, 36, 34 };
 	const SDL_Rect BUILDER_NEXT_MAP = { 1218, 61, 32, 34 };
 	const SDL_Rect BUILDER_GRID = { 1162, 27, 88, 25 };
 	const SDL_Rect BUILDER_TILES_TAB = { 1022, 105, 40, 35 };
@@ -56,6 +57,14 @@ namespace
 	const SDL_Rect BUILDER_BRUSH_LABEL = { 1060, 651, 152, 34 };
 	const SDL_Rect BUILDER_BRUSH_INCREASE = { 1216, 651, 34, 34 };
 	const SDL_Rect BUILDER_TILE_INFO = { 1022, 690, 228, 25 };
+	const SDL_Rect BUILDER_MAP_DIALOG = { 326, 164, 628, 444 };
+	const SDL_Rect BUILDER_MAP_ID = { 504, 226, 356, 38 };
+	const SDL_Rect BUILDER_MAP_NAME = { 504, 282, 356, 38 };
+	const SDL_Rect BUILDER_MAP_WIDTH = { 504, 338, 150, 38 };
+	const SDL_Rect BUILDER_MAP_HEIGHT = { 710, 338, 150, 38 };
+	const SDL_Rect BUILDER_MAP_INDOOR = { 504, 394, 188, 38 };
+	const SDL_Rect BUILDER_MAP_CANCEL = { 566, 526, 128, 44 };
+	const SDL_Rect BUILDER_MAP_CREATE = { 710, 526, 150, 44 };
 	const Uint32 BUILDER_PAN_INTERVAL = 80;
 	const int BUILDER_MAX_BRUSH_SIZE = 9;
 	const int BUILDER_MAX_UNDO_ACTIONS = 100;
@@ -71,6 +80,7 @@ namespace
 	const int BUILDER_UNDO_REGION_CREATED = 10;
 	const int BUILDER_UNDO_REGION_DELETED = 11;
 	const int BUILDER_UNDO_OBJECT_APPEARANCE = 12;
+	const int BUILDER_UNDO_MAP_CREATED = 13;
 	const int BUILDER_ZOOM_PERCENTAGES[] = {
 		10, 20, 30, 40, 50, 60, 70, 80, 90, 100
 	};
@@ -90,7 +100,7 @@ namespace
 		"!Door2-5", "!Door2-6", "!Door2-7", "!Door2-8",
 		"!Door3-1", "!Door3-2", "!Door3-3", "!Door3-4",
 		"!Door3-5", "!Door3-6", "!Door3-7", "!Door3-8",
-		"!$Gate1-1", "!$Gate2-1"
+		"!$Gate1-1", "!$Gate2-1", ""
 	};
 	const int PORTAL_APPEARANCE_COUNT = sizeof(PORTAL_APPEARANCES) /
 		sizeof(PORTAL_APPEARANCES[0]);
@@ -108,6 +118,38 @@ namespace
 			first.fromMap == second.fromMap && first.fromX == second.fromX &&
 			first.fromY == second.fromY && first.toMap == second.toMap &&
 			first.toX == second.toX && first.toY == second.toY;
+	}
+
+	std::string portalAppearanceLabel(const std::string& appearance)
+	{
+		return appearance.empty() ? "None (invisible)" : appearance;
+	}
+
+	bool validBuilderMapId(const std::string& id)
+	{
+		if (id.empty()) return false;
+		for (size_t index = 0; index < id.size(); ++index)
+		{
+			unsigned char character = (unsigned char)id[index];
+			if (!((character >= 'a' && character <= 'z') ||
+				(character >= 'A' && character <= 'Z') ||
+				(character >= '0' && character <= '9') || character == '_' ||
+				character == '-')) return false;
+		}
+		return true;
+	}
+
+	bool builderMapDimension(const std::string& input, int& dimension)
+	{
+		if (input.empty()) return false;
+		dimension = 0;
+		for (size_t index = 0; index < input.size(); ++index)
+		{
+			if (input[index] < '0' || input[index] > '9') return false;
+			dimension = dimension * 10 + input[index] - '0';
+			if (dimension > 1024) return false;
+		}
+		return dimension >= 1;
 	}
 
 	bool sameRegion(const WorldRegion& first, const WorldRegion& second)
@@ -506,6 +548,14 @@ bool Application::loadWorldMap(const std::string& path, std::string& error,
 	mWorldBuilderRegionNameFocused = false;
 	mWorldBuilderRegionNameIndex = -1;
 	mWorldBuilderRegionNameInput.clear();
+	mWorldBuilderMapDialogOpen = false;
+	mWorldBuilderMapDialogField = 0;
+	mWorldBuilderMapIdInput.clear();
+	mWorldBuilderMapNameInput.clear();
+	mWorldBuilderMapWidthInput.clear();
+	mWorldBuilderMapHeightInput.clear();
+	mWorldBuilderMapIndoorInput = false;
+	mWorldBuilderMapDialogError.clear();
 	mCurrentWorldArea = worldAreaIndex(mWorld.start.mapId);
 	mPlayerX = mWorld.start.x;
 	mPlayerY = mWorld.start.y;
@@ -934,6 +984,14 @@ bool Application::loadDeprecatedLuaWorldMap(const std::string& path, std::string
 	mWorldBuilderRegionNameFocused = false;
 	mWorldBuilderRegionNameIndex = -1;
 	mWorldBuilderRegionNameInput.clear();
+	mWorldBuilderMapDialogOpen = false;
+	mWorldBuilderMapDialogField = 0;
+	mWorldBuilderMapIdInput.clear();
+	mWorldBuilderMapNameInput.clear();
+	mWorldBuilderMapWidthInput.clear();
+	mWorldBuilderMapHeightInput.clear();
+	mWorldBuilderMapIndoorInput = false;
+	mWorldBuilderMapDialogError.clear();
 	mCurrentWorldArea = worldAreaIndex(startMap);
 	mPlayerX = startX;
 	mPlayerY = startY;
@@ -1024,6 +1082,7 @@ bool Application::beginPortalAt(int x, int y)
 		if (portal.fromMap != currentMapId() || portal.fromX != x || portal.fromY != y)
 			continue;
 		if (worldAreaIndex(portal.toMap) < 0) return false;
+		if (!portal.hasAppearance()) return activatePortalAt(x, y);
 		mOpeningPortal = (int)i;
 		mPortalAnimationStarted = SDL_GetTicks();
 		mDialogueNpc = -1;
@@ -1192,6 +1251,11 @@ void Application::commitWorldBuilderUndoAction()
 
 void Application::undoWorldBuilder()
 {
+	if (mWorldBuilderMapDialogOpen)
+	{
+		cancelWorldBuilderMapCreation();
+		return;
+	}
 	if (mWorldBuilderRegionPlacementMode != 0)
 	{
 		cancelWorldBuilderRegionPlacement();
@@ -1320,6 +1384,35 @@ void Application::undoWorldBuilder()
 		mWorld.regions.insert(mWorld.regions.begin() + index, undo.regionSnapshot);
 		mWorldBuilderSelectedRegion = index;
 		mWorldBuilderRegionNameInput = undo.regionSnapshot.name;
+	}
+	else if (undo.entityKind == BUILDER_UNDO_MAP_CREATED && undo.hasMapSnapshot &&
+		undo.entityIndex >= 0 && undo.entityIndex < (int)mWorld.maps.size() &&
+		mWorld.maps[undo.entityIndex].id == undo.mapSnapshot.id)
+	{
+		const std::string& mapId = undo.mapSnapshot.id;
+		bool referenced = mWorld.start.mapId == mapId;
+		for (size_t index = 0; index < mWorld.regions.size() && !referenced; ++index)
+			referenced = mWorld.regions[index].mapId == mapId;
+		for (size_t index = 0; index < mWorld.portals.size() && !referenced; ++index)
+			referenced = mWorld.portals[index].fromMap == mapId ||
+				mWorld.portals[index].toMap == mapId;
+		for (size_t index = 0; index < mNpcs.size() && !referenced; ++index)
+			referenced = mNpcs[index].mapId == mapId;
+		for (size_t index = 0; index < mWorldObjects.size() && !referenced; ++index)
+			referenced = mWorldObjects[index].mapId == mapId;
+		for (size_t index = 0; index < mMercerStock.shards.size() && !referenced; ++index)
+			referenced = mMercerStock.shards[index].mapId == mapId;
+		if (referenced)
+		{
+			mWorldBuilderUndoHistory.push_back(undo);
+			showWorldBuilderNotice(
+				"Move or remove everything that references this map before undoing it.", true);
+			return;
+		}
+		mWorld.maps.erase(mWorld.maps.begin() + undo.entityIndex);
+		mCurrentWorldArea = std::max(0, std::min(undo.selectedMapBefore,
+			(int)mWorld.maps.size() - 1));
+		mWorldBuilderCameraX = mWorldBuilderCameraY = 0;
 	}
 	mWorldBuilderDirty = undo.dirtyBefore;
 	showWorldBuilderNotice("Undid the last editor action.");
@@ -1497,6 +1590,217 @@ void Application::cycleWorldBuilderChestAppearance(int direction)
 	showWorldBuilderNotice("Chest appearance set to " + object.appearance + ".");
 }
 
+void Application::beginWorldBuilderMapCreation()
+{
+	if (mWorldBuilderRegionPlacementMode != 0 || mWorldBuilderPortalCreating)
+	{
+		showWorldBuilderNotice(
+			"Finish or cancel the current region or portal before adding a map.", true);
+		return;
+	}
+	commitWorldBuilderRegionNameEdit(true);
+	if (mWorldBuilderRegionNameFocused) return;
+	commitWorldBuilderUndoAction();
+	std::string id = "new_map";
+	for (int suffix = 2; mWorld.mapIndex(id) >= 0; ++suffix)
+		id = "new_map_" + std::to_string(suffix);
+	mWorldBuilderMapDialogOpen = true;
+	mWorldBuilderMapDialogField = 0;
+	mWorldBuilderMapIdInput = id;
+	mWorldBuilderMapNameInput = "New Map";
+	mWorldBuilderMapWidthInput = "32";
+	mWorldBuilderMapHeightInput = "24";
+	mWorldBuilderMapIndoorInput = false;
+	mWorldBuilderMapDialogError.clear();
+	mWorldBuilderMoveUp = mWorldBuilderMoveDown = false;
+	mWorldBuilderMoveLeft = mWorldBuilderMoveRight = false;
+	mWorldBuilderPanAccumulator = 0;
+	SDL_StartTextInput();
+}
+
+void Application::cancelWorldBuilderMapCreation()
+{
+	if (!mWorldBuilderMapDialogOpen) return;
+	mWorldBuilderMapDialogOpen = false;
+	mWorldBuilderMapDialogError.clear();
+	SDL_StopTextInput();
+}
+
+bool Application::createWorldBuilderMap(std::string& error)
+{
+	error.clear();
+	if (!mWorldBuilderMapDialogOpen)
+	{
+		error = "the new-map dialog is not open";
+		return false;
+	}
+	auto trim = [](const std::string& input) -> std::string
+	{
+		size_t first = input.find_first_not_of(" \t\r\n");
+		if (first == std::string::npos) return "";
+		size_t last = input.find_last_not_of(" \t\r\n");
+		return input.substr(first, last - first + 1);
+	};
+	const std::string id = trim(mWorldBuilderMapIdInput);
+	const std::string name = trim(mWorldBuilderMapNameInput);
+	int width = 0;
+	int height = 0;
+	if (!validBuilderMapId(id))
+	{
+		error = "Map IDs may contain only letters, numbers, underscores, and hyphens.";
+		return false;
+	}
+	if (mWorld.mapIndex(id) >= 0)
+	{
+		error = "A map with ID '" + id + "' already exists.";
+		return false;
+	}
+	std::ifstream existingMap(("World/Maps/" + id + ".json").c_str(),
+		std::ios::binary);
+	if (existingMap)
+	{
+		error = "World/Maps/" + id + ".json already exists outside the manifest.";
+		return false;
+	}
+	if (name.empty())
+	{
+		error = "Map names cannot be empty.";
+		return false;
+	}
+	if (!builderMapDimension(mWorldBuilderMapWidthInput, width) ||
+		!builderMapDimension(mWorldBuilderMapHeightInput, height))
+	{
+		error = "Map width and height must be between 1 and 1024.";
+		return false;
+	}
+
+	WorldMap map;
+	map.id = id;
+	map.name = name;
+	map.indoor = mWorldBuilderMapIndoorInput;
+	map.columns = width;
+	map.rows = height;
+	map.catalogOnly = true;
+	map.tiles.assign(height, std::string(width, '.'));
+	WorldBuilderUndoAction undo;
+	undo.entityKind = BUILDER_UNDO_MAP_CREATED;
+	undo.entityIndex = (int)mWorld.maps.size();
+	undo.mapSnapshot = map;
+	undo.hasMapSnapshot = true;
+	undo.selectedMapBefore = mCurrentWorldArea;
+	undo.dirtyBefore = mWorldBuilderDirty;
+	mWorld.maps.push_back(map);
+	mWorldBuilderUndoHistory.push_back(undo);
+	if ((int)mWorldBuilderUndoHistory.size() > BUILDER_MAX_UNDO_ACTIONS)
+		mWorldBuilderUndoHistory.erase(mWorldBuilderUndoHistory.begin());
+	mCurrentWorldArea = (int)mWorld.maps.size() - 1;
+	mWorldBuilderCameraX = mWorldBuilderCameraY = 0;
+	mWorldBuilderTileCategory = map.indoor ? 1 : 2;
+	mWorldBuilderTileSheet = (int)RtpTileSheet::A2;
+	mWorldBuilderCatalogTile = 0;
+	mWorldBuilderListScroll = 0;
+	mWorldBuilderDirty = true;
+	mWorldBuilderMapDialogOpen = false;
+	mWorldBuilderMapDialogError.clear();
+	SDL_StopTextInput();
+	showWorldBuilderNotice("Added map '" + name + "'. Paint walkable tiles before "
+		"placing entities or portals.");
+	return true;
+}
+
+bool Application::handleWorldBuilderMapDialogEvent(const SDL_Event& event)
+{
+	if (!mWorldBuilderMapDialogOpen) return false;
+	if (event.type == SDL_TEXTINPUT)
+	{
+		std::string* input = mWorldBuilderMapDialogField == 0 ?
+			&mWorldBuilderMapIdInput : (mWorldBuilderMapDialogField == 1 ?
+			&mWorldBuilderMapNameInput : (mWorldBuilderMapDialogField == 2 ?
+			&mWorldBuilderMapWidthInput : &mWorldBuilderMapHeightInput));
+		const size_t limit = mWorldBuilderMapDialogField < 2 ? 64 : 4;
+		for (const char* character = event.text.text; *character != '\0' &&
+			input->size() < limit; ++character)
+		{
+			if (mWorldBuilderMapDialogField >= 2 &&
+				(*character < '0' || *character > '9')) continue;
+			if (mWorldBuilderMapDialogField == 0)
+			{
+				unsigned char value = (unsigned char)*character;
+				if (!((value >= 'a' && value <= 'z') ||
+					(value >= 'A' && value <= 'Z') ||
+					(value >= '0' && value <= '9') || value == '_' || value == '-'))
+					continue;
+			}
+			input->push_back(*character);
+		}
+		mWorldBuilderMapDialogError.clear();
+		return true;
+	}
+	if (event.type == SDL_KEYDOWN)
+	{
+		SDL_Keycode key = event.key.keysym.sym;
+		if (key == SDLK_ESCAPE)
+		{
+			cancelWorldBuilderMapCreation();
+			return true;
+		}
+		if (key == SDLK_TAB)
+		{
+			int direction = (event.key.keysym.mod & KMOD_SHIFT) ? -1 : 1;
+			mWorldBuilderMapDialogField =
+				(mWorldBuilderMapDialogField + direction + 4) % 4;
+			return true;
+		}
+		if (key == SDLK_BACKSPACE)
+		{
+			std::string* input = mWorldBuilderMapDialogField == 0 ?
+				&mWorldBuilderMapIdInput : (mWorldBuilderMapDialogField == 1 ?
+				&mWorldBuilderMapNameInput : (mWorldBuilderMapDialogField == 2 ?
+				&mWorldBuilderMapWidthInput : &mWorldBuilderMapHeightInput));
+			if (!input->empty()) input->pop_back();
+			mWorldBuilderMapDialogError.clear();
+			return true;
+		}
+		if ((key == SDLK_RETURN || key == SDLK_KP_ENTER) && !event.key.repeat)
+		{
+			std::string error;
+			if (!createWorldBuilderMap(error)) mWorldBuilderMapDialogError = error;
+			return true;
+		}
+		return true;
+	}
+	if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT)
+	{
+		int x, y;
+		logicalMouse(event.button.x, event.button.y, x, y);
+		const SDL_Rect fields[] = { BUILDER_MAP_ID, BUILDER_MAP_NAME,
+			BUILDER_MAP_WIDTH, BUILDER_MAP_HEIGHT };
+		for (int field = 0; field < 4; ++field)
+			if (contains(fields[field], x, y))
+			{
+				mWorldBuilderMapDialogField = field;
+				return true;
+			}
+		if (contains(BUILDER_MAP_INDOOR, x, y))
+		{
+			mWorldBuilderMapIndoorInput = !mWorldBuilderMapIndoorInput;
+			return true;
+		}
+		if (contains(BUILDER_MAP_CANCEL, x, y))
+		{
+			cancelWorldBuilderMapCreation();
+			return true;
+		}
+		if (contains(BUILDER_MAP_CREATE, x, y))
+		{
+			std::string error;
+			if (!createWorldBuilderMap(error)) mWorldBuilderMapDialogError = error;
+			return true;
+		}
+	}
+	return true;
+}
+
 void Application::beginWorldBuilderPortalCreation()
 {
 	commitWorldBuilderUndoAction();
@@ -1632,7 +1936,8 @@ void Application::cycleWorldBuilderPortalAppearance(int direction)
 	portal.appearance = PORTAL_APPEARANCES[next];
 	mWorldBuilderDirty = true;
 	commitWorldBuilderUndoAction();
-	showWorldBuilderNotice("Portal appearance set to " + portal.appearance + ".");
+	showWorldBuilderNotice("Portal appearance set to " +
+		portalAppearanceLabel(portal.appearance) + ".");
 }
 
 bool Application::worldBuilderCanPlaceRegion(const WorldRegion& region,
@@ -2088,10 +2393,7 @@ unsigned int Application::worldTileConnections(const WorldMap& area, int x, int 
 	auto matches = [&](int checkX, int checkY) -> bool
 	{
 		const RtpTileReference* other = worldTileLayer(area, checkX, checkY, layer);
-		return other != NULL && other->family == tile->family &&
-			other->sheet == tile->sheet && other->index == tile->index &&
-			other->red == tile->red && other->green == tile->green &&
-			other->blue == tile->blue;
+		return other != NULL && RtpTilesetRenderer::autotileCompatible(*tile, *other);
 	};
 	unsigned int connections = 0;
 	if (matches(x, y - 1)) connections |= RtpTilesetRenderer::North;
@@ -2103,6 +2405,45 @@ unsigned int Application::worldTileConnections(const WorldMap& area, int x, int 
 	if (matches(x + 1, y + 1)) connections |= RtpTilesetRenderer::SouthEast;
 	if (matches(x - 1, y + 1)) connections |= RtpTilesetRenderer::SouthWest;
 	return connections;
+}
+
+bool Application::worldTileRenderReference(const WorldMap& area, int x, int y,
+	RtpRenderLayer layer, RtpTileReference& reference) const
+{
+	const RtpTileReference* tile = worldTileLayer(area, x, y, layer);
+	if (tile == NULL) return false;
+	reference = *tile;
+	if (layer != RtpRenderLayer::Ground) return true;
+
+	const int offsets[][2] = {
+		{ 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 },
+		{ -1, -1 }, { 1, -1 }, { 1, 1 }, { -1, 1 }
+	};
+	std::map<int, int> scores;
+	std::map<int, RtpTileReference> candidates;
+	for (int neighbor = 0; neighbor < 8; ++neighbor)
+	{
+		const RtpTileReference* other = worldTileLayer(area,
+			x + offsets[neighbor][0], y + offsets[neighbor][1], layer);
+		if (other == NULL) continue;
+		RtpTileReference candidate = *tile;
+		if (!RtpTilesetRenderer::automaticGroundTransition(*tile, *other,
+			candidate)) continue;
+		scores[candidate.index] += neighbor < 4 ? 2 : 1;
+		candidates.erase(candidate.index);
+		candidates.insert(std::make_pair(candidate.index, candidate));
+	}
+
+	int bestScore = 0;
+	for (std::map<int, int>::const_iterator score = scores.begin();
+		score != scores.end(); ++score)
+	{
+		int adjustedScore = score->second + (score->first == tile->index ? 1 : 0);
+		if (adjustedScore <= bestScore) continue;
+		bestScore = adjustedScore;
+		reference = candidates.find(score->first)->second;
+	}
+	return true;
 }
 
 bool Application::drawWorldTileLayer(const WorldMap& area, int x, int y,
@@ -2119,12 +2460,14 @@ bool Application::drawWorldTileLayer(const WorldMap& area, int x, int y,
 	}
 	const RtpTileReference* tile = worldTileLayer(area, x, y, layer);
 	if (tile == NULL) return rendered;
+	RtpTileReference renderTile = *tile;
+	worldTileRenderReference(area, x, y, layer, renderTile);
 	if (mScreen != Screen::WorldBuilder && layer == RtpRenderLayer::Decoration &&
 		area.hasTag(x, y, "blackstone_gate") && hasCrest("confluence")) return false;
 	if (RtpTilesetRenderer::isCompositeTile(*tile))
 		return mWorldTileRenderer->drawCatalogCompositeLayer(*tile, layer, destination) ||
 			rendered;
-	return mWorldTileRenderer->drawCatalog(*tile,
+	return mWorldTileRenderer->drawCatalog(renderTile,
 		worldTileConnections(area, x, y, layer), destination,
 		SDL_GetTicks() / 420) || rendered;
 }
@@ -2185,6 +2528,11 @@ void Application::placeWorldBuilderSelection(int x, int y)
 
 bool Application::saveWorldBuilder(std::string& error)
 {
+	if (mWorldBuilderMapDialogOpen)
+	{
+		error = "finish or cancel the new map before saving";
+		return false;
+	}
 	if (mWorldBuilderRegionPlacementMode != 0)
 	{
 		error = "finish or cancel the region bounds before saving";
@@ -2285,6 +2633,11 @@ void Application::zoomWorldBuilder(int direction, int anchorX, int anchorY)
 
 void Application::updateWorldBuilder(Uint32 deltaTime)
 {
+	if (mWorldBuilderMapDialogOpen)
+	{
+		mWorldBuilderPanAccumulator = 0;
+		return;
+	}
 	int dx = (mWorldBuilderMoveRight ? 1 : 0) - (mWorldBuilderMoveLeft ? 1 : 0);
 	int dy = (mWorldBuilderMoveDown ? 1 : 0) - (mWorldBuilderMoveUp ? 1 : 0);
 	if (dx == 0 && dy == 0)
@@ -2302,6 +2655,7 @@ void Application::updateWorldBuilder(Uint32 deltaTime)
 
 void Application::handleWorldBuilderEvent(const SDL_Event& event)
 {
+	if (handleWorldBuilderMapDialogEvent(event)) return;
 	if (event.type == SDL_TEXTINPUT && mWorldBuilderRegionNameFocused)
 	{
 		if (mWorldBuilderRegionNameInput.size() < 64)
@@ -2384,6 +2738,11 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 			std::string error;
 			if (saveWorldBuilder(error)) showWorldBuilderNotice("World saved.");
 			else showWorldBuilderNotice("Save failed: " + error, true);
+			return;
+		}
+		if (key == SDLK_n && (event.key.keysym.mod & KMOD_CTRL))
+		{
+			beginWorldBuilderMapCreation();
 			return;
 		}
 		if (key == SDLK_g)
@@ -2573,6 +2932,11 @@ void Application::handleWorldBuilderEvent(const SDL_Event& event)
 		std::string error;
 		if (saveWorldBuilder(error)) showWorldBuilderNotice("World saved.");
 		else showWorldBuilderNotice("Save failed: " + error, true);
+		return;
+	}
+	if (contains(BUILDER_NEW_MAP, x, y))
+	{
+		beginWorldBuilderMapCreation();
 		return;
 	}
 	if (contains(BUILDER_PREVIOUS_MAP, x, y))
@@ -3893,12 +4257,17 @@ void Application::renderWorldBuilder()
 		color(mWorldBuilderShowGrid ? 242 : 155, mWorldBuilderShowGrid ? 224 : 166,
 			mWorldBuilderShowGrid ? 174 : 185), 9, 72);
 	fillRect(BUILDER_PREVIOUS_MAP, 37, 47, 67, 245);
+	fillRect(BUILDER_NEW_MAP, 46, 63, 58, 245);
 	fillRect(BUILDER_NEXT_MAP, 37, 47, 67, 245);
 	outlineRect(BUILDER_PREVIOUS_MAP, 113, 139, 176, 255, 2);
+	outlineRect(BUILDER_NEW_MAP, 126, 164, 121, 255, 2);
 	outlineRect(BUILDER_NEXT_MAP, 113, 139, 176, 255, 2);
 	drawText("<", 1033, 68, color(229, 235, 245), 14);
 	drawText(">", 1229, 68, color(229, 235, 245), 14);
-	drawText(mWorld.maps[mCurrentWorldArea].name, 1061, 69, color(214, 222, 236), 12, 150);
+	drawText("NEW", BUILDER_NEW_MAP.x + 6, BUILDER_NEW_MAP.y + 10,
+		color(210, 235, 205), 8, 25);
+	drawText(mWorld.maps[mCurrentWorldArea].name, 1061, 69,
+		color(214, 222, 236), 12, 112);
 	auto tab = [this](const SDL_Rect& rect, const std::string& label, bool active)
 	{
 		fillRect(rect, active ? 82 : 38, active ? 67 : 46, active ? 39 : 65, 245);
@@ -4065,7 +4434,14 @@ void Application::renderWorldBuilder()
 			else if (mWorldBuilderTab == WorldBuilderTab::Portals)
 			{
 				const WorldPortal& portal = mWorld.portals[index];
-				if (!drawPortalSprite(portal, 0.f,
+				if (!portal.hasAppearance())
+				{
+					outlineRect({ item.x + 7, item.y + 7, 18, 18 },
+						112, 137, 168, 255, 1);
+					drawText("X", item.x + 12, item.y + 7,
+						color(169, 188, 211), 10);
+				}
+				else if (!drawPortalSprite(portal, 0.f,
 					{ item.x + 1, item.y + 2, 32, 32 }))
 				{
 					fillRect({ item.x + 5, item.y + 5, 22, 24 }, 102, 72, 48, 255);
@@ -4303,13 +4679,24 @@ void Application::renderWorldBuilder()
 				BUILDER_PORTAL_APPEARANCE_NEXT.y + 7,
 				color(hasSelection ? 229 : 113, hasSelection ? 235 : 126,
 					hasSelection ? 245 : 145), 13);
-			std::string appearance = hasSelection ?
-				mWorld.portals[mWorldBuilderSelectedPortal].appearance : "Select a portal";
+			std::string appearance = hasSelection ? portalAppearanceLabel(
+				mWorld.portals[mWorldBuilderSelectedPortal].appearance) : "Select a portal";
 			if (hasSelection)
 			{
-				drawPortalSprite(mWorld.portals[mWorldBuilderSelectedPortal], 0.f,
-					{ BUILDER_PORTAL_APPEARANCE.x + 3,
-					BUILDER_PORTAL_APPEARANCE.y + 2, 28, 28 });
+				const WorldPortal& portal = mWorld.portals[mWorldBuilderSelectedPortal];
+				if (portal.hasAppearance())
+					drawPortalSprite(portal, 0.f,
+						{ BUILDER_PORTAL_APPEARANCE.x + 3,
+						BUILDER_PORTAL_APPEARANCE.y + 2, 28, 28 });
+				else
+				{
+					outlineRect({ BUILDER_PORTAL_APPEARANCE.x + 7,
+						BUILDER_PORTAL_APPEARANCE.y + 6, 20, 20 },
+						112, 137, 168, 255, 1);
+					drawText("X", BUILDER_PORTAL_APPEARANCE.x + 13,
+						BUILDER_PORTAL_APPEARANCE.y + 7,
+						color(169, 188, 211), 11);
+				}
 				drawText(appearance, BUILDER_PORTAL_APPEARANCE.x + 35,
 					BUILDER_PORTAL_APPEARANCE.y + 9, color(224, 232, 243), 9, 124);
 			}
@@ -4366,7 +4753,7 @@ void Application::renderWorldBuilder()
 		color(201, 211, 225), 9);
 	drawText("T/N/O/P: tabs  •  G: grid  •  Arrows/WASD: pan  •  Wheel or +/-: zoom  •  [ / ]: brush",
 		32, 650, color(180, 196, 219), 14, 930);
-	drawText("Tiles: paint  •  Entities: place  •  Ctrl+Z: undo  •  PageUp/PageDown: maps",
+	drawText("Tiles: paint  •  Entities: place  •  Ctrl+N: new map  •  PageUp/PageDown: maps",
 		32, 676, color(142, 173, 217), 13);
 	if (!mWorldBuilderNotice.empty() && SDL_GetTicks() < mWorldBuilderNoticeUntil)
 	{
@@ -4374,5 +4761,64 @@ void Application::renderWorldBuilder()
 			mWorldBuilderNoticeError ? 30 : 62, mWorldBuilderNoticeError ? 31 : 43, 235);
 		drawText(mWorldBuilderNotice, 45, 727,
 			mWorldBuilderNoticeError ? color(255, 176, 166) : color(132, 234, 156), 15, 900);
+	}
+	if (mWorldBuilderMapDialogOpen)
+	{
+		fillRect({ 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT }, 3, 7, 13, 185);
+		fillRect(BUILDER_MAP_DIALOG, 23, 31, 47, 255);
+		outlineRect(BUILDER_MAP_DIALOG, 210, 166, 75, 255, 3);
+		drawText("NEW MAP", BUILDER_MAP_DIALOG.x + 28,
+			BUILDER_MAP_DIALOG.y + 22, color(244, 213, 126), 24);
+		drawText("Creates an empty, blocked catalog map. Paint ground tiles to make it walkable.",
+			BUILDER_MAP_DIALOG.x + 28, BUILDER_MAP_DIALOG.y + 61,
+			color(174, 191, 214), 11, BUILDER_MAP_DIALOG.w - 56);
+		const SDL_Rect fields[] = { BUILDER_MAP_ID, BUILDER_MAP_NAME,
+			BUILDER_MAP_WIDTH, BUILDER_MAP_HEIGHT };
+		const char* labels[] = { "MAP ID", "DISPLAY NAME", "WIDTH", "HEIGHT" };
+		const std::string values[] = { mWorldBuilderMapIdInput,
+			mWorldBuilderMapNameInput, mWorldBuilderMapWidthInput,
+			mWorldBuilderMapHeightInput };
+		for (int field = 0; field < 4; ++field)
+		{
+			bool active = field == mWorldBuilderMapDialogField;
+			int labelX = field < 2 ? fields[field].x - 142 : fields[field].x;
+			int labelY = field < 2 ? fields[field].y + 12 : fields[field].y - 17;
+			drawText(labels[field], labelX, labelY, color(185, 200, 220), 10);
+			fillRect(fields[field], active ? 43 : 30, active ? 57 : 42,
+				active ? 75 : 59, 255);
+			outlineRect(fields[field], active ? 104 : 73, active ? 190 : 101,
+				active ? 224 : 135, 255, active ? 2 : 1);
+			std::string value = values[field];
+			if (active && (SDL_GetTicks() / 500) % 2 == 0) value += "_";
+			drawText(value, fields[field].x + 10, fields[field].y + 11,
+				color(232, 237, 245), 11, fields[field].w - 20);
+		}
+		fillRect(BUILDER_MAP_INDOOR, mWorldBuilderMapIndoorInput ? 55 : 31,
+			mWorldBuilderMapIndoorInput ? 77 : 44,
+			mWorldBuilderMapIndoorInput ? 62 : 59, 255);
+		outlineRect(BUILDER_MAP_INDOOR, mWorldBuilderMapIndoorInput ? 141 : 78,
+			mWorldBuilderMapIndoorInput ? 204 : 105,
+			mWorldBuilderMapIndoorInput ? 128 : 139, 255, 2);
+		drawText(mWorldBuilderMapIndoorInput ? "INDOOR: YES" : "INDOOR: NO",
+			BUILDER_MAP_INDOOR.x + 16, BUILDER_MAP_INDOOR.y + 11,
+			color(224, 232, 241), 11);
+		drawText("1-1024 tiles", BUILDER_MAP_WIDTH.x,
+			BUILDER_MAP_WIDTH.y + BUILDER_MAP_WIDTH.h + 9,
+			color(132, 153, 181), 9, 356);
+		fillRect(BUILDER_MAP_CANCEL, 48, 48, 62, 255);
+		outlineRect(BUILDER_MAP_CANCEL, 130, 137, 162, 255, 2);
+		drawText("CANCEL", BUILDER_MAP_CANCEL.x + 29,
+			BUILDER_MAP_CANCEL.y + 13, color(220, 226, 237), 12);
+		fillRect(BUILDER_MAP_CREATE, 62, 78, 48, 255);
+		outlineRect(BUILDER_MAP_CREATE, 191, 177, 80, 255, 2);
+		drawText("CREATE MAP", BUILDER_MAP_CREATE.x + 22,
+			BUILDER_MAP_CREATE.y + 13, color(244, 229, 181), 12);
+		if (!mWorldBuilderMapDialogError.empty())
+			drawText(mWorldBuilderMapDialogError, BUILDER_MAP_DIALOG.x + 28,
+				BUILDER_MAP_DIALOG.y + 324, color(255, 154, 144), 11,
+				BUILDER_MAP_DIALOG.w - 56);
+		drawText("Tab changes fields • Enter creates • Esc cancels",
+			BUILDER_MAP_DIALOG.x + 28, BUILDER_MAP_DIALOG.y + 414,
+			color(139, 161, 191), 10, BUILDER_MAP_DIALOG.w - 56);
 	}
 }

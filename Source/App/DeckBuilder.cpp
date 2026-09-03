@@ -36,6 +36,8 @@ namespace
 	const SDL_Rect DECK_LIST_PANEL = { 20, 92, 225, 676 };
 	const SDL_Rect COLLECTION_PANEL = { 260, 92, 680, 676 };
 	const SDL_Rect DECK_PANEL = { 955, 92, 305, 676 };
+	const SDL_Rect SORT_CIVILIZATION_BUTTON = { 470, 100, 100, 36 };
+	const SDL_Rect SORT_COST_BUTTON = { 578, 100, 100, 36 };
 	const SDL_Rect PREVIOUS_PAGE = { 285, 720, 145, 36 };
 	const SDL_Rect NEXT_PAGE = { 770, 720, 145, 36 };
 
@@ -45,6 +47,38 @@ namespace
 		for (size_t i = 0; i < result.size(); ++i)
 			result[i] = (char)std::tolower((unsigned char)result[i]);
 		return result;
+	}
+
+	int cardCivilizations(const CardData& card)
+	{
+		if (card.Civilizations != 0) return card.Civilizations;
+		return card.Civilization >= CIV_LIGHT && card.Civilization <= CIV_HOLLOW ?
+			1 << card.Civilization : 0;
+	}
+
+	bool cardOrderLess(int leftId, int rightId, bool costFirst, bool descendingCost)
+	{
+		const CardData& left = gCardDatabase[leftId];
+		const CardData& right = gCardDatabase[rightId];
+		int leftCivilizations = cardCivilizations(left);
+		int rightCivilizations = cardCivilizations(right);
+		bool leftMulti = (leftCivilizations & (leftCivilizations - 1)) != 0;
+		bool rightMulti = (rightCivilizations & (rightCivilizations - 1)) != 0;
+		if (leftMulti != rightMulti) return !leftMulti;
+		if (costFirst && left.ManaCost != right.ManaCost)
+			return descendingCost ? left.ManaCost > right.ManaCost :
+				left.ManaCost < right.ManaCost;
+		if (!leftMulti && left.Civilization != right.Civilization)
+			return left.Civilization < right.Civilization;
+		if (!costFirst && left.ManaCost != right.ManaCost)
+			return descendingCost ? left.ManaCost > right.ManaCost :
+				left.ManaCost < right.ManaCost;
+		if (leftMulti && leftCivilizations != rightCivilizations)
+			return leftCivilizations < rightCivilizations;
+		std::string leftName = lowerText(left.Name);
+		std::string rightName = lowerText(right.Name);
+		if (leftName != rightName) return leftName < rightName;
+		return leftId < rightId;
 	}
 
 	std::string fileStem(const std::string& path)
@@ -619,6 +653,27 @@ std::vector<int> Application::filteredCollection() const
 		if (!search.empty() && lowerText(gCardDatabase[i].Name).find(search) == std::string::npos) continue;
 		cards.push_back((int)i);
 	}
+	const bool costFirst = mDeckCollectionSort == DeckCollectionSort::Cost;
+	std::sort(cards.begin(), cards.end(),
+		[costFirst](int left, int right)
+		{
+			return cardOrderLess(left, right, costFirst, false);
+		});
+	return cards;
+}
+
+std::vector<int> Application::sortedDeckCardIds(const PlayerDeck& deck) const
+{
+	std::vector<int> cards;
+	for (std::map<int, int>::const_iterator card = deck.cards.begin();
+		card != deck.cards.end(); ++card)
+		if (card->first >= 0 && card->first < (int)gCardDatabase.size() && card->second > 0)
+			cards.push_back(card->first);
+	std::sort(cards.begin(), cards.end(),
+		[](int left, int right)
+		{
+			return cardOrderLess(left, right, false, true);
+		});
 	return cards;
 }
 
@@ -652,9 +707,10 @@ bool Application::saveDeck(int deckIndex)
 		showDeckNotice("Could not save deck.");
 		return false;
 	}
-	for (std::map<int, int>::const_iterator card = deck.cards.begin(); card != deck.cards.end(); ++card)
-		if (card->first >= 0 && card->first < (int)gCardDatabase.size() && card->second > 0)
-			output << card->second << " " << gCardDatabase[card->first].Name << "\n";
+	std::vector<int> sortedCards = sortedDeckCardIds(deck);
+	for (size_t i = 0; i < sortedCards.size(); ++i)
+		output << deck.cards.find(sortedCards[i])->second << " " <<
+			gCardDatabase[sortedCards[i]].Name << "\n";
 	output.close();
 
 	bool wasActive = deckIndex == mActiveDeckIndex;
@@ -830,7 +886,7 @@ void Application::handleDeckBuilderEvent(const SDL_Event& event)
 		else if (contains(DECK_PANEL, mouseX, mouseY))
 		{
 			int cards = mEditingDeckIndex >= 0 && mEditingDeckIndex < (int)mPlayerDecks.size() ?
-				(int)mPlayerDecks[mEditingDeckIndex].cards.size() : 0;
+				(int)sortedDeckCardIds(mPlayerDecks[mEditingDeckIndex]).size() : 0;
 			mDeckContentsScroll = std::max(0,
 				std::min(std::max(0, cards - DECK_CONTENTS_VISIBLE_ROWS),
 					mDeckContentsScroll - wheel));
@@ -862,6 +918,26 @@ void Application::handleDeckBuilderEvent(const SDL_Event& event)
 	}
 	if (contains(SAVE_BUTTON, x, y)) { saveDeck(mEditingDeckIndex); return; }
 	if (contains(ACTIVE_BUTTON, x, y)) { setActiveDeck(mEditingDeckIndex); return; }
+	if (contains(SORT_CIVILIZATION_BUTTON, x, y))
+	{
+		if (mDeckCollectionSort != DeckCollectionSort::Civilization)
+		{
+			mDeckCollectionSort = DeckCollectionSort::Civilization;
+			mDeckCollectionPage = 0;
+			if (mSoundManager != NULL) mSoundManager->playSound(SOUND_UI_SCROLL);
+		}
+		return;
+	}
+	if (contains(SORT_COST_BUTTON, x, y))
+	{
+		if (mDeckCollectionSort != DeckCollectionSort::Cost)
+		{
+			mDeckCollectionSort = DeckCollectionSort::Cost;
+			mDeckCollectionPage = 0;
+			if (mSoundManager != NULL) mSoundManager->playSound(SOUND_UI_SCROLL);
+		}
+		return;
+	}
 	if (contains(PREVIOUS_PAGE, x, y))
 	{
 		int previousPage = mDeckCollectionPage;
@@ -923,13 +999,13 @@ void Application::handleDeckBuilderEvent(const SDL_Event& event)
 	}
 	if (contains(DECK_PANEL, x, y) && y >= DECK_CONTENTS_TOP)
 	{
+		std::vector<int> sortedCards = sortedDeckCardIds(deck);
 		int row = (y - DECK_CONTENTS_TOP) / DECK_CONTENTS_ROW_HEIGHT;
 		int position = mDeckContentsScroll + row;
 		if (row >= 0 && row < DECK_CONTENTS_VISIBLE_ROWS &&
-			position >= 0 && position < (int)deck.cards.size())
+			position >= 0 && position < (int)sortedCards.size())
 		{
-			std::map<int, int>::iterator card = deck.cards.begin();
-			std::advance(card, position);
+			std::map<int, int>::iterator card = deck.cards.find(sortedCards[position]);
 			if (--card->second <= 0) deck.cards.erase(card);
 			deck.dirty = true;
 			if (mSoundManager != NULL) mSoundManager->playSound(SOUND_UI_CARD_REMOVE);
@@ -978,6 +1054,10 @@ void Application::renderDeckBuilder()
 	outlineRect(DECK_PANEL, 82, 112, 160, 255, 2);
 	drawText("MY DECKS", 36, 105, color(242, 205, 105), 19);
 	drawText("COLLECTION", 278, 105, color(242, 205, 105), 19);
+	drawText("SORT BY", 409, 111, color(151, 169, 195), 10);
+	button(SORT_CIVILIZATION_BUTTON, "Civ", mDeckCollectionSort ==
+		DeckCollectionSort::Civilization);
+	button(SORT_COST_BUTTON, "Cost", mDeckCollectionSort == DeckCollectionSort::Cost);
 	drawText("Gold " + std::to_string(mMoney), 812, 108, color(245, 205, 88), 14);
 	drawText("CURRENT DECK", 975, 105, color(242, 205, 105), 19);
 
@@ -1109,22 +1189,24 @@ void Application::renderDeckBuilder()
 		drawStatistic(970, 222, "CREATURES", std::to_string(statistics.creatures));
 		drawStatistic(1107, 222, "SPELLS", std::to_string(statistics.spells));
 
+		std::vector<int> sortedCards = sortedDeckCardIds(deck);
 		mDeckContentsScroll = std::min(mDeckContentsScroll,
-			std::max(0, (int)deck.cards.size() - DECK_CONTENTS_VISIBLE_ROWS));
-		int i = 0;
-		for (std::map<int, int>::const_iterator card = deck.cards.begin(); card != deck.cards.end(); ++card, ++i)
+			std::max(0, (int)sortedCards.size() - DECK_CONTENTS_VISIBLE_ROWS));
+		for (int i = 0; i < (int)sortedCards.size(); ++i)
 		{
 			if (i < mDeckContentsScroll ||
 				i >= mDeckContentsScroll + DECK_CONTENTS_VISIBLE_ROWS) continue;
+			int cardId = sortedCards[i];
+			std::map<int, int>::const_iterator card = deck.cards.find(cardId);
 			int visible = i - mDeckContentsScroll;
 			SDL_Rect row = { 970, DECK_CONTENTS_TOP + visible * DECK_CONTENTS_ROW_HEIGHT,
 				274, 29 };
-			drawCivilizationRow(row, gCardDatabase[card->first], visible % 2 != 0);
-			drawText(gCardDatabase[card->first].Name, row.x + 6, row.y + 6,
+			drawCivilizationRow(row, gCardDatabase[cardId], visible % 2 != 0);
+			drawText(gCardDatabase[cardId].Name, row.x + 6, row.y + 6,
 				color(242, 245, 249), 12, 225);
 			drawText("x" + std::to_string(card->second), row.x + 242, row.y + 6,
 				color(245, 208, 119), 12);
-			mDeckCardHitboxes.push_back({ row, card->first });
+			mDeckCardHitboxes.push_back({ row, cardId });
 		}
 		drawText("Click collection cards to add.", 973, 710, color(155, 174, 201), 12);
 		drawText("Click deck entries to remove.", 973, 733, color(155, 174, 201), 12);

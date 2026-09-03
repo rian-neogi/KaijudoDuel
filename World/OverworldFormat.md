@@ -85,6 +85,16 @@ cell has no tile on that layer. Every other palette element has this form:
   `[255,255,255]` leaves the source art unchanged. Tint support remains part of
   the native format even though the migrated overworld palette is neutral.
 
+Outside A2 ground autotiles resolve compatible terrain boundaries while the map
+is rendered. Variants of the same surface connect to one another, so plain Dirt
+and Dirt (Meadow), for example, form one continuous dirt area. When compatible
+base terrain meets, the renderer selects the matching transition artwork: Dirt
+over Meadow, Grass over Sand, Dirt over Snow, Cobblestones over Snow, and Road
+over Meadow, Dirt, Sand, or Snow. An explicitly painted inverse variant such as
+Grass (Dirt) keeps that direction at its boundary. Differently tinted tiles do
+not blend because their edge colors would not match. This resolution is visual;
+the saved palette reference remains the tile selected by the author.
+
 The palette is local to this map. Its numeric indices are serialization
 details, not stable gameplay IDs; saving in the World Builder may reorder them.
 
@@ -121,6 +131,9 @@ Changing a visual tile can therefore change pathability. Non-World A1 tiles
 are blocked. A2 ground categories in columns 1 through 4 are walkable, while
 A2 decoration categories in columns 5 through 8 are blocked. World-family
 tiles ignore collision because they are not used on player-walkable maps.
+On B and C sheets, entrances, usable bridges, stairs, ladders, rugs, rails,
+railroad ties, Outside grass, and Outside flowers are walkable. Other
+decorations remain blocked.
 
 ## Tags
 
@@ -196,6 +209,11 @@ switch the Objects tab to Placed, select a chest, and use the appearance arrows.
 
 All of those overworld coordinates use the same 1024-by-1024 coordinate system.
 Use the World Builder to edit normal map content, regions, and directed portals.
+Use the NEW map button or `Ctrl+N` to create a catalog map. The dialog requires a
+unique filesystem-safe map ID, a display name, dimensions from 1 through 1024,
+and an indoor or outdoor setting. New maps contain no tiles and remain blocked
+until ground tiles are painted. Saving writes `World/Maps/<id>.json` and adds it
+to the ordered map list in `World/World.json`.
 Its Regions tab creates non-overlapping exterior rectangles, edits their town
 or connector kind, precipitation, and display name, and redraws their bounds.
 Region entries in `World/World.json` use `weather: "rain"` or
@@ -204,7 +222,8 @@ world weather is active. The display name is shown whenever the player enters
 the rectangle. A duel loss in a town region preserves the player's location,
 while losses elsewhere return the player to Emberglen. Its Portals tab places a
 From endpoint followed by a To endpoint; author a second portal for reverse
-travel. Select a portal and use the appearance arrows to browse every Door and
-Gate graphic. New portals default to `!Door3-5`. Direct JSON edits must retain
-valid palette indices, exact layer cell
+travel. Select a portal and use the appearance arrows to browse None (invisible)
+and every Door and Gate graphic. New portals default to `!Door3-5`. Selecting
+None omits the `appearance` field when the world is saved. Direct JSON edits
+must retain valid palette indices, exact layer cell
 totals, in-bounds tags, and walkable, non-overlapping world positions.
