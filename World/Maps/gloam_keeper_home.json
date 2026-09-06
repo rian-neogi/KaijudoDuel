@@ -1,0 +1,39 @@
+{
+  "format": "kaijudo-catalog-map",
+  "version": 1,
+  "id": "gloam_keeper_home",
+  "name": "Canvas Row - Keeper Home",
+  "indoor": true,
+  "width": 20,
+  "height": 16,
+  "palette": [
+    null,
+    { "tileset": "Inside", "sheet": "A4", "index": 0, "layer": "ground", "tint": [205, 212, 228] },
+    { "tileset": "Inside", "sheet": "A4", "index": 8, "layer": "ground", "tint": [219, 219, 229] },
+    { "tileset": "Inside", "sheet": "B", "index": 32, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 40, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "A2", "index": 0, "layer": "ground", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 80, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 50, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 52, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 88, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 58, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 60, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 112, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 113, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "A2", "index": 7, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "C", "index": 0, "layer": "foreground", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 104, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "C", "index": 85, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "C", "index": 108, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "A2", "index": 2, "layer": "ground", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "C", "index": 64, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 195, "layer": "decoration", "tint": [255, 255, 255] }
+  ],
+  "layers": {
+    "ground": { "encoding": "rle-row-major", "data": [[1, 21], [2, 18], [1, 2], [2, 18], [1, 2], [5, 18], [1, 2], [5, 18], [1, 2], [5, 18], [1, 2], [5, 18], [1, 2], [5, 18], [1, 2], [5, 18], [1, 2], [5, 18], [1, 2], [5, 18], [1, 2], [5, 18], [1, 2], [5, 8], [19, 3], [5, 7], [1, 2], [5, 8], [19, 3], [5, 7], [1, 2], [5, 8], [19, 3], [5, 7], [1, 11], [5, 1], [1, 9]] },
+    "decoration": { "encoding": "rle-row-major", "data": [[0, 23], [3, 1], [0, 12], [3, 1], [0, 6], [4, 1], [0, 12], [4, 1], [0, 6], [6, 1], [0, 1], [7, 1], [0, 10], [8, 1], [0, 6], [9, 1], [0, 1], [10, 1], [0, 10], [11, 1], [0, 58], [12, 1], [13, 1], [0, 10], [14, 3], [0, 17], [16, 3], [0, 33], [17, 1], [0, 11], [18, 1], [0, 18], [20, 1], [0, 55], [21, 1], [0, 9]] },
+    "foreground": { "encoding": "rle-row-major", "data": [[0, 168], [15, 1], [0, 151]] }
+  },
+  "source": { "kind": "native-catalog-map" }
+}

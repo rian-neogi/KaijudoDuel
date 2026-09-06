@@ -1,0 +1,33 @@
+{
+  "format": "kaijudo-catalog-map",
+  "version": 1,
+  "id": "gloam_school",
+  "name": "Record Classroom",
+  "indoor": true,
+  "width": 22,
+  "height": 16,
+  "palette": [
+    null,
+    { "tileset": "Inside", "sheet": "A4", "index": 0, "layer": "ground", "tint": [205, 212, 228] },
+    { "tileset": "Inside", "sheet": "A4", "index": 8, "layer": "ground", "tint": [219, 219, 229] },
+    { "tileset": "Inside", "sheet": "B", "index": 32, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 160, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 40, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 168, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "A2", "index": 0, "layer": "ground", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 69, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 77, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "A2", "index": 7, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "C", "index": 72, "layer": "foreground", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 104, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "A2", "index": 2, "layer": "ground", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "C", "index": 112, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 195, "layer": "decoration", "tint": [255, 255, 255] }
+  ],
+  "layers": {
+    "ground": { "encoding": "rle-row-major", "data": [[1, 23], [2, 20], [1, 2], [2, 20], [1, 2], [7, 20], [1, 2], [7, 20], [1, 2], [7, 20], [1, 2], [7, 20], [1, 2], [7, 20], [1, 2], [7, 20], [1, 2], [7, 20], [1, 2], [7, 20], [1, 2], [7, 20], [1, 2], [7, 9], [13, 3], [7, 8], [1, 2], [7, 9], [13, 3], [7, 8], [1, 2], [7, 9], [13, 3], [7, 8], [1, 12], [7, 1], [1, 10]] },
+    "decoration": { "encoding": "rle-row-major", "data": [[0, 25], [3, 1], [0, 7], [4, 1], [0, 6], [3, 1], [0, 6], [5, 1], [0, 7], [6, 1], [0, 6], [5, 1], [0, 5], [8, 1], [0, 2], [8, 1], [0, 2], [8, 1], [0, 2], [8, 1], [0, 2], [8, 1], [0, 2], [8, 1], [0, 6], [9, 1], [0, 2], [9, 1], [0, 2], [9, 1], [0, 2], [9, 1], [0, 2], [9, 1], [0, 2], [9, 1], [0, 74], [10, 3], [0, 7], [10, 3], [0, 9], [12, 3], [0, 7], [12, 3], [0, 53], [10, 3], [0, 7], [10, 3], [0, 7], [14, 1], [0, 1], [12, 3], [0, 7], [12, 3], [0, 38], [15, 1], [0, 10]] },
+    "foreground": { "encoding": "rle-row-major", "data": [[0, 181], [11, 1], [0, 9], [11, 1], [0, 77], [11, 1], [0, 9], [11, 1], [0, 72]] }
+  },
+  "source": { "kind": "native-catalog-map" }
+}

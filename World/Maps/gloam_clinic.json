@@ -1,0 +1,30 @@
+{
+  "format": "kaijudo-catalog-map",
+  "version": 1,
+  "id": "gloam_clinic",
+  "name": "Bathhouse and Clinic",
+  "indoor": true,
+  "width": 24,
+  "height": 18,
+  "palette": [
+    null,
+    { "tileset": "Inside", "sheet": "A4", "index": 0, "layer": "ground", "tint": [205, 212, 228] },
+    { "tileset": "Inside", "sheet": "A4", "index": 8, "layer": "ground", "tint": [219, 219, 229] },
+    { "tileset": "Inside", "sheet": "B", "index": 32, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 40, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "A2", "index": 1, "layer": "ground", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 68, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 76, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 80, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 88, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 208, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "A2", "index": 2, "layer": "ground", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 195, "layer": "decoration", "tint": [255, 255, 255] }
+  ],
+  "layers": {
+    "ground": { "encoding": "rle-row-major", "data": [[1, 25], [2, 22], [1, 2], [2, 22], [1, 2], [5, 22], [1, 2], [5, 22], [1, 2], [5, 22], [1, 2], [5, 22], [1, 2], [5, 22], [1, 2], [5, 22], [1, 2], [5, 22], [1, 2], [5, 22], [1, 2], [5, 22], [1, 2], [5, 22], [1, 2], [5, 22], [1, 2], [5, 10], [11, 3], [5, 9], [1, 2], [5, 10], [11, 3], [5, 9], [1, 2], [5, 10], [11, 3], [5, 9], [1, 13], [5, 1], [1, 11]] },
+    "decoration": { "encoding": "rle-row-major", "data": [[0, 27], [3, 1], [0, 16], [3, 1], [0, 6], [4, 1], [0, 16], [4, 1], [0, 12], [6, 1], [0, 3], [6, 1], [0, 19], [7, 1], [0, 3], [7, 1], [0, 13], [8, 1], [0, 2], [8, 1], [0, 9], [8, 1], [0, 2], [8, 1], [0, 7], [9, 1], [0, 2], [9, 1], [0, 9], [9, 1], [0, 2], [9, 1], [0, 79], [8, 1], [0, 2], [8, 1], [0, 9], [8, 1], [0, 2], [8, 1], [0, 7], [9, 1], [0, 2], [9, 1], [0, 9], [9, 1], [0, 2], [9, 1], [0, 55], [10, 1], [0, 15], [10, 1], [0, 64], [12, 1], [0, 11]] },
+    "foreground": { "encoding": "rle-row-major", "data": [[0, 432]] }
+  },
+  "source": { "kind": "native-catalog-map" }
+}

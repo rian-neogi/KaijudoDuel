@@ -1,0 +1,33 @@
+{
+  "format": "kaijudo-catalog-map",
+  "version": 1,
+  "id": "gloam_cardhouse",
+  "name": "Ash and Ember Cardhouse",
+  "indoor": true,
+  "width": 20,
+  "height": 16,
+  "palette": [
+    null,
+    { "tileset": "Inside", "sheet": "A4", "index": 0, "layer": "ground", "tint": [205, 212, 228] },
+    { "tileset": "Inside", "sheet": "A4", "index": 8, "layer": "ground", "tint": [219, 219, 229] },
+    { "tileset": "Inside", "sheet": "B", "index": 32, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 40, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "A2", "index": 0, "layer": "ground", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 65, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 69, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 73, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 77, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "A2", "index": 7, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 104, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "C", "index": 64, "layer": "foreground", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "C", "index": 88, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "A2", "index": 2, "layer": "ground", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 195, "layer": "decoration", "tint": [255, 255, 255] }
+  ],
+  "layers": {
+    "ground": { "encoding": "rle-row-major", "data": [[1, 21], [2, 18], [1, 2], [2, 18], [1, 2], [5, 18], [1, 2], [5, 18], [1, 2], [5, 18], [1, 2], [5, 18], [1, 2], [5, 18], [1, 2], [5, 18], [1, 2], [5, 18], [1, 2], [5, 18], [1, 2], [5, 18], [1, 2], [5, 8], [14, 3], [5, 7], [1, 2], [5, 8], [14, 3], [5, 7], [1, 2], [5, 8], [14, 3], [5, 7], [1, 11], [5, 1], [1, 9]] },
+    "decoration": { "encoding": "rle-row-major", "data": [[0, 23], [3, 1], [0, 12], [3, 1], [0, 6], [4, 1], [0, 12], [4, 1], [0, 5], [6, 2], [0, 2], [6, 2], [0, 6], [7, 3], [0, 5], [8, 2], [0, 2], [8, 2], [0, 6], [9, 3], [0, 47], [10, 5], [0, 15], [11, 5], [0, 43], [10, 3], [0, 17], [11, 3], [0, 8], [13, 1], [0, 12], [13, 1], [0, 53], [15, 1], [0, 9]] },
+    "foreground": { "encoding": "rle-row-major", "data": [[0, 213], [12, 1], [0, 106]] }
+  },
+  "source": { "kind": "native-catalog-map" }
+}

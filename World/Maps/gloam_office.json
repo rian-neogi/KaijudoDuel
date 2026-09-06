@@ -1,0 +1,32 @@
+{
+  "format": "kaijudo-catalog-map",
+  "version": 1,
+  "id": "gloam_office",
+  "name": "Quarry Office and Ledger Hall",
+  "indoor": true,
+  "width": 24,
+  "height": 18,
+  "palette": [
+    null,
+    { "tileset": "Inside", "sheet": "A4", "index": 0, "layer": "ground", "tint": [205, 212, 228] },
+    { "tileset": "Inside", "sheet": "A4", "index": 8, "layer": "ground", "tint": [219, 219, 229] },
+    { "tileset": "Inside", "sheet": "B", "index": 32, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 160, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 40, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 168, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "A2", "index": 0, "layer": "ground", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 69, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 77, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "A2", "index": 7, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "C", "index": 72, "layer": "foreground", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 104, "layer": "decoration", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "A2", "index": 2, "layer": "ground", "tint": [255, 255, 255] },
+    { "tileset": "Inside", "sheet": "B", "index": 195, "layer": "decoration", "tint": [255, 255, 255] }
+  ],
+  "layers": {
+    "ground": { "encoding": "rle-row-major", "data": [[1, 25], [2, 22], [1, 2], [2, 22], [1, 2], [7, 22], [1, 2], [7, 22], [1, 2], [7, 22], [1, 2], [7, 22], [1, 2], [7, 22], [1, 2], [7, 22], [1, 2], [7, 22], [1, 2], [7, 22], [1, 2], [7, 22], [1, 2], [7, 22], [1, 2], [7, 22], [1, 2], [7, 10], [13, 3], [7, 9], [1, 2], [7, 10], [13, 3], [7, 9], [1, 2], [7, 10], [13, 3], [7, 9], [1, 13], [7, 1], [1, 11]] },
+    "decoration": { "encoding": "rle-row-major", "data": [[0, 27], [3, 1], [0, 8], [4, 1], [0, 7], [3, 1], [0, 6], [5, 1], [0, 8], [6, 1], [0, 7], [5, 1], [0, 5], [8, 1], [0, 2], [8, 1], [0, 2], [8, 1], [0, 2], [8, 1], [0, 2], [8, 1], [0, 2], [8, 1], [0, 2], [8, 1], [0, 5], [9, 1], [0, 2], [9, 1], [0, 2], [9, 1], [0, 2], [9, 1], [0, 2], [9, 1], [0, 2], [9, 1], [0, 2], [9, 1], [0, 79], [10, 3], [0, 9], [10, 3], [0, 9], [12, 3], [0, 9], [12, 3], [0, 57], [10, 3], [0, 9], [10, 3], [0, 9], [12, 3], [0, 9], [12, 3], [0, 89], [14, 1], [0, 11]] },
+    "foreground": { "encoding": "rle-row-major", "data": [[0, 197], [11, 1], [0, 11], [11, 1], [0, 83], [11, 1], [0, 11], [11, 1], [0, 126]] }
+  },
+  "source": { "kind": "native-catalog-map" }
+}
