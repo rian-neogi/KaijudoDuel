@@ -129,5 +129,15 @@ if(BUILD_TESTING)
 			COMMAND ${Python3_EXECUTABLE}
 				"${CMAKE_SOURCE_DIR}/Tools/test_convert_legacy_world.py"
 		)
+		add_test(NAME llm_world_builder
+			COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/Tools/test_world_builder.py"
+		)
+		add_test(NAME llm_world_builder_native
+			COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/Tools/test_world_builder_native.py"
+		)
+		set_tests_properties(llm_world_builder llm_world_builder_native PROPERTIES TIMEOUT 120)
+		set_tests_properties(llm_world_builder_native PROPERTIES
+			ENVIRONMENT "WORLD_BUILDER_CXX=${CMAKE_CXX_COMPILER}"
+		)
 	endif()
 endif()

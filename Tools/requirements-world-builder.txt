@@ -1,0 +1,2 @@
+# Optional: only catalog --png and render/apply --preview need Pillow.
+Pillow>=9.1

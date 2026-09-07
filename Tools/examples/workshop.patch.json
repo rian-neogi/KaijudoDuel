@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "scope": [{ "map": "llm_workshop_demo", "rect": [0, 0, 12, 10] }],
+  "frames": { "room": { "map": "llm_workshop_demo", "origin": [0, 0] } },
+  "anchors": { "arrival": { "frame": "room", "at": [5, 7] } },
+  "operations": [
+    { "op": "new_map", "id": "llm_workshop_demo", "name": "Workshop Demo", "width": 12, "height": 10, "indoor": true },
+    { "op": "stamp", "prefab": "room", "frame": "room", "rect": [0, 0, 12, 10], "floor": "Inside/A2/0", "wall": "Inside/A4/8" },
+    { "op": "stamp", "prefab": "vertical", "frame": "room", "at": [2, 3], "tiles": ["Inside/B/80", "Inside/B/88"] },
+    { "op": "stamp", "prefab": "table_setting", "frame": "room", "at": [8, 4], "base": "Inside/B/96", "top": "Inside/C/52" },
+    { "op": "fill", "frame": "room", "rect": [5, 9, 1, 1], "tile": "Inside/A2/0" }
+  ],
+  "require_routes": [{ "frame": "room", "from": "arrival", "to": [5, 9] }]
+}

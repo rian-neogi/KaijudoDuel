@@ -79,6 +79,24 @@ Run `./Bin/KaijudoDuel --help` to display all startup options. Missing files,
 malformed lines, unknown cards, and decks with fewer than ten cards are
 reported before the duel begins.
 
+## World authoring helpers
+
+Use the interactive editor with `./Bin/KaijudoDuel --world-builder`, or inspect
+and edit native maps through the Python CLI:
+
+```bash
+python3 Tools/world_builder.py summary --region gloam
+python3 Tools/world_builder.py catalog 'wall stone' --family Outside
+python3 Tools/world_builder.py render --region gloam --output /tmp/gloam.png
+python3 Tools/world_builder.py validate --region gloam --from 545 889
+```
+
+The helpers provide bounded batch edits, named coordinate frames, building and
+furniture stamps, paired entrances, route checks, spatial diffs, dry runs and undo
+receipts. See [the command and patch guide](Tools/WorldBuilder.md) and the
+[workshop example](Tools/examples/workshop.patch.json). PNG output needs Pillow;
+other commands use Python 3.10+ and the game's Lua 5.4 library.
+
 ## Controls
 
 ### Overworld

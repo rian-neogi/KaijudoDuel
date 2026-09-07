@@ -25,7 +25,7 @@ Additional launch modes:
 ./Bin/KaijudoDuel --lua-trace --duel <player-deck> <ai-deck>
 ```
 
-The World Builder is available only through `--world-builder`. It edits map
+The interactive World Builder is available only through `--world-builder`. It edits map
 tiles, NPC/object/shard locations, and directed portals. Single-click an entity
 side-list row to select it; double-click it to center its map location. Select
 entities from the Lua-populated side lists or directly on the map, then click or
@@ -59,6 +59,14 @@ When adding a C++ source file, add it to `GAME_SOURCES` in `CMakeLists.txt`.
 Do not restore the legacy Windows/OpenGL interface to the Linux target.
 
 ## Verification
+
+For headless world authoring, use `python3 Tools/world_builder.py --help` and
+read `Tools/WorldBuilder.md`. The Python helpers expose JSON queries, catalog
+contact sheets, PNG crops, scoped batch patches, route validation, spatial diffs,
+and undo receipts. Use `apply --dry-run` to review candidate edits. Their tests
+(`Tools/test_world_builder.py` and `Tools/test_world_builder_native.py`) operate
+on temporary worlds and are registered with CTest. The native comparison test
+links the existing loader/renderer to keep Python tile rules consistent.
 
 After changes to the rules engine, Lua bridge, application state, rendering,
 or input handling, run:
