@@ -23,8 +23,8 @@ regular expressions. No command edits Lua, decks, rewards, or game code.
 ```bash
 python3 Tools/world_builder.py summary
 python3 Tools/world_builder.py summary --region gloam
-python3 Tools/world_builder.py inspect --rect 541 937 9 9
-python3 Tools/world_builder.py cell --map overworld --at 545 943
+python3 Tools/world_builder.py inspect --rect 543 913 9 9
+python3 Tools/world_builder.py cell --map overworld --at 547 917
 python3 Tools/world_builder.py space --map overworld --size 32 24 --limit 5
 python3 Tools/world_builder.py catalog 'wall stone' --family Outside --limit 20 --png /tmp/walls.png
 python3 Tools/world_builder.py catalog 'bed' --family Inside --limit 20 --png /tmp/beds.png
@@ -61,7 +61,7 @@ returned page, with isolated and filled autotile samples.
 ```bash
 python3 Tools/world_builder.py render --region gloam --output /tmp/gloam.png
 python3 Tools/world_builder.py render --map gloam_ashvault --output /tmp/ashvault.png --collision --labels
-python3 Tools/world_builder.py path --region gloam --from 545 889 --to 545 943 --interact
+python3 Tools/world_builder.py path --region gloam --from 545 889 --to 547 917 --interact
 python3 Tools/world_builder.py validate
 python3 Tools/world_builder.py validate --region gloam --from 545 889
 ```
@@ -77,7 +77,8 @@ appearances use gold markers and appear in `missing_sprites`. New-style sprites
 and template object appearances use the real character sheets.
 
 Navigation is four-directional and local to one map. It respects tile collision,
-manifest NPCs, uncleared objects, visible portal origins and the Blackstone gate.
+manifest NPCs, uncleared objects and visible portal origins. Movement has no
+progression prerequisites; the former Blackstone gate tag has no effect.
 Visible doors are solid: use `--interact` to find a reachable adjacent cell.
 Invisible portal origins end a local path because stepping there causes travel.
 The returned path lists orthogonal corners; `--all-steps` returns every cell.
@@ -85,9 +86,9 @@ The returned path lists orthogonal corners; `--all-steps` returns every cell.
 does not count. Route-duelist encounter radii and save-dependent NPC visibility
 are not simulated.
 
-`--open-gate blackstone_gate` explicitly models the earned Crest. `path --cleared
-OBJECT_ID` excludes a cleared object from obstacles; repeat it for several IDs.
-These flags change the query's assumptions, never the world or a save file.
+`path --cleared OBJECT_ID` excludes a cleared object from obstacles; repeat it for
+several IDs. This changes the query's assumptions, never the world or a save file.
+Bushes and rocks placed with the builder can be cleared without a particular card.
 
 `validate` checks structure, region overlaps, supporting tile walkability,
 distinct positions, appearances, and correspondence with every current Lua
@@ -240,8 +241,7 @@ Exterior regions remain joined by ordinary adjacent walkable terrain.
 An entrance automatically requires outside-return → outside-door interaction
 access and inside-arrival → inside-exit access. Add `require_routes` to prove
 connection to a town plaza or main road as well. Each requirement accepts `map`
-or `frame`, `from`, `to`, optional `rect`, and boolean `interact`. Patch-level
-`gates: {"blackstone_gate": true}` explicitly changes route-check assumptions.
+or `frame`, `from`, `to`, optional `rect`, and boolean `interact`.
 Successful syntax and placement checks alone do not prove gameplay connectivity.
 
 Exit codes: **0** success; **1** invalid world/required route or no path;

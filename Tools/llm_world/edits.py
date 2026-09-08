@@ -47,7 +47,7 @@ def prefab_list():
 
 class Patch:
     def __init__(self, world, metadata, document):
-        fields(document, ("version", "expected_revision", "scope", "protect", "frames", "anchors", "operations", "require_routes", "gates"), ("version", "scope", "operations"))
+        fields(document, ("version", "expected_revision", "scope", "protect", "frames", "anchors", "operations", "require_routes"), ("version", "scope", "operations"))
         if type(document["version"]) is not int or document["version"] != 1:
             raise WorldError("Patch version must be 1")
         if not isinstance(document["operations"], list) or not isinstance(document["scope"], list) or not document["scope"]:
@@ -69,9 +69,6 @@ class Patch:
         self.routes = deepcopy(document.get("require_routes", []))
         if not isinstance(self.routes, list):
             raise WorldError("require_routes must be an array")
-        gates = document.get("gates", {})
-        if not isinstance(gates, dict) or any(k != "blackstone_gate" or type(v) is not bool for k,v in gates.items()):
-            raise WorldError("gates accepts only blackstone_gate with a boolean value")
         self.touched = set()
 
     @staticmethod

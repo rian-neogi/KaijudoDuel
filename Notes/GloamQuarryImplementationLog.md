@@ -1,5 +1,9 @@
 # Gloam Quarry: direct JSON authoring experiment
 
+The town was subsequently compacted using the Python helpers. See
+[the current layout and coordinates](GloamQuarryCompact.md). This log and its
+overview preserve the original experiment, including its former gate behavior.
+
 This log records obstacles encountered while implementing Gloam Quarry with the
 existing game and native World JSON format. It is an input to the proposed LLM
 world builder, not a specification for that tool.

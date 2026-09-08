@@ -13,7 +13,7 @@ from unittest.mock import patch as mock_patch
 from llm_world.catalog import Catalog, WorldError, LAYERS
 from llm_world.edits import Patch
 from llm_world.metadata import Metadata
-from llm_world.queries import Navigation, free_space, spatial_diff, validate
+from llm_world.queries import Navigation, cell, free_space, spatial_diff, validate
 from llm_world.storage import World, MapData, commit, undo, encode_document, read_json
 import llm_world.storage as storage
 
@@ -51,7 +51,7 @@ class AuthoringTests(unittest.TestCase):
 
     def apply(self,doc):
         req=Patch(self.world,self.metadata,doc).execute()
-        checked=validate(self.world,self.metadata,requirements=req,gates=doc.get("gates"))
+        checked=validate(self.world,self.metadata,requirements=req)
         self.assertTrue(checked["valid"],checked)
         return commit(self.world,self.world.changed_files())
 
@@ -66,9 +66,11 @@ class AuthoringTests(unittest.TestCase):
 
     def test_real_world_metadata_and_gloam_access(self):
         world=World(ROOT/"World",self.catalog)
-        result=validate(world,Metadata(ROOT/"Lua"),[545,889],"overworld",[488,850,128,96])
+        m,bounds=world.selection(region="gloam")
+        result=validate(world,Metadata(ROOT/"Lua"),[545,889],m.id,bounds)
         self.assertTrue(result["valid"],result)
-        self.assertGreater(result["navigation"]["reachable_cells"],8000)
+        # Check access to every current entrance and fixture, independent of town size.
+        self.assertGreater(result["navigation"]["reachable_cells"],0)
         self.assertFalse(world.changed_files())
 
     def test_json_rle_layer_and_duplicate_key_errors(self):
@@ -196,7 +198,7 @@ class AuthoringTests(unittest.TestCase):
         self.assertIsNone(m.get("decoration",8,8));self.assertIsNone(m.get("foreground",8,8))
         self.assertEqual(m.collision(8,8)[0],"walkable")
 
-    def test_invisible_portal_terminates_paths_and_gate_state(self):
+    def test_invisible_portal_terminates_paths_and_old_gate_tags_do_not_block(self):
         m=self.world.map("overworld")
         for y in range(m.height):
             for x in range(m.width):m.set("ground",x,y,None)
@@ -206,8 +208,20 @@ class AuthoringTests(unittest.TestCase):
         self.assertTrue(nav.path([1,8],[4,8])["found"])
         self.assertFalse(nav.path([1,8],[6,8])["found"])
         self.world.doc["portals"]=[];m.tags[4,8]="blackstone_gate"
+        self.assertTrue(Navigation(self.world,m).path([1,8],[6,8])["found"])
+        self.assertTrue(cell(self.world,m,4,8)["walkable"])
+        self.assertEqual(cell(self.world,m,4,8)["blockers"],[])
+        m.set("decoration",4,8,self.catalog.parse("Outside/B/103"))
         self.assertFalse(Navigation(self.world,m).path([1,8],[6,8])["found"])
-        self.assertTrue(Navigation(self.world,m,gates={"blackstone_gate":True}).path([1,8],[6,8])["found"])
+
+    def test_current_world_has_no_progression_obstacles(self):
+        world=World(ROOT/"World",self.catalog)
+        objects=Metadata(ROOT/"Lua").objects(world)
+        self.assertFalse(any(o.get("kind") in ("cuttable_bush","smashable_rock") for o in objects.values()))
+        self.assertFalse(any(tag=="blackstone_gate" for m in world.maps.values() for tag in m.tags.values()))
+        m=world.map("overworld")
+        for point in ((535,754),(536,754),(537,754),(472,689),(472,690),(366,685)):
+            self.assertTrue(cell(world,m,*point)["walkable"],point)
 
     def test_metadata_templates_unknown_ids_and_overlap(self):
         self.apply(self.document([dict(op="object_add",id="new_chest",template="chest",position=dict(map="overworld",at=[8,8]),appearance="!Chest-4")]))

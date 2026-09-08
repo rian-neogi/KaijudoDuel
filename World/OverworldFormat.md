@@ -144,13 +144,13 @@ from artwork alone:
 {
   "x": 536,
   "y": 754,
-  "value": "blackstone_gate"
+  "value": "example_landmark"
 }
 ```
 
-The `blackstone_gate` tag lets story logic keep the relay gate closed until the
-Confluence Crest has been earned. Tags should remain stable once code or saved
-progress refers to them.
+The example is an authoring marker with no runtime behavior. Tags should remain
+stable once code or saved progress refers to them. The former `blackstone_gate`
+tag is retired; movement no longer depends on Crests, story progress or cards.
 
 ## Related world data
 

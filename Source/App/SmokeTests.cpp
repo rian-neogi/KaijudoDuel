@@ -22,6 +22,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <dirent.h>
+#include <fstream>
 #include <iostream>
 #include <set>
 #include <sys/stat.h>
@@ -4508,9 +4509,7 @@ bool Application::exerciseWorldObjectsSmoke()
 	WorldObject instance = createWorldObject(*bush, "cuttable_bush_smoke");
 	bool valid = instance.editorCreated && instance.templateId == "cuttable_bush" &&
 		instance.id == "cuttable_bush_smoke" &&
-		instance.kind == WorldObjectKind::CuttableBush &&
-		getCardIdFromName("Xeno Mantis") >= 0 &&
-		getCardIdFromName("Smash Warrior Stagrandu") >= 0;
+		instance.kind == WorldObjectKind::CuttableBush;
 	if (!valid) return false;
 
 	const int savedArea = mCurrentWorldArea;
@@ -4573,6 +4572,68 @@ bool Application::exerciseWorldObjectsSmoke()
 	undoWorldBuilder();
 	valid = valid && mWorldObjects.size() == originalCount &&
 		mWorldBuilderUndoHistory.empty() && mWorldBuilderDirty == savedDirty;
+	// Clearing either obstacle must work with an empty collection, and must
+	// persist to an isolated save rather than any player-authored save.
+	char traversalDirectory[] = "/tmp/kaijudo-traversal-smoke-XXXXXX";
+	if (mkdtemp(traversalDirectory) == NULL) valid = false;
+	else
+	{
+		const std::string savedDirectory = mActiveSaveDirectory;
+		const bool savedLoaded = mPlayerDataLoaded;
+		const std::vector<int> savedCollection = mCollectionCounts;
+		const std::set<std::string> savedCleared = mClearedWorldObjects;
+		const int savedDialogueNpc = mDialogueNpc;
+		const int savedDialogueObject = mDialogueObject;
+		const std::string savedDialogueText = mDialogueText;
+		const size_t savedVisibleBytes = mDialogueVisibleBytes;
+		const float savedAccumulator = mDialogueCharacterAccumulator;
+		const DialogueAction savedAction = mDialogueAction;
+		const bool savedMoves[] = { mMoveUp, mMoveDown, mMoveLeft, mMoveRight };
+		const int savedIntentX = mMoveIntentX;
+		const int savedIntentY = mMoveIntentY;
+		mActiveSaveDirectory = traversalDirectory;
+		mPlayerDataLoaded = true;
+		mCollectionCounts.assign(gCardDatabase.size(), 0);
+		for (int kind = 0; kind < 2; ++kind)
+		{
+			WorldObject obstacle = instance;
+			obstacle.id = kind == 0 ? "free_bush_smoke" : "free_rock_smoke";
+			obstacle.kind = kind == 0 ? WorldObjectKind::CuttableBush :
+				WorldObjectKind::SmashableRock;
+			obstacle.mapId = currentMapId();
+			obstacle.x = freeX;
+			obstacle.y = freeY;
+			mClearedWorldObjects.erase(obstacle.id);
+			mWorldObjects.push_back(obstacle);
+			beginObjectDialogue((int)mWorldObjects.size() - 1);
+			valid = valid && mClearedWorldObjects.count(obstacle.id) == 1 &&
+				worldObjectAt(freeX, freeY) < 0 &&
+				mDialogueText.find("You clear") == 0;
+			std::ifstream progress(playerDataPath("progress.txt").c_str());
+			std::string entry;
+			bool persisted = false;
+			while (std::getline(progress, entry))
+				if (entry == "object.cleared." + obstacle.id + "=1") persisted = true;
+			valid = valid && persisted;
+			mWorldObjects.pop_back();
+		}
+		std::remove(playerDataPath("collection.txt").c_str());
+		std::remove(playerDataPath("progress.txt").c_str());
+		std::remove(traversalDirectory);
+		mActiveSaveDirectory = savedDirectory;
+		mPlayerDataLoaded = savedLoaded;
+		mCollectionCounts = savedCollection;
+		mClearedWorldObjects = savedCleared;
+		mDialogueNpc = savedDialogueNpc;
+		mDialogueObject = savedDialogueObject;
+		mDialogueText = savedDialogueText;
+		mDialogueVisibleBytes = savedVisibleBytes;
+		mDialogueCharacterAccumulator = savedAccumulator;
+		mDialogueAction = savedAction;
+		mMoveUp = savedMoves[0]; mMoveDown = savedMoves[1];
+		mMoveLeft = savedMoves[2]; mMoveRight = savedMoves[3];
+		mMoveIntentX = savedIntentX; mMoveIntentY = savedIntentY;
+	}
 	mWorldObjects = savedObjects;
 	mCurrentWorldArea = savedArea;
 	mWorldBuilderTab = savedTab;
@@ -7198,7 +7259,7 @@ bool Application::exerciseOverworldMovementSmoke()
 		mWorld.maps[overworldArea].tiles.size() == 1024 &&
 		mWorld.maps[overworldArea].tiles[0].size() == 1024 &&
 		!mWorld.maps[overworldArea].tileLayers.empty() &&
-		mWorld.maps[overworldArea].hasTag(248 + overworldOffsetX,
+		!mWorld.maps[overworldArea].hasTag(248 + overworldOffsetX,
 			89 + overworldOffsetY, "blackstone_gate");
 	seamlessWorldReady = seamlessWorldReady && catalogWorldReady;
 	int storageArea = worldAreaIndex("mercers_house");
@@ -7275,20 +7336,28 @@ bool Application::exerciseOverworldMovementSmoke()
 		if (mNpcs[i].crestId == "confluence") mNpcs[i].wins = 0;
 	}
 	std::string savedFirstCrest = mNpcs[0].crestId;
+	const std::map<std::pair<int, int>, std::string> savedGateTags =
+		mWorld.maps[overworldArea].tags;
+	// Old native files may retain this tag. It must not restore the movement lock.
+	mWorld.maps[overworldArea].tags[std::make_pair(248 + overworldOffsetX,
+		89 + overworldOffsetY)] = "blackstone_gate";
 	mCurrentWorldArea = overworldArea;
 	mPlayerX = 248 + overworldOffsetX;
 	mPlayerY = 88 + overworldOffsetY;
 	mVisualX = (float)mPlayerX;
 	mVisualY = (float)mPlayerY;
 	tryMove(0, 1);
-	bool blackstoneGateReady = mPlayerY == 88 + overworldOffsetY &&
-		mNotice.find("Blackstone gate") != std::string::npos;
+	bool blackstoneGateReady = mPlayerX == 248 + overworldOffsetX &&
+		mPlayerY == 89 + overworldOffsetY && mNotice == savedGateNotice;
+	mPlayerY = 88 + overworldOffsetY;
+	mVisualY = (float)mPlayerY;
 	mNpcs[0].crestId = "confluence";
 	mNpcs[0].wins = 1;
 	tryMove(0, 1);
 	blackstoneGateReady = blackstoneGateReady &&
 		mPlayerX == 248 + overworldOffsetX && mPlayerY == 89 + overworldOffsetY;
 	mNpcs[0].crestId = savedFirstCrest;
+	mWorld.maps[overworldArea].tags = savedGateTags;
 	for (size_t i = 0; i < mNpcs.size(); ++i) mNpcs[i].wins = savedConfluenceWins[i];
 	mCurrentWorldArea = savedGateArea;
 	mPlayerX = savedGateX;

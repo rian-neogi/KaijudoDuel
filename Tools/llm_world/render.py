@@ -102,7 +102,7 @@ class Renderer:
         override = next((p["appearance"] for p in world.doc["entities"].get("object_appearances",[]) if p["id"]==id),None)
         return self.sprite(override or entry.get("appearance"),entry.get("frame_row",0))
 
-    def map(self, world, m, bounds, path, metadata, tile_size=16, grid=False, collision=False, labels=False, regions=False, gates=None):
+    def map(self, world, m, bounds, path, metadata, tile_size=16, grid=False, collision=False, labels=False, regions=False):
         x,y,w,h = m.bounds(bounds)
         if w*h*1024 > 20_000_000 or w*h*tile_size*tile_size > 20_000_000:
             raise WorldError("Preview exceeds 20 million pixels; select a smaller --rect")
@@ -135,7 +135,7 @@ class Renderer:
         image = image.resize((w*tile_size,h*tile_size),self.Image.Resampling.NEAREST)
         if collision:
             overlay = self.Image.new("RGBA",image.size)
-            draw = self.Draw.Draw(overlay); nav = Navigation(world,m,bounds,gates)
+            draw = self.Draw.Draw(overlay); nav = Navigation(world,m,bounds)
             for Y in range(y,y+h):
                 for X in range(x,x+w):
                     if not nav.walkable[Y*m.width+X]:

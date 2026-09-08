@@ -235,9 +235,10 @@ five decks.
   Tile-paint and erase drags interpolate all crossed cells so zoomed-out strokes
   remain continuous.
 - Use map `tags` for gameplay semantics that cannot be inferred from artwork.
-  Keep tag IDs stable once saves or story logic reference them. The current
-  `blackstone_gate` tag marks the relay gate, which stays blocked until the
-  Confluence Crest has been earned.
+  Keep tag IDs stable once saves or story logic reference them. Movement has no
+  Crest, story, or collection prerequisites. The former `blackstone_gate` tag
+  is retired and must not block movement. Cuttable bushes and smashable rocks
+  can be cleared by interacting without owning a particular card.
 - Portals are directed transitions. Define both directions explicitly when a
   doorway must support entering and leaving an interior. Exterior regions share
   the `overworld` map and must connect through adjacent walkable tiles, not

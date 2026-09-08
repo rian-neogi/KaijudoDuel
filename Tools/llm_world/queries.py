@@ -25,21 +25,20 @@ def positions(world, map_id):
     return rows
 
 
-def cell(world, m, x, y, gates=None, cleared=()):
+def cell(world, m, x, y, cleared=()):
     m.point([x, y])
     behavior, source = m.collision(x, y)
     occupants = [p for p in positions(world, m.id) if (p["x"], p["y"]) == (x, y)]
     blockers = [p["id"] for p in occupants if (p["category"] in ("npcs", "objects") and p["id"] not in cleared) or (p["category"] == "portal_from" and p["appearance"])]
     tag = m.tags.get((x, y))
-    gate = tag == "blackstone_gate" and not (gates or {}).get(tag, False)
     return dict(map=m.id, at=[x, y], layers={l: t.json() if (t := m.view().get(l, x, y)) else None for l in LAYERS},
                 tile_collision=behavior, collision_source=source.key if source else "empty/inherited layers",
-                walkable=behavior == "walkable" and not blockers and not gate,
-                blockers=blockers + (["closed: " + tag] if gate else []), tag=tag, occupants=occupants)
+                walkable=behavior == "walkable" and not blockers,
+                blockers=blockers, tag=tag, occupants=occupants)
 
 
 class Navigation:
-    def __init__(self, world, m, bounds=None, gates=None, cleared=()):
+    def __init__(self, world, m, bounds=None, cleared=()):
         self.m, self.bounds = m, m.bounds(bounds)
         self.triggers, self.blockers = set(), {}
         self.walkable = bytearray(m.size)
@@ -62,10 +61,6 @@ class Navigation:
                     self.walkable[p] = 0
             elif item["category"] == "portal_from":
                 self.triggers.add(p)
-        for (X, Y), tag in m.tags.items():
-            if tag == "blackstone_gate" and not (gates or {}).get(tag, False):
-                self.walkable[Y * m.width + X] = 0
-                self.blockers[Y * m.width + X] = ["closed: " + tag]
 
     def index(self, xy):
         x, y = self.m.point(xy)
@@ -127,7 +122,7 @@ class Navigation:
                 if cost + 1 < costs.get(q, self.m.size + 1):
                     costs[q], previous[q] = cost + 1, p
                     heapq.heappush(frontier, (cost + 1 + heuristic(q), cost + 1, q))
-        return dict(found=False, reason="No route within the selected map, bounds and gate state", path=[])
+        return dict(found=False, reason="No route within the selected map and bounds", path=[])
 
 
 def summary(world, m=None, bounds=None):
@@ -153,11 +148,11 @@ def summary(world, m=None, bounds=None):
                 entities=[p for p in positions(world, m.id) if inside([x,y,w,h], p["x"], p["y"])])
 
 
-def inspect(world, m, bounds, gates=None):
+def inspect(world, m, bounds):
     x, y, w, h = m.bounds(bounds)
     if w * h > 4096:
         raise WorldError("ASCII inspection is limited to 4096 cells; request a smaller --rect or use summary/render")
-    nav = Navigation(world, m, bounds, gates)
+    nav = Navigation(world, m, bounds)
     markers = {(p["x"], p["y"]): {"npcs":"N", "objects":"O", "shards":"S", "start":"@", "portal_from":"D", "portal_to":"a"}[p["category"]] for p in positions(world, m.id)}
     rows = ["".join(markers.get((X,Y), "." if nav.walkable[Y*m.width+X] else "#") for X in range(x,x+w)) for Y in range(y,y+h)]
     return dict(map=m.id, rect=[x,y,w,h], legend={".":"walkable", "#":"blocked", "N":"NPC", "O":"object", "S":"shard", "D":"portal origin", "a":"arrival", "@":"player start"}, rows=rows)
@@ -189,7 +184,7 @@ def free_space(world, m, bounds, width, height, limit=5, allow_regions=False):
     return found
 
 
-def validate(world, metadata, start=None, map_id=None, bounds=None, gates=None, requirements=()):
+def validate(world, metadata, start=None, map_id=None, bounds=None, requirements=()):
     issues=[]
     def issue(code, message, **context):
         issues.append(dict(severity="error", code=code, message=message, **context))
@@ -250,7 +245,7 @@ def validate(world, metadata, start=None, map_id=None, bounds=None, gates=None, 
     navigation=None
     if start is not None:
         try:
-            m=world.map(map_id);navigation=Navigation(world,m,bounds,gates);seen=navigation.reachable(start)
+            m=world.map(map_id);navigation=Navigation(world,m,bounds);seen=navigation.reachable(start)
             for p in positions(world,m.id):
                 if not inside(navigation.bounds,p["x"],p["y"]):continue
                 x,y=p["x"],p["y"];index=y*m.width+x
@@ -260,13 +255,13 @@ def validate(world, metadata, start=None, map_id=None, bounds=None, gates=None, 
         except WorldError as exc:issue("navigation_start",str(exc))
     for req in requirements:
         try:
-            m=world.map(req["map"]);nav=Navigation(world,m,req.get("rect"),gates)
+            m=world.map(req["map"]);nav=Navigation(world,m,req.get("rect"))
             route=nav.path(req["from"],req["to"],req.get("interact",False))
             if not route["found"]:issue("required_route",route["reason"],map=m.id,at=req["to"])
         except (WorldError,KeyError) as exc:issue("required_route",str(exc))
     return dict(valid=not issues, error_count=len(issues), issues=issues,
                 navigation=dict(map=map_id,from_=list(start),reachable_cells=sum(seen)) if navigation and start is not None and 'seen' in locals() else None,
-                assumptions="NPCs at manifest positions; uncleared objects; Blackstone gate closed unless explicitly opened; invisible portals terminate local paths.")
+                assumptions="NPCs at manifest positions; uncleared objects; no progression-based movement gates; invisible portals terminate local paths.")
 
 
 def spatial_diff(before, after, limit=20):

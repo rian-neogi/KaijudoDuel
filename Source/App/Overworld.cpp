@@ -440,9 +440,6 @@ bool Application::isWalkable(int x, int y) const
 	const std::vector<std::string>& map = currentMap();
 	if (y < 0 || y >= (int)map.size() || x < 0 || x >= (int)map[y].size()) return false;
 	const WorldMap& area = mWorld.maps[mCurrentWorldArea];
-	if (area.hasTag(x, y, "blackstone_gate") && !hasCrest("confluence")) return false;
-	if (!area.catalogOnly && WorldTiles::fromGlyph(map[y][x]) ==
-		WorldTiles::BlackstoneGate && !hasCrest("confluence")) return false;
 	return worldTileWalkable(area, x, y);
 }
 
@@ -469,17 +466,6 @@ void Application::tryMove(int dx, int dy)
 	mFacingY = dy;
 	int x = mPlayerX + dx;
 	int y = mPlayerY + dy;
-	const std::vector<std::string>& map = currentMap();
-	if (y >= 0 && y < (int)map.size() && x >= 0 && x < (int)map[y].size() &&
-		(mWorld.maps[mCurrentWorldArea].hasTag(x, y, "blackstone_gate") ||
-		(!mWorld.maps[mCurrentWorldArea].catalogOnly &&
-			WorldTiles::fromGlyph(map[y][x]) == WorldTiles::BlackstoneGate)) &&
-		!hasCrest("confluence"))
-	{
-		mNotice = "The Blackstone gate is sealed. Dragon Keep's Confluence relay must be restored.";
-		mNoticeUntil = SDL_GetTicks() + 4500;
-		return;
-	}
 	bool occupiedByMovingNpc = false;
 	for (size_t i = 0; i < mNpcs.size(); ++i)
 		if (npcVisible((int)i) && mNpcs[i].mapId == currentMapId() &&
@@ -605,21 +591,10 @@ void Application::beginObjectDialogue(int objectIndex)
 	{
 		ensurePlayerDataLoaded();
 		const bool bush = object.kind == WorldObjectKind::CuttableBush;
-		const std::string cardName = bush ? "Xeno Mantis" : "Smash Warrior Stagrandu";
-		const int cardId = getCardIdFromName(cardName);
-		const bool hasTraversalCard = cardId >= 0 &&
-			cardId < (int)mCollectionCounts.size() && mCollectionCounts[cardId] > 0;
-		if (hasTraversalCard)
-		{
-			mClearedWorldObjects.insert(object.id);
-			savePlayerProgress();
-			dialogue = bush ?
-				"Xeno Mantis slices through the bush and clears the path." :
-				"Smash Warrior Stagrandu shatters the rock and clears the path.";
-		}
-		else dialogue = bush ?
-			"The bush is too dense to cross. Xeno Mantis could cut it down." :
-			"The rock is too heavy to move. Smash Warrior Stagrandu could smash it.";
+		mClearedWorldObjects.insert(object.id);
+		savePlayerProgress();
+		dialogue = bush ? "You clear the bush from the path." :
+			"You clear the rocks from the path.";
 	}
 	mDialogueNpc = -1;
 	mDialogueObject = objectIndex;
@@ -1463,11 +1438,7 @@ void Application::renderOverworld()
 			{
 				fillRect({ tileRect.x + 3, tileRect.y + 2, 7, 44 }, 27, 27, 29);
 				fillRect({ tileRect.x + 38, tileRect.y + 2, 7, 44 }, 27, 27, 29);
-				if (!hasCrest("confluence"))
-					for (int bar = 13; bar < 38; bar += 8)
-						fillRect({ tileRect.x + bar, tileRect.y + 4, 4, 40 }, 202, 158, 57);
-				else
-					fillRect({ tileRect.x + 13, tileRect.y + 4, 24, 4 }, 202, 158, 57);
+				fillRect({ tileRect.x + 13, tileRect.y + 4, 24, 4 }, 202, 158, 57);
 			}
 		}
 	}

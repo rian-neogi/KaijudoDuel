@@ -2462,8 +2462,6 @@ bool Application::drawWorldTileLayer(const WorldMap& area, int x, int y,
 	if (tile == NULL) return rendered;
 	RtpTileReference renderTile = *tile;
 	worldTileRenderReference(area, x, y, layer, renderTile);
-	if (mScreen != Screen::WorldBuilder && layer == RtpRenderLayer::Decoration &&
-		area.hasTag(x, y, "blackstone_gate") && hasCrest("confluence")) return false;
 	if (RtpTilesetRenderer::isCompositeTile(*tile))
 		return mWorldTileRenderer->drawCatalogCompositeLayer(*tile, layer, destination) ||
 			rendered;

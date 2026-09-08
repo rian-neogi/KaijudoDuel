@@ -1088,6 +1088,213 @@ return {
 		}
 	},
 
+	--Gloam Quarry
+	{
+		id = "vey",
+		name = "Sister Vey",
+		kind = "town_npc",
+		options = { duel = true, wander = false },
+		appearance = "Actor3-2",
+		crest = "ashen",
+		max_battles = 1,
+		decks = { "NPC/Sister Vey.txt" },
+		rewards = {
+			{ card = "Death Phoenix, Avatar of Doom", gold_tier = 2 },
+		},
+		ai = { personality = "control", difficulty = "medium" },
+		dialogue = {
+			greeting = "The arena is open. I can offer you the Ashen Crest match.",
+			talk = "Sister is a civic title here. I keep the memorial records and oversee the arena. Anyone can visit the Ashvault; you do not need to win a duel first.",
+			defeat = "You understood what each sacrifice would cost. The Ashen Crest and Death Phoenix are yours.",
+			victory = "You used up the creatures you needed for your next play. Decide what you can afford to lose before you attack.",
+			complete = "Your Ashen Crest match is recorded. I hope you will stay to meet the people who live here."
+		}
+	},
+	{
+		id = "dema",
+		name = "Dema",
+		kind = "town_npc",
+		options = { duel = true, wander = true },
+		appearance = "People3-5",
+		max_battles = 1,
+		decks = { "FD Generic 1.txt" },
+		rewards = {
+			{ card = "Jack Viper, Shadow of Doom", gold_tier = 1 },
+		},
+		ai = { personality = "rush", difficulty = "medium" },
+		dialogue = {
+			greeting = "My shift is over. Have time for a duel?",
+			talk = "I check the warning flags before the crew starts work. Someone swapped mine for laundry once. We found out whose when it began to rain.",
+			defeat = "You stopped my early attacks and still had creatures left. Take Jack Viper; it can help you recover yours.",
+			victory = "You waited for a big creature while my smaller ones kept attacking.",
+			complete = "That was my practice match for today. Now I need to return these flags before Beren counts them."
+		}
+	},
+	{
+		id = "rell",
+		name = "Rell",
+		kind = "town_npc",
+		options = { duel = true, wander = true },
+		appearance = "People2-3",
+		max_battles = 1,
+		decks = { "LD Late.txt" },
+		rewards = {
+			{ card = "Stinger Worm", gold_tier = 1 },
+		},
+		ai = { personality = "control", difficulty = "medium" },
+		dialogue = {
+			greeting = "The lamps are checked. I have time for a duel.",
+			talk = "Violet lamps belong beside the memorials. I test the green ones by the southern outlook. Damp air finds every crack in the glass.",
+			defeat = "You kept enough cards to get past my blockers. Stinger Worm will give you another choice to consider.",
+			victory = "Your attack stopped at my blockers, and you had no cards left to try something else.",
+			complete = "One match is enough before the evening rounds. There are more lamps here than people think."
+		}
+	},
+	{
+		id = "ivo",
+		name = "Ivo",
+		kind = "town_npc",
+		options = { duel = true, wander = false },
+		appearance = "People2-1",
+		max_battles = 1,
+		decks = { "WD Generic 1.txt" },
+		rewards = {
+			{ card = "Terror Pit", gold_tier = 1 },
+		},
+		ai = { personality = "control", difficulty = "medium" },
+		dialogue = {
+			greeting = "The copying is finished. We can use a clear table for a duel.",
+			talk = "Families check each inscription before the carver starts. Last week a grandson corrected a date that had been wrong in our ledger for thirty years.",
+			defeat = "You made better use of your cards than I did. Terror Pit should be useful in your next match.",
+			victory = "I saved my removal for the creatures that could actually defeat me.",
+			complete = "I have written down the result. Unlike the family records, my defeat does not need to be carved in stone."
+		}
+	},
+	{
+		id = "gloam_nera",
+		name = "Shopkeeper Nera",
+		kind = "town_npc",
+		options = { trade = true, wander = false },
+		shop_stock = "gloam_quarry",
+		appearance = "People3-8",
+		dialogue = {
+			greeting = "Welcome to Ash and Ember. Leave the quarry dust on the mat; the cards are clean.",
+			talk = "Most of my customers play Darkness. I keep small creatures and recovery spells in stock because an expensive finisher cannot do everything.",
+			shop_early = "I have Darkness creatures, removal, and Dark Reversal. Take a look.",
+			shop_late = "The latest delivery includes more graveyard recovery and removal. The stock list is up to date."
+		}
+	},
+	{
+		id = "gloam_ossa",
+		name = "Steward Ossa",
+		kind = "town_npc",
+		options = { wander = false },
+		appearance = "People4-6",
+		dialogue = {
+			greeting = "First visit? You are at Slatecross, in the middle of Gloam Quarry.",
+			talk = "The cardhouse is west of this board and the inn is east. The lower terrace has the clinic, school, and Record House. Vey takes challengers at the arena beyond them."
+		}
+	},
+	{
+		id = "gloam_nella",
+		name = "Nella",
+		kind = "town_npc",
+		options = { wander = true },
+		appearance = "People3-1",
+		dialogue = {
+			greeting = "Mind the baskets. I only just got them out of the rain.",
+			talk = "I bring vegetables down from the northern farms. The quarry crews buy every onion I carry, then complain that Orin puts onions in everything."
+		}
+	},
+	{
+		id = "gloam_beren",
+		name = "Beren",
+		kind = "town_npc",
+		options = { wander = false },
+		appearance = "People4-8",
+		dialogue = {
+			greeting = "The hoist is idle. You can use the steps beside the yard.",
+			talk = "I took over from Eska last spring. She still checks my load book after supper. Yesterday she corrected my spelling and left the figures alone, so I think I am improving."
+		}
+	},
+	{
+		id = "gloam_tovin",
+		name = "Tovin",
+		kind = "town_npc",
+		options = { wander = false },
+		appearance = "People4-5",
+		dialogue = {
+			greeting = "Give that stone a little room. The carving is finished, but the paint is wet.",
+			talk = "I carve names for the Record House and lintels for the homes. Mina asked for a dragon over her door. Her family approved a very small dragon."
+		}
+	},
+	{
+		id = "gloam_eska",
+		name = "Eska",
+		kind = "town_npc",
+		options = { wander = false },
+		appearance = "People1-8",
+		dialogue = {
+			greeting = "There is room at the table. Move that empty cup and sit down.",
+			talk = "I ran the upper hoist for twenty-seven years. Beren runs it now. I promised I would stop giving advice at supper, so I give it before supper."
+		}
+	},
+	{
+		id = "gloam_mina",
+		name = "Mina",
+		kind = "town_npc",
+		options = { wander = true },
+		appearance = "People1-4",
+		dialogue = {
+			greeting = "Have you seen a blue marble? Not a card. A marble.",
+			talk = "Sella said we cannot race marbles down the stairs anymore. We marked a course beside the tables instead. Eska keeps score even when she says she is not watching."
+		}
+	},
+	{
+		id = "gloam_jessa",
+		name = "Jessa",
+		kind = "town_npc",
+		options = { wander = false },
+		appearance = "People1-6",
+		dialogue = {
+			greeting = "Welcome to the Shale and Spoon. The crews have finished lunch, so you can hear yourself think.",
+			talk = "I run the rooms and Orin runs the kitchen. We tried doing it the other way once. Nobody slept well and the soup was worse."
+		}
+	},
+	{
+		id = "gloam_orin",
+		name = "Orin",
+		kind = "town_npc",
+		options = { wander = false },
+		appearance = "People2-5",
+		dialogue = {
+			greeting = "The next pot is for the night crew. They will notice if I start serving it early.",
+			talk = "Nella brings the onions, the crews bring their appetites, and Jessa tells me when I have made too much. Jessa has never had to tell me that."
+		}
+	},
+	{
+		id = "gloam_iona",
+		name = "Iona",
+		kind = "town_npc",
+		options = { wander = false },
+		appearance = "People3-3",
+		dialogue = {
+			greeting = "Please keep your voice down near the beds. Some of the night crew are resting.",
+			talk = "I look after the clinic and Dema checks the work crews' equipment. She remembers everyone's inspection date and forgets her own lunch. Orin sends it over."
+		}
+	},
+	{
+		id = "gloam_sella",
+		name = "Sella",
+		kind = "town_npc",
+		options = { wander = false },
+		appearance = "People2-8",
+		dialogue = {
+			greeting = "Come in. We have finished lessons for the day.",
+			talk = "The children copy short inscriptions to practice their letters. Ivo checks the names, and Tovin lends us scrap stone. Mina always asks whether the spelling matters more than the dragon she has drawn beside it."
+		}
+	},
+
 	--Rootmaze
 	{
 		id = "oren",

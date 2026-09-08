@@ -182,7 +182,7 @@ return {
 		id = "blackstone_checkpoint_sign",
 		name = "Blackstone Checkpoint Signpost",
 		kind = "signpost",
-		text = "Blackstone Road checkpoint. The relay gate remains sealed until Dragon Keep restores the Confluence route to Gloam Quarry."
+		text = "Blackstone Road. Follow the road south to Gloam Quarry."
 	},
 	{
 		id = "cinderrail_station_sign",
